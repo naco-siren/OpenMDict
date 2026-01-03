@@ -32,12 +32,12 @@ public final class MDictEntry {
     
     /// Previous entry in dictionary order (nil if first entry)
     public var prev: MDictEntry? {
-        dictionary?.entry(at: index - 1)
+        dictionary?[index - 1]
     }
     
     /// Next entry in dictionary order (nil if last entry)
     public var next: MDictEntry? {
-        dictionary?.entry(at: index + 1)
+        dictionary?[index + 1]
     }
     
     /// Check if this is the first entry
@@ -151,23 +151,8 @@ public final class MDictReader {
     
     // MARK: - Public Lookup API
     
-    /// Lookup a keyword
-    /// - Parameter keyword: The word to look up
-    /// - Returns: Entry with definition and navigation, or nil if not found
-    public func lookup(_ keyword: String) -> MDictEntry? {
-        let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
-        
-        guard let idx = keywordIndex[searchKey] else {
-            return nil
-        }
-        
-        return entry(at: idx)
-    }
-    
-    /// Get entry at specific index (for navigation)
-    /// - Parameter index: Index in keyword list
-    /// - Returns: Entry or nil if out of bounds
-    public func entry(at index: Int) -> MDictEntry? {
+    /// Access entry by index (for navigation)
+    public subscript(index: Int) -> MDictEntry? {
         guard index >= 0, index < keywords.count else {
             return nil
         }
@@ -183,6 +168,18 @@ public final class MDictReader {
             index: index,
             dictionary: self
         )
+    }
+
+    /// Lookup a keyword
+    /// - Returns: Entry with definition and navigation, or nil if not found
+    public func lookup(_ keyword: String) -> MDictEntry? {
+        let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
+        
+        guard let idx = keywordIndex[searchKey] else {
+            return nil
+        }
+        
+        return self[idx]
     }
     
     /// Search for keywords with a prefix

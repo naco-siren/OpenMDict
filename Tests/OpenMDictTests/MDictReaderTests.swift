@@ -101,7 +101,7 @@ struct MDictReaderTests {
     @Test("Navigation chain from first entry")
     func navigationChain() throws {
         let dict = try #require(Self.dict)
-        let first = try #require(dict.entry(at: 0), "Should get first entry")
+        let first = try #require(dict[0], "Should get first entry")
         
         #expect(first.isFirst)
         #expect(first.prev == nil, "First entry should have no prev")
@@ -120,7 +120,7 @@ struct MDictReaderTests {
     @Test("Last entry navigation")
     func lastEntry() throws {
         let dict = try #require(Self.dict)
-        let last = try #require(dict.entry(at: dict.info.entryCount - 1), "Should get last entry")
+        let last = try #require(dict[dict.info.entryCount - 1], "Should get last entry")
         
         #expect(last.isLast)
         #expect(last.next == nil, "Last entry should have no next")
