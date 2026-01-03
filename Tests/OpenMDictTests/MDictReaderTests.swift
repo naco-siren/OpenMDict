@@ -1,124 +1,110 @@
-import XCTest
+import Testing
+import Foundation
 @testable import OpenMDict
 
-final class MDictReaderTests: XCTestCase {
+/// Tests for MDictReader
+/// Run with: MDICT_TEST_FILE=path/to/dict.mdx swift test
+@Suite(.serialized)  // Run tests serially to avoid race conditions
+struct MDictReaderTests {
     
-    // Class-level: load dictionary only ONCE for all tests
-    static var dict: MDictReader!
-    static var testDictPath: String = ""
+    // Shared dictionary instance (loaded once)
+    static var _dict: MDictReader?
+    static var _initialized = false
     
-    override class func setUp() {
-        super.setUp()
-        testDictPath = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"] ?? ""
-        guard !testDictPath.isEmpty else {
-            print("⚠️ Set MDICT_TEST_FILE environment variable to run tests")
-            return
-        }
-        
-        do {
-            dict = try MDictReader(path: testDictPath)
-            print("✅ Loaded: \(dict.info.title) with \(dict.info.entryCount) entries")
-        } catch {
-            print("❌ Failed to load dictionary: \(error)")
-        }
-    }
-    
-    override class func tearDown() {
-        dict = nil
-        super.tearDown()
-    }
-    
-    // Instance accessor
-    var dict: MDictReader {
-        get throws {
-            guard let d = Self.dict else {
-                throw XCTSkip("Dictionary not loaded. Set MDICT_TEST_FILE env var.")
+    static var dict: MDictReader? {
+        if !_initialized {
+            _initialized = true
+            guard let path = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"],
+                  !path.isEmpty else {
+                print("⚠️ Set MDICT_TEST_FILE environment variable to run tests")
+                return nil
             }
-            return d
+            do {
+                _dict = try MDictReader(path: path)
+                print("✅ Loaded: \(_dict!.info.title) with \(_dict!.info.entryCount) entries")
+            } catch {
+                print("❌ Failed to load dictionary: \(error)")
+            }
         }
+        return _dict
     }
     
     // MARK: - Basic Tests
     
-    func testLoadDictionary() throws {
-        let dict = try self.dict
+    @Test("Load dictionary and verify info")
+    func loadDictionary() throws {
+        let dict = try #require(Self.dict, "Dictionary not loaded")
         
-        XCTAssertFalse(dict.info.title.isEmpty, "Dictionary should have a title")
-        XCTAssertGreaterThan(dict.info.entryCount, 0, "Dictionary should have entries")
+        #expect(!dict.info.title.isEmpty, "Dictionary should have a title")
+        #expect(dict.info.entryCount > 0, "Dictionary should have entries")
     }
     
-    func testQueryExistingWord() throws {
-        let dict = try self.dict
+    @Test("Query existing words", arguments: ["the", "hello", "world", "apple", "book"])
+    func queryExistingWord(word: String) throws {
+        let dict = try #require(Self.dict)
         
-        let testWords = ["the", "hello", "world", "apple", "book"]
+        let entry = dict.query(word)
+        #expect(entry != nil, "'\(word)' should exist in dictionary")
         
-        for word in testWords {
-            let entry = dict.query(word)
-            XCTAssertNotNil(entry, "'\(word)' should exist in dictionary")
-            if let entry = entry {
-                XCTAssertEqual(entry.keyword.lowercased(), word.lowercased())
-                XCTAssertFalse(entry.definition.isEmpty, "\(word) should have a definition")
-            }
+        if let entry {
+            #expect(entry.keyword.lowercased() == word.lowercased())
+            #expect(!entry.definition.isEmpty, "\(word) should have a definition")
         }
     }
     
-    func testQueryNonExistentWord() throws {
-        let dict = try self.dict
+    @Test("Query non-existent word returns nil")
+    func queryNonExistentWord() throws {
+        let dict = try #require(Self.dict)
         
         let result = dict.query("xyznonexistent123")
-        XCTAssertNil(result, "Non-existent word should return nil")
+        #expect(result == nil, "Non-existent word should return nil")
     }
     
-    func testCaseInsensitiveQuery() throws {
-        let dict = try self.dict
+    @Test("Case-insensitive query")
+    func caseInsensitiveQuery() throws {
+        let dict = try #require(Self.dict)
         
-        guard !dict.info.isCaseSensitive else {
-            throw XCTSkip("Dictionary is case-sensitive")
-        }
+        // Skip if dictionary is case-sensitive
+        try #require(!dict.info.isCaseSensitive, "Dictionary is case-sensitive")
         
         let lowercase = dict.query("hello")
         let uppercase = dict.query("HELLO")
         let mixedcase = dict.query("HeLLo")
         
-        XCTAssertNotNil(lowercase)
-        XCTAssertNotNil(uppercase)
-        XCTAssertNotNil(mixedcase)
-        XCTAssertEqual(lowercase?.keyword, uppercase?.keyword)
-        XCTAssertEqual(lowercase?.keyword, mixedcase?.keyword)
+        #expect(lowercase != nil)
+        #expect(uppercase != nil)
+        #expect(mixedcase != nil)
+        #expect(lowercase?.keyword == uppercase?.keyword)
+        #expect(lowercase?.keyword == mixedcase?.keyword)
     }
     
     // MARK: - Navigation Tests
     
-    func testPrevNextNavigation() throws {
-        let dict = try self.dict
-        
-        guard let entry = dict.query("hello") else {
-            throw XCTSkip("'hello' not found in dictionary")
-        }
+    @Test("Prev/Next navigation")
+    func prevNextNavigation() throws {
+        let dict = try #require(Self.dict)
+        let entry = try #require(dict.query("hello"), "'hello' not found")
         
         // Test prev
         if let prev = entry.prev {
-            XCTAssertEqual(prev.index, entry.index - 1)
-            XCTAssertEqual(prev.next?.keyword, entry.keyword, "prev.next should return to original")
+            #expect(prev.index == entry.index - 1)
+            #expect(prev.next?.keyword == entry.keyword, "prev.next should return to original")
         }
         
         // Test next
         if let next = entry.next {
-            XCTAssertEqual(next.index, entry.index + 1)
-            XCTAssertEqual(next.prev?.keyword, entry.keyword, "next.prev should return to original")
+            #expect(next.index == entry.index + 1)
+            #expect(next.prev?.keyword == entry.keyword, "next.prev should return to original")
         }
     }
     
-    func testNavigationChain() throws {
-        let dict = try self.dict
+    @Test("Navigation chain from first entry")
+    func navigationChain() throws {
+        let dict = try #require(Self.dict)
+        let first = try #require(dict.entry(at: 0), "Should get first entry")
         
-        guard let first = dict.entry(at: 0) else {
-            XCTFail("Should be able to get first entry")
-            return
-        }
-        
-        XCTAssertTrue(first.isFirst)
-        XCTAssertNil(first.prev, "First entry should have no prev")
+        #expect(first.isFirst)
+        #expect(first.prev == nil, "First entry should have no prev")
         
         // Walk forward 5 entries
         var current: MDictEntry? = first
@@ -128,79 +114,47 @@ final class MDictReaderTests: XCTestCase {
             count += 1
         }
         
-        XCTAssertEqual(count, 5, "Should be able to walk 5 entries")
+        #expect(count == 5, "Should be able to walk 5 entries")
     }
     
-    func testLastEntry() throws {
-        let dict = try self.dict
+    @Test("Last entry navigation")
+    func lastEntry() throws {
+        let dict = try #require(Self.dict)
+        let last = try #require(dict.entry(at: dict.info.entryCount - 1), "Should get last entry")
         
-        guard let last = dict.entry(at: dict.info.entryCount - 1) else {
-            XCTFail("Should be able to get last entry")
-            return
-        }
-        
-        XCTAssertTrue(last.isLast)
-        XCTAssertNil(last.next, "Last entry should have no next")
-        XCTAssertNotNil(last.prev, "Last entry should have prev")
+        #expect(last.isLast)
+        #expect(last.next == nil, "Last entry should have no next")
+        #expect(last.prev != nil, "Last entry should have prev")
     }
     
     // MARK: - Search Tests
     
-    func testPrefixSearch() throws {
-        let dict = try self.dict
+    @Test("Prefix search")
+    func prefixSearch() throws {
+        let dict = try #require(Self.dict)
         
         let results = dict.search(prefix: "hel", limit: 10)
         
-        XCTAssertFalse(results.isEmpty, "Should find words starting with 'hel'")
+        #expect(!results.isEmpty, "Should find words starting with 'hel'")
         
         for word in results {
-            XCTAssertTrue(word.lowercased().hasPrefix("hel"), "'\(word)' should start with 'hel'")
+            #expect(word.lowercased().hasPrefix("hel"), "'\(word)' should start with 'hel'")
         }
     }
     
-    func testSearchLimit() throws {
-        let dict = try self.dict
+    @Test("Search respects limit", arguments: [5, 10, 20])
+    func searchLimit(limit: Int) throws {
+        let dict = try #require(Self.dict)
         
-        let results5 = dict.search(prefix: "a", limit: 5)
-        let results20 = dict.search(prefix: "a", limit: 20)
-        
-        XCTAssertLessThanOrEqual(results5.count, 5)
-        XCTAssertLessThanOrEqual(results20.count, 20)
+        let results = dict.search(prefix: "a", limit: limit)
+        #expect(results.count <= limit)
     }
     
-    func testSuggestions() throws {
-        let dict = try self.dict
+    @Test("Suggestions for misspelled word")
+    func suggestions() throws {
+        let dict = try #require(Self.dict)
         
         let suggestions = dict.suggestions(for: "helo", limit: 5)
-        
-        XCTAssertFalse(suggestions.isEmpty, "Should have suggestions for 'helo'")
-    }
-    
-    // MARK: - Performance Tests
-    
-    func testQueryPerformance() throws {
-        let dict = try self.dict
-        let testWords = ["hello", "world", "apple", "banana", "computer"]
-        
-        measure {
-            for _ in 0..<1000 {
-                for word in testWords {
-                    _ = dict.query(word)
-                }
-            }
-        }
-    }
-    
-    func testSearchPerformance() throws {
-        let dict = try self.dict
-        let prefixes = ["a", "ab", "abc", "he", "hel", "the"]
-        
-        measure {
-            for _ in 0..<100 {
-                for prefix in prefixes {
-                    _ = dict.search(prefix: prefix, limit: 20)
-                }
-            }
-        }
+        #expect(!suggestions.isEmpty, "Should have suggestions for 'helo'")
     }
 }
