@@ -101,12 +101,72 @@ final class MDictReader {
         
         // Parse keyword section
         let keywordData = try Self.parseKeywordSection(reader, header: header)
-        self.keywords = keywordData.keywords
-        self.entryCount = keywords.count
         
         // Parse record section header
         self.recordBlocks = try Self.parseRecordBlockInfo(reader, header: header)
         self.recordBlocksOffset = reader.position
+        
+        // Post-process keywords: calculate recordSize and recordBlockIndex
+        self.keywords = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: recordBlocks)
+        self.entryCount = keywords.count
+        
+        // Build keyword index for fast lookup
+        buildKeywordIndex()
+    }
+    
+    /// Calculate recordSize and recordBlockIndex for each keyword
+    private static func calculateRecordInfo(keywords: [KeywordEntry], recordBlocks: [RecordBlockInfo]) -> [KeywordEntry] {
+        guard !keywords.isEmpty else { return [] }
+        
+        // Build cumulative offset map for record blocks
+        var blockStartOffsets: [UInt64] = []
+        var cumulative: UInt64 = 0
+        for block in recordBlocks {
+            blockStartOffsets.append(cumulative)
+            cumulative += block.decompressedSize
+        }
+        let totalRecordSize = cumulative
+        
+        var result: [KeywordEntry] = []
+        
+        for i in 0..<keywords.count {
+            let entry = keywords[i]
+            let offset = entry.recordOffset
+            
+            // Find which block this offset belongs to
+            var blockIndex = 0
+            for j in 0..<blockStartOffsets.count {
+                if j + 1 < blockStartOffsets.count {
+                    if offset >= blockStartOffsets[j] && offset < blockStartOffsets[j + 1] {
+                        blockIndex = j
+                        break
+                    }
+                } else {
+                    blockIndex = j
+                }
+            }
+            
+            // Calculate local offset within the block
+            let localOffset = offset - blockStartOffsets[blockIndex]
+            
+            // Calculate record size: distance to next entry's offset (or end of data)
+            let nextOffset: UInt64
+            if i + 1 < keywords.count {
+                nextOffset = keywords[i + 1].recordOffset
+            } else {
+                nextOffset = totalRecordSize
+            }
+            let recordSize = Int(nextOffset - offset)
+            
+            result.append(KeywordEntry(
+                keyword: entry.keyword,
+                recordBlockIndex: blockIndex,
+                recordOffset: localOffset,
+                recordSize: recordSize
+            ))
+        }
+        
+        return result
     }
     
     /// All keywords in the dictionary
@@ -168,28 +228,31 @@ final class MDictReader {
     
     // MARK: - Private Methods
     
+    // Build keyword index for fast lookup
+    private var keywordIndex: [String: Int] = [:]
+    
+    private func buildKeywordIndex() {
+        for (idx, entry) in keywords.enumerated() {
+            let key = header.keyCaseSensitive ? entry.keyword : entry.keyword.lowercased()
+            keywordIndex[key] = idx
+        }
+    }
+    
     private func findEntry(_ keyword: String) -> KeywordEntry? {
-        var left = 0
-        var right = keywords.count - 1
+        let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
         
-        while left <= right {
-            let mid = (left + right) / 2
-            let key = header.keyCaseSensitive ? keywords[mid].keyword : keywords[mid].keyword.lowercased()
-            
-            if key == keyword {
-                return keywords[mid]
-            } else if key < keyword {
-                left = mid + 1
-            } else {
-                right = mid - 1
-            }
+        if let idx = keywordIndex[searchKey] {
+            return keywords[idx]
         }
         
         return nil
     }
     
     private func loadRecord(_ entry: KeywordEntry) throws -> String {
+        print("    [LOAD] keyword: '\(entry.keyword)', blockIndex: \(entry.recordBlockIndex), offset: \(entry.recordOffset), size: \(entry.recordSize)")
+        
         let blockInfo = recordBlocks[entry.recordBlockIndex]
+        print("    [LOAD] block fileOffset: \(blockInfo.fileOffset), compSize: \(blockInfo.compressedSize), decompSize: \(blockInfo.decompressedSize)")
         
         // Seek to block and read compressed data
         reader.seek(to: blockInfo.fileOffset)
@@ -215,11 +278,14 @@ final class MDictReader {
         let recordStart = Int(entry.recordOffset)
         let recordEnd = recordStart + entry.recordSize
         
+        print("    [LOAD] decompressed size: \(decompressed.count), recordStart: \(recordStart), recordEnd: \(recordEnd)")
+        
         guard recordEnd <= decompressed.count else {
-            throw MDictError.invalidFormat("Record offset out of bounds")
+            throw MDictError.invalidFormat("Record offset out of bounds: \(recordEnd) > \(decompressed.count)")
         }
         
         let recordData = decompressed[recordStart..<recordEnd]
+        print("    [LOAD] recordData size: \(recordData.count), first 50 bytes: \(recordData.prefix(50).map { String(format: "%02X", $0) }.joined(separator: " "))")
         
         // Decode as string (remove null terminator if present)
         var trimmedData = Data(recordData)
@@ -508,10 +574,8 @@ extension MDictReader {
         
         // Read and parse keyword blocks
         var allKeywords: [KeywordEntry] = []
-        var recordOffset: UInt64 = 0
-        var recordBlockIndex = 0
         
-        for blockInfo in keyBlockInfos {
+        for (blockIdx, blockInfo) in keyBlockInfos.enumerated() {
             let compressedBlock = try reader.readBytes(Int(blockInfo.compSize))
             
             // Decompress block
@@ -528,21 +592,26 @@ extension MDictReader {
                 decompressedBlock = Data(compressedBlock.dropFirst(8))
             }
             
-            // Parse entries from block
+            // Parse entries from block - iterate until end of block (like Python version)
             var blockOffset = 0
             let encoding = encodingFromString(header.encoding)
             let nullTermLen = (encoding == .utf16LittleEndian) ? 2 : 1
+            let numberWidth = isV2 ? 8 : 4
             
-            for _ in 0..<blockInfo.numEntries {
+            while blockOffset < decompressedBlock.count {
+                // Need at least numberWidth bytes for the record offset
+                if blockOffset + numberWidth > decompressedBlock.count {
+                    break
+                }
+                
                 // Read record offset
                 let entryRecordOffset: UInt64
                 if isV2 {
                     entryRecordOffset = decompressedBlock.readUInt64BE(at: blockOffset)
-                    blockOffset += 8
                 } else {
                     entryRecordOffset = UInt64(decompressedBlock.readUInt32BE(at: blockOffset))
-                    blockOffset += 4
                 }
+                blockOffset += numberWidth
                 
                 // Find null terminator for keyword
                 var keyEnd = blockOffset
@@ -559,11 +628,15 @@ extension MDictReader {
                     }
                 }
                 
+                // Safeguard: if keyEnd didn't move, we're stuck
+                if keyEnd == blockOffset {
+                    break
+                }
+                
                 let keyData = decompressedBlock[blockOffset..<keyEnd]
                 let keyword = String(data: Data(keyData), encoding: encoding) ?? ""
                 blockOffset = keyEnd + nullTermLen
                 
-                // Calculate record size (difference to next offset, or use lookup later)
                 let entry = KeywordEntry(
                     keyword: keyword,
                     recordBlockIndex: 0, // Will be recalculated
