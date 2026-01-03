@@ -10,7 +10,7 @@ public final class ResourceProvider {
     
     // MARK: - Properties
     
-    private let mddReaders: [MDDReader]
+    private let mddReaders: [MDDParser]
     private let baseDirectory: URL
     private var cache: [String: Data] = [:]
     private let useCache: Bool
@@ -39,11 +39,11 @@ public final class ResourceProvider {
         let baseName = mdxURL.deletingPathExtension().lastPathComponent
         
         // Discover MDD files
-        var readers: [MDDReader] = []
+        var readers: [MDDParser] = []
         
         // 1. Same-name .mdd
         let primaryMDD = baseDirectory.appendingPathComponent(baseName + ".mdd")
-        if let reader = try? MDDReader(path: primaryMDD.path) {
+        if let reader = try? MDDParser(path: primaryMDD.path) {
             readers.append(reader)
         }
         
@@ -51,7 +51,7 @@ public final class ResourceProvider {
         for i in 1...99 {
             let numberedMDD = baseDirectory.appendingPathComponent("\(baseName).\(i).mdd")
             if FileManager.default.fileExists(atPath: numberedMDD.path) {
-                if let reader = try? MDDReader(path: numberedMDD.path) {
+                if let reader = try? MDDParser(path: numberedMDD.path) {
                     readers.append(reader)
                 }
             } else {
@@ -67,9 +67,9 @@ public final class ResourceProvider {
         self.useCache = useCache
         self.baseDirectory = URL(fileURLWithPath: baseDirectory)
         
-        var readers: [MDDReader] = []
+        var readers: [MDDParser] = []
         for path in mddPaths {
-            if let reader = try? MDDReader(path: path) {
+            if let reader = try? MDDParser(path: path) {
                 readers.append(reader)
             }
         }

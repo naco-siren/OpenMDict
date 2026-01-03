@@ -12,6 +12,7 @@ enum ANSIColor: String {
     case magenta = "\u{001B}[35m"
     case cyan = "\u{001B}[36m"
     case bold = "\u{001B}[1m"
+    case dim = "\u{001B}[2m"
 }
 
 func colored(_ text: String, _ color: ANSIColor) -> String {
@@ -23,19 +24,23 @@ func colored(_ text: String, _ color: ANSIColor) -> String {
 func printUsage() {
     print("""
     
-    \(colored("MDictPOC", .bold)) - MDict MDX/MDD Parser Proof of Concept
+    \(colored("OpenMDict", .bold)) - MDict MDX/MDD Parser
     
     \(colored("Usage:", .yellow))
-        mdict-poc <mdx_file>                    Show dictionary info
-        mdict-poc <mdx_file> lookup <word>      Look up a word
-        mdict-poc <mdx_file> search <prefix>    Search by prefix
-        mdict-poc <mdx_file> list [count]       List first N entries
+        openmdict <mdx_file>                        Show dictionary info
+        openmdict <mdx_file> lookup <word>          Look up a word
+        openmdict <mdx_file> search <prefix>        Search by prefix
+        openmdict <mdx_file> list [count]           List first N entries
+        openmdict <mdx_file> resources [count]      List resources from MDD
+        openmdict <mdx_file> resource <path>        Get a specific resource
     
     \(colored("Examples:", .yellow))
-        mdict-poc MyDict.mdx
-        mdict-poc MyDict.mdx lookup hello
-        mdict-poc MyDict.mdx search happ
-        mdict-poc MyDict.mdx list 20
+        openmdict MyDict.mdx
+        openmdict MyDict.mdx lookup hello
+        openmdict MyDict.mdx search happ
+        openmdict MyDict.mdx list 20
+        openmdict MyDict.mdx resources 10
+        openmdict MyDict.mdx resource mydict.css
     
     """)
 }
@@ -65,6 +70,7 @@ func main() {
         let dict = try MDictReader(path: mdxPath)
         let loadTime = CFAbsoluteTimeGetCurrent() - startTime
         
+        // Dictionary info
         print(colored("Dictionary Info:", .bold))
         print("  Title:          ", dict.info.title)
         print("  Entries:        ", colored("\(dict.info.entryCount)", .green))
@@ -73,6 +79,29 @@ func main() {
         print("  Engine Version: ", dict.info.engineVersion)
         print("  Encrypted:      ", dict.info.isEncrypted ? colored("Yes", .yellow) : colored("No", .green))
         print("  Case Sensitive: ", dict.info.isCaseSensitive ? "Yes" : "No")
+        print()
+        
+        // Resource info
+        print(colored("Resource Info:", .bold))
+        if dict.resourceCount > 0 {
+            print("  MDD Resources:  ", colored("\(dict.resourceCount)", .green))
+            
+            // Show resource types summary
+            let paths = dict.allResourcePaths
+            let extensions = Dictionary(grouping: paths) { path in
+                (path as NSString).pathExtension.lowercased()
+            }.mapValues { $0.count }
+            
+            let summary = extensions.sorted { $0.value > $1.value }
+                .prefix(5)
+                .map { "\($0.key.isEmpty ? "other" : $0.key): \($0.value)" }
+                .joined(separator: ", ")
+            print("  Types:          ", colored(summary, .dim))
+        } else {
+            print("  MDD Resources:  ", colored("None (no .mdd file found)", .yellow))
+        }
+        print()
+        
         print("  Load Time:      ", colored(String(format: "%.2f ms", loadTime * 1000), .yellow))
         print()
         
@@ -98,12 +127,24 @@ func main() {
                 let count = args.count >= 4 ? Int(args[3]) ?? 20 : 20
                 listEntries(dict: dict, count: count)
                 
+            case "resources":
+                let count = args.count >= 4 ? Int(args[3]) ?? 20 : 20
+                listResources(dict: dict, count: count)
+                
+            case "resource":
+                guard args.count >= 4 else {
+                    print(colored("Error: Missing resource path", .red))
+                    exit(1)
+                }
+                getResource(dict: dict, path: args[3])
+                
             default:
                 print(colored("Unknown command: \(command)", .red))
                 printUsage()
                 exit(1)
             }
         } else {
+            // Default: show sample entries
             print(colored("First 10 entries:", .bold))
             for (i, entry) in dict.allKeywords.prefix(10).enumerated() {
                 print("  \(i + 1). \(entry)")
@@ -118,6 +159,8 @@ func main() {
     }
 }
 
+// MARK: - Commands
+
 func performLookup(dict: MDictReader, word: String) {
     print(colored("🔍 Looking up:", .cyan), word)
     print()
@@ -127,6 +170,10 @@ func performLookup(dict: MDictReader, word: String) {
     if let entry = dict.lookup(word) {
         let lookupTime = CFAbsoluteTimeGetCurrent() - startTime
         let content = entry.definition
+        
+        // Extract referenced resources from HTML
+        let resourceRefs = extractResourceRefs(from: content)
+        
         let displayContent = content.count > 2000 
             ? String(content.prefix(2000)) + "\n... [truncated, \(content.count) chars total]"
             : content
@@ -136,6 +183,31 @@ func performLookup(dict: MDictReader, word: String) {
         print(displayContent)
         print(String(repeating: "─", count: 60))
         print()
+        
+        // Show navigation
+        print(colored("Navigation:", .bold))
+        if let prev = entry.prev {
+            print("  ← Previous: ", colored(prev.keyword, .cyan))
+        }
+        if let next = entry.next {
+            print("  → Next:     ", colored(next.keyword, .cyan))
+        }
+        print()
+        
+        // Show referenced resources
+        if !resourceRefs.isEmpty {
+            print(colored("Referenced Resources:", .bold))
+            for ref in resourceRefs.prefix(10) {
+                let exists = dict.hasResource(ref)
+                let status = exists ? colored("✓", .green) : colored("✗", .red)
+                print("  \(status) \(ref)")
+            }
+            if resourceRefs.count > 10 {
+                print("  ... and \(resourceRefs.count - 10) more")
+            }
+            print()
+        }
+        
         print(colored("✓", .green), "Found in", colored(String(format: "%.2f ms", lookupTime * 1000), .yellow))
     } else {
         print(colored("✗ Not found:", .red), word)
@@ -180,6 +252,125 @@ func listEntries(dict: MDictReader, count: Int) {
         print("  \(String(format: "%4d", i + 1)). \(entry)")
     }
     print()
+}
+
+func listResources(dict: MDictReader, count: Int) {
+    print(colored("📦 Resources:", .bold))
+    print()
+    
+    let paths = dict.allResourcePaths
+    
+    if paths.isEmpty {
+        print(colored("  No MDD resources found", .yellow))
+        print()
+        return
+    }
+    
+    for (i, path) in paths.prefix(count).enumerated() {
+        let ext = (path as NSString).pathExtension.lowercased()
+        let icon: String
+        switch ext {
+        case "css": icon = "🎨"
+        case "js": icon = "📜"
+        case "png", "jpg", "jpeg", "gif", "svg": icon = "🖼️"
+        case "mp3", "wav", "ogg", "spx": icon = "🔊"
+        case "ttf", "otf", "woff", "woff2": icon = "🔤"
+        default: icon = "📄"
+        }
+        print("  \(String(format: "%4d", i + 1)). \(icon) \(path)")
+    }
+    
+    if paths.count > count {
+        print()
+        print(colored("  ... and \(paths.count - count) more resources", .dim))
+    }
+    print()
+}
+
+func getResource(dict: MDictReader, path: String) {
+    print(colored("📦 Resource:", .cyan), path)
+    print()
+    
+    guard let data = dict.resource(for: path) else {
+        print(colored("✗ Resource not found:", .red), path)
+        print()
+        
+        // Try to find similar resources
+        let similar = dict.allResourcePaths.filter { 
+            $0.lowercased().contains(path.lowercased()) 
+        }.prefix(5)
+        
+        if !similar.isEmpty {
+            print(colored("Similar resources:", .yellow))
+            for s in similar { print("  • \(s)") }
+        }
+        print()
+        return
+    }
+    
+    let ext = (path as NSString).pathExtension.lowercased()
+    let mime = ResourceProvider.mimeType(for: path)
+    
+    print(colored("Info:", .bold))
+    print("  Size:      ", colored("\(data.count) bytes", .green))
+    print("  MIME Type: ", mime)
+    print()
+    
+    // Show content preview for text types
+    let textTypes = ["css", "js", "html", "htm", "xml", "json", "txt", "svg"]
+    if textTypes.contains(ext) {
+        if let content = String(data: data, encoding: .utf8) {
+            let preview = content.count > 1000 
+                ? String(content.prefix(1000)) + "\n... [truncated]"
+                : content
+            
+            print(colored("Content Preview:", .bold))
+            print(String(repeating: "─", count: 60))
+            print(preview)
+            print(String(repeating: "─", count: 60))
+        }
+    } else {
+        // Show hex dump for binary
+        print(colored("Hex Preview (first 64 bytes):", .bold))
+        let hexBytes = data.prefix(64).map { String(format: "%02X", $0) }
+        for row in stride(from: 0, to: hexBytes.count, by: 16) {
+            let slice = hexBytes[row..<min(row + 16, hexBytes.count)]
+            print("  \(slice.joined(separator: " "))")
+        }
+    }
+    print()
+}
+
+// MARK: - Helpers
+
+func extractResourceRefs(from html: String) -> [String] {
+    var refs: Set<String> = []
+    
+    // Match href="..." and src="..."
+    let patterns = [
+        #"href\s*=\s*"([^"]+)""#,
+        #"src\s*=\s*"([^"]+)""#,
+        #"url\s*\(\s*'?([^')]+)'?\s*\)"#
+    ]
+    
+    for pattern in patterns {
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+            let range = NSRange(html.startIndex..., in: html)
+            let matches = regex.matches(in: html, range: range)
+            
+            for match in matches {
+                if let refRange = Range(match.range(at: 1), in: html) {
+                    let ref = String(html[refRange])
+                    // Filter out external URLs and anchors
+                    if !ref.hasPrefix("http") && !ref.hasPrefix("#") && !ref.hasPrefix("entry://") {
+                        refs.insert(ref)
+                    }
+                }
+            }
+        }
+    }
+    
+    return Array(refs).sorted()
 }
 
 main()

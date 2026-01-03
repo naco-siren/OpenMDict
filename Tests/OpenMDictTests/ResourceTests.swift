@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import OpenMDict
 
-/// Tests for MDDReader and ResourceProvider
+/// Tests for MDDParser and ResourceProvider
 /// Run with: MDICT_TEST_FILE=path/to/dict.mdx swift test
 @Suite(.serialized)
 struct ResourceTests {
@@ -29,7 +29,7 @@ struct ResourceTests {
         }
     }
     
-    // MARK: - MDDReader Tests
+    // MARK: - MDDParser Tests
     
     @Test("Load MDD file")
     func loadMDD() throws {
@@ -44,7 +44,7 @@ struct ResourceTests {
             return
         }
         
-        let mdd = try MDDReader(path: mddPath)
+        let mdd = try MDDParser(path: mddPath)
         #expect(mdd.resourceCount > 0, "MDD should have resources")
         print("✅ Loaded MDD with \(mdd.resourceCount) resources")
         

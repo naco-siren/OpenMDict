@@ -4,7 +4,7 @@ import Foundation
 
 /// MDict resource file (.mdd) reader
 /// Used for CSS, images, audio, and other assets
-public final class MDDReader {
+public final class MDDParser {
     
     // MARK: - Public Properties
     
@@ -25,7 +25,7 @@ public final class MDDReader {
     private let keywordIndex: [String: Int]
     
     // MARK: - Initialization
-    
+
     /// Load a resource file
     /// - Parameter path: Path to .mdd file
     public init(path: String) throws {
@@ -66,7 +66,12 @@ public final class MDDReader {
     }
     
     // MARK: - Public API
-    
+             
+    /// Subscript access by index
+    public subscript(path: String) -> Data? {
+        lookup(path)
+    }
+
     /// Look up a resource by path
     /// - Parameter path: Resource path (e.g., "/mydict.css" or "\\img\\logo.png")
     /// - Returns: Raw data or nil if not found
@@ -97,11 +102,6 @@ public final class MDDReader {
             }
         }
         return false
-    }
-    
-    /// Subscript access
-    public subscript(path: String) -> Data? {
-        lookup(path)
     }
     
     // MARK: - Private: Record Loading
@@ -141,7 +141,7 @@ public final class MDDReader {
 
 // MARK: - Parsing (shared with MDictReader)
 
-extension MDDReader {
+extension MDDParser {
     
     static func parseHeader(_ reader: BinaryReader) throws -> MDictHeader {
         let headerLen = try reader.readUInt32BE()
