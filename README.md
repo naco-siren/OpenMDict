@@ -34,8 +34,8 @@ let dict = try MDictReader(path: "MyDict.mdx")
 print("Title: \(dict.info.title)")
 print("Entries: \(dict.info.entryCount)")
 
-// Query a word
-if let entry = dict.query("hello") {
+// Lookup a word
+if let entry = dict.lookup("hello") {
     print("Definition: \(entry.definition)")
     
     // Navigate to adjacent entries

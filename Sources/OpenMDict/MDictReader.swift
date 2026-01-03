@@ -149,12 +149,12 @@ public final class MDictReader {
         )
     }
     
-    // MARK: - Public Query API
+    // MARK: - Public Lookup API
     
-    /// Query a keyword
+    /// Lookup a keyword
     /// - Parameter keyword: The word to look up
     /// - Returns: Entry with definition and navigation, or nil if not found
-    public func query(_ keyword: String) -> MDictEntry? {
+    public func lookup(_ keyword: String) -> MDictEntry? {
         let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
         
         guard let idx = keywordIndex[searchKey] else {

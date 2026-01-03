@@ -39,11 +39,11 @@ struct MDictReaderTests {
         #expect(dict.info.entryCount > 0, "Dictionary should have entries")
     }
     
-    @Test("Query existing words", arguments: ["the", "hello", "world", "apple", "book"])
-    func queryExistingWord(word: String) throws {
+    @Test("Lookup existing words", arguments: ["the", "hello", "world", "apple", "book"])
+    func lookupExistingWord(word: String) throws {
         let dict = try #require(Self.dict)
         
-        let entry = dict.query(word)
+        let entry = dict.lookup(word)
         #expect(entry != nil, "'\(word)' should exist in dictionary")
         
         if let entry {
@@ -52,24 +52,24 @@ struct MDictReaderTests {
         }
     }
     
-    @Test("Query non-existent word returns nil")
-    func queryNonExistentWord() throws {
+    @Test("Lookup non-existent word returns nil")
+    func lookupNonExistentWord() throws {
         let dict = try #require(Self.dict)
         
-        let result = dict.query("xyznonexistent123")
+        let result = dict.lookup("xyznonexistent123")
         #expect(result == nil, "Non-existent word should return nil")
     }
     
-    @Test("Case-insensitive query")
-    func caseInsensitiveQuery() throws {
+    @Test("Case-insensitive lookup")
+    func caseInsensitiveLookup() throws {
         let dict = try #require(Self.dict)
         
         // Skip if dictionary is case-sensitive
         try #require(!dict.info.isCaseSensitive, "Dictionary is case-sensitive")
         
-        let lowercase = dict.query("hello")
-        let uppercase = dict.query("HELLO")
-        let mixedcase = dict.query("HeLLo")
+        let lowercase = dict.lookup("hello")
+        let uppercase = dict.lookup("HELLO")
+        let mixedcase = dict.lookup("HeLLo")
         
         #expect(lowercase != nil)
         #expect(uppercase != nil)
@@ -83,7 +83,7 @@ struct MDictReaderTests {
     @Test("Prev/Next navigation")
     func prevNextNavigation() throws {
         let dict = try #require(Self.dict)
-        let entry = try #require(dict.query("hello"), "'hello' not found")
+        let entry = try #require(dict.lookup("hello"), "'hello' not found")
         
         // Test prev
         if let prev = entry.prev {

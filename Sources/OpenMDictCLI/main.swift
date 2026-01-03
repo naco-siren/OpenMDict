@@ -27,13 +27,13 @@ func printUsage() {
     
     \(colored("Usage:", .yellow))
         mdict-poc <mdx_file>                    Show dictionary info
-        mdict-poc <mdx_file> query <word>      Look up a word
+        mdict-poc <mdx_file> lookup <word>      Look up a word
         mdict-poc <mdx_file> search <prefix>    Search by prefix
         mdict-poc <mdx_file> list [count]       List first N entries
     
     \(colored("Examples:", .yellow))
         mdict-poc MyDict.mdx
-        mdict-poc MyDict.mdx query hello
+        mdict-poc MyDict.mdx lookup hello
         mdict-poc MyDict.mdx search happ
         mdict-poc MyDict.mdx list 20
     
@@ -80,12 +80,12 @@ func main() {
             let command = args[2].lowercased()
             
             switch command {
-            case "query":
+            case "lookup":
                 guard args.count >= 4 else {
-                    print(colored("Error: Missing word for query", .red))
+                    print(colored("Error: Missing word for lookup", .red))
                     exit(1)
                 }
-                performQuery(dict: dict, word: args[3])
+                performLookup(dict: dict, word: args[3])
                 
             case "search":
                 guard args.count >= 4 else {
@@ -109,7 +109,7 @@ func main() {
                 print("  \(i + 1). \(entry)")
             }
             print()
-            print(colored("Tip:", .yellow), "Use 'query <word>' to look up a word")
+            print(colored("Tip:", .yellow), "Use 'lookup <word>' to look up a word")
         }
         
     } catch {
@@ -118,14 +118,14 @@ func main() {
     }
 }
 
-func performQuery(dict: MDictReader, word: String) {
+func performLookup(dict: MDictReader, word: String) {
     print(colored("🔍 Looking up:", .cyan), word)
     print()
     
     let startTime = CFAbsoluteTimeGetCurrent()
     
-    if let entry = dict.query(word) {
-        let queryTime = CFAbsoluteTimeGetCurrent() - startTime
+    if let entry = dict.lookup(word) {
+        let lookupTime = CFAbsoluteTimeGetCurrent() - startTime
         let content = entry.definition
         let displayContent = content.count > 2000 
             ? String(content.prefix(2000)) + "\n... [truncated, \(content.count) chars total]"
@@ -136,7 +136,7 @@ func performQuery(dict: MDictReader, word: String) {
         print(displayContent)
         print(String(repeating: "─", count: 60))
         print()
-        print(colored("✓", .green), "Found in", colored(String(format: "%.2f ms", queryTime * 1000), .yellow))
+        print(colored("✓", .green), "Found in", colored(String(format: "%.2f ms", lookupTime * 1000), .yellow))
     } else {
         print(colored("✗ Not found:", .red), word)
         
