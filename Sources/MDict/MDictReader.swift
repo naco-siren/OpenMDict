@@ -574,11 +574,24 @@ extension MDictReader {
         
         // Read and parse keyword blocks
         var allKeywords: [KeywordEntry] = []
+        allKeywords.reserveCapacity(Int(numEntries)) // Pre-allocate
+        
+        let parseStart = CFAbsoluteTimeGetCurrent()
+        var readTime: Double = 0
+        var decompTime: Double = 0
+        var parseTime: Double = 0
+        
+        // encoding already defined above
+        let nullTermLen = (encoding == .utf16LittleEndian) ? 2 : 1
+        let numberWidth = isV2 ? 8 : 4
         
         for (blockIdx, blockInfo) in keyBlockInfos.enumerated() {
+            let t0 = CFAbsoluteTimeGetCurrent()
             let compressedBlock = try reader.readBytes(Int(blockInfo.compSize))
+            readTime += CFAbsoluteTimeGetCurrent() - t0
             
             // Decompress block
+            let t1 = CFAbsoluteTimeGetCurrent()
             let blockCompType = compressedBlock[0]
             let decompressedBlock: Data
             
@@ -591,20 +604,17 @@ extension MDictReader {
             } else {
                 decompressedBlock = Data(compressedBlock.dropFirst(8))
             }
+            decompTime += CFAbsoluteTimeGetCurrent() - t1
             
-            // Parse entries from block - iterate until end of block (like Python version)
+            // Parse entries from block
+            let t2 = CFAbsoluteTimeGetCurrent()
             var blockOffset = 0
-            let encoding = encodingFromString(header.encoding)
-            let nullTermLen = (encoding == .utf16LittleEndian) ? 2 : 1
-            let numberWidth = isV2 ? 8 : 4
             
             while blockOffset < decompressedBlock.count {
-                // Need at least numberWidth bytes for the record offset
                 if blockOffset + numberWidth > decompressedBlock.count {
                     break
                 }
                 
-                // Read record offset
                 let entryRecordOffset: UInt64
                 if isV2 {
                     entryRecordOffset = decompressedBlock.readUInt64BE(at: blockOffset)
@@ -613,7 +623,7 @@ extension MDictReader {
                 }
                 blockOffset += numberWidth
                 
-                // Find null terminator for keyword
+                // Find null terminator
                 var keyEnd = blockOffset
                 if encoding == .utf16LittleEndian {
                     while keyEnd + 1 < decompressedBlock.count {
@@ -628,7 +638,6 @@ extension MDictReader {
                     }
                 }
                 
-                // Safeguard: if keyEnd didn't move, we're stuck
                 if keyEnd == blockOffset {
                     break
                 }
@@ -637,16 +646,17 @@ extension MDictReader {
                 let keyword = String(data: Data(keyData), encoding: encoding) ?? ""
                 blockOffset = keyEnd + nullTermLen
                 
-                let entry = KeywordEntry(
+                allKeywords.append(KeywordEntry(
                     keyword: keyword,
-                    recordBlockIndex: 0, // Will be recalculated
+                    recordBlockIndex: 0,
                     recordOffset: entryRecordOffset,
-                    recordSize: 0 // Will be filled in later
-                )
-                
-                allKeywords.append(entry)
+                    recordSize: 0
+                ))
             }
+            parseTime += CFAbsoluteTimeGetCurrent() - t2
         }
+        
+        print("    [PERF] Read: \(String(format: "%.2f", readTime * 1000))ms, Decomp: \(String(format: "%.2f", decompTime * 1000))ms, Parse: \(String(format: "%.2f", parseTime * 1000))ms")
         
         return KeywordParseResult(keywords: allKeywords)
     }
