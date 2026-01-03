@@ -3,56 +3,75 @@ import XCTest
 
 final class MDictReaderTests: XCTestCase {
     
-    // Set this to your test dictionary path
-    // In real tests, you'd use a fixture file bundled with tests
-    static let testDictPath = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"] ?? ""
+    // Class-level: load dictionary only ONCE for all tests
+    static var dict: MDictReader!
+    static var testDictPath: String = ""
     
-    var dict: MDictReader?
-    
-    override func setUpWithError() throws {
-        // Skip tests if no dictionary file is configured
-        guard !Self.testDictPath.isEmpty else {
-            throw XCTSkip("Set MDICT_TEST_FILE environment variable to run tests")
+    override class func setUp() {
+        super.setUp()
+        testDictPath = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"] ?? ""
+        guard !testDictPath.isEmpty else {
+            print("⚠️ Set MDICT_TEST_FILE environment variable to run tests")
+            return
         }
-        dict = try MDictReader(path: Self.testDictPath)
+        
+        do {
+            dict = try MDictReader(path: testDictPath)
+            print("✅ Loaded: \(dict.info.title) with \(dict.info.entryCount) entries")
+        } catch {
+            print("❌ Failed to load dictionary: \(error)")
+        }
+    }
+    
+    override class func tearDown() {
+        dict = nil
+        super.tearDown()
+    }
+    
+    // Instance accessor
+    var dict: MDictReader {
+        get throws {
+            guard let d = Self.dict else {
+                throw XCTSkip("Dictionary not loaded. Set MDICT_TEST_FILE env var.")
+            }
+            return d
+        }
     }
     
     // MARK: - Basic Tests
     
     func testLoadDictionary() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
         XCTAssertFalse(dict.info.title.isEmpty, "Dictionary should have a title")
         XCTAssertGreaterThan(dict.info.entryCount, 0, "Dictionary should have entries")
-        print("Loaded: \(dict.info.title) with \(dict.info.entryCount) entries")
     }
     
     func testQueryExistingWord() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
-        // Test common words that should exist in most English dictionaries
         let testWords = ["the", "hello", "world", "apple", "book"]
         
         for word in testWords {
-            if let entry = dict.query(word) {
+            let entry = dict.query(word)
+            XCTAssertNotNil(entry, "'\(word)' should exist in dictionary")
+            if let entry = entry {
                 XCTAssertEqual(entry.keyword.lowercased(), word.lowercased())
                 XCTAssertFalse(entry.definition.isEmpty, "\(word) should have a definition")
-                print("✓ Found '\(word)': \(entry.definition.prefix(100))...")
             }
         }
     }
     
     func testQueryNonExistentWord() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
         let result = dict.query("xyznonexistent123")
         XCTAssertNil(result, "Non-existent word should return nil")
     }
     
     func testCaseInsensitiveQuery() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
-        // Skip if dictionary is case-sensitive
         guard !dict.info.isCaseSensitive else {
             throw XCTSkip("Dictionary is case-sensitive")
         }
@@ -61,7 +80,9 @@ final class MDictReaderTests: XCTestCase {
         let uppercase = dict.query("HELLO")
         let mixedcase = dict.query("HeLLo")
         
-        // All should find the same entry
+        XCTAssertNotNil(lowercase)
+        XCTAssertNotNil(uppercase)
+        XCTAssertNotNil(mixedcase)
         XCTAssertEqual(lowercase?.keyword, uppercase?.keyword)
         XCTAssertEqual(lowercase?.keyword, mixedcase?.keyword)
     }
@@ -69,38 +90,28 @@ final class MDictReaderTests: XCTestCase {
     // MARK: - Navigation Tests
     
     func testPrevNextNavigation() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
-        // Get an entry in the middle
         guard let entry = dict.query("hello") else {
             throw XCTSkip("'hello' not found in dictionary")
         }
         
-        print("Current: [\(entry.index)] '\(entry.keyword)'")
-        
         // Test prev
         if let prev = entry.prev {
             XCTAssertEqual(prev.index, entry.index - 1)
-            print("Prev: [\(prev.index)] '\(prev.keyword)'")
-            
-            // prev.next should be original entry
-            XCTAssertEqual(prev.next?.keyword, entry.keyword)
+            XCTAssertEqual(prev.next?.keyword, entry.keyword, "prev.next should return to original")
         }
         
         // Test next
         if let next = entry.next {
             XCTAssertEqual(next.index, entry.index + 1)
-            print("Next: [\(next.index)] '\(next.keyword)'")
-            
-            // next.prev should be original entry
-            XCTAssertEqual(next.prev?.keyword, entry.keyword)
+            XCTAssertEqual(next.prev?.keyword, entry.keyword, "next.prev should return to original")
         }
     }
     
     func testNavigationChain() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
-        // Start from first entry
         guard let first = dict.entry(at: 0) else {
             XCTFail("Should be able to get first entry")
             return
@@ -113,7 +124,6 @@ final class MDictReaderTests: XCTestCase {
         var current: MDictEntry? = first
         var count = 0
         while let entry = current, count < 5 {
-            print("[\(entry.index)] \(entry.keyword)")
             current = entry.next
             count += 1
         }
@@ -122,7 +132,7 @@ final class MDictReaderTests: XCTestCase {
     }
     
     func testLastEntry() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
         guard let last = dict.entry(at: dict.info.entryCount - 1) else {
             XCTFail("Should be able to get last entry")
@@ -132,14 +142,12 @@ final class MDictReaderTests: XCTestCase {
         XCTAssertTrue(last.isLast)
         XCTAssertNil(last.next, "Last entry should have no next")
         XCTAssertNotNil(last.prev, "Last entry should have prev")
-        
-        print("Last entry: [\(last.index)] '\(last.keyword)'")
     }
     
     // MARK: - Search Tests
     
     func testPrefixSearch() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
         let results = dict.search(prefix: "hel", limit: 10)
         
@@ -148,12 +156,10 @@ final class MDictReaderTests: XCTestCase {
         for word in results {
             XCTAssertTrue(word.lowercased().hasPrefix("hel"), "'\(word)' should start with 'hel'")
         }
-        
-        print("Words starting with 'hel': \(results)")
     }
     
     func testSearchLimit() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
         let results5 = dict.search(prefix: "a", limit: 5)
         let results20 = dict.search(prefix: "a", limit: 20)
@@ -163,22 +169,17 @@ final class MDictReaderTests: XCTestCase {
     }
     
     func testSuggestions() throws {
-        let dict = try XCTUnwrap(self.dict)
+        let dict = try self.dict
         
-        // Test with a typo
         let suggestions = dict.suggestions(for: "helo", limit: 5)
         
-        print("Suggestions for 'helo': \(suggestions)")
-        
-        // Should suggest words starting with 'hel'
-        XCTAssertFalse(suggestions.isEmpty)
+        XCTAssertFalse(suggestions.isEmpty, "Should have suggestions for 'helo'")
     }
     
     // MARK: - Performance Tests
     
     func testQueryPerformance() throws {
-        let dict = try XCTUnwrap(self.dict)
-        
+        let dict = try self.dict
         let testWords = ["hello", "world", "apple", "banana", "computer"]
         
         measure {
@@ -191,8 +192,7 @@ final class MDictReaderTests: XCTestCase {
     }
     
     func testSearchPerformance() throws {
-        let dict = try XCTUnwrap(self.dict)
-        
+        let dict = try self.dict
         let prefixes = ["a", "ab", "abc", "he", "hel", "the"]
         
         measure {

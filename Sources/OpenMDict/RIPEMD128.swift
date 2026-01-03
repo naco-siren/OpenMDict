@@ -161,10 +161,6 @@ struct KeyIndexDecryptor {
         
         let key = RIPEMD128.hash(keyMaterial)
         
-        print("    [CRYPTO] checksumBytes: \(checksumBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
-        print("    [CRYPTO] keyMaterial: \(keyMaterial.map { String(format: "%02X", $0) }.joined(separator: " "))")
-        print("    [CRYPTO] ripemd128 key: \(key.map { String(format: "%02X", $0) }.joined(separator: " "))")
-        
         // Decrypt: for each byte:
         // 1. Swap nibbles
         // 2. XOR with (previous_encrypted ^ index ^ key_byte)
