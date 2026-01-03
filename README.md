@@ -1,104 +1,97 @@
-# MDictPOC
+# OpenMDict
 
-MDict MDX/MDD Parser - Proof of Concept
+A Swift library for reading MDict dictionary files (.mdx/.mdd).
 
-## 项目结构
+## Features
 
+- ✅ MDX v2.0 format support
+- ✅ Encrypted=2 (keyword index encryption) auto-decryption
+- ✅ zlib and LZO decompression
+- ✅ O(1) keyword lookup via HashMap
+- ✅ Prefix search for autocomplete
+- ✅ Entry navigation (prev/next)
+- ✅ Cross-platform: macOS, iOS, iPadOS
+
+## Installation
+
+### Swift Package Manager
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/user/OpenMDict.git", from: "1.0.0")
+]
 ```
-MDictPOC/
-├── Package.swift           # Swift Package 配置
-├── Sources/
-│   ├── CLZ/               # C 代码 (miniLZO)
-│   │   ├── include/
-│   │   │   ├── lzoconf.h
-│   │   │   ├── minilzo.h
-│   │   │   └── module.modulemap
-│   │   └── minilzo.c
-│   └── MDict/             # Swift 代码
-│       ├── main.swift          # CLI 入口
-│       ├── BinaryReader.swift  # 二进制读取
-│       ├── Decompressor.swift  # zlib/LZO 解压
-│       ├── RIPEMD128.swift     # 加密解密
-│       └── MDictReader.swift   # 主解析器
-└── README.md
+
+## Usage
+
+```swift
+import OpenMDict
+
+// Load dictionary
+let dict = try MDictReader(path: "MyDict.mdx")
+
+// Get info
+print("Title: \(dict.info.title)")
+print("Entries: \(dict.info.entryCount)")
+
+// Query a word
+if let entry = dict.query("hello") {
+    print("Definition: \(entry.definition)")
+    
+    // Navigate to adjacent entries
+    if let prev = entry.prev {
+        print("Previous: \(prev.keyword)")
+    }
+    if let next = entry.next {
+        print("Next: \(next.keyword)")
+    }
+}
+
+// Search by prefix
+let results = dict.search(prefix: "hel", limit: 20)
+
+// Get suggestions for misspelled words
+let suggestions = dict.suggestions(for: "helo")
 ```
 
-## 编译运行
+## CLI Tool
 
 ```bash
-cd MDictPOC
+# Build
+swift build -c release
 
-# 编译
-swift build
-
-# 运行 - 查看字典信息
-swift run mdict-poc /path/to/MyDict.mdx
-
-# 查词
-swift run mdict-poc /path/to/MyDict.mdx lookup hello
-
-# 前缀搜索
-swift run mdict-poc /path/to/MyDict.mdx search happ
-
-# 列出词条
-swift run mdict-poc /path/to/MyDict.mdx list 50
+# Run
+swift run -c release openmdict MyDict.mdx lookup hello
+swift run -c release openmdict MyDict.mdx search hel
+swift run -c release openmdict MyDict.mdx list 20
 ```
 
-## 支持情况
+## Testing
 
-| 特性 | 状态 |
-|------|------|
-| MDX v2.0 | ✅ 支持 |
-| MDX v1.2 | ⚠️ 部分支持 |
-| MDX v3.0 | ❌ 不支持 |
-| zlib 压缩 | ✅ 支持 |
-| LZO 压缩 | ✅ 支持 |
-| Encrypted=0 | ✅ 支持 |
-| Encrypted=2 | ✅ 支持 (自动解密) |
-| Encrypted=1,3 | ❌ DRM 不支持 |
-| MDD 资源 | 🚧 待实现 |
+```bash
+# Set test dictionary path
+export MDICT_TEST_FILE=/path/to/dictionary.mdx
 
-## 已知限制
-
-1. **DRM 加密 (Encrypted=1 或 3)**：需要用户提供密钥，暂不支持
-2. **v3.0 格式**：MdxBuilder 4.x 产生的新格式，结构不同
-3. **Record Block 缓存**：当前每次 lookup 都重新读取，未做缓存
-
-## 技术笔记
-
-### MDX 文件结构
-
-```
-┌─ Header Section ─────────────┐
-│  4 bytes: header_length (BE) │
-│  N bytes: XML (UTF-16LE)     │
-│  4 bytes: adler32 checksum   │
-├─ Keyword Section ────────────┤
-│  Summary (40 bytes for v2)   │
-│  Keyword Index (compressed)  │
-│  Keyword Blocks (compressed) │
-├─ Record Section ─────────────┤
-│  Summary                     │
-│  Record Blocks (compressed)  │
-└──────────────────────────────┘
+# Run tests
+swift test
 ```
 
-### 压缩格式
+## Supported Formats
 
-每个压缩块的结构：
-- 4 bytes: compression type (0=none, 1=LZO, 2=zlib)
-- 4 bytes: adler32 checksum (BE)
-- N bytes: compressed data
-
-### 加密
-
-**Encrypted=2 (Index Encryption)**:
-- 只加密 keyword index 块
-- 密钥从 checksum 派生: `key = ripemd128(checksum + "\x95\x36\x00\x00")`
-- 解密算法: nibble swap + XOR chain
+| Format | Version | Encryption | Status |
+|--------|---------|------------|--------|
+| MDX | 2.0 | None (0) | ✅ |
+| MDX | 2.0 | Index (2) | ✅ |
+| MDX | 2.0 | DRM (1,3) | ❌ Not supported |
+| MDX | 1.x | - | ⚠️ Untested |
+| MDX | 3.0 | - | ❌ Not supported |
+| MDD | - | - | 🚧 Planned |
 
 ## License
 
-MIT (仅限本 POC 代码)
+MIT
 
-LZO 库: GPLv2 (原作者 Markus F.X.J. Oberhumer)
+## Credits
+
+- Format documentation: [writemdict](https://github.com/zhansliu/writemdict/blob/master/fileformat.md)
+- Reference implementation: [mdict-utils](https://github.com/liuyug/mdict-utils)

@@ -2,13 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "MDictPOC",
+    name: "OpenMDict",
     platforms: [
         .macOS(.v13),
         .iOS(.v16)
     ],
     products: [
-        .executable(name: "mdict-poc", targets: ["MDict"])
+        .executable(name: "openmdict", targets: ["OpenMDictCLI"]),
+        .library(name: "OpenMDict", targets: ["OpenMDict"])
     ],
     targets: [
         // C library for LZO decompression
@@ -20,11 +21,23 @@ let package = Package(
                 .define("MINILZO_HAVE_CONFIG_H", to: "0")
             ]
         ),
-        // Main Swift executable
-        .executableTarget(
-            name: "MDict",
+        // Main OpenMDict library
+        .target(
+            name: "OpenMDict",
             dependencies: ["CLZ"],
-            path: "Sources/MDict"
+            path: "Sources/OpenMDict"
+        ),
+        // CLI executable
+        .executableTarget(
+            name: "OpenMDictCLI",
+            dependencies: ["OpenMDict"],
+            path: "Sources/OpenMDictCLI"
+        ),
+        // Tests
+        .testTarget(
+            name: "OpenMDictTests",
+            dependencies: ["OpenMDict"],
+            path: "Tests/OpenMDictTests"
         )
     ]
 )

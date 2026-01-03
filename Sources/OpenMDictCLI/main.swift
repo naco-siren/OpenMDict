@@ -1,4 +1,5 @@
 import Foundation
+import OpenMDict
 
 // MARK: - Terminal Colors
 
@@ -26,30 +27,17 @@ func printUsage() {
     
     \(colored("Usage:", .yellow))
         mdict-poc <mdx_file>                    Show dictionary info
-        mdict-poc <mdx_file> lookup <word>      Look up a word
+        mdict-poc <mdx_file> query <word>      Look up a word
         mdict-poc <mdx_file> search <prefix>    Search by prefix
         mdict-poc <mdx_file> list [count]       List first N entries
     
     \(colored("Examples:", .yellow))
         mdict-poc MyDict.mdx
-        mdict-poc MyDict.mdx lookup hello
+        mdict-poc MyDict.mdx query hello
         mdict-poc MyDict.mdx search happ
         mdict-poc MyDict.mdx list 20
     
     """)
-}
-
-func formatFileSize(_ bytes: UInt64) -> String {
-    let units = ["B", "KB", "MB", "GB"]
-    var size = Double(bytes)
-    var unitIndex = 0
-    
-    while size >= 1024 && unitIndex < units.count - 1 {
-        size /= 1024
-        unitIndex += 1
-    }
-    
-    return String(format: "%.1f %@", size, units[unitIndex])
 }
 
 func main() {
@@ -62,7 +50,6 @@ func main() {
     
     let mdxPath = args[1]
     
-    // Check file exists
     guard FileManager.default.fileExists(atPath: mdxPath) else {
         print(colored("Error: File not found: \(mdxPath)", .red))
         exit(1)
@@ -78,38 +65,34 @@ func main() {
         let dict = try MDictReader(path: mdxPath)
         let loadTime = CFAbsoluteTimeGetCurrent() - startTime
         
-        // Print header info
         print(colored("Dictionary Info:", .bold))
-        print("  Title:          ", dict.header.title)
-        print("  Entries:        ", colored("\(dict.entryCount)", .green))
-        print("  Format:         ", dict.header.format)
-        print("  Encoding:       ", dict.header.encoding)
-        print("  Engine Version: ", dict.header.generatedByEngineVersion)
-        print("  Encrypted:      ", encryptedDescription(dict.header.encrypted))
-        print("  Case Sensitive: ", dict.header.keyCaseSensitive ? "Yes" : "No")
+        print("  Title:          ", dict.info.title)
+        print("  Entries:        ", colored("\(dict.info.entryCount)", .green))
+        print("  Format:         ", dict.info.format)
+        print("  Encoding:       ", dict.info.encoding)
+        print("  Engine Version: ", dict.info.engineVersion)
+        print("  Encrypted:      ", dict.info.isEncrypted ? colored("Yes", .yellow) : colored("No", .green))
+        print("  Case Sensitive: ", dict.info.isCaseSensitive ? "Yes" : "No")
         print("  Load Time:      ", colored(String(format: "%.2f ms", loadTime * 1000), .yellow))
         print()
         
-        // Handle commands
         if args.count >= 3 {
             let command = args[2].lowercased()
             
             switch command {
-            case "lookup":
+            case "query":
                 guard args.count >= 4 else {
-                    print(colored("Error: Missing word for lookup", .red))
+                    print(colored("Error: Missing word for query", .red))
                     exit(1)
                 }
-                let word = args[3]
-                try performLookup(dict: dict, word: word)
+                performQuery(dict: dict, word: args[3])
                 
             case "search":
                 guard args.count >= 4 else {
                     print(colored("Error: Missing prefix for search", .red))
                     exit(1)
                 }
-                let prefix = args[3]
-                performSearch(dict: dict, prefix: prefix)
+                performSearch(dict: dict, prefix: args[3])
                 
             case "list":
                 let count = args.count >= 4 ? Int(args[3]) ?? 20 : 20
@@ -121,13 +104,12 @@ func main() {
                 exit(1)
             }
         } else {
-            // Default: show first 10 entries
             print(colored("First 10 entries:", .bold))
-            for (i, entry) in dict.entries.prefix(10).enumerated() {
+            for (i, entry) in dict.allKeywords.prefix(10).enumerated() {
                 print("  \(i + 1). \(entry)")
             }
             print()
-            print(colored("Tip:", .yellow), "Use 'lookup <word>' to look up a word")
+            print(colored("Tip:", .yellow), "Use 'query <word>' to look up a word")
         }
         
     } catch {
@@ -136,50 +118,33 @@ func main() {
     }
 }
 
-func encryptedDescription(_ value: Int) -> String {
-    switch value {
-    case 0: return colored("None", .green)
-    case 1: return colored("DRM (Salsa20) - Not Supported", .red)
-    case 2: return colored("Index Only (auto-decryptable)", .yellow)
-    case 3: return colored("DRM + Index - Not Supported", .red)
-    default: return "Unknown (\(value))"
-    }
-}
-
-func performLookup(dict: MDictReader, word: String) throws {
+func performQuery(dict: MDictReader, word: String) {
     print(colored("🔍 Looking up:", .cyan), word)
     print()
     
     let startTime = CFAbsoluteTimeGetCurrent()
     
-    if let content = try dict.lookup(word) {
-        let lookupTime = CFAbsoluteTimeGetCurrent() - startTime
-        
-        // Truncate long content for display
-        let displayContent: String
-        if content.count > 2000 {
-            displayContent = String(content.prefix(2000)) + "\n... [truncated, \(content.count) chars total]"
-        } else {
-            displayContent = content
-        }
+    if let entry = dict.query(word) {
+        let queryTime = CFAbsoluteTimeGetCurrent() - startTime
+        let content = entry.definition
+        let displayContent = content.count > 2000 
+            ? String(content.prefix(2000)) + "\n... [truncated, \(content.count) chars total]"
+            : content
         
         print(colored("Result:", .green))
-        print("─" * 60)
+        print(String(repeating: "─", count: 60))
         print(displayContent)
-        print("─" * 60)
+        print(String(repeating: "─", count: 60))
         print()
-        print(colored("✓", .green), "Found in", colored(String(format: "%.2f ms", lookupTime * 1000), .yellow))
+        print(colored("✓", .green), "Found in", colored(String(format: "%.2f ms", queryTime * 1000), .yellow))
     } else {
         print(colored("✗ Not found:", .red), word)
         
-        // Suggest similar words
-        let suggestions = dict.search(prefix: String(word.prefix(3)), limit: 5)
+        let suggestions = dict.suggestions(for: word, limit: 5)
         if !suggestions.isEmpty {
             print()
             print(colored("Did you mean:", .yellow))
-            for s in suggestions {
-                print("  • \(s)")
-            }
+            for s in suggestions { print("  • \(s)") }
         }
     }
     print()
@@ -211,18 +176,10 @@ func listEntries(dict: MDictReader, count: Int) {
     print(colored("📝 First \(count) entries:", .bold))
     print()
     
-    for (i, entry) in dict.entries.prefix(count).enumerated() {
+    for (i, entry) in dict.allKeywords.prefix(count).enumerated() {
         print("  \(String(format: "%4d", i + 1)). \(entry)")
     }
     print()
 }
 
-// Helper for repeating strings
-extension String {
-    static func * (left: String, right: Int) -> String {
-        String(repeating: left, count: right)
-    }
-}
-
-// Run
 main()

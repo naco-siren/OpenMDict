@@ -1,0 +1,561 @@
+import Foundation
+
+// MARK: - Public API
+
+/// Dictionary metadata
+public struct MDictInfo {
+    public let title: String
+    public let description: String
+    public let entryCount: Int
+    public let format: String
+    public let encoding: String
+    public let engineVersion: String
+    public let creationDate: String
+    public let isEncrypted: Bool
+    public let isCaseSensitive: Bool
+}
+
+/// A dictionary entry with navigation support
+public final class MDictEntry {
+    public let keyword: String
+    public let definition: String
+    
+    internal let index: Int
+    internal weak var dictionary: MDictReader?
+    
+    internal init(keyword: String, definition: String, index: Int, dictionary: MDictReader) {
+        self.keyword = keyword
+        self.definition = definition
+        self.index = index
+        self.dictionary = dictionary
+    }
+    
+    /// Previous entry in dictionary order (nil if first entry)
+    public var prev: MDictEntry? {
+        dictionary?.entry(at: index - 1)
+    }
+    
+    /// Next entry in dictionary order (nil if last entry)
+    public var next: MDictEntry? {
+        dictionary?.entry(at: index + 1)
+    }
+    
+    /// Check if this is the first entry
+    public var isFirst: Bool { index == 0 }
+    
+    /// Check if this is the last entry
+    public var isLast: Bool {
+        guard let dict = dictionary else { return true }
+        return index >= dict.info.entryCount - 1
+    }
+}
+
+// MARK: - Errors
+
+public enum MDictError: Error, CustomStringConvertible {
+    case invalidHeader(String)
+    case unsupportedVersion(String)
+    case unsupportedEncryption
+    case decompressionFailed(String)
+    case invalidFormat(String)
+    case fileNotFound(String)
+    
+    public var description: String {
+        switch self {
+        case .invalidHeader(let msg): return "Invalid header: \(msg)"
+        case .unsupportedVersion(let v): return "Unsupported version: \(v)"
+        case .unsupportedEncryption: return "Record encryption (Encrypted=1,3) is not supported"
+        case .decompressionFailed(let msg): return "Decompression failed: \(msg)"
+        case .invalidFormat(let msg): return "Invalid format: \(msg)"
+        case .fileNotFound(let path): return "File not found: \(path)"
+        }
+    }
+}
+
+// MARK: - MDictReader
+
+/// MDict dictionary reader
+/// Thread-safe for queries after initialization
+public final class MDictReader {
+    
+    // MARK: - Public Properties
+    
+    /// Dictionary metadata
+    public let info: MDictInfo
+    
+    /// All keywords (for iteration/display)
+    public var allKeywords: [String] {
+        keywords.map { $0.keyword }
+    }
+    
+    // MARK: - Internal State (initialized once)
+    
+    private let reader: BinaryReader
+    private let header: MDictHeader
+    private let keywords: [KeywordEntry]
+    private let recordBlocks: [RecordBlockInfo]
+    private let keywordIndex: [String: Int]  // keyword -> index in keywords array
+    
+    // MARK: - Initialization
+    
+    /// Load a dictionary from file
+    /// - Parameter path: Path to .mdx file
+    /// - Throws: MDictError on failure
+    public init(path: String) throws {
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw MDictError.fileNotFound(path)
+        }
+        
+        self.reader = try BinaryReader(path: path)
+        
+        // Parse header
+        self.header = try Self.parseHeader(reader)
+        
+        // Check for unsupported encryption (DRM)
+        if header.hasKeywordHeaderEncryption {
+            throw MDictError.unsupportedEncryption
+        }
+        
+        // Parse keyword section
+        let keywordData = try Self.parseKeywordSection(reader, header: header)
+        
+        // Parse record block info
+        let blocks = try Self.parseRecordBlockInfo(reader, header: header)
+        self.recordBlocks = blocks
+        
+        // Post-process keywords (calculate record sizes and block indices)
+        self.keywords = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)
+        
+        // Build keyword index HashMap (O(1) lookup)
+        var index: [String: Int] = [:]
+        index.reserveCapacity(keywords.count)
+        for (i, entry) in keywords.enumerated() {
+            let key = header.keyCaseSensitive ? entry.keyword : entry.keyword.lowercased()
+            index[key] = i
+        }
+        self.keywordIndex = index
+        
+        // Create public info
+        self.info = MDictInfo(
+            title: header.title,
+            description: header.description,
+            entryCount: keywords.count,
+            format: header.format,
+            encoding: header.encoding,
+            engineVersion: header.generatedByEngineVersion,
+            creationDate: header.creationDate,
+            isEncrypted: header.encrypted != 0,
+            isCaseSensitive: header.keyCaseSensitive
+        )
+    }
+    
+    // MARK: - Public Query API
+    
+    /// Query a keyword
+    /// - Parameter keyword: The word to look up
+    /// - Returns: Entry with definition and navigation, or nil if not found
+    public func query(_ keyword: String) -> MDictEntry? {
+        let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
+        
+        guard let idx = keywordIndex[searchKey] else {
+            return nil
+        }
+        
+        return entry(at: idx)
+    }
+    
+    /// Get entry at specific index (for navigation)
+    /// - Parameter index: Index in keyword list
+    /// - Returns: Entry or nil if out of bounds
+    public func entry(at index: Int) -> MDictEntry? {
+        guard index >= 0, index < keywords.count else {
+            return nil
+        }
+        
+        let kw = keywords[index]
+        guard let definition = try? loadRecord(kw) else {
+            return nil
+        }
+        
+        return MDictEntry(
+            keyword: kw.keyword,
+            definition: definition,
+            index: index,
+            dictionary: self
+        )
+    }
+    
+    /// Search for keywords with a prefix
+    /// - Parameters:
+    ///   - prefix: Prefix to search for
+    ///   - limit: Maximum results (default 20)
+    /// - Returns: Array of matching keywords
+    public func search(prefix: String, limit: Int = 20) -> [String] {
+        let searchPrefix = header.keyCaseSensitive ? prefix : prefix.lowercased()
+        
+        var results: [String] = []
+        results.reserveCapacity(min(limit, 100))
+        
+        for entry in keywords {
+            let key = header.keyCaseSensitive ? entry.keyword : entry.keyword.lowercased()
+            if key.hasPrefix(searchPrefix) {
+                results.append(entry.keyword)
+                if results.count >= limit { break }
+            }
+        }
+        return results
+    }
+    
+    /// Get suggestions for a keyword (did you mean?)
+    /// - Parameters:
+    ///   - keyword: The word to find suggestions for
+    ///   - limit: Maximum suggestions
+    /// - Returns: Array of similar keywords
+    public func suggestions(for keyword: String, limit: Int = 5) -> [String] {
+        // Try progressively shorter prefixes
+        for prefixLen in stride(from: min(keyword.count, 5), through: 1, by: -1) {
+            let prefix = String(keyword.prefix(prefixLen))
+            let matches = search(prefix: prefix, limit: limit)
+            if !matches.isEmpty { return matches }
+        }
+        return []
+    }
+    
+    // MARK: - Private: Record Loading
+    
+    private func loadRecord(_ entry: KeywordEntry) throws -> String {
+        let blockInfo = recordBlocks[entry.recordBlockIndex]
+        
+        reader.seek(to: blockInfo.fileOffset)
+        let compressedData = try reader.readBytes(Int(blockInfo.compressedSize))
+        
+        let compType = compressedData[0]
+        guard let compression = CompressionType(rawValue: compType) else {
+            throw MDictError.invalidFormat("Unknown compression type: \(compType)")
+        }
+        
+        let decompressedBlock: Data
+        if compression != .none {
+            decompressedBlock = try Decompressor.decompress(
+                Data(compressedData.dropFirst(8)),
+                type: compression,
+                decompressedSize: Int(blockInfo.decompressedSize)
+            )
+        } else {
+            decompressedBlock = Data(compressedData.dropFirst(8))
+        }
+        
+        let recordStart = Int(entry.recordOffset)
+        let recordEnd = recordStart + entry.recordSize
+        
+        guard recordStart >= 0, recordEnd <= decompressedBlock.count else {
+            throw MDictError.invalidFormat("Record offset out of bounds")
+        }
+        
+        let recordData = decompressedBlock[recordStart..<recordEnd]
+        let encoding = encodingFromString(header.encoding)
+        
+        // Strip trailing nulls
+        var endIdx = recordData.endIndex
+        while endIdx > recordData.startIndex && recordData[recordData.index(before: endIdx)] == 0 {
+            endIdx = recordData.index(before: endIdx)
+        }
+        
+        return String(data: Data(recordData[recordData.startIndex..<endIdx]), encoding: encoding) ?? ""
+    }
+}
+
+// MARK: - Internal Models
+
+struct MDictHeader {
+    let generatedByEngineVersion: String
+    let requiredEngineVersion: String
+    let encrypted: Int
+    let encoding: String
+    let format: String
+    let title: String
+    let description: String
+    let creationDate: String
+    let keyCaseSensitive: Bool
+    
+    var isVersion2: Bool { generatedByEngineVersion.hasPrefix("2") }
+    var hasKeywordHeaderEncryption: Bool { (encrypted & 1) != 0 }
+    var hasKeywordIndexEncryption: Bool { (encrypted & 2) != 0 }
+}
+
+struct KeywordEntry {
+    let keyword: String
+    let recordBlockIndex: Int
+    let recordOffset: UInt64
+    let recordSize: Int
+}
+
+struct RecordBlockInfo {
+    let compressedSize: UInt64
+    let decompressedSize: UInt64
+    let fileOffset: UInt64
+}
+
+// MARK: - Header Parsing
+
+extension MDictReader {
+    
+    static func parseHeader(_ reader: BinaryReader) throws -> MDictHeader {
+        let headerLen = try reader.readUInt32BE()
+        let headerData = try reader.readBytes(Int(headerLen))
+        _ = try reader.readUInt32LE()  // adler32
+        
+        let headerStr: String
+        if headerData.count >= 2 && headerData[0] == 0xFF && headerData[1] == 0xFE {
+            headerStr = String(data: Data(headerData), encoding: .utf16LittleEndian) ?? ""
+        } else if headerData.count >= 2 && headerData.suffix(2) == Data([0x00, 0x00]) {
+            headerStr = String(data: Data(headerData.dropLast(2)), encoding: .utf16LittleEndian) ?? ""
+        } else {
+            headerStr = String(data: Data(headerData), encoding: .utf8) ?? ""
+        }
+        
+        return parseHeaderXML(headerStr)
+    }
+    
+    private static func parseHeaderXML(_ xml: String) -> MDictHeader {
+        func attr(_ name: String) -> String {
+            let pattern = "\(name)=\"([^\"]*)\""
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: xml, range: NSRange(xml.startIndex..., in: xml)),
+                  let range = Range(match.range(at: 1), in: xml) else { return "" }
+            return String(xml[range])
+        }
+        
+        let encryptedStr = attr("Encrypted")
+        let encrypted = encryptedStr.isEmpty || encryptedStr == "No" ? 0 :
+                        encryptedStr == "Yes" ? 1 : (Int(encryptedStr) ?? 0)
+        
+        return MDictHeader(
+            generatedByEngineVersion: attr("GeneratedByEngineVersion"),
+            requiredEngineVersion: attr("RequiredEngineVersion"),
+            encrypted: encrypted,
+            encoding: attr("Encoding").isEmpty ? "UTF-8" : attr("Encoding"),
+            format: attr("Format"),
+            title: attr("Title"),
+            description: attr("Description"),
+            creationDate: attr("CreationDate"),
+            keyCaseSensitive: attr("KeyCaseSensitive") == "Yes"
+        )
+    }
+}
+
+// MARK: - Keyword Section Parsing
+
+extension MDictReader {
+    
+    struct KeywordParseResult {
+        let keywords: [KeywordEntry]
+    }
+    
+    static func parseKeywordSection(_ reader: BinaryReader, header: MDictHeader) throws -> KeywordParseResult {
+        let isV2 = header.isVersion2
+        
+        let numBlocks: UInt64
+        let numEntries: UInt64
+        let keyIndexDecompLen: UInt64
+        let keyIndexCompLen: UInt64
+        
+        if isV2 {
+            numBlocks = try reader.readUInt64BE()
+            numEntries = try reader.readUInt64BE()
+            keyIndexDecompLen = try reader.readUInt64BE()
+            keyIndexCompLen = try reader.readUInt64BE()
+            _ = try reader.readUInt64BE()  // keyBlocksTotalLen
+        } else {
+            numBlocks = UInt64(try reader.readUInt32BE())
+            numEntries = UInt64(try reader.readUInt32BE())
+            keyIndexCompLen = UInt64(try reader.readUInt32BE())
+            _ = try reader.readUInt32BE()  // keyBlocksTotalLen
+            keyIndexDecompLen = 0
+        }
+        
+        if isV2 { _ = try reader.readUInt32BE() }  // adler32
+        
+        let keyIndexData = try reader.readBytes(Int(keyIndexCompLen))
+        let compType = keyIndexData[0]
+        var indexDataToDecompress = Data(keyIndexData.dropFirst(8))
+        
+        if header.hasKeywordIndexEncryption {
+            let checksumBytes = Data(keyIndexData[4..<8])
+            indexDataToDecompress = KeyIndexDecryptor.decrypt(Data(keyIndexData.dropFirst(8)), checksumBytes: checksumBytes)
+        }
+        
+        let decompressedIndex: Data
+        if let compression = CompressionType(rawValue: compType), compression != .none {
+            decompressedIndex = try Decompressor.decompress(indexDataToDecompress, type: compression, decompressedSize: Int(keyIndexDecompLen))
+        } else {
+            decompressedIndex = indexDataToDecompress
+        }
+        
+        // Parse block infos
+        var keyBlockInfos: [(compSize: UInt64, decompSize: UInt64)] = []
+        var indexOffset = 0
+        let encoding = encodingFromString(header.encoding)
+        let charWidth = (encoding == .utf16LittleEndian) ? 2 : 1
+        
+        for _ in 0..<numBlocks {
+            guard indexOffset + 10 <= decompressedIndex.count else { break }
+            
+            if isV2 {
+                indexOffset += 8  // numEntries
+                let firstKeyLen = Int(decompressedIndex.readUInt16BE(at: indexOffset))
+                indexOffset += 2 + firstKeyLen * charWidth + charWidth
+                let lastKeyLen = Int(decompressedIndex.readUInt16BE(at: indexOffset))
+                indexOffset += 2 + lastKeyLen * charWidth + charWidth
+            } else {
+                indexOffset += 4  // numEntries
+                let firstKeyLen = Int(decompressedIndex[indexOffset])
+                indexOffset += 1 + firstKeyLen * charWidth + charWidth
+                let lastKeyLen = Int(decompressedIndex[indexOffset])
+                indexOffset += 1 + lastKeyLen * charWidth + charWidth
+            }
+            
+            let compSize = isV2 ? decompressedIndex.readUInt64BE(at: indexOffset) : UInt64(decompressedIndex.readUInt32BE(at: indexOffset))
+            indexOffset += isV2 ? 8 : 4
+            let decompSize = isV2 ? decompressedIndex.readUInt64BE(at: indexOffset) : UInt64(decompressedIndex.readUInt32BE(at: indexOffset))
+            indexOffset += isV2 ? 8 : 4
+            
+            keyBlockInfos.append((compSize, decompSize))
+        }
+        
+        // Parse keyword blocks
+        var allKeywords: [KeywordEntry] = []
+        allKeywords.reserveCapacity(Int(numEntries))
+        let nullTermLen = charWidth
+        let numberWidth = isV2 ? 8 : 4
+        
+        for blockInfo in keyBlockInfos {
+            let compressedBlock = try reader.readBytes(Int(blockInfo.compSize))
+            let blockCompType = compressedBlock[0]
+            
+            let decompressedBlock: Data
+            if let compression = CompressionType(rawValue: blockCompType), compression != .none {
+                decompressedBlock = try Decompressor.decompress(Data(compressedBlock.dropFirst(8)), type: compression, decompressedSize: Int(blockInfo.decompSize))
+            } else {
+                decompressedBlock = Data(compressedBlock.dropFirst(8))
+            }
+            
+            var blockOffset = 0
+            while blockOffset + numberWidth < decompressedBlock.count {
+                let entryRecordOffset = isV2 ? decompressedBlock.readUInt64BE(at: blockOffset) : UInt64(decompressedBlock.readUInt32BE(at: blockOffset))
+                blockOffset += numberWidth
+                
+                var keyEnd = blockOffset
+                if encoding == .utf16LittleEndian {
+                    while keyEnd + 1 < decompressedBlock.count && !(decompressedBlock[keyEnd] == 0 && decompressedBlock[keyEnd + 1] == 0) {
+                        keyEnd += 2
+                    }
+                } else {
+                    while keyEnd < decompressedBlock.count && decompressedBlock[keyEnd] != 0 {
+                        keyEnd += 1
+                    }
+                }
+                
+                if keyEnd == blockOffset { break }
+                
+                let keyword = String(data: Data(decompressedBlock[blockOffset..<keyEnd]), encoding: encoding) ?? ""
+                blockOffset = keyEnd + nullTermLen
+                
+                allKeywords.append(KeywordEntry(keyword: keyword, recordBlockIndex: 0, recordOffset: entryRecordOffset, recordSize: 0))
+            }
+        }
+        
+        return KeywordParseResult(keywords: allKeywords)
+    }
+}
+
+// MARK: - Record Section Parsing
+
+extension MDictReader {
+    
+    static func parseRecordBlockInfo(_ reader: BinaryReader, header: MDictHeader) throws -> [RecordBlockInfo] {
+        let isV2 = header.isVersion2
+        
+        let numBlocks: UInt64
+        let recordIndexLen: UInt64
+        
+        if isV2 {
+            numBlocks = try reader.readUInt64BE()
+            _ = try reader.readUInt64BE()  // numEntries
+            recordIndexLen = try reader.readUInt64BE()
+            _ = try reader.readUInt64BE()  // recordBlocksTotalLen
+        } else {
+            numBlocks = UInt64(try reader.readUInt32BE())
+            _ = try reader.readUInt32BE()
+            recordIndexLen = UInt64(try reader.readUInt32BE())
+            _ = try reader.readUInt32BE()
+        }
+        
+        var blocks: [RecordBlockInfo] = []
+        var fileOffset = reader.position + recordIndexLen
+        
+        for _ in 0..<numBlocks {
+            let compSize = isV2 ? try reader.readUInt64BE() : UInt64(try reader.readUInt32BE())
+            let decompSize = isV2 ? try reader.readUInt64BE() : UInt64(try reader.readUInt32BE())
+            
+            blocks.append(RecordBlockInfo(compressedSize: compSize, decompressedSize: decompSize, fileOffset: fileOffset))
+            fileOffset += compSize
+        }
+        
+        return blocks
+    }
+    
+    static func calculateRecordInfo(keywords: [KeywordEntry], recordBlocks: [RecordBlockInfo]) -> [KeywordEntry] {
+        guard !keywords.isEmpty, !recordBlocks.isEmpty else { return keywords }
+        
+        var blockStartOffsets: [UInt64] = []
+        var cumOffset: UInt64 = 0
+        for block in recordBlocks {
+            blockStartOffsets.append(cumOffset)
+            cumOffset += block.decompressedSize
+        }
+        
+        var result: [KeywordEntry] = []
+        result.reserveCapacity(keywords.count)
+        
+        for i in 0..<keywords.count {
+            let entry = keywords[i]
+            let globalOffset = entry.recordOffset
+            
+            var blockIndex = 0
+            for j in 0..<blockStartOffsets.count {
+                if j + 1 < blockStartOffsets.count && blockStartOffsets[j + 1] <= globalOffset {
+                    blockIndex = j + 1
+                } else if blockStartOffsets[j] <= globalOffset {
+                    blockIndex = j
+                    break
+                }
+            }
+            
+            let localOffset = globalOffset - blockStartOffsets[blockIndex]
+            let recordSize: Int
+            if i + 1 < keywords.count {
+                recordSize = Int(keywords[i + 1].recordOffset - entry.recordOffset)
+            } else {
+                let blockEnd = blockStartOffsets[blockIndex] + recordBlocks[blockIndex].decompressedSize
+                recordSize = Int(blockEnd - globalOffset)
+            }
+            
+            result.append(KeywordEntry(keyword: entry.keyword, recordBlockIndex: blockIndex, recordOffset: localOffset, recordSize: recordSize))
+        }
+        
+        return result
+    }
+}
+
+// MARK: - Helpers
+
+func encodingFromString(_ str: String) -> String.Encoding {
+    switch str.uppercased() {
+    case "UTF-16", "UTF-16LE": return .utf16LittleEndian
+    case "UTF-16BE": return .utf16BigEndian
+    case "GBK", "GB2312", "GB18030": return .init(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
+    case "BIG5": return .init(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.big5.rawValue)))
+    default: return .utf8
+    }
+}
