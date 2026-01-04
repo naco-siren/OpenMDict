@@ -194,18 +194,9 @@ func performLookup(dict: MDictReader, word: String) {
         }
         print()
         
-        // Show referenced resources
+        // Show referenced resources by type
         if !resourceRefs.isEmpty {
-            print(colored("Referenced Resources:", .bold))
-            for ref in resourceRefs.prefix(10) {
-                let exists = dict.hasResource(ref)
-                let status = exists ? colored("✓", .green) : colored("✗", .red)
-                print("  \(status) \(ref)")
-            }
-            if resourceRefs.count > 10 {
-                print("  ... and \(resourceRefs.count - 10) more")
-            }
-            print()
+            showResourceRefs(refs: resourceRefs, dict: dict)
         }
         
         print(colored("✓", .green), "Found in", colored(String(format: "%.2f ms", lookupTime * 1000), .yellow))
@@ -343,8 +334,20 @@ func getResource(dict: MDictReader, path: String) {
 
 // MARK: - Helpers
 
-func extractResourceRefs(from html: String) -> [String] {
-    var refs: Set<String> = []
+struct ResourceRef {
+    enum RefType {
+        case localResource    // CSS, images in MDD or external
+        case audio            // sound:// protocol
+        case entryLink        // entry:// cross-reference
+        case webLink          // website links like /definition/
+    }
+    
+    let path: String
+    let type: RefType
+}
+
+func extractResourceRefs(from html: String) -> [ResourceRef] {
+    var refs: [String: ResourceRef] = [:]
     
     // Match href="..." and src="..."
     let patterns = [
@@ -360,17 +363,94 @@ func extractResourceRefs(from html: String) -> [String] {
             
             for match in matches {
                 if let refRange = Range(match.range(at: 1), in: html) {
-                    let ref = String(html[refRange])
-                    // Filter out external URLs and anchors
-                    if !ref.hasPrefix("http") && !ref.hasPrefix("#") && !ref.hasPrefix("entry://") {
-                        refs.insert(ref)
+                    let path = String(html[refRange])
+                    
+                    // Classify the reference
+                    let ref: ResourceRef?
+                    
+                    if path.hasPrefix("http://") || path.hasPrefix("https://") {
+                        // Skip external URLs
+                        ref = nil
+                    } else if path.hasPrefix("#") {
+                        // Skip anchors
+                        ref = nil
+                    } else if path.hasPrefix("entry://") {
+                        ref = ResourceRef(path: path, type: .entryLink)
+                    } else if path.hasPrefix("sound://") {
+                        // Extract path after sound://
+                        let audioPath = String(path.dropFirst("sound://".count))
+                        ref = ResourceRef(path: audioPath, type: .audio)
+                    } else if path.hasPrefix("/definition/") || 
+                              path.hasPrefix("/pronunciation/") ||
+                              path.hasPrefix("/mywordlist") ||
+                              path.hasPrefix("/wordlist/") ||
+                              path.hasPrefix("/topic/") {
+                        // Website links, not local resources
+                        ref = ResourceRef(path: path, type: .webLink)
+                    } else if path.hasSuffix(".css") || path.hasSuffix(".js") ||
+                              path.hasSuffix(".png") || path.hasSuffix(".jpg") ||
+                              path.hasSuffix(".gif") || path.hasSuffix(".svg") ||
+                              path.hasSuffix(".ttf") || path.hasSuffix(".woff") {
+                        ref = ResourceRef(path: path, type: .localResource)
+                    } else {
+                        // Unknown - could be resource or link
+                        ref = ResourceRef(path: path, type: .webLink)
+                    }
+                    
+                    if let ref = ref, refs[path] == nil {
+                        refs[path] = ref
                     }
                 }
             }
         }
     }
     
-    return Array(refs).sorted()
+    return Array(refs.values).sorted { $0.path < $1.path }
+}
+
+func showResourceRefs(refs: [ResourceRef], dict: MDictReader) {
+    let grouped = Dictionary(grouping: refs) { $0.type }
+    
+    // Local resources (CSS, images)
+    if let local = grouped[.localResource], !local.isEmpty {
+        print(colored("Local Resources:", .bold))
+        for ref in local.prefix(5) {
+            let exists = dict.hasResource(ref.path)
+            let status = exists ? colored("✓", .green) : colored("✗", .yellow)
+            print("  \(status) \(ref.path)")
+        }
+        if local.count > 5 {
+            print("  ... and \(local.count - 5) more")
+        }
+        print()
+    }
+    
+    // Audio files
+    if let audio = grouped[.audio], !audio.isEmpty {
+        print(colored("Audio Files:", .bold))
+        for ref in audio.prefix(5) {
+            let exists = dict.hasResource(ref.path)
+            let status = exists ? colored("✓", .green) : colored("✗", .yellow)
+            print("  \(status) 🔊 \(ref.path)")
+        }
+        if audio.count > 5 {
+            print("  ... and \(audio.count - 5) more")
+        }
+        print()
+    }
+    
+    // Entry cross-references
+    if let entries = grouped[.entryLink], !entries.isEmpty {
+        print(colored("Cross-references:", .bold))
+        for ref in entries.prefix(5) {
+            let entryName = ref.path.replacingOccurrences(of: "entry://", with: "")
+            print("  → \(entryName)")
+        }
+        if entries.count > 5 {
+            print("  ... and \(entries.count - 5) more")
+        }
+        print()
+    }
 }
 
 main()
