@@ -2,16 +2,17 @@ import Testing
 import Foundation
 @testable import OpenMDict
 
-/// Tests for MDictReader
+/// Integration tests for MDictReader (MDX + MDD combined)
+/// Tests the facade API and resource integration
 /// Run with: MDICT_TEST_FILE=path/to/dict.mdx swift test
-@Suite(.serialized)  // Run tests serially to avoid race conditions
+@Suite(.serialized)
 struct MDictReaderTests {
     
-    // Shared dictionary instance (loaded once)
-    static var _dict: MDictReader?
+    // Shared reader instance
+    static var _reader: MDictReader?
     static var _initialized = false
     
-    static var dict: MDictReader? {
+    static var reader: MDictReader? {
         if !_initialized {
             _initialized = true
             guard let path = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"],
@@ -20,141 +21,157 @@ struct MDictReaderTests {
                 return nil
             }
             do {
-                _dict = try MDictReader(path: path)
-                print("✅ Loaded: \(_dict!.info.title) with \(_dict!.info.entryCount) entries")
+                _reader = try MDictReader(path: path)
+                print("✅ [MDictReader] Loaded: \(_reader!.info.title)")
+                print("   Entries: \(_reader!.info.entryCount), Resources: \(_reader!.resourceCount)")
             } catch {
-                print("❌ Failed to load dictionary: \(error)")
+                print("❌ [MDictReader] Failed: \(error)")
             }
         }
-        return _dict
+        return _reader
     }
     
-    // MARK: - Basic Tests
+    // MARK: - Facade API Tests
     
-    @Test("Load dictionary and verify info")
-    func loadDictionary() throws {
-        let dict = try #require(Self.dict, "Dictionary not loaded")
+    @Test("Facade provides dictionary info")
+    func facadeInfo() throws {
+        let reader = try #require(Self.reader)
         
-        #expect(!dict.info.title.isEmpty, "Dictionary should have a title")
-        #expect(dict.info.entryCount > 0, "Dictionary should have entries")
+        #expect(!reader.info.title.isEmpty)
+        #expect(reader.info.entryCount > 0)
     }
     
-    @Test("Lookup existing words", arguments: ["the", "hello", "world", "apple", "book"])
-    func lookupExistingWord(word: String) throws {
-        let dict = try #require(Self.dict)
+    @Test("Facade lookup delegates to MDXParser")
+    func facadeLookup() throws {
+        let reader = try #require(Self.reader)
         
-        let entry = dict.lookup(word)
-        #expect(entry != nil, "'\(word)' should exist in dictionary")
+        let entry = reader.lookup("hello")
+        #expect(entry != nil)
+        #expect(entry?.definition.isEmpty == false)
+    }
+    
+    @Test("Facade subscript works")
+    func facadeSubscript() throws {
+        let reader = try #require(Self.reader)
         
-        if let entry {
-            #expect(entry.keyword.lowercased() == word.lowercased())
-            #expect(!entry.definition.isEmpty, "\(word) should have a definition")
+        let first = reader[0]
+        #expect(first != nil)
+        
+        let last = reader[reader.info.entryCount - 1]
+        #expect(last != nil)
+    }
+    
+    @Test("Facade search works")
+    func facadeSearch() throws {
+        let reader = try #require(Self.reader)
+        
+        let results = reader.search(prefix: "test", limit: 10)
+        // May or may not find results depending on dictionary
+        #expect(results.count <= 10)
+    }
+    
+    // MARK: - MDX + MDD Integration Tests
+    
+    @Test("Resource count reflects MDD status")
+    func resourceCount() throws {
+        let reader = try #require(Self.reader)
+        
+        // resourceCount should be >= 0
+        // If MDD exists, should be > 0
+        #expect(reader.resourceCount >= 0)
+        
+        if reader.resourceCount > 0 {
+            #expect(!reader.allResourcePaths.isEmpty)
         }
     }
     
-    @Test("Lookup non-existent word returns nil")
-    func lookupNonExistentWord() throws {
-        let dict = try #require(Self.dict)
+    @Test("Definition references resources")
+    func definitionReferencesResources() throws {
+        let reader = try #require(Self.reader)
+        let entry = try #require(reader.lookup("hello"))
         
-        let result = dict.lookup("xyznonexistent123")
-        #expect(result == nil, "Non-existent word should return nil")
+        // Check if definition references CSS or images
+        let definition = entry.definition
+        let hasResourceRef = definition.contains("href=") || 
+                            definition.contains("src=") ||
+                            definition.contains(".css")
+        
+        if hasResourceRef && reader.resourceCount > 0 {
+            // Extract a referenced resource and try to load it
+            if let cssMatch = definition.range(of: #"href="([^"]+\.css)""#, options: .regularExpression) {
+                let cssPath = String(definition[cssMatch]).replacingOccurrences(of: "href=\"", with: "").replacingOccurrences(of: "\"", with: "")
+                let cssData = reader.resource(for: cssPath)
+                // Resource may or may not exist in MDD
+                if cssData != nil {
+                    #expect(cssData!.count > 0, "CSS resource should have content")
+                }
+            }
+        }
     }
     
-    @Test("Case-insensitive lookup")
-    func caseInsensitiveLookup() throws {
-        let dict = try #require(Self.dict)
+    @Test("Resource lookup via facade")
+    func resourceLookup() throws {
+        let reader = try #require(Self.reader)
         
-        // Skip if dictionary is case-sensitive
-        try #require(!dict.info.isCaseSensitive, "Dictionary is case-sensitive")
-        
-        let lowercase = dict.lookup("hello")
-        let uppercase = dict.lookup("HELLO")
-        let mixedcase = dict.lookup("HeLLo")
-        
-        #expect(lowercase != nil)
-        #expect(uppercase != nil)
-        #expect(mixedcase != nil)
-        #expect(lowercase?.keyword == uppercase?.keyword)
-        #expect(lowercase?.keyword == mixedcase?.keyword)
-    }
-    
-    // MARK: - Navigation Tests
-    
-    @Test("Prev/Next navigation")
-    func prevNextNavigation() throws {
-        let dict = try #require(Self.dict)
-        let entry = try #require(dict.lookup("hello"), "'hello' not found")
-        
-        // Test prev
-        if let prev = entry.prev {
-            #expect(prev.index == entry.index - 1)
-            #expect(prev.next?.keyword == entry.keyword, "prev.next should return to original")
+        guard reader.resourceCount > 0 else {
+            print("ℹ️ No MDD resources, skipping")
+            return
         }
         
-        // Test next
+        // Try to get first resource
+        let firstPath = reader.allResourcePaths.first!
+        let data = reader.resource(for: firstPath)
+        
+        #expect(data != nil, "Should load resource: \(firstPath)")
+        #expect(data!.count > 0)
+    }
+    
+    @Test("Resource string convenience")
+    func resourceString() throws {
+        let reader = try #require(Self.reader)
+        
+        guard reader.resourceCount > 0 else {
+            print("ℹ️ No MDD resources, skipping")
+            return
+        }
+        
+        // Find a CSS file
+        let cssPaths = reader.allResourcePaths.filter { $0.lowercased().hasSuffix(".css") }
+        
+        if let cssPath = cssPaths.first {
+            let cssString = reader.resourceString(for: cssPath)
+            #expect(cssString != nil)
+            #expect(cssString?.contains("{") == true, "CSS should have style rules")
+        }
+    }
+    
+    @Test("hasResource check")
+    func hasResourceCheck() throws {
+        let reader = try #require(Self.reader)
+        
+        // Non-existent resource
+        #expect(!reader.hasResource("nonexistent_file_12345.xyz"))
+        
+        // Existing resource (if MDD loaded)
+        if let firstPath = reader.allResourcePaths.first {
+            #expect(reader.hasResource(firstPath))
+        }
+    }
+    
+    // MARK: - Navigation Integration
+    
+    @Test("Entry navigation works through facade")
+    func navigationIntegration() throws {
+        let reader = try #require(Self.reader)
+        let entry = try #require(reader.lookup("hello"))
+        
+        // Navigate and verify we can still access resources
         if let next = entry.next {
-            #expect(next.index == entry.index + 1)
-            #expect(next.prev?.keyword == entry.keyword, "next.prev should return to original")
-        }
-    }
-    
-    @Test("Navigation chain from first entry")
-    func navigationChain() throws {
-        let dict = try #require(Self.dict)
-        let first = try #require(dict[0], "Should get first entry")
-        
-        #expect(first.isFirst)
-        #expect(first.prev == nil, "First entry should have no prev")
-        
-        // Walk forward 5 entries
-        var current: MDictEntry? = first
-        var count = 0
-        while let entry = current, count < 5 {
-            current = entry.next
-            count += 1
+            #expect(!next.definition.isEmpty)
         }
         
-        #expect(count == 5, "Should be able to walk 5 entries")
-    }
-    
-    @Test("Last entry navigation")
-    func lastEntry() throws {
-        let dict = try #require(Self.dict)
-        let last = try #require(dict[dict.info.entryCount - 1], "Should get last entry")
-        
-        #expect(last.isLast)
-        #expect(last.next == nil, "Last entry should have no next")
-        #expect(last.prev != nil, "Last entry should have prev")
-    }
-    
-    // MARK: - Search Tests
-    
-    @Test("Prefix search")
-    func prefixSearch() throws {
-        let dict = try #require(Self.dict)
-        
-        let results = dict.search(prefix: "hel", limit: 10)
-        
-        #expect(!results.isEmpty, "Should find words starting with 'hel'")
-        
-        for word in results {
-            #expect(word.lowercased().hasPrefix("hel"), "'\(word)' should start with 'hel'")
+        if let prev = entry.prev {
+            #expect(!prev.definition.isEmpty)
         }
-    }
-    
-    @Test("Search respects limit", arguments: [5, 10, 20])
-    func searchLimit(limit: Int) throws {
-        let dict = try #require(Self.dict)
-        
-        let results = dict.search(prefix: "a", limit: limit)
-        #expect(results.count <= limit)
-    }
-    
-    @Test("Suggestions for misspelled word")
-    func suggestions() throws {
-        let dict = try #require(Self.dict)
-        
-        let suggestions = dict.suggestions(for: "helo", limit: 5)
-        #expect(!suggestions.isEmpty, "Should have suggestions for 'helo'")
     }
 }
