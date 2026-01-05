@@ -1,90 +1,36 @@
 import Foundation
 
-// MARK: - Public API
+// MARK: - Internal Info Structure
 
-/// Dictionary metadata
-public struct MDictInfo {
-    public let title: String
-    public let description: String
-    public let entryCount: Int
-    public let format: String
-    public let encoding: String
-    public let engineVersion: String
-    public let creationDate: String
-    public let isEncrypted: Bool
-    public let isCaseSensitive: Bool
+/// Internal dictionary info (used by MDXParser)
+internal struct MDictInfo {
+    let title: String
+    let description: String
+    let entryCount: Int
+    let format: String
+    let encoding: String
+    let engineVersion: String
+    let creationDate: String
+    let isEncrypted: Bool
+    let isCaseSensitive: Bool
 }
 
-/// A dictionary entry with navigation support
-public final class MDictEntry {
-    public let keyword: String
-    public let definition: String
-    
-    internal let index: Int
-    internal weak var dictionary: MDXParser?
-    
-    internal init(keyword: String, definition: String, index: Int, dictionary: MDXParser) {
-        self.keyword = keyword
-        self.definition = definition
-        self.index = index
-        self.dictionary = dictionary
-    }
-    
-    /// Previous entry in dictionary order (nil if first entry)
-    public var prev: MDictEntry? {
-        dictionary?[index - 1]
-    }
-    
-    /// Next entry in dictionary order (nil if last entry)
-    public var next: MDictEntry? {
-        dictionary?[index + 1]
-    }
-    
-    /// Check if this is the first entry
-    public var isFirst: Bool { index == 0 }
-    
-    /// Check if this is the last entry
-    public var isLast: Bool {
-        guard let dict = dictionary else { return true }
-        return index >= dict.info.entryCount - 1
-    }
-}
+// MARK: - MDXParser
 
-// MARK: - Errors
-
-public enum MDictError: Error, CustomStringConvertible {
-    case invalidHeader(String)
-    case unsupportedVersion(String)
-    case unsupportedEncryption
-    case decompressionFailed(String)
-    case invalidFormat(String)
-    case fileNotFound(String)
+/// Internal MDX file parser
+/// Used by MDictReader facade
+internal final class MDXParser {
     
-    public var description: String {
-        switch self {
-        case .invalidHeader(let msg): return "Invalid header: \(msg)"
-        case .unsupportedVersion(let v): return "Unsupported version: \(v)"
-        case .unsupportedEncryption: return "Record encryption (Encrypted=1,3) is not supported"
-        case .decompressionFailed(let msg): return "Decompression failed: \(msg)"
-        case .invalidFormat(let msg): return "Invalid format: \(msg)"
-        case .fileNotFound(let path): return "File not found: \(path)"
-        }
-    }
-}
-
-// MARK: - MDictReader
-
-/// MDict dictionary reader
-/// Thread-safe for queries after initialization
-public final class MDXParser {
-    
-    // MARK: - Public Properties
+    // MARK: - Properties
     
     /// Dictionary metadata
-    public let info: MDictInfo
+    let info: MDictInfo
+    
+    /// Number of entries
+    var entryCount: Int { keywords.count }
     
     /// All keywords (for iteration/display)
-    public var allKeywords: [String] {
+    var allKeywords: [String] {
         keywords.map { $0.keyword }
     }
     
@@ -101,7 +47,7 @@ public final class MDXParser {
     /// Load a dictionary from file
     /// - Parameter path: Path to .mdx file
     /// - Throws: MDictError on failure
-    public init(path: String) throws {
+    init(path: String) throws {
         guard FileManager.default.fileExists(atPath: path) else {
             throw MDictError.fileNotFound(path)
         }
@@ -149,30 +95,29 @@ public final class MDXParser {
         )
     }
     
-    // MARK: - Public Lookup API
+    // MARK: - Lookup API
     
-    /// Subscript access by index
-    public subscript(index: Int) -> MDictEntry? {
-        entry(at: index)
-    }
-
-    /// Lookup a keyword
+    /// Lookup a keyword and return definition with index
     /// - Parameter keyword: The word to look up
-    /// - Returns: Entry with definition and navigation, or nil if not found
-    public func lookup(_ keyword: String) -> MDictEntry? {
+    /// - Returns: Tuple of (definition, index) or nil if not found
+    func lookupWithIndex(_ keyword: String) -> (String, Int)? {
         let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
         
         guard let idx = keywordIndex[searchKey] else {
             return nil
         }
         
-        return entry(at: idx)
+        guard let definition = try? loadRecord(keywords[idx]) else {
+            return nil
+        }
+        
+        return (definition, idx)
     }
     
-    /// Get entry at specific index (for navigation)
+    /// Get entry at specific index
     /// - Parameter index: Index in keyword list
-    /// - Returns: Entry or nil if out of bounds
-    public func entry(at index: Int) -> MDictEntry? {
+    /// - Returns: Tuple of (keyword, definition) or nil if out of bounds
+    func entryAt(_ index: Int) -> (String, String)? {
         guard index >= 0, index < keywords.count else {
             return nil
         }
@@ -182,12 +127,7 @@ public final class MDXParser {
             return nil
         }
         
-        return MDictEntry(
-            keyword: kw.keyword,
-            definition: definition,
-            index: index,
-            dictionary: self
-        )
+        return (kw.keyword, definition)
     }
     
     /// Search for keywords with a prefix
@@ -195,7 +135,7 @@ public final class MDXParser {
     ///   - prefix: Prefix to search for
     ///   - limit: Maximum results (default 20)
     /// - Returns: Array of matching keywords
-    public func search(prefix: String, limit: Int = 20) -> [String] {
+    func search(prefix: String, limit: Int = 20) -> [String] {
         let searchPrefix = header.keyCaseSensitive ? prefix : prefix.lowercased()
         
         var results: [String] = []
@@ -216,7 +156,7 @@ public final class MDXParser {
     ///   - keyword: The word to find suggestions for
     ///   - limit: Maximum suggestions
     /// - Returns: Array of similar keywords
-    public func suggestions(for keyword: String, limit: Int = 5) -> [String] {
+    func suggestions(for keyword: String, limit: Int = 5) -> [String] {
         // Try progressively shorter prefixes
         for prefixLen in stride(from: min(keyword.count, 5), through: 1, by: -1) {
             let prefix = String(keyword.prefix(prefixLen))
@@ -304,6 +244,33 @@ struct RecordBlockInfo {
 // MARK: - Header Parsing
 
 extension MDXParser {
+    
+    /// Read only the header without parsing keywords (fast)
+    /// Used for displaying dictionary list without full loading
+    static func readHeaderOnly(path: String) -> MDictInfo? {
+        guard FileManager.default.fileExists(atPath: path),
+              let reader = try? BinaryReader(path: path) else {
+            return nil
+        }
+        
+        guard let header = try? parseHeader(reader) else {
+            return nil
+        }
+        
+        // We can't know the exact entry count without parsing keywords,
+        // but we can estimate from header or return 0
+        return MDictInfo(
+            title: header.title,
+            description: header.description,
+            entryCount: 0,  // Unknown without full parse
+            format: header.format,
+            encoding: header.encoding,
+            engineVersion: header.generatedByEngineVersion,
+            creationDate: header.creationDate,
+            isEncrypted: header.encrypted != 0,
+            isCaseSensitive: header.keyCaseSensitive
+        )
+    }
     
     static func parseHeader(_ reader: BinaryReader) throws -> MDictHeader {
         let headerLen = try reader.readUInt32BE()

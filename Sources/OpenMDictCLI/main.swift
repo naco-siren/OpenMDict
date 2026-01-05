@@ -72,13 +72,13 @@ func main() {
         
         // Dictionary info
         print(colored("Dictionary Info:", .bold))
-        print("  Title:          ", dict.info.title)
-        print("  Entries:        ", colored("\(dict.info.entryCount)", .green))
-        print("  Format:         ", dict.info.format)
-        print("  Encoding:       ", dict.info.encoding)
-        print("  Engine Version: ", dict.info.engineVersion)
-        print("  Encrypted:      ", dict.info.isEncrypted ? colored("Yes", .yellow) : colored("No", .green))
-        print("  Case Sensitive: ", dict.info.isCaseSensitive ? "Yes" : "No")
+        print("  Title:          ", dict.metadata.title)
+        print("  Entries:        ", colored("\(dict.entryCount)", .green))
+        print("  Format:         ", dict.metadata.format)
+        print("  Encoding:       ", dict.metadata.encoding)
+        print("  Engine Version: ", dict.metadata.engineVersion)
+        print("  Encrypted:      ", dict.metadata.isEncrypted ? colored("Yes", .yellow) : colored("No", .green))
+        print("  Case Sensitive: ", dict.metadata.isCaseSensitive ? "Yes" : "No")
         print()
         
         // Resource info
@@ -146,7 +146,7 @@ func main() {
         } else {
             // Default: show sample entries
             print(colored("First 10 entries:", .bold))
-            for (i, entry) in dict.allKeywords.prefix(10).enumerated() {
+            for (i, entry) in dict.allKeys.prefix(10).enumerated() {
                 print("  \(i + 1). \(entry)")
             }
             print()
@@ -169,7 +169,7 @@ func performLookup(dict: MDictReader, word: String) {
     
     if let entry = dict.lookup(word) {
         let lookupTime = CFAbsoluteTimeGetCurrent() - startTime
-        let content = entry.definition
+        let content = entry.article.html
         
         // Extract referenced resources from HTML
         let resourceRefs = extractResourceRefs(from: content)
@@ -186,11 +186,11 @@ func performLookup(dict: MDictReader, word: String) {
         
         // Show navigation
         print(colored("Navigation:", .bold))
-        if let prev = entry.prev {
-            print("  ← Previous: ", colored(prev.keyword, .cyan))
+        if entry.index > 0, let prev = dict[entry.index - 1] {
+            print("  ← Previous: ", colored(prev.key, .cyan))
         }
-        if let next = entry.next {
-            print("  → Next:     ", colored(next.keyword, .cyan))
+        if let next = dict[entry.index + 1] {
+            print("  → Next:     ", colored(next.key, .cyan))
         }
         print()
         
@@ -239,7 +239,7 @@ func listEntries(dict: MDictReader, count: Int) {
     print(colored("📝 First \(count) entries:", .bold))
     print()
     
-    for (i, entry) in dict.allKeywords.prefix(count).enumerated() {
+    for (i, entry) in dict.allKeys.prefix(count).enumerated() {
         print("  \(String(format: "%4d", i + 1)). \(entry)")
     }
     print()

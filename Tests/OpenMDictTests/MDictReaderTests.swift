@@ -22,8 +22,8 @@ struct MDictReaderTests {
             }
             do {
                 _reader = try MDictReader(path: path)
-                print("✅ [MDictReader] Loaded: \(_reader!.info.title)")
-                print("   Entries: \(_reader!.info.entryCount), Resources: \(_reader!.resourceCount)")
+                print("✅ [MDictReader] Loaded: \(_reader!.metadata.title)")
+                print("   Entries: \(_reader!.entryCount), Resources: \(_reader!.resourceCount)")
             } catch {
                 print("❌ [MDictReader] Failed: \(error)")
             }
@@ -33,21 +33,32 @@ struct MDictReaderTests {
     
     // MARK: - Facade API Tests
     
-    @Test("Facade provides dictionary info")
-    func facadeInfo() throws {
+    @Test("Facade provides dictionary metadata")
+    func facadeMetadata() throws {
         let reader = try #require(Self.reader)
         
-        #expect(!reader.info.title.isEmpty)
-        #expect(reader.info.entryCount > 0)
+        #expect(!reader.metadata.title.isEmpty)
+        #expect(reader.entryCount > 0)
     }
     
-    @Test("Facade lookup delegates to MDXParser")
+    @Test("Static metadata loading (fast)")
+    func staticMetadataLoading() throws {
+        let reader = try #require(Self.reader)
+        
+        // Load metadata without full parse
+        let metadata = MDictReader.loadMetadata(from: reader.metadata.path)
+        #expect(metadata != nil)
+        #expect(metadata?.title == reader.metadata.title)
+    }
+    
+    @Test("Facade lookup returns MDictWordEntry")
     func facadeLookup() throws {
         let reader = try #require(Self.reader)
         
         let entry = reader.lookup("hello")
         #expect(entry != nil)
-        #expect(entry?.definition.isEmpty == false)
+        #expect(entry?.key.lowercased() == "hello")
+        #expect(entry?.article.html.isEmpty == false)
     }
     
     @Test("Facade subscript works")
@@ -56,16 +67,17 @@ struct MDictReaderTests {
         
         let first = reader[0]
         #expect(first != nil)
+        #expect(!first!.key.isEmpty)
         
-        let last = reader[reader.info.entryCount - 1]
+        let last = reader[reader.entryCount - 1]
         #expect(last != nil)
     }
     
-    @Test("Facade search works")
+    @Test("Facade search returns word keys")
     func facadeSearch() throws {
         let reader = try #require(Self.reader)
         
-        let results = reader.search(prefix: "test", limit: 10)
+        let results: [MDictWordKey] = reader.search(prefix: "test", limit: 10)
         // May or may not find results depending on dictionary
         #expect(results.count <= 10)
     }
@@ -91,15 +103,15 @@ struct MDictReaderTests {
         let entry = try #require(reader.lookup("hello"))
         
         // Check if definition references CSS or images
-        let definition = entry.definition
-        let hasResourceRef = definition.contains("href=") || 
-                            definition.contains("src=") ||
-                            definition.contains(".css")
+        let html = entry.article.html
+        let hasResourceRef = html.contains("href=") || 
+                            html.contains("src=") ||
+                            html.contains(".css")
         
         if hasResourceRef && reader.resourceCount > 0 {
             // Extract a referenced resource and try to load it
-            if let cssMatch = definition.range(of: #"href="([^"]+\.css)""#, options: .regularExpression) {
-                let cssPath = String(definition[cssMatch]).replacingOccurrences(of: "href=\"", with: "").replacingOccurrences(of: "\"", with: "")
+            if let cssMatch = html.range(of: #"href="([^"]+\.css)""#, options: .regularExpression) {
+                let cssPath = String(html[cssMatch]).replacingOccurrences(of: "href=\"", with: "").replacingOccurrences(of: "\"", with: "")
                 let cssData = reader.resource(for: cssPath)
                 // Resource may or may not exist in MDD
                 if cssData != nil {
@@ -158,20 +170,40 @@ struct MDictReaderTests {
         }
     }
     
-    // MARK: - Navigation Integration
+    // MARK: - Navigation Tests
     
-    @Test("Entry navigation works through facade")
-    func navigationIntegration() throws {
+    @Test("Navigation via subscript")
+    func navigationViaSubscript() throws {
         let reader = try #require(Self.reader)
         let entry = try #require(reader.lookup("hello"))
         
-        // Navigate and verify we can still access resources
-        if let next = entry.next {
-            #expect(!next.definition.isEmpty)
+        // Navigate using index
+        let nextIndex = entry.index + 1
+        if nextIndex < reader.entryCount {
+            let next = reader[nextIndex]
+            #expect(next != nil)
+            #expect(!next!.article.html.isEmpty)
         }
         
-        if let prev = entry.prev {
-            #expect(!prev.definition.isEmpty)
+        let prevIndex = entry.index - 1
+        if prevIndex >= 0 {
+            let prev = reader[prevIndex]
+            #expect(prev != nil)
+            #expect(!prev!.article.html.isEmpty)
         }
+    }
+    
+    @Test("Entry index is internal but usable for navigation")
+    func entryIndexNavigation() throws {
+        let reader = try #require(Self.reader)
+        
+        // Get first entry
+        let first = reader[0]
+        #expect(first != nil)
+        
+        // Get second via first's index
+        let second = reader[first!.index + 1]
+        #expect(second != nil)
+        #expect(second?.key != first?.key)
     }
 }
