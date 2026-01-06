@@ -1,57 +1,98 @@
 # OpenMDict
 
-A Swift library for reading MDict dictionary files (.mdx/.mdd).
+A pure Swift library for parsing MDict dictionary files (.mdx/.mdd).
 
 ## Features
 
-- ✅ MDX v2.0 format support
-- ✅ Encrypted=2 (keyword index encryption) auto-decryption
-- ✅ zlib and LZO decompression
-- ✅ O(1) keyword lookup via HashMap
-- ✅ Prefix search for autocomplete
-- ✅ Entry navigation (prev/next)
-- ✅ Cross-platform: macOS, iOS, iPadOS
+- ✅ **MDX V2 (2.0)** - Full support with zlib decompression
+- ✅ **MDX V1 (1.x)** - Full support with LZO decompression (official minilzo 2.10)
+- ✅ **MDD Resources** - Images, audio, CSS, and other embedded files
+- ✅ **Salted Dictionaries** - RIPEMD128 decryption for obfuscated dictionaries
+- ✅ **Cross-platform** - macOS, iOS, iPadOS (Swift Package Manager)
+
+## Requirements
+
+- Swift 5.9+
+- macOS 13+ / iOS 16+ (library)
+- macOS 13+ / iOS 15+ (planned app)
 
 ## Installation
 
 ### Swift Package Manager
 
+Add to your `Package.swift`:
+
 ```swift
 dependencies: [
-    .package(url: "https://github.com/user/OpenMDict.git", from: "1.0.0")
+    .package(url: "https://github.com/naco-siren/OpenMDict.git", from: "0.1.0")
 ]
 ```
 
 ## Usage
 
+### Basic Lookup
+
 ```swift
 import OpenMDict
 
 // Load dictionary
-let dict = try MDictReader(path: "MyDict.mdx")
-
-// Get info
-print("Title: \(dict.info.title)")
-print("Entries: \(dict.info.entryCount)")
+let dict = try MDictReader(path: "dictionary.mdx")
 
 // Lookup a word
 if let entry = dict.lookup("hello") {
-    print("Definition: \(entry.definition)")
-    
-    // Navigate to adjacent entries
-    if let prev = entry.prev {
-        print("Previous: \(prev.keyword)")
-    }
-    if let next = entry.next {
-        print("Next: \(next.keyword)")
-    }
+    print(entry.article.html)
 }
 
 // Search by prefix
-let results = dict.search(prefix: "hel", limit: 20)
+let words = dict.search(prefix: "hel", limit: 10)
 
-// Get suggestions for misspelled words
-let suggestions = dict.suggestions(for: "helo")
+// Access by index
+if let first = dict[0] {
+    print("\(first.key): \(first.article.html)")
+}
+```
+
+### Dictionary Metadata
+
+```swift
+let dict = try MDictReader(path: "dictionary.mdx")
+
+print("Title: \(dict.metadata.title)")
+print("Entries: \(dict.entryCount)")
+print("Format: \(dict.metadata.format)")
+print("Encoding: \(dict.metadata.encoding)")
+```
+
+### Resource Files (MDD)
+
+```swift
+// Resources are loaded automatically if .mdd file exists alongside .mdx
+let dict = try MDictReader(path: "dictionary.mdx")
+
+// Get CSS
+if let css = dict.resourceString(for: "style.css") {
+    print(css)
+}
+
+// Get image data
+if let imageData = dict.resource(for: "logo.png") {
+    // Use image data
+}
+
+// Check if resource exists
+if dict.hasResource("sound.mp3") {
+    // ...
+}
+```
+
+### Static Metadata (Fast)
+
+```swift
+// Load only header info without parsing full dictionary
+if let metadata = MDictReader.loadMetadata(from: "dictionary.mdx") {
+    print("Title: \(metadata.title)")
+    print("Entries: \(metadata.entryCount)")
+}
 ```
 
 ## CLI Tool
@@ -60,38 +101,66 @@ let suggestions = dict.suggestions(for: "helo")
 # Build
 swift build -c release
 
-# Run
-swift run -c release openmdict MyDict.mdx lookup hello
-swift run -c release openmdict MyDict.mdx search hel
-swift run -c release openmdict MyDict.mdx list 20
+# Dictionary info
+swift run openmdict dict.mdx info
+
+# Lookup word
+swift run openmdict dict.mdx lookup hello
+
+# Search by prefix
+swift run openmdict dict.mdx search hel
+
+# List entries
+swift run openmdict dict.mdx list --limit 20
 ```
 
 ## Testing
 
 ```bash
-# Set test dictionary path
-export MDICT_TEST_FILE=/path/to/dictionary.mdx
+# Run tests with a dictionary file
+MDICT_TEST_FILE=path/to/dict.mdx swift test
 
-# Run tests
-swift test
+# With specific test word
+MDICT_TEST_FILE=path/to/dict.mdx MDICT_TEST_WORD=hello swift test
+
+# With custom sample size
+MDICT_TEST_FILE=path/to/dict.mdx MDICT_TEST_SAMPLE=10 swift test
 ```
 
-## Supported Formats
+## Project Structure
 
-| Format | Version | Encryption | Status |
-|--------|---------|------------|--------|
-| MDX | 2.0 | None (0) | ✅ |
-| MDX | 2.0 | Index (2) | ✅ |
-| MDX | 2.0 | DRM (1,3) | ❌ Not supported |
-| MDX | 1.x | - | ⚠️ Untested |
-| MDX | 3.0 | - | ❌ Not supported |
-| MDD | - | - | 🚧 Planned |
+```
+OpenMDict/
+├── Sources/
+│   ├── OpenMDict/          # Core library
+│   │   ├── MDictReader.swift
+│   │   ├── Parsers/
+│   │   └── Utils/
+│   └── CLZ/                # LZO C library (minilzo 2.10)
+├── Apps/
+│   ├── CLI/                # Command-line tool
+│   ├── iOS/                # iOS/iPadOS app (planned)
+│   └── Shared/             # Shared ViewModels
+├── Tests/
+└── Package.swift
+```
+
+## Format Support
+
+| Format | Compression | Status |
+|--------|-------------|--------|
+| MDX V2 (2.0) | zlib | ✅ Full support |
+| MDX V1 (1.x) | LZO | ✅ Full support |
+| MDX V1 (1.x) | zlib | ✅ Supported |
+| MDD V2 | zlib | ✅ Full support |
+| MDD V1 | LZO/zlib | ✅ Supported |
+| Salted (obfuscated) | - | ✅ Supported |
 
 ## License
 
-MIT
+MIT License
 
-## Credits
+## Acknowledgments
 
-- Format documentation: [writemdict](https://github.com/zhansliu/writemdict/blob/master/fileformat.md)
-- Reference implementation: [mdict-utils](https://github.com/liuyug/mdict-utils)
+- [minilzo](http://www.oberhumer.com/opensource/lzo/) - LZO compression library by Markus F.X.J. Oberhumer
+- [readmdict](https://github.com/zhansliu/writemdict) - Python MDict reference implementation
