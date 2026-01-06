@@ -64,6 +64,16 @@ final class BinaryReader {
         return try handle.read(upToCount: count) ?? Data()
     }
     
+    /// Peek bytes without advancing position
+    func peekBytes(_ count: Int) throws -> Data {
+        let currentPos = handle.offsetInFile
+        guard let data = try handle.read(upToCount: count) else {
+            return Data()
+        }
+        handle.seek(toFileOffset: currentPos)
+        return data
+    }
+    
     // MARK: - Integer reading (Big Endian - MDX uses BE)
     
     func readUInt8() throws -> UInt8 {

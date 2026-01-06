@@ -35,7 +35,7 @@ struct Decompressor {
     
     /// Initialize LZO library (call once at startup)
     static func initialize() {
-        lzo_init()
+        lzo_initialize()
     }
     
     /// Decompress a block based on compression type
