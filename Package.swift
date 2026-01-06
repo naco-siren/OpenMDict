@@ -8,31 +8,31 @@ let package = Package(
         .iOS(.v16)
     ],
     products: [
-        .executable(name: "openmdict", targets: ["OpenMDictCLI"]),
-        .library(name: "OpenMDict", targets: ["OpenMDict"])
+        .library(name: "OpenMDict", targets: ["OpenMDict"]),
+        .executable(name: "openmdict", targets: ["OpenMDictCLI"])
     ],
     targets: [
         // C library for LZO decompression
         .target(
             name: "CLZ",
             path: "Sources/CLZ",
-            publicHeadersPath: "include",
-            cSettings: [
-                .define("MINILZO_HAVE_CONFIG_H", to: "0")
-            ]
+            publicHeadersPath: "include"
         ),
-        // Main OpenMDict library
+        
+        // Main library
         .target(
             name: "OpenMDict",
             dependencies: ["CLZ"],
             path: "Sources/OpenMDict"
         ),
-        // CLI executable
+        
+        // CLI tool (in Apps folder)
         .executableTarget(
             name: "OpenMDictCLI",
             dependencies: ["OpenMDict"],
-            path: "Sources/OpenMDictCLI"
+            path: "Apps/CLI"
         ),
+        
         // Tests
         .testTarget(
             name: "OpenMDictTests",

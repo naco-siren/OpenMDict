@@ -4,9 +4,27 @@ import Foundation
 
 /// Integration tests for MDictReader (MDX + MDD combined)
 /// Tests the facade API and resource integration
-/// Run with: MDICT_TEST_FILE=path/to/dict.mdx swift test
+///
+/// Environment variables:
+///   MDICT_TEST_FILE   - Path to .mdx file (required)
+///   MDICT_TEST_WORD   - Specific word to test lookup (optional)
+///   MDICT_TEST_SAMPLE - Number of entries to sample for testing, default 5 (optional)
 @Suite(.serialized)
 struct MDictReaderTests {
+    
+    // MARK: - Test Configuration
+    
+    static var sampleSize: Int {
+        if let val = ProcessInfo.processInfo.environment["MDICT_TEST_SAMPLE"],
+           let n = Int(val), n > 0 {
+            return n
+        }
+        return 5
+    }
+    
+    static var testWord: String? {
+        ProcessInfo.processInfo.environment["MDICT_TEST_WORD"]
+    }
     
     // Shared reader instance
     static var _reader: MDictReader?
@@ -55,9 +73,13 @@ struct MDictReaderTests {
     func facadeLookup() throws {
         let reader = try #require(Self.reader)
         
-        let entry = reader.lookup("hello")
-        #expect(entry != nil)
-        #expect(entry?.key.lowercased() == "hello")
+        // Use specified word or first entry
+        let testWord = Self.testWord ?? reader[0]?.key
+        let word = try #require(testWord)
+        
+        let entry = reader.lookup(word)
+        #expect(entry != nil, "Should find '\(word)'")
+        #expect(entry?.key.lowercased() == word.lowercased())
         #expect(entry?.article.html.isEmpty == false)
     }
     
@@ -77,8 +99,11 @@ struct MDictReaderTests {
     func facadeSearch() throws {
         let reader = try #require(Self.reader)
         
-        let results: [MDictWordKey] = reader.search(prefix: "test", limit: 10)
-        // May or may not find results depending on dictionary
+        // Use prefix from test word or first entry
+        let word = Self.testWord ?? reader[0]?.key ?? "a"
+        let prefix = String(word.prefix(2))
+        
+        let results: [MDictWordKey] = reader.search(prefix: prefix, limit: 10)
         #expect(results.count <= 10)
     }
     
@@ -88,8 +113,6 @@ struct MDictReaderTests {
     func resourceCount() throws {
         let reader = try #require(Self.reader)
         
-        // resourceCount should be >= 0
-        // If MDD exists, should be > 0
         #expect(reader.resourceCount >= 0)
         
         if reader.resourceCount > 0 {
@@ -100,20 +123,17 @@ struct MDictReaderTests {
     @Test("Definition references resources")
     func definitionReferencesResources() throws {
         let reader = try #require(Self.reader)
-        let entry = try #require(reader.lookup("hello"))
+        let firstEntry = try #require(reader[0])
         
-        // Check if definition references CSS or images
-        let html = entry.article.html
+        let html = firstEntry.article.html
         let hasResourceRef = html.contains("href=") || 
                             html.contains("src=") ||
                             html.contains(".css")
         
         if hasResourceRef && reader.resourceCount > 0 {
-            // Extract a referenced resource and try to load it
             if let cssMatch = html.range(of: #"href="([^"]+\.css)""#, options: .regularExpression) {
                 let cssPath = String(html[cssMatch]).replacingOccurrences(of: "href=\"", with: "").replacingOccurrences(of: "\"", with: "")
                 let cssData = reader.resource(for: cssPath)
-                // Resource may or may not exist in MDD
                 if cssData != nil {
                     #expect(cssData!.count > 0, "CSS resource should have content")
                 }
@@ -130,7 +150,6 @@ struct MDictReaderTests {
             return
         }
         
-        // Try to get first resource
         let firstPath = reader.allResourcePaths.first!
         let data = reader.resource(for: firstPath)
         
@@ -147,7 +166,6 @@ struct MDictReaderTests {
             return
         }
         
-        // Find a CSS file
         let cssPaths = reader.allResourcePaths.filter { $0.lowercased().hasSuffix(".css") }
         
         if let cssPath = cssPaths.first {
@@ -161,10 +179,8 @@ struct MDictReaderTests {
     func hasResourceCheck() throws {
         let reader = try #require(Self.reader)
         
-        // Non-existent resource
         #expect(!reader.hasResource("nonexistent_file_12345.xyz"))
         
-        // Existing resource (if MDD loaded)
         if let firstPath = reader.allResourcePaths.first {
             #expect(reader.hasResource(firstPath))
         }
@@ -175,17 +191,24 @@ struct MDictReaderTests {
     @Test("Navigation via subscript")
     func navigationViaSubscript() throws {
         let reader = try #require(Self.reader)
-        let entry = try #require(reader.lookup("hello"))
         
-        // Navigate using index
-        let nextIndex = entry.index + 1
+        // Use test word or middle entry
+        let entry: MDictWordEntry?
+        if let word = Self.testWord {
+            entry = reader.lookup(word)
+        } else {
+            entry = reader[reader.entryCount / 2]
+        }
+        let testEntry = try #require(entry)
+        
+        let nextIndex = testEntry.index + 1
         if nextIndex < reader.entryCount {
             let next = reader[nextIndex]
             #expect(next != nil)
             #expect(!next!.article.html.isEmpty)
         }
         
-        let prevIndex = entry.index - 1
+        let prevIndex = testEntry.index - 1
         if prevIndex >= 0 {
             let prev = reader[prevIndex]
             #expect(prev != nil)
@@ -197,11 +220,9 @@ struct MDictReaderTests {
     func entryIndexNavigation() throws {
         let reader = try #require(Self.reader)
         
-        // Get first entry
         let first = reader[0]
         #expect(first != nil)
         
-        // Get second via first's index
         let second = reader[first!.index + 1]
         #expect(second != nil)
         #expect(second?.key != first?.key)

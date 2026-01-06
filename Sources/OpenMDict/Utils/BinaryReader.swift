@@ -64,7 +64,7 @@ final class BinaryReader {
         return try handle.read(upToCount: count) ?? Data()
     }
     
-    /// Peek bytes without advancing position
+    /// Peek bytes without advancing position (useful for debugging)
     func peekBytes(_ count: Int) throws -> Data {
         let currentPos = handle.offsetInFile
         guard let data = try handle.read(upToCount: count) else {

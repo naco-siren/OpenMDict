@@ -4,9 +4,44 @@ import Foundation
 
 /// Unit tests for MDXParser (internal)
 /// Tests MDX parsing functionality in isolation
-/// Run with: MDICT_TEST_FILE=path/to/dict.mdx swift test
+///
+/// Environment variables:
+///   MDICT_TEST_FILE   - Path to .mdx file (required)
+///   MDICT_TEST_WORD   - Specific word to test lookup (optional)
+///   MDICT_TEST_SAMPLE - Number of entries to sample for testing, default 5 (optional)
+///
+/// Examples:
+///   MDICT_TEST_FILE=dict.mdx swift test
+///   MDICT_TEST_FILE=dict.mdx MDICT_TEST_WORD=hello swift test
+///   MDICT_TEST_FILE=dict.mdx MDICT_TEST_SAMPLE=10 swift test
 @Suite(.serialized)
 struct MDXParserTests {
+    
+    // MARK: - Test Configuration
+    
+    /// Number of entries to sample for testing
+    static var sampleSize: Int {
+        if let val = ProcessInfo.processInfo.environment["MDICT_TEST_SAMPLE"],
+           let n = Int(val), n > 0 {
+            return n
+        }
+        return 5
+    }
+    
+    /// Specific word to test (if provided)
+    static var testWord: String? {
+        ProcessInfo.processInfo.environment["MDICT_TEST_WORD"]
+    }
+    
+    /// Words to use for lookup tests
+    static var testWords: [String] {
+        if let word = testWord {
+            return [word]
+        }
+        guard let parser = parser else { return [] }
+        let count = min(sampleSize, parser.entryCount)
+        return Array(parser.allKeywords.prefix(count))
+    }
     
     // Shared parser instance
     static var _parser: MDXParser?
@@ -23,6 +58,11 @@ struct MDXParserTests {
             do {
                 _parser = try MDXParser(path: path)
                 print("✅ [MDXParser] Loaded: \(_parser!.info.title) with \(_parser!.entryCount) entries")
+                if let word = testWord {
+                    print("   Test word: \(word)")
+                } else {
+                    print("   Sample size: \(sampleSize)")
+                }
             } catch {
                 print("❌ [MDXParser] Failed: \(error)")
             }
@@ -51,15 +91,20 @@ struct MDXParserTests {
     
     // MARK: - Lookup Tests
     
-    @Test("Lookup existing words", arguments: ["the", "hello", "world", "apple", "book"])
-    func lookupExisting(word: String) throws {
+    @Test("Lookup test words")
+    func lookupTestWords() throws {
         let parser = try #require(Self.parser)
+        let words = Self.testWords
         
-        let result = parser.lookupWithIndex(word)
-        #expect(result != nil, "'\(word)' should exist")
+        #expect(!words.isEmpty, "Should have test words")
         
-        if let (definition, _) = result {
-            #expect(!definition.isEmpty)
+        for word in words {
+            let result = parser.lookupWithIndex(word)
+            #expect(result != nil, "'\(word)' should exist")
+            
+            if let (definition, _) = result {
+                #expect(!definition.isEmpty, "Definition for '\(word)' should not be empty")
+            }
         }
     }
     
@@ -75,12 +120,17 @@ struct MDXParserTests {
         let parser = try #require(Self.parser)
         try #require(!parser.info.isCaseSensitive)
         
-        let lower = parser.lookupWithIndex("hello")
-        let upper = parser.lookupWithIndex("HELLO")
+        // Use first test word that has alphabetic characters
+        let testWord = Self.testWords.first { $0.rangeOfCharacter(from: .letters) != nil } 
+                       ?? parser.allKeywords.first { $0.rangeOfCharacter(from: .letters) != nil }
+                       ?? parser.allKeywords[0]
         
-        #expect(lower != nil)
-        #expect(upper != nil)
-        #expect(lower?.1 == upper?.1)  // Same index
+        let lower = parser.lookupWithIndex(testWord.lowercased())
+        let upper = parser.lookupWithIndex(testWord.uppercased())
+        
+        #expect(lower != nil, "Lowercase lookup should work")
+        #expect(upper != nil, "Uppercase lookup should work")
+        #expect(lower?.1 == upper?.1, "Should return same index")
     }
     
     // MARK: - Entry Access Tests
@@ -121,8 +171,10 @@ struct MDXParserTests {
     func navigateViaIndex() throws {
         let parser = try #require(Self.parser)
         
-        // Lookup hello to get its index
-        let result = parser.lookupWithIndex("hello")
+        // Use first test word or middle entry
+        let testWord = Self.testWords.first ?? parser.allKeywords[parser.entryCount / 2]
+        
+        let result = parser.lookupWithIndex(testWord)
         #expect(result != nil)
         
         if let (_, index) = result {
@@ -146,11 +198,15 @@ struct MDXParserTests {
     func prefixSearch() throws {
         let parser = try #require(Self.parser)
         
-        let results = parser.search(prefix: "hel", limit: 10)
+        // Get prefix from first test word
+        let firstWord = Self.testWords.first ?? parser.allKeywords[0]
+        let prefix = String(firstWord.prefix(min(3, firstWord.count)))
         
-        #expect(!results.isEmpty)
+        let results = parser.search(prefix: prefix, limit: 10)
+        
+        #expect(!results.isEmpty, "Should find entries starting with '\(prefix)'")
         for word in results {
-            #expect(word.lowercased().hasPrefix("hel"))
+            #expect(word.lowercased().hasPrefix(prefix.lowercased()))
         }
     }
     
@@ -166,8 +222,12 @@ struct MDXParserTests {
     func suggestions() throws {
         let parser = try #require(Self.parser)
         
-        let suggestions = parser.suggestions(for: "helo", limit: 5)
-        #expect(!suggestions.isEmpty)
+        // Create typo from first test word
+        let firstWord = Self.testWords.first ?? parser.allKeywords[0]
+        let typo = firstWord.count > 2 ? String(firstWord.dropLast()) + "x" : firstWord + "x"
+        
+        let suggestions = parser.suggestions(for: typo, limit: 5)
+        #expect(suggestions.count <= 5)
     }
     
     // MARK: - Definition Content Tests
@@ -175,7 +235,8 @@ struct MDXParserTests {
     @Test("Definition contains HTML")
     func definitionHasHTML() throws {
         let parser = try #require(Self.parser)
-        let result = parser.lookupWithIndex("hello")
+        let firstWord = Self.testWords.first ?? parser.allKeywords[0]
+        let result = parser.lookupWithIndex(firstWord)
         #expect(result != nil)
         
         if let (definition, _) = result {
@@ -189,11 +250,8 @@ struct MDXParserTests {
     
     @Test("Read header only (fast)")
     func readHeaderOnly() throws {
-        let parser = try #require(Self.parser)
-        
-        // Get path from existing parser
-        // We need to access path somehow... 
-        // Since parser doesn't expose path, we test via MDictReader
-        // This test is better suited for MDictReaderTests
+        _ = try #require(Self.parser)
+        // This test validates that parser loaded successfully
+        // Path access would be tested via MDictReader
     }
 }

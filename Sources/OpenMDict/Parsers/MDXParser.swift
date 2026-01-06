@@ -327,8 +327,6 @@ extension MDXParser {
     static func parseKeywordSection(_ reader: BinaryReader, header: MDictHeader) throws -> KeywordParseResult {
         let isV2 = header.isVersion2
         
-        print("[DEBUG] parseKeywordSection: position=\(reader.position), isV2=\(isV2)")
-        
         let numBlocks: UInt64
         let numEntries: UInt64
         let keyIndexDecompLen: UInt64
@@ -341,17 +339,11 @@ extension MDXParser {
             keyIndexCompLen = try reader.readUInt64BE()
             _ = try reader.readUInt64BE()  // keyBlocksTotalLen
         } else {
-            // V1: Show raw bytes for debugging
-            let rawBytes = try reader.peekBytes(16)
-            print("[DEBUG] V1 keyword header raw bytes: \(rawBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
-            
             numBlocks = UInt64(try reader.readUInt32BE())
             numEntries = UInt64(try reader.readUInt32BE())
             keyIndexCompLen = UInt64(try reader.readUInt32BE())
-            let keyBlocksTotalLen = try reader.readUInt32BE()
+            _ = try reader.readUInt32BE()  // keyBlocksTotalLen
             keyIndexDecompLen = 0
-            
-            print("[DEBUG] V1 numBlocks=\(numBlocks), numEntries=\(numEntries), keyIndexCompLen=\(keyIndexCompLen), keyBlocksTotalLen=\(keyBlocksTotalLen)")
         }
         
         if isV2 { _ = try reader.readUInt32BE() }  // adler32
@@ -377,7 +369,6 @@ extension MDXParser {
         } else {
             // V1: key index is NOT compressed and has NO header - it's raw data
             decompressedIndex = keyIndexData
-            print("[DEBUG] V1 keyIndex first 32 bytes: \(decompressedIndex.prefix(32).map { String(format: "%02X", $0) }.joined(separator: " "))")
         }
         
         // Parse block infos
@@ -386,7 +377,7 @@ extension MDXParser {
         let encoding = encodingFromString(header.encoding)
         let charWidth = (encoding == .utf16LittleEndian) ? 2 : 1
         
-        for blockNum in 0..<numBlocks {
+        for _ in 0..<numBlocks {
             guard indexOffset + 10 <= decompressedIndex.count else { break }
             
             if isV2 {
@@ -398,16 +389,11 @@ extension MDXParser {
             } else {
                 // V1: numEntries (4) + firstKeyLen (1) + firstKey + lastKeyLen (1) + lastKey + compSize (4) + decompSize (4)
                 // NO null terminators in V1 block info!
-                let blockNumEntries = decompressedIndex.readUInt32BE(at: indexOffset)
-                indexOffset += 4
+                indexOffset += 4  // numEntries
                 let firstKeyLen = Int(decompressedIndex[indexOffset])
                 indexOffset += 1 + firstKeyLen * charWidth  // NO null terminator
                 let lastKeyLen = Int(decompressedIndex[indexOffset])
                 indexOffset += 1 + lastKeyLen * charWidth  // NO null terminator
-                
-                if blockNum == 0 {
-                    print("[DEBUG] Block 0 info: numEntries=\(blockNumEntries), firstKeyLen=\(firstKeyLen), lastKeyLen=\(lastKeyLen), indexOffset=\(indexOffset)")
-                }
             }
             
             let compSize = isV2 ? decompressedIndex.readUInt64BE(at: indexOffset) : UInt64(decompressedIndex.readUInt32BE(at: indexOffset))
@@ -415,14 +401,8 @@ extension MDXParser {
             let decompSize = isV2 ? decompressedIndex.readUInt64BE(at: indexOffset) : UInt64(decompressedIndex.readUInt32BE(at: indexOffset))
             indexOffset += isV2 ? 8 : 4
             
-            if blockNum == 0 {
-                print("[DEBUG] Block 0: compSize=\(compSize), decompSize=\(decompSize)")
-            }
-            
             keyBlockInfos.append((compSize, decompSize))
         }
-        
-        print("[DEBUG] Parsed \(keyBlockInfos.count) key block infos")
         
         // Parse keyword blocks
         var allKeywords: [KeywordEntry] = []
@@ -477,8 +457,6 @@ extension MDXParser {
     static func parseRecordBlockInfo(_ reader: BinaryReader, header: MDictHeader) throws -> [RecordBlockInfo] {
         let isV2 = header.isVersion2
         
-        print("[DEBUG] parseRecordBlockInfo: position=\(reader.position), isV2=\(isV2)")
-        
         let numBlocks: UInt64
         let recordIndexLen: UInt64
         
@@ -488,35 +466,18 @@ extension MDXParser {
             recordIndexLen = try reader.readUInt64BE()
             _ = try reader.readUInt64BE()  // recordBlocksTotalLen
         } else {
-            // V1: Try reading as BE first, show debug
-            let rawBytes = try reader.peekBytes(16)
-            print("[DEBUG] V1 record header raw bytes: \(rawBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
-            
             numBlocks = UInt64(try reader.readUInt32BE())
-            let numEntriesRaw = try reader.readUInt32BE()
+            _ = try reader.readUInt32BE()  // numEntries
             recordIndexLen = UInt64(try reader.readUInt32BE())
-            let recordBlocksTotalLen = try reader.readUInt32BE()
-            
-            print("[DEBUG] V1 numBlocks=\(numBlocks), numEntries=\(numEntriesRaw), recordIndexLen=\(recordIndexLen), recordBlocksTotalLen=\(recordBlocksTotalLen)")
+            _ = try reader.readUInt32BE()  // recordBlocksTotalLen
         }
         
         var blocks: [RecordBlockInfo] = []
         var fileOffset = reader.position + recordIndexLen
         
-        print("[DEBUG] Reading \(numBlocks) record blocks, recordIndexLen=\(recordIndexLen)")
-        
-        for i in 0..<numBlocks {
-            if i == 0 {
-                let rawBytes = try reader.peekBytes(16)
-                print("[DEBUG] First block raw bytes: \(rawBytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
-            }
-            
+        for _ in 0..<numBlocks {
             let compSize = isV2 ? try reader.readUInt64BE() : UInt64(try reader.readUInt32BE())
             let decompSize = isV2 ? try reader.readUInt64BE() : UInt64(try reader.readUInt32BE())
-            
-            if i == 0 {
-                print("[DEBUG] Block 0: compSize=\(compSize), decompSize=\(decompSize), fileOffset=\(fileOffset)")
-            }
             
             blocks.append(RecordBlockInfo(compressedSize: compSize, decompressedSize: decompSize, fileOffset: fileOffset))
             fileOffset += compSize
