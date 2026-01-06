@@ -13,8 +13,7 @@ A pure Swift library for parsing MDict dictionary files (.mdx/.mdd).
 ## Requirements
 
 - Swift 5.9+
-- macOS 13+ / iOS 16+ (library)
-- macOS 13+ / iOS 15+ (planned app)
+- macOS 12+ / iOS 15+
 
 ## Installation
 

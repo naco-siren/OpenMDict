@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "OpenMDict",
     platforms: [
-        .macOS(.v13),
-        .iOS(.v16)
+        .macOS(.v12),
+        .iOS(.v15)
     ],
     products: [
         .library(name: "OpenMDict", targets: ["OpenMDict"]),

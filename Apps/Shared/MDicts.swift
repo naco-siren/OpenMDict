@@ -33,7 +33,7 @@ public struct MDictLookupResult: Sendable {
 ///     print("\(result.dict.metadata?.title): \(result.entry.article.html)")
 /// }
 /// ```
-public struct MDicts: Sendable {
+public struct MDicts {
     
     // MARK: - Properties
     

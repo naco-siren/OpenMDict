@@ -24,8 +24,7 @@ public enum MDictLoadState: Sendable, Equatable {
 ///     print(entry.article.html)
 /// }
 /// ```
-@Observable
-public final class MDict: Identifiable, @unchecked Sendable {
+public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Identity
     
