@@ -2,79 +2,43 @@
 //  DictionaryListViewController.swift
 //  OpenMDict-iOS
 //
-//  Primary column: sidebar with dictionaries + fixed footer
-//
-//  Layout:
-//  ┌─────────────────────────┐
-//  │  Dictionaries (header)  │
-//  │  ┌───────────────────┐  │
-//  │  │ 📖 Dict A      📌 │  │  ← scrollable
-//  │  │ 📕 Dict B         │  │
-//  │  │ 📖 Dict C      📌 │  │
-//  │  └───────────────────┘  │
-//  ├─────────────────────────┤
-//  │  📚 Dictionary Mgmt     │  ← fixed
-//  │  ⚙️ App Settings        │  ← fixed
-//  └─────────────────────────┘
+//  Standard iOS 14+ sidebar with outline groups
 //
 
 import UIKit
 
 class DictionaryListViewController: UIViewController {
     
-    // MARK: - Callback
+    // MARK: - Callbacks
     
+    var onGroupSelected: ((DictionaryGroup) -> Void)?
     var onDictionarySelected: ((DictionaryItem) -> Void)?
     
     // MARK: - Data
     
-    private var dictionaries: [DictionaryItem] = DictionaryItem.mockData
-    private var selectedId: String?
+    private var groups: [DictionaryGroup] = DictionaryGroup.mockData
     
-    private var dataSource: UICollectionViewDiffableDataSource<Int, DictionaryItem>!
+    /// Tracks which group is "active" for icon updates (separate from system selection)
+    private var activeGroupId: String? = "all"
+    
+    private var dataSource: UICollectionViewDiffableDataSource<Section, SidebarItem>!
+    
+    private enum Section: Int, CaseIterable {
+        case query
+        case management
+    }
     
     // MARK: - UI
     
     private lazy var collectionView: UICollectionView = {
         var config = UICollectionLayoutListConfiguration(appearance: .sidebar)
-        config.headerMode = .supplementary
-        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            self?.swipeActionsForItem(at: indexPath)
-        }
-        
+        config.headerMode = .firstItemInSection
         let layout = UICollectionViewCompositionalLayout.list(using: config)
         
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.delegate = self
-        cv.dragDelegate = self
-        cv.dropDelegate = self
-        cv.dragInteractionEnabled = true
         return cv
-    }()
-    
-    private lazy var footerStack: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.spacing = 0
-        return stack
-    }()
-    
-    private lazy var managementButton: UIButton = {
-        createFooterButton(
-            title: "Dictionary Management",
-            icon: "books.vertical",
-            action: #selector(managementTapped)
-        )
-    }()
-    
-    private lazy var settingsButton: UIButton = {
-        createFooterButton(
-            title: "App Settings",
-            icon: "gearshape",
-            action: #selector(settingsTapped)
-        )
     }()
     
     // MARK: - Lifecycle
@@ -85,181 +49,178 @@ class DictionaryListViewController: UIViewController {
         title = "OpenMDict"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        setupUI()
-        configureDataSource()
-        applySnapshot(animated: false)
-        
-        // Auto-select first dictionary
-        if let first = dictionaries.first {
-            selectedId = first.id
-            onDictionarySelected?(first)
-        }
-    }
-    
-    private func setupUI() {
         view.backgroundColor = .systemGroupedBackground
-        
-        // Footer
-        footerStack.addArrangedSubview(createSeparator())
-        footerStack.addArrangedSubview(managementButton)
-        footerStack.addArrangedSubview(settingsButton)
-        view.addSubview(footerStack)
-        
-        // Collection view
         view.addSubview(collectionView)
-        
         NSLayoutConstraint.activate([
-            footerStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            footerStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            footerStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: footerStack.topAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-    }
-    
-    private func createFooterButton(title: String, icon: String, action: Selector) -> UIButton {
-        var config = UIButton.Configuration.plain()
-        config.title = title
-        config.image = UIImage(systemName: icon)
-        config.imagePadding = 12
-        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
-        config.baseForegroundColor = .label
         
-        let button = UIButton(configuration: config)
-        button.contentHorizontalAlignment = .leading
-        button.addTarget(self, action: action, for: .touchUpInside)
-        return button
-    }
-    
-    private func createSeparator() -> UIView {
-        let view = UIView()
-        view.backgroundColor = .separator
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale).isActive = true
-        return view
-    }
-    
-    // MARK: - Footer Actions (Stubs)
-    
-    @objc private func managementTapped() {
-        print("📚 Dictionary Management tapped - TODO: implement")
-    }
-    
-    @objc private func settingsTapped() {
-        print("⚙️ App Settings tapped - TODO: implement")
-    }
-    
-    // MARK: - Swipe Actions
-    
-    private func swipeActionsForItem(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        configureDataSource()
+        applySnapshot()
         
-        let pinAction = UIContextualAction(
-            style: .normal,
-            title: item.isPinned ? "Unpin" : "Pin"
-        ) { [weak self] _, _, completion in
-            self?.togglePin(item)
-            completion(true)
+        // Select first group by default
+        DispatchQueue.main.async {
+            if let firstGroupIndexPath = self.dataSource.indexPath(for: .group(self.groups[0])) {
+                self.collectionView.selectItem(at: firstGroupIndexPath, animated: false, scrollPosition: [])
+                self.onGroupSelected?(self.groups[0])
+            }
         }
-        pinAction.image = UIImage(systemName: item.isPinned ? "pin.slash" : "pin")
-        pinAction.backgroundColor = .systemOrange
-        
-        return UISwipeActionsConfiguration(actions: [pinAction])
-    }
-    
-    private func togglePin(_ item: DictionaryItem) {
-        guard let index = dictionaries.firstIndex(where: { $0.id == item.id }) else { return }
-        dictionaries[index].isPinned.toggle()
-        print("📌 \(item.name) is now \(dictionaries[index].isPinned ? "pinned" : "unpinned") - TODO: persist")
-        applySnapshot(animated: true)
     }
     
     // MARK: - Data Source
     
     private func configureDataSource() {
-        // Cell registration
-        let cellRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryItem> {
-            [weak self] (cell: UICollectionViewListCell, indexPath: IndexPath, item: DictionaryItem) in
+        // Section header
+        let headerReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, title in
+            var content = cell.defaultContentConfiguration()
+            content.text = title
+            cell.contentConfiguration = content
+            cell.accessories = [.outlineDisclosure()]
+        }
+        
+        // Group cell
+        let groupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> {
+            [weak self] cell, indexPath, group in
+            guard let self = self else { return }
+            
+            let isActive = self.activeGroupId == group.id
             
             var content = cell.defaultContentConfiguration()
-            content.text = item.name
-            content.secondaryText = "\(item.entryCount.formatted()) entries"
-            
-            // Leading icon: loaded state
-            content.image = UIImage(systemName: item.isLoaded ? "book.fill" : "book.closed")
-            content.imageProperties.tintColor = item.isLoaded ? .systemBlue : .secondaryLabel
-            
+            content.text = group.name
+            content.image = UIImage(systemName: isActive ? "books.vertical.fill" : "books.vertical")
             cell.contentConfiguration = content
+            cell.accessories = [.outlineDisclosure()]
             
-            // Trailing accessories
-            var accessories: [UICellAccessory] = []
-            
-            // Pin indicator
-            if item.isPinned {
-                let pinConfig = UICellAccessory.CustomViewConfiguration(
-                    customView: UIImageView(image: UIImage(systemName: "pin.fill")),
-                    placement: .trailing(displayed: .always)
+            // Custom selection styling: blue background + white text
+            cell.configurationUpdateHandler = { cell, state in
+                debugPrint("groupReg: \(cell)")
+                var content = UIListContentConfiguration.sidebarCell()
+                content.text = group.name
+                content.image = UIImage(
+                    systemName: isActive
+                        ? "books.vertical.fill" : "books.vertical"
                 )
-                accessories.append(.customView(configuration: pinConfig))
+                if state.isSelected || state.isHighlighted {
+                    content.textProperties.color = .white
+                    content.imageProperties.tintColor = .white
+                    var bg = UIBackgroundConfiguration.listSidebarCell()
+                    bg.backgroundColor = .systemBlue
+                    cell.backgroundConfiguration = bg
+                } else {
+                    cell.backgroundConfiguration =
+                        UIBackgroundConfiguration.listSidebarCell()
+                }
+                cell.contentConfiguration = content
             }
+        }
+        
+        // Dictionary cell
+        let dictReg = UICollectionView.CellRegistration<UICollectionViewListCell, (DictionaryItem, String)> {
+            [weak self] cell, indexPath, tuple in
+            guard let self = self else { return }
             
-            // Selection indicator
-            if item.id == self?.selectedId {
-                accessories.append(.checkmark())
+            let (dict, groupId) = tuple
+            let isParentActive = self.activeGroupId == groupId
+            
+            var content = cell.defaultContentConfiguration()
+            content.text = dict.name
+            content.image = UIImage(systemName: isParentActive ? "book.fill" : "book.closed")
+            if isParentActive {
+                content.imageProperties.tintColor = .systemBlue
             }
+            cell.contentConfiguration = content
+            cell.accessories = []
             
-            cell.accessories = accessories
+            // Custom selection styling: blue background + white text + open book
+            cell.configurationUpdateHandler = { cell, state in
+                debugPrint("dictReg: \(cell)")
+                var content = UIListContentConfiguration.sidebarCell()
+                content.text = dict.name
+                if state.isSelected || state.isHighlighted {
+                    content.image = UIImage(systemName: "book.fill")
+                    content.textProperties.color = .white
+                    content.imageProperties.tintColor = .white
+                    var bg = UIBackgroundConfiguration.listSidebarCell()
+                    bg.backgroundColor = .systemBlue
+                    cell.backgroundConfiguration = bg
+                } else {
+                    content.image = UIImage(systemName: isParentActive ? "book.fill" : "book.closed")
+                    if isParentActive {
+                        content.imageProperties.tintColor = .systemBlue
+                    }
+                    cell.backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+                }
+                cell.contentConfiguration = content
+            }
         }
         
-        // Header registration
-        let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
-            elementKind: UICollectionView.elementKindSectionHeader
-        ) { (headerView: UICollectionViewListCell, elementKind: String, indexPath: IndexPath) in
-            var content = headerView.defaultContentConfiguration()
-            content.text = "Dictionaries"
-            headerView.contentConfiguration = content
+        // Action cell
+        let actionReg = UICollectionView.CellRegistration<UICollectionViewListCell, SidebarItem> { cell, indexPath, item in
+            var content = cell.defaultContentConfiguration()
+            switch item {
+            case .importDict:
+                content.text = "Import Dictionary"
+                content.image = UIImage(systemName: "square.and.arrow.down")
+            case .deleteDict:
+                content.text = "Delete Dictionaries"
+                content.image = UIImage(systemName: "trash")
+            case .settings:
+                content.text = "App Settings"
+                content.image = UIImage(systemName: "gearshape")
+            default: break
+            }
+            cell.contentConfiguration = content
+            cell.accessories = []
         }
         
-        // Create data source
-        dataSource = UICollectionViewDiffableDataSource<Int, DictionaryItem>(
-            collectionView: collectionView
-        ) { (collectionView: UICollectionView, indexPath: IndexPath, item: DictionaryItem) -> UICollectionViewCell? in
-            return collectionView.dequeueConfiguredReusableCell(
-                using: cellRegistration,
-                for: indexPath,
-                item: item
-            )
-        }
-        
-        dataSource.supplementaryViewProvider = {
-            (collectionView: UICollectionView, kind: String, indexPath: IndexPath) -> UICollectionReusableView? in
-            return collectionView.dequeueConfiguredReusableSupplementary(
-                using: headerRegistration,
-                for: indexPath
-            )
-        }
-        
-        // Enable reordering
-        dataSource.reorderingHandlers.canReorderItem = { _ in true }
-        dataSource.reorderingHandlers.didReorder = { [weak self] transaction in
-            // Update our backing store
-            if let updatedItems = self?.dictionaries.applying(transaction.difference) {
-                self?.dictionaries = updatedItems
-                print("📋 Dictionaries reordered - TODO: persist order")
+        dataSource = UICollectionViewDiffableDataSource<Section, SidebarItem>(collectionView: collectionView) {
+            collectionView, indexPath, item in
+            switch item {
+            case .header(let title):
+                return collectionView.dequeueConfiguredReusableCell(using: headerReg, for: indexPath, item: title)
+            case .group(let g):
+                return collectionView.dequeueConfiguredReusableCell(using: groupReg, for: indexPath, item: g)
+            case .dictionary(let d, let gid):
+                return collectionView.dequeueConfiguredReusableCell(using: dictReg, for: indexPath, item: (d, gid))
+            case .importDict, .deleteDict, .settings:
+                return collectionView.dequeueConfiguredReusableCell(using: actionReg, for: indexPath, item: item)
             }
         }
     }
     
-    // MARK: - Snapshot
+    private func applySnapshot() {
+        // Query section
+        var querySnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
+        let queryHeader = SidebarItem.header("Query")
+        querySnapshot.append([queryHeader])
+        
+        for group in groups {
+            let groupItem = SidebarItem.group(group)
+            querySnapshot.append([groupItem], to: queryHeader)
+            
+            let children = group.dictionaries.map { SidebarItem.dictionary($0, groupId: group.id) }
+            querySnapshot.append(children, to: groupItem)
+            querySnapshot.expand([groupItem])
+        }
+        querySnapshot.expand([queryHeader])
+        dataSource.apply(querySnapshot, to: .query, animatingDifferences: false)
+        
+        // Management section
+        var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
+        let mgmtHeader = SidebarItem.header("Management")
+        mgmtSnapshot.append([mgmtHeader])
+        mgmtSnapshot.append([.importDict, .deleteDict, .settings], to: mgmtHeader)
+        mgmtSnapshot.expand([mgmtHeader])
+        dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: false)
+    }
     
-    private func applySnapshot(animated: Bool) {
-        var snapshot = NSDiffableDataSourceSnapshot<Int, DictionaryItem>()
-        snapshot.appendSections([0])
-        snapshot.appendItems(dictionaries, toSection: 0)
-        dataSource.apply(snapshot, animatingDifferences: animated)
+    private func reconfigureItems() {
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 }
 
@@ -268,69 +229,48 @@ class DictionaryListViewController: UIViewController {
 extension DictionaryListViewController: UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        collectionView.deselectItem(at: indexPath, animated: true)
-        
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         
-        // Toggle loaded state if tapping already-selected item
-        if item.id == selectedId {
-            toggleLoaded(item)
-            return
-        }
-        
-        // Select new item
-        selectedId = item.id
-        
-        // Auto-load if not loaded
-        if !item.isLoaded {
-            if let index = dictionaries.firstIndex(where: { $0.id == item.id }) {
-                dictionaries[index].isLoaded = true
-                print("📖 \(item.name) loaded - TODO: actually load")
+        switch item {
+        case .header:
+            // Deselect headers - they shouldn't be selectable
+            collectionView.deselectItem(at: indexPath, animated: false)
+            
+        case .group(let group):
+            activeGroupId = group.id
+            reconfigureItems()
+            onGroupSelected?(group)
+            
+        case .dictionary(let dict, let groupId):
+            if groupId == "all" {
+                // Direct selection in All Dictionaries
+                activeGroupId = nil  // No group active, just this dict
+                reconfigureItems()
+                onDictionarySelected?(dict)
+            } else {
+                // Clicked in a user group - jump to All Dictionaries
+                collectionView.deselectItem(at: indexPath, animated: false)
+                
+                let targetItem = SidebarItem.dictionary(dict, groupId: "all")
+                if let targetIndexPath = dataSource.indexPath(for: targetItem) {
+                    activeGroupId = nil
+                    reconfigureItems()
+                    collectionView.selectItem(at: targetIndexPath, animated: true, scrollPosition: .centeredVertically)
+                    onDictionarySelected?(dict)
+                }
             }
+            
+        case .importDict:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            print("📥 Import dictionary - TODO")
+            
+        case .deleteDict:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            print("🗑️ Delete dictionaries - TODO")
+            
+        case .settings:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            print("⚙️ App Settings - TODO")
         }
-        
-        applySnapshot(animated: false)
-        onDictionarySelected?(item)
-    }
-    
-    private func toggleLoaded(_ item: DictionaryItem) {
-        guard let index = dictionaries.firstIndex(where: { $0.id == item.id }) else { return }
-        dictionaries[index].isLoaded.toggle()
-        let loaded = dictionaries[index].isLoaded
-        print("\(loaded ? "📖" : "📕") \(item.name) \(loaded ? "loaded" : "unloaded") - TODO: actually \(loaded ? "load" : "unload")")
-        applySnapshot(animated: true)
-    }
-}
-
-// MARK: - UICollectionViewDragDelegate
-
-extension DictionaryListViewController: UICollectionViewDragDelegate {
-    
-    func collectionView(_ collectionView: UICollectionView,
-                        itemsForBeginning session: UIDragSession,
-                        at indexPath: IndexPath) -> [UIDragItem] {
-        guard let item = dataSource.itemIdentifier(for: indexPath) else { return [] }
-        let itemProvider = NSItemProvider(object: item.id as NSString)
-        let dragItem = UIDragItem(itemProvider: itemProvider)
-        dragItem.localObject = item
-        return [dragItem]
-    }
-}
-
-// MARK: - UICollectionViewDropDelegate
-
-extension DictionaryListViewController: UICollectionViewDropDelegate {
-    
-    func collectionView(_ collectionView: UICollectionView,
-                        dropSessionDidUpdate session: UIDropSession,
-                        withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
-        if session.localDragSession != nil {
-            return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
-        }
-        return UICollectionViewDropProposal(operation: .forbidden)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
-        // Handled by dataSource.reorderingHandlers
     }
 }

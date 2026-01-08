@@ -17,7 +17,7 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - State
     
-    private var currentDictId: String?
+    private var currentGroup: DictionaryGroup?
     
     // MARK: - Initialization
     
@@ -46,28 +46,30 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - Setup
     
     private func setupSplitView() {
-        preferredPrimaryColumnWidthFraction = 0.2
+        preferredDisplayMode = .twoBesideSecondary
+        primaryBackgroundStyle = .none
+        
+        preferredPrimaryColumnWidthFraction = 0.25
         preferredSupplementaryColumnWidthFraction = 0.25
-        minimumPrimaryColumnWidth = 200
+        minimumPrimaryColumnWidth = 250
         minimumSupplementaryColumnWidth = 250
         
-        preferredDisplayMode = .twoBesideSecondary
         presentsWithGesture = true
         
         view.backgroundColor = .systemGroupedBackground
     }
     
     private func setupChildControllers() {
-        // Primary: Dictionary list
+        // Primary: Dictionary list (sidebar)
         let primaryNav = UINavigationController(rootViewController: dictionaryListVC)
         primaryNav.navigationBar.prefersLargeTitles = true
         
         // Supplementary: Word list
         let supplementaryNav = UINavigationController(rootViewController: wordListVC)
         
-        // Secondary: Article strip (no nav bar, actions are on cards)
+        // Secondary: Article strip (with nav bar for global actions)
         let secondaryNav = UINavigationController(rootViewController: articleStripVC)
-        secondaryNav.setNavigationBarHidden(true, animated: false)
+        secondaryNav.setNavigationBarHidden(true, animated: false) // Will show when articles exist
         
         setViewController(primaryNav, for: .primary)
         setViewController(supplementaryNav, for: .supplementary)
@@ -78,8 +80,8 @@ class MainSplitViewController: UISplitViewController {
     }
     
     private func setupDelegates() {
-        dictionaryListVC.onDictionarySelected = { [weak self] dictItem in
-            self?.selectDictionary(dictItem)
+        dictionaryListVC.onGroupSelected = { [weak self] group in
+            self?.selectGroup(group)
         }
         
         wordListVC.onWordSelected = { [weak self] wordItem in
@@ -89,9 +91,9 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Navigation
     
-    private func selectDictionary(_ dict: DictionaryItem) {
-        currentDictId = dict.id
-        wordListVC.loadWords(for: dict)
+    private func selectGroup(_ group: DictionaryGroup) {
+        currentGroup = group
+        wordListVC.loadWords(for: group)
         
         if traitCollection.horizontalSizeClass == .regular {
             show(.supplementary)
@@ -99,9 +101,12 @@ class MainSplitViewController: UISplitViewController {
     }
     
     private func selectWord(_ word: WordItem) {
+        // Find dictionary name from the word's dictId
+        let dictName = DictionaryItem.mockData.first { $0.id == word.dictId }?.name ?? "Unknown"
+        
         let article = ArticleItem(
             title: word.word,
-            dictName: DictionaryItem.mockData.first { $0.id == word.dictId }?.name ?? "Unknown"
+            dictName: dictName
         )
         showArticle(article, animated: true)
     }
