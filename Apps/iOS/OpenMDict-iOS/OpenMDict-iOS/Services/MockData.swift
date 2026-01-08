@@ -11,31 +11,32 @@ import UIKit
 
 /// Represents a dictionary article/entry
 /// In real app, this would come from MDictWordEntry
-struct ArticleItem: Identifiable, Equatable, Hashable {
+nonisolated struct ArticleItem: Identifiable, Hashable, Sendable {
     let id: String
     let title: String       // headword
     let dictName: String    // which dictionary
-    let color: UIColor      // for prototype visualization
+    
+    // Note: UIColor is not Sendable, so we store hue instead
+    let colorHue: CGFloat
+    
+    var color: UIColor {
+        UIColor(hue: colorHue, saturation: 0.3, brightness: 0.95, alpha: 1.0)
+    }
     
     init(title: String, dictName: String) {
         // Use title + dictName as stable id (same word = same id)
         self.id = "\(dictName):\(title)"
         self.title = title
         self.dictName = dictName
-        self.color = Self.randomPastelColor()
+        self.colorHue = CGFloat.random(in: 0...1)
     }
     
     /// Create with explicit id (for restoration)
-    init(id: String, title: String, dictName: String, color: UIColor? = nil) {
+    init(id: String, title: String, dictName: String, colorHue: CGFloat? = nil) {
         self.id = id
         self.title = title
         self.dictName = dictName
-        self.color = color ?? Self.randomPastelColor()
-    }
-    
-    private static func randomPastelColor() -> UIColor {
-        let hue = CGFloat.random(in: 0...1)
-        return UIColor(hue: hue, saturation: 0.3, brightness: 0.95, alpha: 1.0)
+        self.colorHue = colorHue ?? CGFloat.random(in: 0...1)
     }
     
     static func == (lhs: ArticleItem, rhs: ArticleItem) -> Bool {
@@ -79,11 +80,23 @@ extension ArticleItem {
 
 // MARK: - Dictionary Item (Mock)
 
-struct DictionaryItem: Identifiable {
+/// Represents a dictionary file
+/// In real app, this would come from MDict
+nonisolated struct DictionaryItem: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let entryCount: Int
     var isLoaded: Bool
+    
+    // Hashable - only use id for identity
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: DictionaryItem, rhs: DictionaryItem) -> Bool {
+        // For DiffableDataSource, include mutable state so changes trigger updates
+        lhs.id == rhs.id && lhs.isLoaded == rhs.isLoaded
+    }
     
     static let mockData: [DictionaryItem] = [
         DictionaryItem(id: "dict-a", name: "Sample Dictionary A", entryCount: 86000, isLoaded: true),
@@ -95,7 +108,7 @@ struct DictionaryItem: Identifiable {
 
 // MARK: - Word Item (Mock)
 
-struct WordItem: Identifiable, Hashable {
+nonisolated struct WordItem: Identifiable, Hashable, Sendable {
     let id: String
     let word: String
     let dictId: String

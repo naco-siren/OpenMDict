@@ -65,9 +65,10 @@ class MainSplitViewController: UISplitViewController {
         // Supplementary: Word list
         let supplementaryNav = UINavigationController(rootViewController: wordListVC)
         
-        // Secondary: Article strip
+        // Secondary: Article strip with toolbar enabled
         let secondaryNav = UINavigationController(rootViewController: articleStripVC)
         secondaryNav.setNavigationBarHidden(true, animated: false)
+        secondaryNav.isToolbarHidden = false  // Enable native toolbar
         
         setViewController(primaryNav, for: .primary)
         setViewController(supplementaryNav, for: .supplementary)
