@@ -2,31 +2,25 @@
 //  DictionaryListViewController.swift
 //  OpenMDict-iOS
 //
-//  Primary column: dictionary list with modern sidebar style
+//  Primary column: sidebar with dictionaries + fixed footer
 //
-//  Uses:
-//  - UICollectionViewCompositionalLayout.list(using: .sidebar)
-//  - UICollectionViewDiffableDataSource
-//  - UICollectionView.CellRegistration
+//  Layout:
+//  ┌─────────────────────────┐
+//  │  Dictionaries (header)  │
+//  │  ┌───────────────────┐  │
+//  │  │ 📖 Dict A      📌 │  │  ← scrollable
+//  │  │ 📕 Dict B         │  │
+//  │  │ 📖 Dict C      📌 │  │
+//  │  └───────────────────┘  │
+//  ├─────────────────────────┤
+//  │  📚 Dictionary Mgmt     │  ← fixed
+//  │  ⚙️ App Settings        │  ← fixed
+//  └─────────────────────────┘
 //
 
 import UIKit
 
 class DictionaryListViewController: UIViewController {
-    
-    // MARK: - Types
-    
-    enum Section: Int, Hashable, CaseIterable, Sendable {
-        case loaded
-        case available
-        
-        var title: String {
-            switch self {
-            case .loaded: return "Loaded"
-            case .available: return "Available"
-            }
-        }
-    }
     
     // MARK: - Callback
     
@@ -37,16 +31,50 @@ class DictionaryListViewController: UIViewController {
     private var dictionaries: [DictionaryItem] = DictionaryItem.mockData
     private var selectedId: String?
     
-    private var dataSource: UICollectionViewDiffableDataSource<Section, DictionaryItem>!
+    private var dataSource: UICollectionViewDiffableDataSource<Int, DictionaryItem>!
     
     // MARK: - UI
     
     private lazy var collectionView: UICollectionView = {
-        let layout = UICollectionViewCompositionalLayout.list(using: createListConfiguration())
+        var config = UICollectionLayoutListConfiguration(appearance: .sidebar)
+        config.headerMode = .supplementary
+        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
+            self?.swipeActionsForItem(at: indexPath)
+        }
+        
+        let layout = UICollectionViewCompositionalLayout.list(using: config)
+        
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.delegate = self
+        cv.dragDelegate = self
+        cv.dropDelegate = self
+        cv.dragInteractionEnabled = true
         return cv
+    }()
+    
+    private lazy var footerStack: UIStackView = {
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 0
+        return stack
+    }()
+    
+    private lazy var managementButton: UIButton = {
+        createFooterButton(
+            title: "Dictionary Management",
+            icon: "books.vertical",
+            action: #selector(managementTapped)
+        )
+    }()
+    
+    private lazy var settingsButton: UIButton = {
+        createFooterButton(
+            title: "App Settings",
+            icon: "gearshape",
+            action: #selector(settingsTapped)
+        )
     }()
     
     // MARK: - Lifecycle
@@ -54,15 +82,15 @@ class DictionaryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Dictionaries"
+        title = "OpenMDict"
         navigationController?.navigationBar.prefersLargeTitles = true
         
         setupUI()
         configureDataSource()
         applySnapshot(animated: false)
         
-        // Auto-select first loaded dictionary
-        if let first = dictionaries.first(where: { $0.isLoaded }) {
+        // Auto-select first dictionary
+        if let first = dictionaries.first {
             selectedId = first.id
             onDictionarySelected?(first)
         }
@@ -70,59 +98,83 @@ class DictionaryListViewController: UIViewController {
     
     private func setupUI() {
         view.backgroundColor = .systemGroupedBackground
+        
+        // Footer
+        footerStack.addArrangedSubview(createSeparator())
+        footerStack.addArrangedSubview(managementButton)
+        footerStack.addArrangedSubview(settingsButton)
+        view.addSubview(footerStack)
+        
+        // Collection view
         view.addSubview(collectionView)
         
         NSLayoutConstraint.activate([
+            footerStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            footerStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            footerStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: footerStack.topAnchor),
         ])
-        
-        setupToolbar()
     }
     
-    private func setupToolbar() {
-        let addButton = UIBarButtonItem(
-            image: UIImage(systemName: "plus"),
-            style: .plain,
-            target: self,
-            action: #selector(addDictionaryTapped)
-        )
-        addButton.accessibilityLabel = "Import Dictionary"
+    private func createFooterButton(title: String, icon: String, action: Selector) -> UIButton {
+        var config = UIButton.Configuration.plain()
+        config.title = title
+        config.image = UIImage(systemName: icon)
+        config.imagePadding = 12
+        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
+        config.baseForegroundColor = .label
         
-        navigationItem.rightBarButtonItem = addButton
+        let button = UIButton(configuration: config)
+        button.contentHorizontalAlignment = .leading
+        button.addTarget(self, action: action, for: .touchUpInside)
+        return button
     }
     
-    @objc private func addDictionaryTapped() {
-        // TODO: Show document picker for .mdx files
-        print("Import dictionary tapped")
+    private func createSeparator() -> UIView {
+        let view = UIView()
+        view.backgroundColor = .separator
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale).isActive = true
+        return view
     }
     
-    // MARK: - List Configuration
+    // MARK: - Footer Actions (Stubs)
     
-    private func createListConfiguration() -> UICollectionLayoutListConfiguration {
-        var config = UICollectionLayoutListConfiguration(appearance: .sidebar)
+    @objc private func managementTapped() {
+        print("📚 Dictionary Management tapped - TODO: implement")
+    }
+    
+    @objc private func settingsTapped() {
+        print("⚙️ App Settings tapped - TODO: implement")
+    }
+    
+    // MARK: - Swipe Actions
+    
+    private func swipeActionsForItem(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         
-        config.headerMode = .supplementary
-        
-        // Swipe actions
-        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            guard let self = self,
-                  let item = self.dataSource.itemIdentifier(for: indexPath) else {
-                return nil
-            }
-            
-            let deleteAction = UIContextualAction(style: .destructive, title: "Remove") { _, _, completion in
-                self.removeDictionary(item)
-                completion(true)
-            }
-            deleteAction.image = UIImage(systemName: "trash")
-            
-            return UISwipeActionsConfiguration(actions: [deleteAction])
+        let pinAction = UIContextualAction(
+            style: .normal,
+            title: item.isPinned ? "Unpin" : "Pin"
+        ) { [weak self] _, _, completion in
+            self?.togglePin(item)
+            completion(true)
         }
+        pinAction.image = UIImage(systemName: item.isPinned ? "pin.slash" : "pin")
+        pinAction.backgroundColor = .systemOrange
         
-        return config
+        return UISwipeActionsConfiguration(actions: [pinAction])
+    }
+    
+    private func togglePin(_ item: DictionaryItem) {
+        guard let index = dictionaries.firstIndex(where: { $0.id == item.id }) else { return }
+        dictionaries[index].isPinned.toggle()
+        print("📌 \(item.name) is now \(dictionaries[index].isPinned ? "pinned" : "unpinned") - TODO: persist")
+        applySnapshot(animated: true)
     }
     
     // MARK: - Data Source
@@ -135,32 +187,44 @@ class DictionaryListViewController: UIViewController {
             var content = cell.defaultContentConfiguration()
             content.text = item.name
             content.secondaryText = "\(item.entryCount.formatted()) entries"
+            
+            // Leading icon: loaded state
             content.image = UIImage(systemName: item.isLoaded ? "book.fill" : "book.closed")
             content.imageProperties.tintColor = item.isLoaded ? .systemBlue : .secondaryLabel
             
             cell.contentConfiguration = content
             
+            // Trailing accessories
+            var accessories: [UICellAccessory] = []
+            
+            // Pin indicator
+            if item.isPinned {
+                let pinConfig = UICellAccessory.CustomViewConfiguration(
+                    customView: UIImageView(image: UIImage(systemName: "pin.fill")),
+                    placement: .trailing(displayed: .always)
+                )
+                accessories.append(.customView(configuration: pinConfig))
+            }
+            
             // Selection indicator
             if item.id == self?.selectedId {
-                cell.accessories = [.checkmark()]
-            } else {
-                cell.accessories = []
+                accessories.append(.checkmark())
             }
+            
+            cell.accessories = accessories
         }
         
         // Header registration
         let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { (headerView: UICollectionViewListCell, elementKind: String, indexPath: IndexPath) in
-            guard let section = Section(rawValue: indexPath.section) else { return }
-            
             var content = headerView.defaultContentConfiguration()
-            content.text = section.title
+            content.text = "Dictionaries"
             headerView.contentConfiguration = content
         }
         
         // Create data source
-        dataSource = UICollectionViewDiffableDataSource<Section, DictionaryItem>(
+        dataSource = UICollectionViewDiffableDataSource<Int, DictionaryItem>(
             collectionView: collectionView
         ) { (collectionView: UICollectionView, indexPath: IndexPath, item: DictionaryItem) -> UICollectionViewCell? in
             return collectionView.dequeueConfiguredReusableCell(
@@ -170,7 +234,6 @@ class DictionaryListViewController: UIViewController {
             )
         }
         
-        // Supplementary view provider
         dataSource.supplementaryViewProvider = {
             (collectionView: UICollectionView, kind: String, indexPath: IndexPath) -> UICollectionReusableView? in
             return collectionView.dequeueConfiguredReusableSupplementary(
@@ -178,34 +241,25 @@ class DictionaryListViewController: UIViewController {
                 for: indexPath
             )
         }
+        
+        // Enable reordering
+        dataSource.reorderingHandlers.canReorderItem = { _ in true }
+        dataSource.reorderingHandlers.didReorder = { [weak self] transaction in
+            // Update our backing store
+            if let updatedItems = self?.dictionaries.applying(transaction.difference) {
+                self?.dictionaries = updatedItems
+                print("📋 Dictionaries reordered - TODO: persist order")
+            }
+        }
     }
     
     // MARK: - Snapshot
     
     private func applySnapshot(animated: Bool) {
-        var snapshot = NSDiffableDataSourceSnapshot<Section, DictionaryItem>()
-        
-        let loaded = dictionaries.filter { $0.isLoaded }
-        let available = dictionaries.filter { !$0.isLoaded }
-        
-        if !loaded.isEmpty {
-            snapshot.appendSections([.loaded])
-            snapshot.appendItems(loaded, toSection: .loaded)
-        }
-        
-        if !available.isEmpty {
-            snapshot.appendSections([.available])
-            snapshot.appendItems(available, toSection: .available)
-        }
-        
+        var snapshot = NSDiffableDataSourceSnapshot<Int, DictionaryItem>()
+        snapshot.appendSections([0])
+        snapshot.appendItems(dictionaries, toSection: 0)
         dataSource.apply(snapshot, animatingDifferences: animated)
-    }
-    
-    // MARK: - Actions
-    
-    private func removeDictionary(_ item: DictionaryItem) {
-        dictionaries.removeAll { $0.id == item.id }
-        applySnapshot(animated: true)
     }
 }
 
@@ -218,81 +272,65 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         
-        // If not loaded, load it first
+        // Toggle loaded state if tapping already-selected item
+        if item.id == selectedId {
+            toggleLoaded(item)
+            return
+        }
+        
+        // Select new item
+        selectedId = item.id
+        
+        // Auto-load if not loaded
         if !item.isLoaded {
-            // Update the item to be loaded
             if let index = dictionaries.firstIndex(where: { $0.id == item.id }) {
                 dictionaries[index].isLoaded = true
-                applySnapshot(animated: true)
+                print("📖 \(item.name) loaded - TODO: actually load")
             }
         }
         
-        selectedId = item.id
-        applySnapshot(animated: false)  // Refresh to update checkmark
+        applySnapshot(animated: false)
         onDictionarySelected?(item)
     }
     
-    func collectionView(_ collectionView: UICollectionView,
-                        contextMenuConfigurationForItemAt indexPath: IndexPath,
-                        point: CGPoint) -> UIContextMenuConfiguration? {
-        guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
-        
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            var actions: [UIAction] = []
-            
-            if item.isLoaded {
-                let unloadAction = UIAction(
-                    title: "Unload",
-                    image: UIImage(systemName: "arrow.down.circle")
-                ) { _ in
-                    self?.toggleLoaded(item)
-                }
-                actions.append(unloadAction)
-            } else {
-                let loadAction = UIAction(
-                    title: "Load",
-                    image: UIImage(systemName: "arrow.up.circle")
-                ) { _ in
-                    self?.toggleLoaded(item)
-                }
-                actions.append(loadAction)
-            }
-            
-            let infoAction = UIAction(
-                title: "Info",
-                image: UIImage(systemName: "info.circle")
-            ) { _ in
-                self?.showInfo(for: item)
-            }
-            actions.append(infoAction)
-            
-            let removeAction = UIAction(
-                title: "Remove",
-                image: UIImage(systemName: "trash"),
-                attributes: .destructive
-            ) { _ in
-                self?.removeDictionary(item)
-            }
-            actions.append(removeAction)
-            
-            return UIMenu(children: actions)
-        }
-    }
-    
     private func toggleLoaded(_ item: DictionaryItem) {
-        if let index = dictionaries.firstIndex(where: { $0.id == item.id }) {
-            dictionaries[index].isLoaded.toggle()
-            applySnapshot(animated: true)
+        guard let index = dictionaries.firstIndex(where: { $0.id == item.id }) else { return }
+        dictionaries[index].isLoaded.toggle()
+        let loaded = dictionaries[index].isLoaded
+        print("\(loaded ? "📖" : "📕") \(item.name) \(loaded ? "loaded" : "unloaded") - TODO: actually \(loaded ? "load" : "unload")")
+        applySnapshot(animated: true)
+    }
+}
+
+// MARK: - UICollectionViewDragDelegate
+
+extension DictionaryListViewController: UICollectionViewDragDelegate {
+    
+    func collectionView(_ collectionView: UICollectionView,
+                        itemsForBeginning session: UIDragSession,
+                        at indexPath: IndexPath) -> [UIDragItem] {
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return [] }
+        let itemProvider = NSItemProvider(object: item.id as NSString)
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        dragItem.localObject = item
+        return [dragItem]
+    }
+}
+
+// MARK: - UICollectionViewDropDelegate
+
+extension DictionaryListViewController: UICollectionViewDropDelegate {
+    
+    func collectionView(_ collectionView: UICollectionView,
+                        dropSessionDidUpdate session: UIDropSession,
+                        withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
+        if session.localDragSession != nil {
+            return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
         }
+        return UICollectionViewDropProposal(operation: .forbidden)
     }
     
-    private func showInfo(for item: DictionaryItem) {
-        let alert = UIAlertController(
-            title: item.name,
-            message: "Entries: \(item.entryCount.formatted())\nStatus: \(item.isLoaded ? "Loaded" : "Not loaded")",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+        // Handled by dataSource.reorderingHandlers
     }
 }

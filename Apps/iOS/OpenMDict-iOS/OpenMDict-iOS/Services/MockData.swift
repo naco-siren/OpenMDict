@@ -15,23 +15,19 @@ nonisolated struct ArticleItem: Identifiable, Hashable, Sendable {
     let id: String
     let title: String       // headword
     let dictName: String    // which dictionary
-    
-    // Note: UIColor is not Sendable, so we store hue instead
-    let colorHue: CGFloat
+    let colorHue: CGFloat   // for prototype visualization
     
     var color: UIColor {
         UIColor(hue: colorHue, saturation: 0.3, brightness: 0.95, alpha: 1.0)
     }
     
     init(title: String, dictName: String) {
-        // Use title + dictName as stable id (same word = same id)
         self.id = "\(dictName):\(title)"
         self.title = title
         self.dictName = dictName
         self.colorHue = CGFloat.random(in: 0...1)
     }
     
-    /// Create with explicit id (for restoration)
     init(id: String, title: String, dictName: String, colorHue: CGFloat? = nil) {
         self.id = id
         self.title = title
@@ -87,22 +83,21 @@ nonisolated struct DictionaryItem: Identifiable, Hashable, Sendable {
     let name: String
     let entryCount: Int
     var isLoaded: Bool
+    var isPinned: Bool
     
-    // Hashable - only use id for identity
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
     
     static func == (lhs: DictionaryItem, rhs: DictionaryItem) -> Bool {
-        // For DiffableDataSource, include mutable state so changes trigger updates
-        lhs.id == rhs.id && lhs.isLoaded == rhs.isLoaded
+        lhs.id == rhs.id && lhs.isLoaded == rhs.isLoaded && lhs.isPinned == rhs.isPinned
     }
     
     static let mockData: [DictionaryItem] = [
-        DictionaryItem(id: "dict-a", name: "Sample Dictionary A", entryCount: 86000, isLoaded: true),
-        DictionaryItem(id: "dict-b", name: "Sample Dictionary B", entryCount: 72000, isLoaded: false),
-        DictionaryItem(id: "dict-c", name: "Sample Dictionary C", entryCount: 95000, isLoaded: false),
-        DictionaryItem(id: "dict-d", name: "Sample Dictionary D", entryCount: 68000, isLoaded: true),
+        DictionaryItem(id: "dict-a", name: "Sample Dictionary A", entryCount: 86000, isLoaded: true, isPinned: true),
+        DictionaryItem(id: "dict-b", name: "Sample Dictionary B", entryCount: 72000, isLoaded: false, isPinned: false),
+        DictionaryItem(id: "dict-c", name: "Sample Dictionary C", entryCount: 95000, isLoaded: true, isPinned: true),
+        DictionaryItem(id: "dict-d", name: "Sample Dictionary D", entryCount: 68000, isLoaded: false, isPinned: false),
     ]
 }
 

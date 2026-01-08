@@ -293,7 +293,7 @@ extension ArticleTabViewController: UIDropInteractionDelegate {
         let destIndex = stripVC.articles.firstIndex(of: article)
         
         if let source = sourceIndex, let dest = destIndex {
-            stripVC.moveTab(from: source, to: dest)
+            stripVC.moveCard(from: source, to: dest)
         }
     }
 }
