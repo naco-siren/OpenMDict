@@ -84,6 +84,10 @@ class MainSplitViewController: UISplitViewController {
             self?.selectGroup(group)
         }
         
+        dictionaryListVC.onDictionarySelected = { [weak self] dict in
+            self?.selectDictionary(dict)
+        }
+        
         wordListVC.onWordSelected = { [weak self] wordItem in
             self?.selectWord(wordItem)
         }
@@ -98,6 +102,15 @@ class MainSplitViewController: UISplitViewController {
         if traitCollection.horizontalSizeClass == .regular {
             show(.supplementary)
         }
+    }
+    
+    private func selectDictionary(_ dict: DictionaryItem) {
+       currentGroup = nil
+       wordListVC.loadWords(for: dict)
+
+       if traitCollection.horizontalSizeClass == .regular {
+           show(.supplementary)
+       }
     }
     
     private func selectWord(_ word: WordItem) {

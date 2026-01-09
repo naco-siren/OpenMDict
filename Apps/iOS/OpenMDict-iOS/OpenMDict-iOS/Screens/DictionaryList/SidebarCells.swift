@@ -40,7 +40,7 @@ final class DefaultGroupCell: UICollectionViewListCell {
         let isActive = state.isSelected || state.isHighlighted
         
         if isActive {
-            content.textProperties.font = .systemFont(ofSize: 17, weight: .semibold)
+            content.textProperties.font = .systemFont(ofSize: 20, weight: .bold)
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
             
@@ -50,7 +50,7 @@ final class DefaultGroupCell: UICollectionViewListCell {
             
             accessories = [.outlineDisclosure(options: .init(style: .cell, tintColor: .white))]
         } else {
-            content.textProperties.font = .systemFont(ofSize: 17, weight: .medium)
+            content.textProperties.font = .systemFont(ofSize: 20, weight: .medium)
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             accessories = [.outlineDisclosure(options: .init(style: .cell))]
         }
@@ -82,7 +82,7 @@ final class UserGroupCell: UICollectionViewListCell {
         content.image = UIImage(systemName: isGroupActive ? "books.vertical.fill" : "books.vertical")
         
         if isSelected {
-            content.textProperties.font = .systemFont(ofSize: 17, weight: .semibold)
+            content.textProperties.font = .systemFont(ofSize: 18, weight: .semibold)
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
             
@@ -92,7 +92,7 @@ final class UserGroupCell: UICollectionViewListCell {
             
             accessories = [.outlineDisclosure(options: .init(style: .cell, tintColor: .white))]
         } else {
-            content.textProperties.font = .systemFont(ofSize: 17, weight: .medium)
+            content.textProperties.font = .systemFont(ofSize: 18, weight: .regular)
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             accessories = [.outlineDisclosure(options: .init(style: .cell))]
         }

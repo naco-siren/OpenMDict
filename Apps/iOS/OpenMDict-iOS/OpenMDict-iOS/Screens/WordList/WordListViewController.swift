@@ -7,6 +7,14 @@ import UIKit
 
 class WordListViewController: UIViewController {
     
+    // MARK: - Display Mode
+
+    private enum DisplayMode {
+        case group(DictionaryGroup)
+        case dictionary(DictionaryItem)
+    }
+
+    private var displayMode: DisplayMode?
     var onWordSelected: ((WordItem) -> Void)?
     
     private var words: [WordItem] = []
@@ -46,7 +54,6 @@ class WordListViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = currentTitle
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
@@ -62,11 +69,12 @@ class WordListViewController: UIViewController {
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
         updateEmptyState()
+        updateTitleView()
     }
     
     func loadWords(for group: DictionaryGroup) {
+        displayMode = .group(group)
         currentTitle = group.name
-        title = currentTitle
         words = group.dictionaryIds.flatMap { mockWords(for: $0) }
         var seen = Set<String>()
         words = words.filter { seen.insert($0.word).inserted }
@@ -74,16 +82,18 @@ class WordListViewController: UIViewController {
         filteredWords = []
         tableView.reloadData()
         updateEmptyState()
+        updateTitleView()
     }
     
     func loadWords(for dict: DictionaryItem) {
+        displayMode = .dictionary(dict)
         currentTitle = dict.name
-        title = currentTitle
         words = mockWords(for: dict.id)
         words.sort { $0.word < $1.word }
         filteredWords = []
         tableView.reloadData()
         updateEmptyState()
+        updateTitleView()
     }
     
     private func mockWords(for dictId: String) -> [WordItem] {
@@ -95,6 +105,35 @@ class WordListViewController: UIViewController {
         emptyLabel.isHidden = !words.isEmpty
         tableView.isHidden = words.isEmpty
     }
+    
+    private func updateTitleView() {
+        let iconName: String
+        switch displayMode {
+        case .group(let group):
+            iconName = group.isDefault ? "books.vertical.fill" : "books.vertical"
+        case .dictionary:
+            iconName = "book.fill"
+        case .none:
+            navigationItem.titleView = nil
+            title = currentTitle
+            return
+        }
+
+        let imageView = UIImageView(image: UIImage(systemName: iconName))
+        imageView.tintColor = .label
+        imageView.contentMode = .scaleAspectFit
+
+        let label = UILabel()
+        label.text = currentTitle
+        label.font = .systemFont(ofSize: 17, weight: .semibold)
+
+        let stack = UIStackView(arrangedSubviews: [imageView, label])
+        stack.axis = .horizontal
+        stack.spacing = 6
+        stack.alignment = .center
+
+        navigationItem.titleView = stack
+    }
 }
 
 extension WordListViewController: UITableViewDataSource {
@@ -105,7 +144,16 @@ extension WordListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         var c = cell.defaultContentConfiguration()
-        c.text = displayedWords[indexPath.row].word
+        let wordItem = displayedWords[indexPath.row]
+        c.text = wordItem.word
+
+        // Show dictionary name as secondary text when displaying a group
+        if case .group = displayMode {
+            if let dictName = DictionaryItem.find(id: wordItem.dictId)?.name {
+                c.secondaryText = dictName
+                c.secondaryTextProperties.color = .secondaryLabel
+            }
+        }
         cell.contentConfiguration = c
         return cell
     }
