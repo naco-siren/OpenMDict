@@ -13,7 +13,7 @@ class MainSplitViewController: UISplitViewController {
     
     private let dictionaryListVC = DictionaryListViewController()
     private let wordListVC = WordListViewController()
-    private let articleStripVC = ArticleStripViewController()
+    private let articleVC = ArticlesViewController()
     
     // MARK: - State
     
@@ -25,7 +25,7 @@ class MainSplitViewController: UISplitViewController {
         super.init(style: .tripleColumn)
         
         if let article = initialArticle {
-            articleStripVC.preloadArticle(article)
+            articleVC.preloadArticle(article)
         }
     }
     
@@ -46,16 +46,18 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - Setup
     
     private func setupSplitView() {
-        preferredDisplayMode = .twoBesideSecondary
-        primaryBackgroundStyle = .none
+        preferredDisplayMode = .twoDisplaceSecondary
+        preferredSplitBehavior = .displace
         
+        primaryBackgroundStyle = .none
         preferredPrimaryColumnWidthFraction = 0.25
-        preferredSupplementaryColumnWidthFraction = 0.25
         minimumPrimaryColumnWidth = 250
+        
+        preferredSupplementaryColumnWidthFraction = 0.25
         minimumSupplementaryColumnWidth = 250
         
         presentsWithGesture = true
-        
+
         view.backgroundColor = .systemGroupedBackground
     }
     
@@ -68,8 +70,7 @@ class MainSplitViewController: UISplitViewController {
         let supplementaryNav = UINavigationController(rootViewController: wordListVC)
         
         // Secondary: Article strip (with nav bar for global actions)
-        let secondaryNav = UINavigationController(rootViewController: articleStripVC)
-        secondaryNav.setNavigationBarHidden(true, animated: false) // Will show when articles exist
+        let secondaryNav = UINavigationController(rootViewController: articleVC)
         
         setViewController(primaryNav, for: .primary)
         setViewController(supplementaryNav, for: .supplementary)
@@ -125,7 +126,7 @@ class MainSplitViewController: UISplitViewController {
     }
     
     func showArticle(_ article: ArticleItem, animated: Bool) {
-        articleStripVC.pushArticle(article, animated: animated)
+        articleVC.pushArticle(article, animated: animated)
         
         if traitCollection.horizontalSizeClass == .regular {
             show(.secondary)
@@ -135,7 +136,7 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - State Restoration
     
     func currentStateActivity() -> NSUserActivity? {
-        guard let currentArticle = articleStripVC.currentArticle else {
+        guard let currentArticle = articleVC.currentArticle else {
             return nil
         }
         return currentArticle.userActivity
