@@ -93,27 +93,32 @@ class DictionaryListViewController: UIViewController {
         
         // Default group cell containing all the dictionaries
         let defaultGroupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> { cell, indexPath, group in
-            var content = UIListContentConfiguration.cell()
-            content.text = group.name
-            content.textProperties.font = .systemFont(ofSize: 17, weight: .semibold)
-            content.image = UIImage(systemName: "books.vertical.fill")
-            cell.contentConfiguration = content
-            cell.accessories = [.outlineDisclosure()]
+//            var content = UIListContentConfiguration.cell()
+//            content.text = group.name
+//            content.textProperties.font = .systemFont(ofSize: 18, weight: .medium)
+//            content.image = UIImage(systemName: "books.vertical.fill")
+//            cell.contentConfiguration = content
+//            cell.accessories = [.outlineDisclosure()]
 
             // Custom selection styling
             cell.configurationUpdateHandler = { cell, state in
                 var content = UIListContentConfiguration.cell()
                 content.text = group.name
-                content.textProperties.font = .systemFont(ofSize: 17, weight: .semibold)
                 content.image = UIImage(systemName: "books.vertical.fill")
                 if state.isSelected || state.isHighlighted {
+                    content.textProperties.font = .systemFont(ofSize: 18, weight: .bold)
                     content.textProperties.color = .white
                     content.imageProperties.tintColor = .white
                     var bg = UIBackgroundConfiguration.listSidebarCell()
                     bg.backgroundColor = .systemBlue
                     cell.backgroundConfiguration = bg
+                    (cell as? UICollectionViewListCell)?.accessories = [.outlineDisclosure(
+                        options: UICellAccessory.OutlineDisclosureOptions(style: .header, isHidden: false, tintColor: .white)
+                    )]
                 } else {
+                    content.textProperties.font = .systemFont(ofSize: 18, weight: .medium)
                     cell.backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+                    (cell as? UICollectionViewListCell)?.accessories = [.outlineDisclosure()]
                 }
                 cell.contentConfiguration = content
             }
@@ -130,11 +135,11 @@ class DictionaryListViewController: UIViewController {
             let (activeDictId, _) = self.activeDict ?? (nil, false)
             let isHighlighted = activeDictId == dict.id
 
-            var content = cell.defaultContentConfiguration()
-            content.text = dict.name
-            content.image = UIImage(systemName: isParentActive ? "book.fill" : "book.closed.fill")
-            cell.contentConfiguration = content
-            cell.accessories = []
+//            var content = cell.defaultContentConfiguration()
+//            content.text = dict.name
+//            content.image = UIImage(systemName: isParentActive ? "book.fill" : "book.closed.fill")
+//            cell.contentConfiguration = content
+//            cell.accessories = []
 
             // Custom selection styling + mirror highlight
             cell.configurationUpdateHandler = { cell, state in
@@ -161,11 +166,12 @@ class DictionaryListViewController: UIViewController {
         
         // User group cell
         let userGroupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> { cell, indexPath, group in
-            var content = UIListContentConfiguration.cell()
-            content.text = group.name
-            content.image = UIImage(systemName: "books.vertical")
-            cell.contentConfiguration = content
-            cell.accessories = [.outlineDisclosure()]
+//            var content = UIListContentConfiguration.cell()
+//            content.text = group.name
+//            content.textProperties.font = .systemFont(ofSize: 18, weight: .medium)
+//            content.image = UIImage(systemName: "books.vertical")
+//            cell.contentConfiguration = content
+//            cell.accessories = [.outlineDisclosure()]
             
             // Custom selection styling
             cell.configurationUpdateHandler = { cell, state in
@@ -173,13 +179,19 @@ class DictionaryListViewController: UIViewController {
                 content.text = group.name
                 content.image = UIImage(systemName: "books.vertical")
                 if state.isSelected || state.isHighlighted {
+                    content.textProperties.font = .systemFont(ofSize: 18, weight: .bold)
                     content.textProperties.color = .white
                     content.imageProperties.tintColor = .white
                     var bg = UIBackgroundConfiguration.listSidebarCell()
                     bg.backgroundColor = .systemBlue
                     cell.backgroundConfiguration = bg
+                    (cell as? UICollectionViewListCell)?.accessories = [.outlineDisclosure(
+                        options: UICellAccessory.OutlineDisclosureOptions(style: .header, isHidden: false, tintColor: .white)
+                    )]
                 } else {
+                    content.textProperties.font = .systemFont(ofSize: 18, weight: .medium)
                     cell.backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+                    (cell as? UICollectionViewListCell)?.accessories = [.outlineDisclosure()]
                 }
                 cell.contentConfiguration = content
             }
@@ -193,14 +205,14 @@ class DictionaryListViewController: UIViewController {
             let (dict, groupId) = tuple
             let isParentActive = self.activeGroupId == groupId
             
-            var content = cell.defaultContentConfiguration()
-            content.text = dict.name
-            content.image = UIImage(systemName: isParentActive ? "book.fill" : "book.closed")
-            if isParentActive {
-                content.imageProperties.tintColor = .systemBlue
-            }
-            cell.contentConfiguration = content
-            cell.accessories = []
+//            var content = cell.defaultContentConfiguration()
+//            content.text = dict.name
+//            content.image = UIImage(systemName: isParentActive ? "book.fill" : "book.closed")
+//            if isParentActive {
+//                content.imageProperties.tintColor = .systemBlue
+//            }
+//            cell.contentConfiguration = content
+//            cell.accessories = []
             
             // Custom selection styling + mirror highlight
             cell.configurationUpdateHandler = { cell, state in
