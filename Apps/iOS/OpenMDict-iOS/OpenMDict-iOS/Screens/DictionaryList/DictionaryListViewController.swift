@@ -27,7 +27,7 @@ class DictionaryListViewController: UIViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Section, SidebarItem>!
     
     private enum Section: Int, CaseIterable {
-        case allDictionaries
+        case defaultGroup
         case userGroups
         case management
     }
@@ -67,7 +67,7 @@ class DictionaryListViewController: UIViewController {
         
         // Select first group by default
         DispatchQueue.main.async {
-            if let firstGroupIndexPath = self.dataSource.indexPath(for: .group(self.groups[0], isAllDicts: true)) {
+            if let firstGroupIndexPath = self.dataSource.indexPath(for: .dictGroup(self.groups[0], isDefault: true)) {
                 self.activeGroupId = self.groups[0].id
                 self.collectionView.selectItem(at: firstGroupIndexPath, animated: false, scrollPosition: [])
                 self.reconfigureItems()
@@ -91,8 +91,8 @@ class DictionaryListViewController: UIViewController {
             cell.accessories = [.outlineDisclosure()]
         }
         
-        // "All Dictionaries" group cell (always filled icon, bold title)
-        let allDictsGroupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> { cell, indexPath, group in
+        // Default group cell containing all the dictionaries
+        let defaultGroupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> { cell, indexPath, group in
             var content = UIListContentConfiguration.cell()
             content.text = group.name
             content.textProperties.font = .systemFont(ofSize: 17, weight: .semibold)
@@ -119,34 +119,8 @@ class DictionaryListViewController: UIViewController {
             }
         }
 
-        // User group cell
-        let groupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> { cell, indexPath, group in
-            var content = UIListContentConfiguration.cell()
-            content.text = group.name
-            content.image = UIImage(systemName: "books.vertical")
-            cell.contentConfiguration = content
-            cell.accessories = [.outlineDisclosure()]
-            
-            // Custom selection styling
-            cell.configurationUpdateHandler = { cell, state in
-                var content = UIListContentConfiguration.cell()
-                content.text = group.name
-                content.image = UIImage(systemName: "books.vertical")
-                if state.isSelected || state.isHighlighted {
-                    content.textProperties.color = .white
-                    content.imageProperties.tintColor = .white
-                    var bg = UIBackgroundConfiguration.listSidebarCell()
-                    bg.backgroundColor = .systemBlue
-                    cell.backgroundConfiguration = bg
-                } else {
-                    cell.backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
-                }
-                cell.contentConfiguration = content
-            }
-        }
-
-        // Dictionary cell in "All Dictionaries" (always filled, can be highlighted by mirror selection)
-        let allDictsDictReg = UICollectionView.CellRegistration<UICollectionViewListCell, (DictionaryItem, String)> {
+        // Default group's dictionary item cell
+        let defaultGroupItemReg = UICollectionView.CellRegistration<UICollectionViewListCell, (DictionaryItem, String)> {
             [weak self] cell, indexPath, tuple in
             guard let self = self else { return }
             
@@ -185,8 +159,34 @@ class DictionaryListViewController: UIViewController {
             }
         }
         
-        // Dictionary mirror cell in user groups (outlined icon, light blue when selected)
-        let userDictReg = UICollectionView.CellRegistration<UICollectionViewListCell, (DictionaryItem, String)> {
+        // User group cell
+        let userGroupReg = UICollectionView.CellRegistration<UICollectionViewListCell, DictionaryGroup> { cell, indexPath, group in
+            var content = UIListContentConfiguration.cell()
+            content.text = group.name
+            content.image = UIImage(systemName: "books.vertical")
+            cell.contentConfiguration = content
+            cell.accessories = [.outlineDisclosure()]
+            
+            // Custom selection styling
+            cell.configurationUpdateHandler = { cell, state in
+                var content = UIListContentConfiguration.cell()
+                content.text = group.name
+                content.image = UIImage(systemName: "books.vertical")
+                if state.isSelected || state.isHighlighted {
+                    content.textProperties.color = .white
+                    content.imageProperties.tintColor = .white
+                    var bg = UIBackgroundConfiguration.listSidebarCell()
+                    bg.backgroundColor = .systemBlue
+                    cell.backgroundConfiguration = bg
+                } else {
+                    cell.backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+                }
+                cell.contentConfiguration = content
+            }
+        }
+        
+        // User groups' dictionary item cell
+        let userGroupItemReg = UICollectionView.CellRegistration<UICollectionViewListCell, (DictionaryItem, String)> {
             [weak self] cell, indexPath, tuple in
             guard let self = self else { return }
             
@@ -220,8 +220,8 @@ class DictionaryListViewController: UIViewController {
             }
         }
         
-        // Action cell
-        let actionReg = UICollectionView.CellRegistration<UICollectionViewListCell, SidebarItem> { cell, indexPath, item in
+        // Mangament section's action cells
+        let managementItemReg = UICollectionView.CellRegistration<UICollectionViewListCell, SidebarItem> { cell, indexPath, item in
             var content = cell.defaultContentConfiguration()
             switch item {
             case .importDict:
@@ -244,18 +244,16 @@ class DictionaryListViewController: UIViewController {
             switch item {
             case .header(let title, let isBold):
             return collectionView.dequeueConfiguredReusableCell(using: headerReg, for: indexPath, item: (title, isBold))
-            case .group(let g, let isAllDicts):
+            case .dictGroup(let g, let isAllDicts):
                 if isAllDicts {
-                    return collectionView.dequeueConfiguredReusableCell(using: allDictsGroupReg, for: indexPath, item: g)
+                    return collectionView.dequeueConfiguredReusableCell(using: defaultGroupReg, for: indexPath, item: g)
                 } else {
-                    return collectionView.dequeueConfiguredReusableCell(using: groupReg, for: indexPath, item: g)
+                    return collectionView.dequeueConfiguredReusableCell(using: userGroupReg, for: indexPath, item: g)
                 }
-            case .dictionaryInAll(let d, let gid):
-                return collectionView.dequeueConfiguredReusableCell(using: allDictsDictReg, for: indexPath, item: (d, gid))
-            case .dictionaryMirror(let d, let gid):
-                return collectionView.dequeueConfiguredReusableCell(using: userDictReg, for: indexPath, item: (d, gid))
+            case .dict(let d, let g):
+                return collectionView.dequeueConfiguredReusableCell(using: g.isDefault ? defaultGroupItemReg : userGroupItemReg, for: indexPath, item: (d, g.id))
             case .importDict, .deleteDict, .settings:
-                return collectionView.dequeueConfiguredReusableCell(using: actionReg, for: indexPath, item: item)
+                return collectionView.dequeueConfiguredReusableCell(using: managementItemReg, for: indexPath, item: item)
             }
         }
     }
@@ -266,21 +264,21 @@ class DictionaryListViewController: UIViewController {
 
         // Section 0: All Dictionaries
         var allDictsSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
-        let allDictsGroupItem = SidebarItem.group(allDictsGroup, isAllDicts: true)
+        let allDictsGroupItem = SidebarItem.dictGroup(allDictsGroup, isDefault: true)
         allDictsSnapshot.append([allDictsGroupItem])
-        let allDictsChildren = allDictsGroup.dictionaries.map { SidebarItem.dictionaryInAll($0, groupId: allDictsGroup.id) }
+        let allDictsChildren = allDictsGroup.dictionaries.map { SidebarItem.dict($0, group: allDictsGroup) }
         allDictsSnapshot.append(allDictsChildren, to: allDictsGroupItem)
         allDictsSnapshot.expand([allDictsGroupItem])
-        dataSource.apply(allDictsSnapshot, to: .allDictionaries, animatingDifferences: false)
+        dataSource.apply(allDictsSnapshot, to: .defaultGroup, animatingDifferences: false)
 
         // Section 1: User Groups
         var userSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let userHeader = SidebarItem.header("User Groups", isBold: false)
         userSnapshot.append([userHeader])
         for group in userGroups {
-            let groupItem = SidebarItem.group(group, isAllDicts: false)
+            let groupItem = SidebarItem.dictGroup(group, isDefault: false)
             userSnapshot.append([groupItem], to: userHeader)
-            let children = group.dictionaries.map { SidebarItem.dictionaryMirror($0, groupId: group.id) }
+            let children = group.dictionaries.map { SidebarItem.dict($0, group: group) }
             userSnapshot.append(children, to: groupItem)
             userSnapshot.expand([groupItem])
         }
@@ -313,7 +311,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         return switch item {
         case .header:
             false
-        case .dictionaryInAll(let dict, _):
+        case .dict(let dict, _):
             self.activeDict?.id != dict.id
         default:
             true
@@ -329,26 +327,18 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // collectionView.deselectItem(at: indexPath, animated: false)
             break
             
-        case .group(let group, _):
+        case .dictGroup(let group, _):
             activeGroupId = group.id
             activeDict = nil
             reconfigureItems()
             onGroupSelected?(group)
             
-        case .dictionaryInAll(let dict, _):
-            // Direct selection in default "All Dictionaries" group
+        case .dict(let dict, let group):
             activeGroupId = nil
-            activeDict = (dict.id, false)
+            activeDict = (dict.id, !group.isDefault)
             reconfigureItems()
             onDictionarySelected?(dict)
-
-        case .dictionaryMirror(let dict, _):
-            // Clicked mirrored dictionary in user group
-            activeGroupId = nil
-            activeDict = (dict.id, true)
-            reconfigureItems()
-            onDictionarySelected?(dict)
-            
+    
         case .importDict:
             collectionView.deselectItem(at: indexPath, animated: true)
             print("📥 Import dictionary - TODO")

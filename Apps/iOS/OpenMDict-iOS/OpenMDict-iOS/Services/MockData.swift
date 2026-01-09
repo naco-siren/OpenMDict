@@ -107,9 +107,8 @@ nonisolated struct DictionaryGroup: Identifiable, Hashable, Sendable {
 
 nonisolated enum SidebarItem: Hashable, Sendable {
     case header(String, isBold: Bool)
-    case group(DictionaryGroup, isAllDicts: Bool)
-    case dictionaryInAll(DictionaryItem, groupId: String)
-    case dictionaryMirror(DictionaryItem, groupId: String)
+    case dictGroup(DictionaryGroup, isDefault: Bool)
+    case dict(DictionaryItem, group: DictionaryGroup)
     case importDict
     case deleteDict
     case settings
@@ -117,9 +116,8 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     var id: String {
         switch self {
         case .header(let t, _): return "header:\(t)"
-        case .group(let g, _): return "group:\(g.id)"
-        case .dictionaryInAll(let d, let gid): return "dictInAll:\(gid):\(d.id)"
-        case .dictionaryMirror(let d, let gid): return "dict:\(gid):\(d.id)"
+        case .dictGroup(let g, _): return "dictGroup:\(g.id)"
+        case .dict(let d, let g): return "dict:\(g.id):\(d.id)"
         case .importDict: return "action:import"
         case .deleteDict: return "action:delete"
         case .settings: return "action:settings"
