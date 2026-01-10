@@ -2,8 +2,8 @@
 //  ArticlesViewController.swift
 //  OpenMDict-iOS
 //
-//  Desktop-class article browser with switchable layouts (Grid/List/Columns)
-//  Uses UICollectionView with animated layout transitions
+//  Multi-article browser for regular mode (iPad)
+//  Passive View - receives data from Container, sends callbacks up
 //
 
 import UIKit
@@ -15,29 +15,41 @@ enum ArticleLayoutMode: Int, CaseIterable {
     case list = 1
     case columns = 2
     
-    var icon: UIImage? {
+    var title: String {
         switch self {
-        case .grid: return UIImage(systemName: "square.grid.2x2")
-        case .list: return UIImage(systemName: "list.bullet")
-        case .columns: return UIImage(systemName: "rectangle.split.3x1")
+        case .grid: return "Grid"
+        case .list: return "List"
+        case .columns: return "Columns"
+        }
+    }
+    
+    var icon: UIImage {
+        switch self {
+        case .grid: return UIImage(systemName: "square.grid.2x2")!
+        case .list: return UIImage(systemName: "list.bullet")!
+        case .columns: return UIImage(systemName: "rectangle.split.3x1")!
         }
     }
 }
 
-// MARK: - Article View Controller
+// MARK: - Delegate
+
+protocol ArticlesViewControllerDelegate: AnyObject {
+    func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleItem)
+    func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleItem)
+}
+
+// MARK: - Articles View Controller
 
 class ArticlesViewController: UIViewController {
     
-    private let maxArticles: Int = 10
-    private(set) var articles: [ArticleItem] = []
+    weak var delegate: ArticlesViewControllerDelegate?
     
-    var currentArticle: ArticleItem? { articles.first }
+    // MARK: - Internal State (view-rendering only, not source of truth)
     
-    // MARK: - Layout State
-    private var layoutMode: ArticleLayoutMode = .columns {
-        didSet { applyLayout(animated: true) }
-    }
-
+    private var articles: [ArticleItem] = []
+    private var layoutMode: ArticleLayoutMode = .columns
+    
     // MARK: - Collection View
     
     private lazy var collectionView: UICollectionView = {
@@ -49,45 +61,6 @@ class ArticlesViewController: UIViewController {
     }()
      
     private var dataSource: UICollectionViewDiffableDataSource<Int, ArticleItem>!
-
-    // MARK: - Navigation Bar Controls
-
-    private lazy var layoutSegment: UISegmentedControl = {
-        let sc = UISegmentedControl(items: ArticleLayoutMode.allCases.map { $0.icon! })
-        sc.selectedSegmentIndex = layoutMode.rawValue
-        sc.addTarget(self, action: #selector(layoutChanged), for: .valueChanged)
-        return sc
-    }()
-    
-    private lazy var appearanceSegment: UISegmentedControl = {
-        let sc = UISegmentedControl(items: [
-            UIImage(systemName: "moon.fill")!,
-            UIImage(systemName: "circle.lefthalf.filled")!,
-            UIImage(systemName: "sun.max.fill")!
-        ])
-        sc.selectedSegmentIndex = 1  // Auto by default
-        sc.addTarget(self, action: #selector(appearanceChanged), for: .valueChanged)
-        return sc
-    }()
-
-    private lazy var fontSegment: UISegmentedControl = {
-        let sc = UISegmentedControl(items: [
-            UIImage(systemName: "textformat.size.smaller")!,
-            UIImage(systemName: "textformat.size.larger")!
-        ])
-        sc.isMomentary = true  // Buttons, not toggle
-        sc.addTarget(self, action: #selector(fontSegmentTapped), for: .valueChanged)
-        return sc
-    }()
-
-    private lazy var searchController: UISearchController = {
-        let sc = UISearchController(searchResultsController: nil)
-        sc.searchResultsUpdater = self
-        sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = "Search in articles..."
-        sc.hidesNavigationBarDuringPresentation = false
-        return sc
-    }()
     
     private lazy var emptyView: UIView = {
         let v = UIView()
@@ -117,10 +90,8 @@ class ArticlesViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
         view.backgroundColor = .systemGroupedBackground
         setupCollectionView()
-        setupNavigationBar()
         view.addSubview(emptyView)
         
         NSLayoutConstraint.activate([
@@ -137,58 +108,67 @@ class ArticlesViewController: UIViewController {
     private func setupCollectionView() {
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        
         // Cell registration
         let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleItem> { [weak self] cell, indexPath, article in
             cell.configure(with: article, layoutMode: self?.layoutMode ?? .columns)
-            cell.onClose = { [weak self] in self?.closeArticle(article) }
+            cell.onClose = { [weak self] in
+                guard let self = self else { return }
+                self.delegate?.articlesViewController(self, didCloseArticle: article)
+            }
             cell.onOpenInNewWindow = { SceneDelegate.openNewWindow(for: article) }
         }
+        
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, article in
             collectionView.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: article)
         }
     }
-
-    // MARK: - Navigation Bar Setup
-
-    private func setupNavigationBar() {
-        navigationController?.setNavigationBarHidden(false, animated: false)
-        
-        let layoutItem = UIBarButtonItem(customView: layoutSegment)
-        let appearanceItem = UIBarButtonItem(customView: appearanceSegment)
-        let fontItem = UIBarButtonItem(customView: fontSegment)
-
-        if #available(iOS 16.0, *) {
-            // Desktop-class iPad: layout on left, reading controls in center
-            navigationItem.style = .browser
-            navigationItem.leftBarButtonItems = [layoutItem]
-            navigationItem.centerItemGroups = [
-                UIBarButtonItemGroup(barButtonItems: [appearanceItem, fontItem], representativeItem: nil)
-            ]
-        } else {
-            // iOS 15 fallback: all on left
-            navigationItem.leftBarButtonItems = [layoutItem, appearanceItem, fontItem]
-        }
     
-        // Right side: Search
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
-        definesPresentationContext = true
+    // MARK: - Public API (called by Container)
+    
+    func configure(articles: [ArticleItem], animated: Bool) {
+        self.articles = articles
+        applySnapshot(animated: animated)
+        updateEmptyState()
+    }
+    
+    func applyLayout(_ mode: ArticleLayoutMode, animated: Bool) {
+        self.layoutMode = mode
+        let newLayout = makeLayout(for: mode)
+        collectionView.setCollectionViewLayout(newLayout, animated: animated)
+        
+        // Reconfigure visible cells for new layout
+        if animated {
+            var snapshot = dataSource.snapshot()
+            snapshot.reconfigureItems(articles)
+            dataSource.apply(snapshot, animatingDifferences: true)
+        }
+    }
+    
+    func scrollToArticle(_ article: ArticleItem, animated: Bool) {
+        guard let index = articles.firstIndex(of: article),
+              dataSource.snapshot().numberOfItems > 0 else { return }
+        
+        let indexPath = IndexPath(item: index, section: 0)
+        let scrollPosition: UICollectionView.ScrollPosition = switch layoutMode {
+        case .columns: .centeredHorizontally
+        case .grid, .list: .centeredVertically
+        }
+        collectionView.scrollToItem(at: indexPath, at: scrollPosition, animated: animated)
     }
     
     // MARK: - Layouts
+    
     private func makeLayout(for mode: ArticleLayoutMode) -> UICollectionViewLayout {
         switch mode {
-        case .grid:
-            return makeGridLayout()
-        case .list:
-            return makeListLayout()
-        case .columns:
-            return makeColumnsLayout()
+        case .grid: return makeGridLayout()
+        case .list: return makeListLayout()
+        case .columns: return makeColumnsLayout()
         }
     }
 
@@ -216,9 +196,10 @@ class ArticlesViewController: UIViewController {
         var config = UICollectionLayoutListConfiguration(appearance: .plain)
         config.showsSeparators = true
         config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            guard let article = self?.dataSource.itemIdentifier(for: indexPath) else { return nil }
+            guard let self = self,
+                  let article = self.dataSource.itemIdentifier(for: indexPath) else { return nil }
             let closeAction = UIContextualAction(style: .destructive, title: "Close") { _, _, completion in
-                self?.closeArticle(article)
+                self.delegate?.articlesViewController(self, didCloseArticle: article)
                 completion(true)
             }
             return UISwipeActionsConfiguration(actions: [closeAction])
@@ -246,70 +227,8 @@ class ArticlesViewController: UIViewController {
 
         return UICollectionViewCompositionalLayout(section: section)
     }
-
-    private func applyLayout(animated: Bool) {
-        let newLayout = makeLayout(for: layoutMode)
-        collectionView.setCollectionViewLayout(newLayout, animated: animated)
-    }
     
-    // MARK: - Navigation Bar Actions
-
-    @objc private func layoutChanged(_ sender: UISegmentedControl) {
-        guard let mode = ArticleLayoutMode(rawValue: sender.selectedSegmentIndex) else { return }
-        layoutMode = mode
-    }
-    
-    @objc private func appearanceChanged(_ sender: UISegmentedControl) {
-        let style: UIUserInterfaceStyle = switch sender.selectedSegmentIndex {
-            case 0: .dark
-            case 2: .light
-            default: .unspecified
-        }
-        view.window?.overrideUserInterfaceStyle = style
-    }
-
-    @objc private func fontSegmentTapped(_ sender: UISegmentedControl) {
-        switch sender.selectedSegmentIndex {
-        case 0:
-            print("📉 Decrease font size - TODO")
-        case 1:
-            print("📈 Increase font size - TODO")
-        default:
-            break
-        }
-    }
-    
-    func preloadArticle(_ article: ArticleItem) {
-        articles.insert(article, at: 0)
-    }
-    
-    func pushArticle(_ article: ArticleItem, animated: Bool) {
-        if let index = articles.firstIndex(of: article) {
-            // Scroll to existing article
-            let indexPath = IndexPath(item: index, section: 0)
-            collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: animated)
-            return
-        }
-        
-        // Insert new article at front
-        articles.insert(article, at: 0)
-        trimExcessArticles()
-        applySnapshot(animated: animated)
-        updateEmptyState()
-    }
-    
-    func closeArticle(_ article: ArticleItem, animated: Bool = true) {
-        guard let index = articles.firstIndex(of: article) else { return }
-        articles.remove(at: index)
-        applySnapshot(animated: animated)
-        updateEmptyState()
-    }
-    
-    private func trimExcessArticles() {
-        while articles.count > maxArticles {
-            articles.removeLast()
-        }
-    }
+    // MARK: - Private
     
     private func applySnapshot(animated: Bool) {
         var snapshot = NSDiffableDataSourceSnapshot<Int, ArticleItem>()
@@ -327,11 +246,17 @@ class ArticlesViewController: UIViewController {
 // MARK: - UICollectionViewDelegate
 
 extension ArticlesViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let article = dataSource.itemIdentifier(for: indexPath) else { return }
+        delegate?.articlesViewController(self, didSelectArticle: article)
+    }
+    
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            UIMenu(children: [
+            guard let self = self else { return nil }
+            return UIMenu(children: [
                 UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { _ in
                     SceneDelegate.openNewWindow(for: article)
                 },
@@ -342,20 +267,9 @@ extension ArticlesViewController: UICollectionViewDelegate {
                     UIPasteboard.general.string = article.title
                 },
                 UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { _ in
-                    self?.closeArticle(article)
+                    self.delegate?.articlesViewController(self, didCloseArticle: article)
                 },
             ])
-        }
-    }
-}
-
-// MARK: - UISearchResultsUpdating
-
-extension ArticlesViewController: UISearchResultsUpdating {
-    func updateSearchResults(for searchController: UISearchController) {
-        let query = searchController.searchBar.text ?? ""
-        if !query.isEmpty {
-            print("🔍 Search: \(query) - TODO")
         }
     }
 }
@@ -426,15 +340,15 @@ class ArticleCell: UICollectionViewCell {
     }
 
     func configure(with article: ArticleItem, layoutMode: ArticleLayoutMode) {
-            containerView.backgroundColor = article.color
-            titleLabel.text = article.title
-            subtitleLabel.text = article.dictName
-            contentLabel.text = "📖\n\n\(article.title)\n\n(WKWebView)"
-    
-            // Adjust visibility based on layout
-            let isCompact = layoutMode == .list
-            contentLabel.isHidden = isCompact
-            closeButton.isHidden = isCompact
+        containerView.backgroundColor = article.color
+        titleLabel.text = article.title
+        subtitleLabel.text = article.dictName
+        contentLabel.text = "📖\n\n\(article.title)\n\n(WKWebView)"
+
+        // Adjust visibility based on layout
+        let isCompact = layoutMode == .list
+        contentLabel.isHidden = isCompact
+        closeButton.isHidden = isCompact
     }
     
     @objc private func closeTapped() { onClose?() }

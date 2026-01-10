@@ -13,7 +13,7 @@ class MainSplitViewController: UISplitViewController {
     
     private let dictionaryListVC = DictionaryListViewController()
     private let wordListVC = WordListViewController()
-    private let articleVC = ArticlesViewController()
+    private let detailContainer = DetailContainerViewController()
     
     // MARK: - State
     
@@ -25,7 +25,7 @@ class MainSplitViewController: UISplitViewController {
         super.init(style: .tripleColumn)
         
         if let article = initialArticle {
-            articleVC.preloadArticle(article)
+            detailContainer.preloadArticle(article)
         }
     }
     
@@ -38,9 +38,12 @@ class MainSplitViewController: UISplitViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        delegate = self
+        
         setupSplitView()
         setupChildControllers()
         setupDelegates()
+        setupInitialState()
     }
     
     // MARK: - Setup
@@ -56,28 +59,23 @@ class MainSplitViewController: UISplitViewController {
         preferredSupplementaryColumnWidthFraction = 0.25
         minimumSupplementaryColumnWidth = 250
         
+        navigationItem.backButtonDisplayMode = .minimal
+        
         presentsWithGesture = true
 
         view.backgroundColor = .systemGroupedBackground
     }
     
     private func setupChildControllers() {
-        // Primary: Dictionary list (sidebar)
-        let primaryNav = UINavigationController(rootViewController: dictionaryListVC)
-        primaryNav.navigationBar.prefersLargeTitles = true
-        
+        // Primary: Sidebar (dictionary list)
+        setViewController(dictionaryListVC, for: .primary)
+         
+
         // Supplementary: Word list
-        let supplementaryNav = UINavigationController(rootViewController: wordListVC)
-        
-        // Secondary: Article strip (with nav bar for global actions)
-        let secondaryNav = UINavigationController(rootViewController: articleVC)
-        
-        setViewController(primaryNav, for: .primary)
-        setViewController(supplementaryNav, for: .supplementary)
-        setViewController(secondaryNav, for: .secondary)
-        
-        // Compact mode fallback
-        setViewController(UINavigationController(rootViewController: WordListViewController()), for: .compact)
+        setViewController(wordListVC, for: .supplementary)
+
+        // Secondary: Detail container (manages iPad/iPhone views)
+        setViewController(detailContainer, for: .secondary)
     }
     
     private func setupDelegates() {
@@ -94,24 +92,27 @@ class MainSplitViewController: UISplitViewController {
         }
     }
     
+    private func setupInitialState() {
+        let defaultGroup = DictionaryGroup.mockData.first { $0.isDefault }!
+        currentGroup = defaultGroup
+        wordListVC.loadWords(for: defaultGroup)
+        dictionaryListVC.setActiveGroup(defaultGroup)
+    }
+    
     // MARK: - Navigation
     
     private func selectGroup(_ group: DictionaryGroup) {
         currentGroup = group
         wordListVC.loadWords(for: group)
         
-        if traitCollection.horizontalSizeClass == .regular {
-            show(.supplementary)
-        }
+        show(.supplementary)
     }
     
     private func selectDictionary(_ dict: DictionaryItem) {
-       currentGroup = nil
-       wordListVC.loadWords(for: dict)
-
-       if traitCollection.horizontalSizeClass == .regular {
-           show(.supplementary)
-       }
+        currentGroup = nil
+        wordListVC.loadWords(for: dict)
+        
+        show(.supplementary)
     }
     
     private func selectWord(_ word: WordItem) {
@@ -126,20 +127,30 @@ class MainSplitViewController: UISplitViewController {
     }
     
     func showArticle(_ article: ArticleItem, animated: Bool) {
-        articleVC.pushArticle(article, animated: animated)
+        detailContainer.pushArticle(article, animated: animated)
         
-        if traitCollection.horizontalSizeClass == .regular {
-            show(.secondary)
-        }
+        show(.secondary)
     }
     
     // MARK: - State Restoration
     
     func currentStateActivity() -> NSUserActivity? {
-        guard let currentArticle = articleVC.currentArticle else {
+        guard let currentArticle = detailContainer.currentArticle else {
             return nil
         }
         return currentArticle.userActivity
+    }
+}
+
+// MARK: - UISplitViewControllerDelegate
+
+extension MainSplitViewController: UISplitViewControllerDelegate {
+    
+    func splitViewController(
+        _ svc: UISplitViewController,
+        topColumnForCollapsingToProposedTopColumn proposedTopColumn: UISplitViewController.Column
+    ) -> UISplitViewController.Column {
+        return .supplementary
     }
 }
 

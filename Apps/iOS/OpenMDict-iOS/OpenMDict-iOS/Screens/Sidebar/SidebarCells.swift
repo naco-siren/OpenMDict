@@ -176,14 +176,20 @@ final class UserGroupDictCell: UICollectionViewListCell {
             // Parent group is selected - open book with blue tint
             content.image = UIImage(systemName: "book")
             content.imageProperties.tintColor = .systemBlue
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
         } else if isSelected || isRelatedDictSelected {
             // This mirror is selected - light blue style (use blue tint, no custom background)
             content.image = UIImage(systemName: "book")
             content.imageProperties.tintColor = .systemBlue
             content.textProperties.color = .systemBlue
+            
+            var bg = UIBackgroundConfiguration.listSidebarCell()
+            bg.backgroundColor = .tertiarySystemFill
+            backgroundConfiguration = bg
         } else {
             // Default state - closed outlined book
             content.image = UIImage(systemName: "book.closed")
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
         }
         
         // Let system handle background (light blue for selection)

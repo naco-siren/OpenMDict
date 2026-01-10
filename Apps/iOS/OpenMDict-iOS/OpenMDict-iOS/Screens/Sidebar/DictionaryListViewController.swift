@@ -58,8 +58,12 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        navigationItem.backButtonDisplayMode = .minimal
+        navigationItem.backButtonTitle = "Dictionaries"
+        
         title = "OpenMDict"
         navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .always
         
         view.backgroundColor = .systemGroupedBackground
         view.addSubview(collectionView)
@@ -72,25 +76,21 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         configureDataSource()
         applySnapshot()
-        
-        // Select default group on launch
-        selectDefaultGroup()
-    }
-    
-    private func selectDefaultGroup() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            let defaultGroup = self.groups.first { $0.isDefault }!
-            if let indexPath = self.dataSource.indexPath(for: .dictGroup(defaultGroup, isDefault: true)) {
-                self.activeGroupId = defaultGroup.id
-                self.collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
-                self.invalidateVisibleCellConfigurations()
-                self.onGroupSelected?(defaultGroup)
-            }
-        }
     }
     
     // MARK: - Data Source Configuration
+    
+    func setActiveGroup(_ group: DictionaryGroup) {
+        activeGroupId = group.id
+        activeDict = nil
+        
+        // Select corresponding cell if collectionView has already been loaded
+        if isViewLoaded,
+           let indexPath = dataSource.indexPath(for: .dictGroup(group, isDefault: group.isDefault)) {
+            collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+            invalidateVisibleCellConfigurations()
+        }
+    }
     
     private func configureDataSource() {
         
@@ -237,18 +237,17 @@ extension DictionaryListViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
         
-        debugPrint("item: \(item)")
-        
         return switch item {
         case .header:
             // Headers should not be selectable
             false
-        case .dictGroup(let group, _):
-            // Prevent re-selecting the same group
-            activeGroupId != group.id
-        case .dict(let dict, _):
-            // Prevent re-selecting the same dictionary
-            activeDict?.id != dict.id
+        // TODO: double check when integrating actual MDict loading
+//        case .dictGroup(let group, _):
+//            // Prevent re-selecting the same group
+//            activeGroupId != group.id
+//        case .dict(let dict, _):
+//            // Prevent re-selecting the same dictionary
+//            activeDict?.id != dict.id
         default:
             true
         }

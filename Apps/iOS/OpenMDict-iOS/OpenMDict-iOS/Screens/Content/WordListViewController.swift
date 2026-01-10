@@ -19,7 +19,7 @@ class WordListViewController: UIViewController {
     
     private var words: [WordItem] = []
     private var filteredWords: [WordItem] = []
-    private var currentTitle = "Words"
+    private var currentTitle = "Search"
     
     private var isSearching: Bool { searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true) }
     private var displayedWords: [WordItem] { isSearching ? filteredWords : words }
@@ -54,6 +54,14 @@ class WordListViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        navigationItem.backButtonDisplayMode = .minimal
+        navigationItem.backButtonTitle = "Word Search"
+        
+        // Enable large titles for better hierarchy indication in compact mode
+        navigationController?.navigationBar.prefersLargeTitles = false
+        navigationItem.largeTitleDisplayMode = .never
+        
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
@@ -114,8 +122,9 @@ class WordListViewController: UIViewController {
         case .dictionary:
             iconName = "book.fill"
         case .none:
+            title = nil
+            navigationItem.title = nil
             navigationItem.titleView = nil
-            title = currentTitle
             return
         }
 
@@ -132,6 +141,7 @@ class WordListViewController: UIViewController {
         stack.spacing = 6
         stack.alignment = .center
 
+        navigationItem.title = nil
         navigationItem.titleView = stack
     }
 }
