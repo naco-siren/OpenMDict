@@ -8,12 +8,22 @@
 
 import UIKit
 
+// MARK: - Appearance Mode
+
+enum AppearanceMode: Int {
+    case light = 0
+    case system = 1
+    case dark = 2
+}
+
+
 class DetailContainerViewController: UIViewController {
     
     // MARK: - Source of Truth
     
     private var articles: [ArticleItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
+    private var appearanceMode: AppearanceMode = .system
     
     var currentArticle: ArticleItem? { articles.first }
     
@@ -33,23 +43,31 @@ class DetailContainerViewController: UIViewController {
     
     // MARK: - Navigation Bar Items (Regular mode - Segments)
     
-    private lazy var layoutSegment: UISegmentedControl = {
+    private var layoutSegment: UISegmentedControl {
         let seg = UISegmentedControl(items: ArticleLayoutMode.allCases.map { $0.icon })
         seg.selectedSegmentIndex = layoutMode.rawValue
         seg.addTarget(self, action: #selector(layoutChanged), for: .valueChanged)
         return seg
-    }()
+    }
     
-    private lazy var appearanceSegment: UISegmentedControl = {
+    private var appearanceSegment: UISegmentedControl {
         let seg = UISegmentedControl(items: [
             UIImage(systemName: "sun.max")!,
             UIImage(systemName: "circle.lefthalf.filled")!,
             UIImage(systemName: "moon")!,
         ])
-        seg.selectedSegmentIndex = 0
+        seg.selectedSegmentIndex = appearanceMode.rawValue
         seg.addTarget(self, action: #selector(appearanceChanged), for: .valueChanged)
         return seg
-    }()
+    }
+    
+    private var appearanceIcon: UIImage {
+        switch appearanceMode {
+        case .light: UIImage(systemName: "sun.max")!
+        case .system: UIImage(systemName: "circle.lefthalf.filled")!
+        case .dark: UIImage(systemName: "moon")!
+        }
+    }
   
     private let searchController = UISearchController()
     
@@ -63,13 +81,25 @@ class DetailContainerViewController: UIViewController {
         )
     }()
     
-    private lazy var appearanceMenu: UIMenu = {
+    private var appearanceMenu: UIMenu {
         UIMenu(title: "Appearance", children: [
-            UIAction(title: "Light", image: UIImage(systemName: "sun.max")) { _ in },
-            UIAction(title: "Auto", image: UIImage(systemName: "circle.lefthalf.filled")) { _ in },
-            UIAction(title: "Dark", image: UIImage(systemName: "moon")) { _ in },
+            UIAction(title: "Light", image: .init(systemName: "sun.max"),
+                     state: appearanceMode == .light ? .on : .off) { [weak self] _ in
+                self?.appearanceMode = .light
+                self?.applyAppearance()
+            },
+            UIAction(title: "Auto", image: .init(systemName: "circle.lefthalf.filled"),
+                     state: appearanceMode == .system ? .on : .off) { [weak self] _ in
+                self?.appearanceMode = .system
+                self?.applyAppearance()
+            },
+            UIAction(title: "Dark", image: .init(systemName: "moon"),
+                     state: appearanceMode == .dark ? .on : .off) { [weak self] _ in
+                self?.appearanceMode = .dark
+                self?.applyAppearance()
+            },
         ])
-    }()
+    }
     
     private lazy var zoomMenu: UIMenu = {
         if #available(iOS 16.0, *) {
@@ -96,6 +126,7 @@ class DetailContainerViewController: UIViewController {
         // Install appropriate child for current traits
         updateChildForTraits(traitCollection)
         updateNavigationBar(for: traitCollection)
+        applyAppearance()
     }
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -186,8 +217,7 @@ class DetailContainerViewController: UIViewController {
                     customizationIdentifier: "appearance",
                     representativeItem: .init(
                         title: "Appearance",
-                        // TODO: this icon should be updated with the latest state!
-                        image: .init(systemName: "circle.lefthalf.filled"),
+                        image: appearanceIcon,
                         menu: appearanceMenu
                     ),
                     items: [.init(customView: appearanceSegment)]
@@ -238,8 +268,7 @@ class DetailContainerViewController: UIViewController {
                     customizationIdentifier: "appearance",
                     representativeItem: .init(
                         title: "Appearance",
-                        // TODO: this icon should be updated with the latest state!
-                        image: .init(systemName: "circle.lefthalf.filled"),
+                        image: appearanceIcon,
                         menu: appearanceMenu
                     ),
                     items: [.init(customView: appearanceSegment)]
@@ -332,8 +361,21 @@ class DetailContainerViewController: UIViewController {
     }
     
     @objc private func appearanceChanged(_ sender: UISegmentedControl) {
-        // TODO: TO BE IMPLEMENTED
-        print("🎨 Appearance: \(sender.selectedSegmentIndex)")
+        appearanceMode = AppearanceMode(rawValue: sender.selectedSegmentIndex) ?? .system
+        applyAppearance()
+    }
+
+    private func applyAppearance() {
+        let style: UIUserInterfaceStyle = switch appearanceMode {
+        case .light: .light
+        case .system: .unspecified
+        case .dark: .dark
+        }
+
+        view.window?.overrideUserInterfaceStyle = style
+        
+        // Refresh nav bar to update representativeItem icon
+        updateNavigationBar(for: traitCollection)
     }
     
     @objc private func zoomChanged(_ sender: UISegmentedControl) {
