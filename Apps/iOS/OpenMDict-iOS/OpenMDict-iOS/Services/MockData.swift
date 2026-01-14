@@ -12,6 +12,7 @@ nonisolated struct ArticleItem: Identifiable, Hashable, Sendable {
     let title: String
     let dictName: String
     let colorHue: CGFloat
+    let listHeight: CGFloat  // Random height for list mode
     
     var color: UIColor {
         UIColor(hue: colorHue, saturation: 0.3, brightness: 0.95, alpha: 1.0)
@@ -22,13 +23,15 @@ nonisolated struct ArticleItem: Identifiable, Hashable, Sendable {
         self.title = title
         self.dictName = dictName
         self.colorHue = CGFloat.random(in: 0...1)
+        self.listHeight = CGFloat.random(in: 60...450)
     }
     
-    init(id: String, title: String, dictName: String, colorHue: CGFloat? = nil) {
+    init(id: String, title: String, dictName: String, colorHue: CGFloat? = nil, listHeight: CGFloat? = nil) {
         self.id = id
         self.title = title
         self.dictName = dictName
         self.colorHue = colorHue ?? CGFloat.random(in: 0...1)
+        self.listHeight = listHeight ?? CGFloat.random(in: 60...450)
     }
     
     static func == (lhs: ArticleItem, rhs: ArticleItem) -> Bool { lhs.id == rhs.id }

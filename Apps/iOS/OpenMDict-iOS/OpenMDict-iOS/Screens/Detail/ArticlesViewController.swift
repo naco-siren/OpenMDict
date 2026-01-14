@@ -53,7 +53,7 @@ class ArticlesViewController: UIViewController {
     // MARK: - Collection View
     
     private lazy var collectionView: UICollectionView = {
-        let cv = UICollectionView(frame: .zero, collectionViewLayout: createLayout())
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: createLayout(for: layoutMode))
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.backgroundColor = .systemGroupedBackground
         cv.delegate = self
@@ -138,24 +138,39 @@ class ArticlesViewController: UIViewController {
     }
     
     func applyLayout(_ mode: ArticleLayoutMode, animated: Bool) {
+        let oldMode = self.layoutMode
         self.layoutMode = mode
-
-        collectionView.collectionViewLayout.invalidateLayout()
-        if animated {
-            if #available(iOS 17, *) {
-                // iOS 17+: native animation via reconfigureItems
-            } else {
-                // iOS 15-16: manual animation wrapper
-                UIView.animate(withDuration: 0.3) {
-                    self.collectionView.layoutIfNeeded()
+        
+        // Check if scroll direction changed (columns ↔ grid/list)
+        let oldIsHorizontal = (oldMode == .columns)
+        let newIsHorizontal = (mode == .columns)
+        let scrollDirectionChanged = (oldIsHorizontal != newIsHorizontal)
+        
+        if scrollDirectionChanged {
+            // Must recreate layout when scrollDirection changes
+            let newLayout = createLayout(for: mode)
+            collectionView.setCollectionViewLayout(newLayout, animated: animated)
+        } else {
+            // Same scroll direction - just invalidate
+            collectionView.collectionViewLayout.invalidateLayout()
+            
+            if animated {
+                if #available(iOS 17, *) {
+                    // iOS 17+: native animation via reconfigureItems
+                } else {
+                    // iOS 15-16: manual animation wrapper
+                    UIView.animate(withDuration: 0.3) {
+                        self.collectionView.layoutIfNeeded()
+                    }
                 }
             }
         }
         
+        // Reconfigure cells for new layout mode
         if !articles.isEmpty {
             var snapshot = dataSource.snapshot()
             snapshot.reconfigureItems(articles)
-            dataSource.apply(snapshot, animatingDifferences: animated)
+            dataSource.apply(snapshot, animatingDifferences: animated && !scrollDirectionChanged)
         }
     }
     
@@ -173,17 +188,25 @@ class ArticlesViewController: UIViewController {
     
     // MARK: - Layouts
     
-    private func createLayout() -> UICollectionViewLayout {
-        // Single layout with section provider - avoids setCollectionViewLayout bugs
-        return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
-            guard let self = self else { return nil }
-            
-            switch self.layoutMode {
-            case .grid: return self.createGridSection(environment: environment)
-            case .list: return self.createListSection(environment: environment)
-            case .columns: return self.createColumnsSection(environment: environment)
-            }
-        }
+    private func createLayout(for mode: ArticleLayoutMode) -> UICollectionViewLayout {
+        let configuration = UICollectionViewCompositionalLayoutConfiguration()
+        
+        // Columns mode: entire collectionView scrolls horizontally
+        // Grid/List modes: collectionView scrolls vertically
+        configuration.scrollDirection = (mode == .columns) ? .horizontal : .vertical
+        
+        return UICollectionViewCompositionalLayout(
+            sectionProvider: { [weak self] sectionIndex, environment in
+                guard let self = self else { return nil }
+                
+                switch self.layoutMode {
+                case .grid: return self.createGridSection(environment: environment)
+                case .list: return self.createListSection(environment: environment)
+                case .columns: return self.createColumnsSection(environment: environment)
+                }
+            },
+            configuration: configuration
+        )
     }
 
     private func createGridSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
@@ -197,7 +220,7 @@ class ArticlesViewController: UIViewController {
             heightDimension: .fractionalWidth(itemFraction)  // Square cells
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
@@ -212,46 +235,60 @@ class ArticlesViewController: UIViewController {
         
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
+        
         return section
     }
 
     private func createListSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        // Vertical list - same pattern as grid but single column, fixed height
+        // Vertical list with dynamic height per item
         let itemSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(72)
+            heightDimension: .estimated(100)  // Self-sizing based on cell constraints
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
 
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(72)
+            heightDimension: .estimated(100)
         )
         let group = NSCollectionLayoutGroup.vertical(layoutSize: groupSize, subitems: [item])
 
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0)
+        section.interGroupSpacing = 16
+        
         return section
     }
 
     private func createColumnsSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        // With horizontal scrollDirection, cells fill the full height
+        // and scroll horizontally across the screen
         let itemSize = NSCollectionLayoutSize(
-            widthDimension: .absolute(400),
+            widthDimension: .fractionalWidth(1.0),
             heightDimension: .fractionalHeight(1.0)
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)
+        let bottomMargin: CGFloat =
+            if #available(iOS 26, *) {
+                0
+            } else if #available(iOS 16, *) {
+                16
+            } else {
+                0
+            }
+    
+        item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: bottomMargin, trailing: 0)
 
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .absolute(400),
             heightDimension: .fractionalHeight(1.0)
         )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
-
+        
         let section = NSCollectionLayoutSection(group: group)
-        section.orthogonalScrollingBehavior = .continuous
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+        section.interGroupSpacing = 16
 
         return section
     }
@@ -313,6 +350,9 @@ class ArticleCell: UICollectionViewCell {
     private let subtitleLabel = UILabel()
     private let contentLabel = UILabel()
     private let closeButton = UIButton(type: .system)
+    
+    // Height constraint for list mode (dynamic per article)
+    private var heightConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -344,6 +384,9 @@ class ArticleCell: UICollectionViewCell {
             containerView.addSubview($0)
         }
         
+        // Create height constraint (inactive by default)
+        heightConstraint = contentView.heightAnchor.constraint(equalToConstant: 100)
+        
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -352,9 +395,11 @@ class ArticleCell: UICollectionViewCell {
             
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -8),
             
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
             subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            subtitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -8),
             
             closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             closeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -8),
@@ -370,18 +415,23 @@ class ArticleCell: UICollectionViewCell {
     func configure(with article: ArticleItem, layoutMode: ArticleLayoutMode) {
         titleLabel.text = article.title
         subtitleLabel.text = article.dictName
-
-        let isCompact = layoutMode == .list
+        containerView.backgroundColor = article.color
+        containerView.layer.cornerRadius = 12
         
+        let isListMode = (layoutMode == .list)
         
-        // Adapt appearance for layout mode
-        containerView.backgroundColor = isCompact ? article.color.withAlphaComponent(0.2) : article.color
-        containerView.layer.cornerRadius = isCompact ? 8 : 12
-
-        // Content visibility
+        // List mode: use article's random height, show compact layout
+        // Grid/Columns: height determined by layout, show full content
+        if isListMode {
+            heightConstraint?.constant = article.listHeight
+            heightConstraint?.isActive = true
+            contentLabel.isHidden = true
+        } else {
+            heightConstraint?.isActive = false
+            contentLabel.isHidden = false
+        }
+        
         contentLabel.text = "📖\n\n\(article.title)\n\n(WKWebView)"
-        contentLabel.isHidden = isCompact
-        closeButton.isHidden = isCompact
     }
     
     @objc private func closeTapped() { onClose?() }
@@ -390,5 +440,6 @@ class ArticleCell: UICollectionViewCell {
         super.prepareForReuse()
         onClose = nil
         onOpenInNewWindow = nil
+        heightConstraint?.isActive = false
     }
 }
