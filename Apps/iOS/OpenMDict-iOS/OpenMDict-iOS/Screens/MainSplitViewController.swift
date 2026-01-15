@@ -119,9 +119,13 @@ class MainSplitViewController: UISplitViewController {
         // Find dictionary name from the word's dictId
         let dictName = DictionaryItem.mockData.first { $0.id == word.dictId }?.name ?? "Unknown"
         
+        // Use stub HTML if available, otherwise placeholder
+        let html = StubHTML.html(for: word.word, dictName: dictName)
+        
         let article = ArticleItem(
             title: word.word,
-            dictName: dictName
+            dictName: dictName,
+            html: html
         )
         showArticle(article, animated: true)
     }

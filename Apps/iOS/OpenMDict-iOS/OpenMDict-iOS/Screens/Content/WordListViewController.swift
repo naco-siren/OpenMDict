@@ -105,8 +105,14 @@ class WordListViewController: UIViewController {
     }
     
     private func mockWords(for dictId: String) -> [WordItem] {
-        ["app","ban","car","dog","egg","fox","get","hat","ice","jam","key","let","map","new","old","pen","quo","run","set","top"]
-            .flatMap { WordItem.mockWords(for: $0, dictId: dictId) }
+        // Include stub words that have real HTML content
+        let stubWords = ["do", "hello", "query"]
+        let baseWords = ["app","ban","car","dog","egg","fox","get","hat","ice","jam","key","let","map","new","old","pen","quo","run","set","top"]
+
+        let stubItems = stubWords.map { WordItem(word: $0, dictId: dictId) }
+        let baseItems = baseWords.flatMap { WordItem.mockWords(for: $0, dictId: dictId) }
+       
+        return stubItems + baseItems
     }
     
     private func updateEmptyState() {
@@ -178,12 +184,15 @@ extension WordListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         let word = displayedWords[indexPath.row]
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            UIMenu(children: [
+            let dictName = self?.currentTitle ?? ""
+            let html = StubHTML.html(for: word.word, dictName: dictName)
+                         
+            return UIMenu(children: [
                 UIAction(title: "Open", image: UIImage(systemName: "doc.text")) { _ in
                     self?.onWordSelected?(word)
                 },
                 UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { _ in
-                    SceneDelegate.openNewWindow(for: ArticleItem(title: word.word, dictName: self?.currentTitle ?? ""))
+                    SceneDelegate.openNewWindow(for: ArticleItem(title: word.word, dictName: dictName, html: html))
                 },
             ])
         }

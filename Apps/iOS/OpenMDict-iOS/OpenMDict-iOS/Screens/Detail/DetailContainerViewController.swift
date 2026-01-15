@@ -393,6 +393,17 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
     func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleItem) {
         print("📖 Selected: \(article.title)")
     }
+    
+    func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleItem) {
+        // Switch to columns
+        layoutMode = .columns
+        
+        // Update child and nav bar
+        articlesVC.configure(articles: articles, animated: false)
+        articlesVC.applyLayout(.columns, animated: true)
+        articlesVC.scrollToArticle(article, animated: true)
+        updateNavigationBar(for: traitCollection)
+    }
 }
 
 extension DetailContainerViewController: UISearchControllerDelegate {

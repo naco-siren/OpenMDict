@@ -7,27 +7,28 @@
 //
 
 import UIKit
+import WebKit
 
 // MARK: - Layout Mode
 
 enum ArticleLayoutMode: Int, CaseIterable {
-    case grid = 0
-    case list = 1
-    case columns = 2
+    case columns = 0
+    case grid = 1
+    case list = 2
     
     var title: String {
         switch self {
+        case .columns: return "Columns"
         case .grid: return "Grid"
         case .list: return "List"
-        case .columns: return "Columns"
         }
     }
     
     var icon: UIImage {
         switch self {
+        case .columns: return UIImage(systemName: "rectangle.split.3x1")!
         case .grid: return UIImage(systemName: "square.grid.2x2")!
         case .list: return UIImage(systemName: "list.bullet")!
-        case .columns: return UIImage(systemName: "rectangle.split.3x1")!
         }
     }
 }
@@ -37,6 +38,7 @@ enum ArticleLayoutMode: Int, CaseIterable {
 protocol ArticlesViewControllerDelegate: AnyObject {
     func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleItem)
     func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleItem)
+    func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleItem)
 }
 
 // MARK: - Articles View Controller
@@ -59,6 +61,8 @@ class ArticlesViewController: UIViewController {
         cv.delegate = self
         return cv
     }()
+    
+    private var pageControl: UIPageControl?
      
     private var dataSource: UICollectionViewDiffableDataSource<Int, ArticleItem>!
     
@@ -94,6 +98,9 @@ class ArticlesViewController: UIViewController {
         setupCollectionView()
         view.addSubview(emptyView)
         
+        // Initialize paging for default mode
+        collectionView.isPagingEnabled = (layoutMode == .list)
+        
         NSLayoutConstraint.activate([
             emptyView.topAnchor.constraint(equalTo: view.topAnchor),
             emptyView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -106,6 +113,9 @@ class ArticlesViewController: UIViewController {
     // MARK: - Collection View Setup
     
     private func setupCollectionView() {
+        collectionView.dragDelegate = self
+        collectionView.dragInteractionEnabled = true
+        
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -122,10 +132,35 @@ class ArticlesViewController: UIViewController {
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
             }
             cell.onOpenInNewWindow = { SceneDelegate.openNewWindow(for: article) }
+            cell.onBookmarkToggle = { isBookmarked in
+                print("🔖 Bookmark: \(article.title): \(isBookmarked)")
+                // TODO: Implement bookmark persistence
+            }
         }
         
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, article in
             collectionView.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: article)
+        }
+        
+        // Page control on the left side for list mode on iOS/iPadOS 16+
+        if #available(iOS 16.0, *) {
+            let pc = UIPageControl()
+            pc.translatesAutoresizingMaskIntoConstraints = false
+            pc.currentPageIndicatorTintColor = .label
+            pc.pageIndicatorTintColor = .tertiaryLabel
+            pc.isUserInteractionEnabled = true
+            pc.addTarget(self, action: #selector(pageControlTapped(_:)), for: .valueChanged)
+            pc.direction = .topToBottom
+            pc.backgroundStyle = .minimal
+            view.addSubview(pc)
+            NSLayoutConstraint.activate([
+                pc.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+                pc.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                pc.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+                pc.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 8),
+            ])
+            pc.isHidden = true
+            pageControl = pc
         }
     }
     
@@ -135,11 +170,17 @@ class ArticlesViewController: UIViewController {
         self.articles = articles
         applySnapshot(animated: animated)
         updateEmptyState()
+        
+        // Update page control
+        pageControl?.numberOfPages = articles.count
     }
     
     func applyLayout(_ mode: ArticleLayoutMode, animated: Bool) {
         let oldMode = self.layoutMode
         self.layoutMode = mode
+        
+        // List mode uses paging behavior
+        collectionView.isPagingEnabled = (mode == .list)
         
         // Check if scroll direction changed (columns ↔ grid/list)
         let oldIsHorizontal = (oldMode == .columns)
@@ -171,6 +212,15 @@ class ArticlesViewController: UIViewController {
             var snapshot = dataSource.snapshot()
             snapshot.reconfigureItems(articles)
             dataSource.apply(snapshot, animatingDifferences: animated && !scrollDirectionChanged)
+        }
+        
+        // Show page control under List layout
+        if let pc = pageControl {
+            pc.isHidden = (mode != .list)
+            if mode == .list {
+                pc.numberOfPages = articles.count
+                pc.currentPage = 0
+            }
         }
     }
     
@@ -212,7 +262,7 @@ class ArticlesViewController: UIViewController {
     private func createGridSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         // Calculate columns based on container width
         let containerWidth = environment.container.effectiveContentSize.width
-        let columnCount = max(2, Int(floor(containerWidth / 200)))
+        let columnCount = max(2, Int(floor(containerWidth / 320)))
         let itemFraction = 1.0 / CGFloat(columnCount)
         
         let itemSize = NSCollectionLayoutSize(
@@ -240,23 +290,25 @@ class ArticlesViewController: UIViewController {
     }
 
     private func createListSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        // Vertical list with dynamic height per item
+        // Each item takes fills all space after a top margin to avoiding conflicting with navigation bar
         let itemSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .estimated(100)  // Self-sizing based on cell constraints
+            heightDimension: .fractionalHeight(1.0)
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
-
+        item.contentInsets = NSDirectionalEdgeInsets(top: 72, leading: 0, bottom: 16, trailing: 0)
+        
+        // Group height equals container to ensure full-height paging
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .estimated(100)
+            heightDimension: .fractionalHeight(1.0)
         )
-        let group = NSCollectionLayoutGroup.vertical(layoutSize: groupSize, subitems: [item])
-
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        let leadingMargin: CGFloat = if #available(iOS 16, *) { 12 } else { 0 }
+        group.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: leadingMargin, bottom: 0, trailing: 0)
+        
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0)
-        section.interGroupSpacing = 16
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
         
         return section
     }
@@ -306,6 +358,12 @@ class ArticlesViewController: UIViewController {
         emptyView.isHidden = !articles.isEmpty
         collectionView.isHidden = articles.isEmpty
     }
+    
+    @objc private func pageControlTapped(_ sender: UIPageControl) {
+        guard layoutMode == .list else { return }
+        let indexPath = IndexPath(item: sender.currentPage, section: 0)
+        collectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
+    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -313,133 +371,101 @@ class ArticlesViewController: UIViewController {
 extension ArticlesViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return }
-        delegate?.articlesViewController(self, didSelectArticle: article)
+        if layoutMode == .grid {
+            delegate?.articlesViewController(self, didRequestFocusOn: article)
+        } else {
+            delegate?.articlesViewController(self, didSelectArticle: article)
+        }
+    }
+    
+    // MARK: - Scroll handling for List pager mode
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        updateWebViewInteractivity()
+        updatePageControlIndex()
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate {
+            updateWebViewInteractivity()
+            updatePageControlIndex()
+        }
+    }
+
+    private func updateWebViewInteractivity() {
+        guard layoutMode == .list else { return }
+
+        // Find the "current" cell (most visible)
+        let visibleCells = collectionView.visibleCells.compactMap { $0 as? ArticleCell }
+        let centerY = collectionView.bounds.midY + collectionView.contentOffset.y
+
+        for cell in visibleCells {
+            let cellCenterY = cell.frame.midY
+            let isCurrent = abs(cellCenterY - centerY) < cell.frame.height / 2
+            cell.setWebViewInteractive(isCurrent)
+        }
+    }
+    
+    private func updatePageControlIndex() {
+        guard let pc = pageControl else { return }
+        guard layoutMode == .list, !articles.isEmpty else { return }
+        
+        let pageHeight = collectionView.bounds.height
+        let currentPage = Int(round(collectionView.contentOffset.y / pageHeight))
+        pc.currentPage = min(max(0, currentPage), articles.count - 1)
     }
     
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            guard let self = self else { return nil }
-            return UIMenu(children: [
-                UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { _ in
-                    SceneDelegate.openNewWindow(for: article)
-                },
-                UIAction(title: "Favorite", image: UIImage(systemName: "star")) { _ in
-                    print("⭐ Favorite: \(article.title)")
-                },
-                UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { _ in
-                    UIPasteboard.general.string = article.title
-                },
-                UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { _ in
-                    self.delegate?.articlesViewController(self, didCloseArticle: article)
-                },
-            ])
+        return UIContextMenuConfiguration(
+            identifier: indexPath as NSCopying,
+            previewProvider: {
+                return ArticlePreviewViewController(article: article)     
+            },
+            actionProvider: { [weak self] _ in
+                guard let self = self else { return nil }
+                return UIMenu(children: [
+                    UIAction(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
+                        SceneDelegate.openNewWindow(for: article)
+                    },
+                    UIAction(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
+                        print("🔖 Bookmark: \(article.title)")
+                        // TODO: Implement bookmark persistence
+                    },
+                    UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { _ in
+                        self.delegate?.articlesViewController(self, didCloseArticle: article)
+                    },
+                ])
+            }
+        )
+    }
+    
+    func collectionView(_ collectionView: UICollectionView,
+                        willEndContextMenuInteraction configuration: UIContextMenuConfiguration,
+                        animator: UIContextMenuInteractionAnimating?) {
+        animator?.addCompletion { [weak self] in
+            guard let self = self else { return }
+            for cell in self.collectionView.visibleCells {
+                if let articleCell = cell as? ArticleCell {
+                    articleCell.forceReloadWebView()
+                }
+            }
         }
     }
 }
 
-// MARK: - Article Cell
+// MARK: - UICollectionViewDragDelegate
 
-class ArticleCell: UICollectionViewCell {
-    var onClose: (() -> Void)?
-    var onOpenInNewWindow: (() -> Void)?
-
-    private let containerView = UIView()
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    private let contentLabel = UILabel()
-    private let closeButton = UIButton(type: .system)
-    
-    // Height constraint for list mode (dynamic per article)
-    private var heightConstraint: NSLayoutConstraint?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    
-    required init?(coder: NSCoder) { fatalError() }
-    
-    private func setupUI() {
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.layer.cornerRadius = 12
-        containerView.layer.masksToBounds = true
-        contentView.addSubview(containerView)
+extension ArticlesViewController: UICollectionViewDragDelegate {
+    func collectionView(_ collectionView: UICollectionView,
+                        itemsForBeginning session: UIDragSession,
+                        at indexPath: IndexPath) -> [UIDragItem] {
+        guard let article = dataSource.itemIdentifier(for: indexPath) else { return [] }
         
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        subtitleLabel.font = .systemFont(ofSize: 12)
-        subtitleLabel.textColor = .secondaryLabel
-        
-        contentLabel.numberOfLines = 0
-        contentLabel.textAlignment = .center
-        contentLabel.textColor = .secondaryLabel
-        
-        closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        closeButton.tintColor = .secondaryLabel
-        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        
-        [titleLabel, subtitleLabel, contentLabel, closeButton].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            containerView.addSubview($0)
-        }
-        
-        // Create height constraint (inactive by default)
-        heightConstraint = contentView.heightAnchor.constraint(equalToConstant: 100)
-        
-        NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -8),
-            
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -8),
-            
-            closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
-            closeButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -8),
-            closeButton.widthAnchor.constraint(equalToConstant: 30),
-            closeButton.heightAnchor.constraint(equalToConstant: 30),
-            
-            contentLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            contentLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            contentLabel.leadingAnchor.constraint(greaterThanOrEqualTo: containerView.leadingAnchor, constant: 16),
-        ])
-    }
-
-    func configure(with article: ArticleItem, layoutMode: ArticleLayoutMode) {
-        titleLabel.text = article.title
-        subtitleLabel.text = article.dictName
-        containerView.backgroundColor = article.color
-        containerView.layer.cornerRadius = 12
-        
-        let isListMode = (layoutMode == .list)
-        
-        // List mode: use article's random height, show compact layout
-        // Grid/Columns: height determined by layout, show full content
-        if isListMode {
-            heightConstraint?.constant = article.listHeight
-            heightConstraint?.isActive = true
-            contentLabel.isHidden = true
-        } else {
-            heightConstraint?.isActive = false
-            contentLabel.isHidden = false
-        }
-        
-        contentLabel.text = "📖\n\n\(article.title)\n\n(WKWebView)"
-    }
-    
-    @objc private func closeTapped() { onClose?() }
-    
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        onClose = nil
-        onOpenInNewWindow = nil
-        heightConstraint?.isActive = false
+        let itemProvider = NSItemProvider(object: article.userActivity)
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        dragItem.localObject = article
+        return [dragItem]
     }
 }

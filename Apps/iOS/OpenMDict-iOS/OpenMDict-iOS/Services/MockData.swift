@@ -11,27 +11,21 @@ nonisolated struct ArticleItem: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let dictName: String
-    let colorHue: CGFloat
-    let listHeight: CGFloat  // Random height for list mode
+    let html: String  // HTML content for WKWebView
     
-    var color: UIColor {
-        UIColor(hue: colorHue, saturation: 0.3, brightness: 0.95, alpha: 1.0)
-    }
-    
-    init(title: String, dictName: String) {
+    init(title: String, dictName: String, html: String? = nil) {
         self.id = "\(dictName):\(title)"
         self.title = title
         self.dictName = dictName
-        self.colorHue = CGFloat.random(in: 0...1)
-        self.listHeight = CGFloat.random(in: 60...450)
+        self.html = html ?? StubHTML.placeholder(for: title, dictName: dictName)
     }
     
-    init(id: String, title: String, dictName: String, colorHue: CGFloat? = nil, listHeight: CGFloat? = nil) {
+    init(id: String, title: String, dictName: String, html: String? = nil) {
+
         self.id = id
         self.title = title
         self.dictName = dictName
-        self.colorHue = colorHue ?? CGFloat.random(in: 0...1)
-        self.listHeight = listHeight ?? CGFloat.random(in: 60...450)
+        self.html = html ?? StubHTML.placeholder(for: title, dictName: dictName)
     }
     
     static func == (lhs: ArticleItem, rhs: ArticleItem) -> Bool { lhs.id == rhs.id }
