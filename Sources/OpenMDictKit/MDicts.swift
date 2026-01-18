@@ -14,44 +14,83 @@ public struct MDictLookupResult: Sendable {
     }
 }
 
-// MARK: - MDicts (Thin Wrapper)
+// MARK: - MDicts
 
-/// Thin wrapper for managing multiple dictionaries
-/// Does NOT own the MDict instances - only references them
-/// Can be recreated freely without losing loaded dictionary state
+/// Dictionary group with metadata and runtime dictionary references
+///
+/// Combines two roles:
+/// - **Persistable metadata**: id, name, isDefault, dictionaryIds (for user-defined groups)
+/// - **Runtime container**: items array populated from DictionaryService
 ///
 /// Usage:
 /// ```swift
-/// // App owns the items
-/// @State var items: [MDict] = [...]
+/// // Create a group with metadata
+/// var group = MDicts(id: "favorites", name: "Favorites", dictionaryIds: ["wordnet", "gcide"])
 ///
-/// // Create wrapper when needed (order = priority)
-/// let dicts = MDicts(items)
+/// // Populate with actual MDict instances
+/// group.populate(from: allDictionaries)
 ///
 /// // Stream lookup results
-/// for await result in dicts.lookup("hello") {
+/// for await result in group.lookup("hello") {
 ///     print("\(result.dict.metadata?.title): \(result.entry.article.html)")
 /// }
 /// ```
-public struct MDicts {
+public struct MDicts: Identifiable, Hashable {
     
-    // MARK: - Properties
+    // MARK: - Persistable Properties
     
-    /// The dictionary items (not owned, just referenced)
-    /// Order = priority (first = highest)
-    public let items: [MDict]
+    /// Unique identifier for this group
+    public let id: String
+    
+    /// Display name
+    public var name: String
+    
+    /// Whether this is the default "All Dictionaries" group
+    public var isDefault: Bool
+    
+    /// Ordered list of dictionary IDs (determines lookup priority)
+    public var dictionaryIds: [String]
+    
+    // MARK: - Runtime Properties (not persisted)
+    
+    /// Actual MDict instances, populated by DictionaryService
+    public private(set) var items: [MDict] = []
     
     // MARK: - Initialization
     
-    /// Create from array of items
-    /// Order determines lookup priority
+    /// Create a group with metadata (items populated later)
+    public init(id: String, name: String, isDefault: Bool = false, dictionaryIds: [String] = []) {
+        self.id = id
+        self.name = name
+        self.isDefault = isDefault
+        self.dictionaryIds = dictionaryIds
+    }
+    
+    /// Create from MDict array directly (for backward compatibility / ad-hoc usage)
     public init(_ items: [MDict]) {
+        self.id = UUID().uuidString
+        self.name = ""
+        self.isDefault = false
+        self.dictionaryIds = items.map { $0.id }
         self.items = items
     }
     
     /// Create empty
     public init() {
-        self.items = []
+        self.id = UUID().uuidString
+        self.name = ""
+        self.isDefault = false
+        self.dictionaryIds = []
+    }
+    
+    // MARK: - Population
+    
+    /// Populate items from a dictionary list (call after loading from persistence)
+    /// - Parameter allDicts: All available MDict instances
+    public mutating func populate(from allDicts: [MDict]) {
+        items = dictionaryIds.compactMap { id in
+            allDicts.first { $0.id == id }
+        }
     }
     
     // MARK: - Computed Properties
@@ -75,11 +114,6 @@ public struct MDicts {
     /// Items that are both loaded and enabled (ready for lookup)
     public var active: [MDict] {
         items.filter { $0.isLoaded && $0.isEnabled }
-    }
-    
-    /// Items that are pinned (should stay in memory)
-    public var pinned: [MDict] {
-        items.filter { $0.isPinned }
     }
     
     // MARK: - Access
@@ -185,14 +219,6 @@ public struct MDicts {
     
     // MARK: - Memory Management
     
-    /// Unload all non-pinned dictionaries
-    /// Call this on memory warning
-    public func handleMemoryWarning() {
-        for item in items where !item.isPinned {
-            item.unload()
-        }
-    }
-    
     /// Unload all dictionaries
     public func unloadAll() {
         for item in items {
@@ -200,18 +226,47 @@ public struct MDicts {
         }
     }
     
-    /// Load pinned dictionaries
-    public func loadPinned() async {
-        for item in pinned where !item.isLoaded {
+    /// Load all dictionaries sequentially
+    public func loadAll() async {
+        for item in items where !item.isLoaded {
             try? await item.loadAsync()
         }
     }
     
-    /// Load first dictionary (default behavior on app start)
-    public func loadFirst() async {
-        if let first = items.first, !first.isLoaded {
-            try? await first.loadAsync()
-        }
+    // MARK: - Hashable
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    public static func == (lhs: MDicts, rhs: MDicts) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+// MARK: - Codable (only persistable fields)
+
+extension MDicts: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, name, isDefault, dictionaryIds
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        isDefault = try container.decode(Bool.self, forKey: .isDefault)
+        dictionaryIds = try container.decode([String].self, forKey: .dictionaryIds)
+        items = []  // Populated at runtime
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(isDefault, forKey: .isDefault)
+        try container.encode(dictionaryIds, forKey: .dictionaryIds)
+        // items is not encoded
     }
 }
 

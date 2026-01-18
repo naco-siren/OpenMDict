@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import OpenMDict
 
 // MARK: - Load State
@@ -41,9 +42,6 @@ public final class MDict: ObservableObject, Identifiable {
     
     /// Current loading state
     public private(set) var state: MDictLoadState = .unloaded
-    
-    /// Whether this dictionary should stay in memory on memory warning
-    public var isPinned: Bool = false
     
     /// Whether this dictionary is enabled for searching
     public var isEnabled: Bool = true

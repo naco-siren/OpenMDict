@@ -8,7 +8,13 @@ let package = Package(
         .iOS(.v15)
     ],
     products: [
+        // Core parsing library (no platform dependencies)
         .library(name: "OpenMDict", targets: ["OpenMDict"]),
+        
+        // ViewModel layer (depends on Combine, for iOS/macOS apps)
+        .library(name: "OpenMDictKit", targets: ["OpenMDictKit"]),
+        
+        // CLI tool
         .executable(name: "openmdict", targets: ["OpenMDictCLI"])
     ],
     targets: [
@@ -19,14 +25,21 @@ let package = Package(
             publicHeadersPath: "include"
         ),
         
-        // Main library
+        // Core parsing library
         .target(
             name: "OpenMDict",
             dependencies: ["CLZ"],
             path: "Sources/OpenMDict"
         ),
         
-        // CLI tool (in Apps folder)
+        // ViewModel layer (MDict, MDicts)
+        .target(
+            name: "OpenMDictKit",
+            dependencies: ["OpenMDict"],
+            path: "Sources/OpenMDictKit"
+        ),
+        
+        // CLI tool
         .executableTarget(
             name: "OpenMDictCLI",
             dependencies: ["OpenMDict"],
