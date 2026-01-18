@@ -13,13 +13,14 @@
 //
 
 import UIKit
+import OpenMDictKit
 
 class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     // MARK: - Callbacks
     
-    var onGroupSelected: ((DictionaryGroup) -> Void)?
-    var onDictionarySelected: ((DictionaryItem) -> Void)?
+    var onGroupSelected: ((MDicts) -> Void)?
+    var onDictionarySelected: ((MDict) -> Void)?
     
     // MARK: - State (SidebarStateProvider)
     
@@ -31,7 +32,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     // MARK: - Data
     
-    private var groups: [DictionaryGroup] = DictionaryGroup.mockData
+    private var groups: [MDicts] { DictionaryService.shared.groups }
     private var dataSource: UICollectionViewDiffableDataSource<Section, SidebarItem>!
     
     private enum Section: Int, CaseIterable {
@@ -80,13 +81,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     // MARK: - Data Source Configuration
     
-    func setActiveGroup(_ group: DictionaryGroup) {
+    func setActiveGroup(_ group: MDicts) {
         activeGroupId = group.id
         activeDict = nil
         
         // Select corresponding cell if collectionView has already been loaded
         if isViewLoaded,
-           let indexPath = dataSource.indexPath(for: .dictGroup(group, isDefault: group.isDefault)) {
+           let indexPath = dataSource.indexPath(for: .group(id: group.id, isDefault: group.isDefault)) {
             collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
             invalidateVisibleCellConfigurations()
         }
@@ -95,32 +96,35 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private func configureDataSource() {
         
         // Default Group Cell (All Dictionaries)
-        let defaultGroupReg = UICollectionView.CellRegistration<DefaultGroupCell, DictionaryGroup> {
-            cell, indexPath, group in
+        let defaultGroupReg = UICollectionView.CellRegistration<DefaultGroupCell, String> {
+            [weak self] cell, indexPath, groupId in
+            guard let group = self?.groups.first(where: { $0.id == groupId }) else { return }
             cell.group = group
-            // No stateProvider needed - DefaultGroupCell doesn't query external state for icons
         }
         
         // User Group Cell
-        let userGroupReg = UICollectionView.CellRegistration<UserGroupCell, DictionaryGroup> {
-            [weak self] cell, indexPath, group in
+        let userGroupReg = UICollectionView.CellRegistration<UserGroupCell, String> {
+            [weak self] cell, indexPath, groupId in
+            guard let group = self?.groups.first(where: { $0.id == groupId }) else { return }
             cell.group = group
             cell.stateProvider = self
         }
         
         // Default Group Dictionary Cell
-        let defaultDictReg = UICollectionView.CellRegistration<DefaultGroupDictCell, (DictionaryItem, String)> {
+        let defaultDictReg = UICollectionView.CellRegistration<DefaultGroupDictCell, (String, String)> {
             [weak self] cell, indexPath, tuple in
-            let (dict, groupId) = tuple
+            let (dictId, groupId) = tuple
+            guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
             cell.dict = dict
             cell.groupId = groupId
             cell.stateProvider = self
         }
         
         // User Group Dictionary Cell (Mirror)
-        let userDictReg = UICollectionView.CellRegistration<UserGroupDictCell, (DictionaryItem, String)> {
+        let userDictReg = UICollectionView.CellRegistration<UserGroupDictCell, (String, String)> {
             [weak self] cell, indexPath, tuple in
-            let (dict, groupId) = tuple
+            let (dictId, groupId) = tuple
+            guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
             cell.dict = dict
             cell.groupId = groupId
             cell.stateProvider = self
@@ -150,26 +154,24 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                     using: headerReg, for: indexPath, item: (title, isBold)
                 )
                 
-            case .dictGroup(let group, let isDefault):
+            case .group(let id, let isDefault):
                 return isDefault
                     ? collectionView.dequeueConfiguredReusableCell(
-                        using: defaultGroupReg,
-                        for: indexPath,
-                        item: group
+                        using: defaultGroupReg, for: indexPath, item: id
                     )
                     : collectionView.dequeueConfiguredReusableCell(
-                        using: userGroupReg,
-                        for: indexPath,
-                        item: group
+                        using: userGroupReg, for: indexPath, item: id
                     )
                 
-            case .dict(let dict, let group):
-                return group.isDefault
+            case .dictionary(let dictId, let groupId):
+                let group = DictionaryService.shared.group(id: groupId)
+                let isDefault = group?.isDefault ?? false
+                return isDefault
                     ? collectionView.dequeueConfiguredReusableCell(
-                        using: defaultDictReg, for: indexPath, item: (dict, group.id)
+                        using: defaultDictReg, for: indexPath, item: (dictId, groupId)
                     )
                     : collectionView.dequeueConfiguredReusableCell(
-                        using: userDictReg, for: indexPath, item: (dict, group.id)
+                        using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
             case .importDict, .deleteDict, .settings:
@@ -183,14 +185,17 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     // MARK: - Snapshot
     
     private func applySnapshot() {
-        let defaultGroup = groups.first { $0.isDefault }!
+        guard let defaultGroup = groups.first(where: { $0.isDefault }) else {
+            print("⚠️ No default group found")
+            return
+        }
         let userGroups = groups.filter { !$0.isDefault }
         
         // Section 0: Default Group (All Dictionaries) - no header wrapper
         var defaultSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
-        let defaultGroupItem = SidebarItem.dictGroup(defaultGroup, isDefault: true)
+        let defaultGroupItem = SidebarItem.group(id: defaultGroup.id, isDefault: true)
         defaultSnapshot.append([defaultGroupItem])
-        let defaultChildren = defaultGroup.dictionaries.map { SidebarItem.dict($0, group: defaultGroup) }
+        let defaultChildren = defaultGroup.items.map { SidebarItem.dictionary(id: $0.id, groupId: defaultGroup.id) }
         defaultSnapshot.append(defaultChildren, to: defaultGroupItem)
         defaultSnapshot.expand([defaultGroupItem])
         dataSource.apply(defaultSnapshot, to: .defaultGroup, animatingDifferences: false)
@@ -200,9 +205,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         let userHeader = SidebarItem.header("User Groups", isBold: false)
         userSnapshot.append([userHeader])
         for group in userGroups {
-            let groupItem = SidebarItem.dictGroup(group, isDefault: false)
+            let groupItem = SidebarItem.group(id: group.id, isDefault: false)
             userSnapshot.append([groupItem], to: userHeader)
-            let children = group.dictionaries.map { SidebarItem.dict($0, group: group) }
+            let children = group.items.map { SidebarItem.dictionary(id: $0.id, groupId: group.id) }
             userSnapshot.append(children, to: groupItem)
             userSnapshot.expand([groupItem])
         }
@@ -241,13 +246,6 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .header:
             // Headers should not be selectable
             false
-        // TODO: double check when integrating actual MDict loading
-//        case .dictGroup(let group, _):
-//            // Prevent re-selecting the same group
-//            activeGroupId != group.id
-//        case .dict(let dict, _):
-//            // Prevent re-selecting the same dictionary
-//            activeDict?.id != dict.id
         default:
             true
         }
@@ -261,7 +259,8 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Should not reach here due to shouldSelectItemAt
             break
             
-        case .dictGroup(let group, _):
+        case .group(let id, _):
+            guard let group = DictionaryService.shared.group(id: id) else { return }
             // Update state
             activeGroupId = group.id
             activeDict = nil
@@ -270,10 +269,13 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Notify delegate
             onGroupSelected?(group)
             
-        case .dict(let dict, let group):
+        case .dictionary(let dictId, let groupId):
+            guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
             // Update state - track if selection was via mirror
+            let group = DictionaryService.shared.group(id: groupId)
+            let isMirror = !(group?.isDefault ?? true)
             activeGroupId = nil
-            activeDict = (dict.id, !group.isDefault)
+            activeDict = (dict.id, isMirror)
             // Trigger cell updates
             invalidateVisibleCellConfigurations()
             // Notify delegate

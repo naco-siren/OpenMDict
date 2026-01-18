@@ -124,7 +124,7 @@ class ArticleViewController: UIViewController {
     
     // MARK: - Public API (called by Container)
     
-    func configure(article: ArticleItem?) {
+    func configure(article: ArticleDisplayItem?) {
         if let article = article {
             showArticle(article)
         } else {
@@ -132,12 +132,12 @@ class ArticleViewController: UIViewController {
         }
     }
     
-    private func showArticle(_ article: ArticleItem) {
+    private func showArticle(_ article: ArticleDisplayItem) {
         emptyView.isHidden = true
         headerView.isHidden = false
         contentView.isHidden = false
         
-        titleLabel.text = article.title
+        titleLabel.text = article.word
         subtitleLabel.text = article.dictName
     }
     

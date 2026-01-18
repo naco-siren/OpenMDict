@@ -19,9 +19,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         
         // Check if there's a userActivity specifying an article to open
-        let initialArticle: ArticleItem?
+        let initialArticle: ArticleDisplayItem?
         if let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity {
-            initialArticle = ArticleItem.from(userActivity: activity)
+            initialArticle = ArticleDisplayItem.from(userActivity: activity)
         } else {
             initialArticle = nil
         }
@@ -35,7 +35,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         // Set window title (shown in App Switcher)
         if let article = initialArticle {
-            windowScene.title = article.title
+            windowScene.title = article.word
         } else {
             windowScene.title = "OpenMDict"
         }
@@ -50,7 +50,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         guard let splitVC = window?.rootViewController as? MainSplitViewController,
-              let article = ArticleItem.from(userActivity: userActivity) else {
+              let article = ArticleDisplayItem.from(userActivity: userActivity) else {
             return
         }
         splitVC.showArticle(article, animated: true)
@@ -62,7 +62,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 extension SceneDelegate {
     
     /// Request opening a new window for the specified article
-    static func openNewWindow(for article: ArticleItem) {
+    static func openNewWindow(for article: ArticleDisplayItem) {
         let activity = article.userActivity
         
         UIApplication.shared.requestSceneSessionActivation(

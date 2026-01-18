@@ -4,25 +4,27 @@
 //
 
 import UIKit
+import OpenMDict
+import OpenMDictKit
 
 class WordListViewController: UIViewController {
     
     // MARK: - Display Mode
 
     private enum DisplayMode {
-        case group(DictionaryGroup)
-        case dictionary(DictionaryItem)
+        case group(MDicts)
+        case dictionary(MDict)
     }
 
     private var displayMode: DisplayMode?
-    var onWordSelected: ((WordItem) -> Void)?
+    var onWordSelected: ((WordDisplayItem) -> Void)?
     
-    private var words: [WordItem] = []
-    private var filteredWords: [WordItem] = []
+    private var words: [WordDisplayItem] = []
+    private var filteredWords: [WordDisplayItem] = []
     private var currentTitle = "Search"
     
     private var isSearching: Bool { searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true) }
-    private var displayedWords: [WordItem] { isSearching ? filteredWords : words }
+    private var displayedWords: [WordDisplayItem] { isSearching ? filteredWords : words }
     
     private lazy var searchController: UISearchController = {
         let sc = UISearchController(searchResultsController: nil)
@@ -45,10 +47,9 @@ class WordListViewController: UIViewController {
     private lazy var emptyLabel: UILabel = {
         let l = UILabel()
         l.translatesAutoresizingMaskIntoConstraints = false
-        l.text = "Select a dictionary or group"
+        l.text = "Type to search"
         l.textColor = .secondaryLabel
         l.textAlignment = .center
-        l.isHidden = true
         return l
     }()
     
@@ -58,7 +59,6 @@ class WordListViewController: UIViewController {
         navigationItem.backButtonDisplayMode = .minimal
         navigationItem.backButtonTitle = "Word Search"
         
-        // Enable large titles for better hierarchy indication in compact mode
         navigationController?.navigationBar.prefersLargeTitles = false
         navigationItem.largeTitleDisplayMode = .never
         
@@ -80,44 +80,61 @@ class WordListViewController: UIViewController {
         updateTitleView()
     }
     
-    func loadWords(for group: DictionaryGroup) {
+    func loadWords(for group: MDicts) {
         displayMode = .group(group)
         currentTitle = group.name
-        words = group.dictionaryIds.flatMap { mockWords(for: $0) }
-        var seen = Set<String>()
-        words = words.filter { seen.insert($0.word).inserted }
-        words.sort { $0.word < $1.word }
+        // Clear - will populate via search
+        words = []
         filteredWords = []
         tableView.reloadData()
         updateEmptyState()
         updateTitleView()
     }
     
-    func loadWords(for dict: DictionaryItem) {
+    func loadWords(for dict: MDict) {
         displayMode = .dictionary(dict)
-        currentTitle = dict.name
-        words = mockWords(for: dict.id)
-        words.sort { $0.word < $1.word }
+        currentTitle = dict.metadata?.title ?? dict.id
+        // Clear - will populate via search
+        words = []
         filteredWords = []
         tableView.reloadData()
         updateEmptyState()
         updateTitleView()
     }
     
-    private func mockWords(for dictId: String) -> [WordItem] {
-        // Include stub words that have real HTML content
-        let stubWords = ["do", "hello", "query"]
-        let baseWords = ["app","ban","car","dog","egg","fox","get","hat","ice","jam","key","let","map","new","old","pen","quo","run","set","top"]
-
-        let stubItems = stubWords.map { WordItem(word: $0, dictId: dictId) }
-        let baseItems = baseWords.flatMap { WordItem.mockWords(for: $0, dictId: dictId) }
-       
-        return stubItems + baseItems
+    private func performSearch(_ query: String) {
+        guard !query.isEmpty else {
+            filteredWords = []
+            tableView.reloadData()
+            updateEmptyState()
+            return
+        }
+        
+        switch displayMode {
+        case .group(let group):
+            filteredWords = DictionaryService.shared.search(prefix: query, in: group, limit: 50)
+        case .dictionary(let dict):
+            filteredWords = DictionaryService.shared.search(prefix: query, in: dict, limit: 50)
+        case .none:
+            filteredWords = []
+        }
+        
+        tableView.reloadData()
+        updateEmptyState()
     }
     
     private func updateEmptyState() {
-        emptyLabel.isHidden = !words.isEmpty
-        tableView.isHidden = words.isEmpty
+        let isEmpty = displayedWords.isEmpty
+        emptyLabel.isHidden = !isEmpty
+        tableView.isHidden = isEmpty
+        
+        if displayMode == nil {
+            emptyLabel.text = "Select a dictionary or group"
+        } else if isSearching && displayedWords.isEmpty {
+            emptyLabel.text = "No results"
+        } else {
+            emptyLabel.text = "Type to search"
+        }
     }
     
     private func updateTitleView() {
@@ -165,10 +182,8 @@ extension WordListViewController: UITableViewDataSource {
 
         // Show dictionary name as secondary text when displaying a group
         if case .group = displayMode {
-            if let dictName = DictionaryItem.find(id: wordItem.dictId)?.name {
-                c.secondaryText = dictName
-                c.secondaryTextProperties.color = .secondaryLabel
-            }
+            c.secondaryText = wordItem.dictName  // WordDisplayItem already has dictName!
+            c.secondaryTextProperties.color = .secondaryLabel
         }
         cell.contentConfiguration = c
         return cell
@@ -184,15 +199,19 @@ extension WordListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         let word = displayedWords[indexPath.row]
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            let dictName = self?.currentTitle ?? ""
-            let html = StubHTML.html(for: word.word, dictName: dictName)
+            let html = StubHTML.html(for: word.word, dictName: word.dictName)
                          
             return UIMenu(children: [
                 UIAction(title: "Open", image: UIImage(systemName: "doc.text")) { _ in
                     self?.onWordSelected?(word)
                 },
                 UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { _ in
-                    SceneDelegate.openNewWindow(for: ArticleItem(title: word.word, dictName: dictName, html: html))
+                    SceneDelegate.openNewWindow(for: ArticleDisplayItem(
+                        word: word.word,
+                        dictId: word.dictId,
+                        dictName: word.dictName,
+                        html: html
+                    ))
                 },
             ])
         }
@@ -201,8 +220,7 @@ extension WordListViewController: UITableViewDelegate {
 
 extension WordListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-        let q = searchController.searchBar.text?.lowercased() ?? ""
-        filteredWords = q.isEmpty ? [] : words.filter { $0.word.lowercased().hasPrefix(q) }
-        tableView.reloadData()
+        let query = searchController.searchBar.text ?? ""
+        performSearch(query)
     }
 }

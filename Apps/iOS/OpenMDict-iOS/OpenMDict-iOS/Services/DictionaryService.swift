@@ -9,6 +9,7 @@ import Foundation
 import OpenMDict
 import OpenMDictKit
 
+@MainActor
 final class DictionaryService {
     
     static let shared = DictionaryService()

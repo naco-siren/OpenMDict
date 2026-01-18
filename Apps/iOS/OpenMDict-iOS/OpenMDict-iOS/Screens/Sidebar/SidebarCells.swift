@@ -10,6 +10,8 @@
 //
 
 import UIKit
+import OpenMDict
+import OpenMDictKit
 
 // MARK: - State Provider Protocol
 
@@ -27,7 +29,7 @@ protocol SidebarStateProvider: AnyObject {
 /// - Blue background + white text when selected
 final class DefaultGroupCell: UICollectionViewListCell {
     
-    var group: DictionaryGroup?
+    var group: MDicts?
     
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
@@ -66,7 +68,7 @@ final class DefaultGroupCell: UICollectionViewListCell {
 /// - Blue background + white text when selected
 final class UserGroupCell: UICollectionViewListCell {
     
-    var group: DictionaryGroup?
+    var group: MDicts?
     weak var stateProvider: SidebarStateProvider?
     
     override func updateConfiguration(using state: UICellConfigurationState) {
@@ -110,7 +112,7 @@ final class UserGroupCell: UICollectionViewListCell {
 /// - When highlighted by mirror selection: blue background + white
 final class DefaultGroupDictCell: UICollectionViewListCell {
     
-    var dict: DictionaryItem?
+    var dict: MDict?
     var groupId: String?
     weak var stateProvider: SidebarStateProvider?
     
@@ -123,7 +125,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         let isDirectlySelected = state.isSelected || state.isHighlighted
         
         var content = UIListContentConfiguration.sidebarCell()
-        content.text = dict.name
+        content.text = dict.metadata?.title ?? dict.id
         
         if isParentActive {
             // Parent group is selected - show open book with blue tint, no special background
@@ -157,7 +159,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
 /// - Light selection style (system default, not deep blue)
 final class UserGroupDictCell: UICollectionViewListCell {
     
-    var dict: DictionaryItem?
+    var dict: MDict?
     var groupId: String?
     weak var stateProvider: SidebarStateProvider?
     
@@ -170,7 +172,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
         let isRelatedDictSelected = stateProvider?.activeDict?.id == dict.id
 
         var content = UIListContentConfiguration.sidebarCell()
-        content.text = dict.name
+        content.text = dict.metadata?.title ?? dict.id
         
         if isParentActive {
             // Parent group is selected - open book with blue tint

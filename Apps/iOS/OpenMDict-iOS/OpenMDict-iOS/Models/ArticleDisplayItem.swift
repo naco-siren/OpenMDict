@@ -6,12 +6,13 @@
 //
 
 import Foundation
+import UIKit
 import OpenMDict
 import OpenMDictKit
 
 /// Article cell ViewModel
 /// Contains HTML content and optional custom CSS from dictionary
-struct ArticleDisplayItem: Identifiable, Hashable, Sendable {
+nonisolated struct ArticleDisplayItem: Identifiable, Hashable, Sendable {
     let id: String
     let word: String
     let dictId: String
@@ -29,11 +30,37 @@ struct ArticleDisplayItem: Identifiable, Hashable, Sendable {
     }
 }
 
-// MARK: - Factory
+// MARK: - Handoff Support
+
+extension ArticleDisplayItem {
+    static let activityType = "com.openmdict.viewArticle"
+    
+    var userActivity: NSUserActivity {
+        let activity = NSUserActivity(activityType: Self.activityType)
+        activity.title = word
+        activity.userInfo = ["id": id, "word": word, "dictId": dictId, "dictName": dictName]
+        activity.isEligibleForHandoff = true
+        return activity
+    }
+    
+    static func from(userActivity: NSUserActivity) -> ArticleDisplayItem? {
+        guard userActivity.activityType == activityType,
+              let info = userActivity.userInfo,
+              let id = info["id"] as? String,
+              let word = info["word"] as? String,
+              let dictId = info["dictId"] as? String,
+              let dictName = info["dictName"] as? String else { return nil }
+        // Note: html is not restored from handoff, will need to re-lookup
+        return ArticleDisplayItem(word: word, dictId: dictId, dictName: dictName, html: "", css: nil)
+    }
+}
+
+// MARK: - Factory (MainActor required for MDict access)
 
 extension ArticleDisplayItem {
     
     /// Create from MDictLookupResult
+    @MainActor
     init(from result: MDictLookupResult) {
         self.id = "\(result.dict.id):\(result.entry.key)"
         self.word = result.entry.key
@@ -44,6 +71,7 @@ extension ArticleDisplayItem {
     }
     
     /// Create from MDict and entry
+    @MainActor
     init(from entry: MDictWordEntry, dict: MDict, css: String? = nil) {
         self.id = "\(dict.id):\(entry.key)"
         self.word = entry.key

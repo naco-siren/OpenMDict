@@ -2,30 +2,12 @@
 //  StubData.swift
 //  OpenMDict-iOS
 //
-//  Static mock data for SwiftUI Previews and UI testing
+//  Static mock data for UI testing and previews
 //
 
 import Foundation
-import OpenMDictKit
 
 enum StubData {
-    
-    // MARK: - Mock Groups (for sidebar previews)
-    
-    static let groups: [MDicts] = [
-        MDicts(
-            id: "all",
-            name: "All Dictionaries",
-            isDefault: true,
-            dictionaryIds: ["dict-a", "dict-b", "dict-c"]
-        ),
-        MDicts(
-            id: "ielts",
-            name: "IELTS Prep",
-            isDefault: false,
-            dictionaryIds: ["dict-a", "dict-b"]
-        ),
-    ]
     
     // MARK: - Mock Words (for word list previews)
     
@@ -47,20 +29,22 @@ enum StubData {
         )
     }
     
-    static let sampleArticles: [ArticleDisplayItem] = [
-        ArticleDisplayItem(
-            word: "hello",
-            dictId: "sample-learners",
-            dictName: "Sample Learner's Dictionary",
-            html: StubHTML.sampleLearners_hello,
-            css: nil
-        ),
-        ArticleDisplayItem(
-            word: "do",
-            dictId: "sample-thesaurus",
-            dictName: "Sample Thesaurus",
-            html: StubHTML.sampleThesaurus_do,
-            css: nil
-        ),
-    ]
+    static var sampleArticles: [ArticleDisplayItem] {
+        [
+            ArticleDisplayItem(
+                word: "hello",
+                dictId: "sample-learners",
+                dictName: "Sample Learner's Dictionary",
+                html: StubHTML.sampleLearners_hello,
+                css: nil
+            ),
+            ArticleDisplayItem(
+                word: "do",
+                dictId: "sample-thesaurus",
+                dictName: "Sample Thesaurus",
+                html: StubHTML.sampleThesaurus_do,
+                css: nil
+            ),
+        ]
+    }
 }

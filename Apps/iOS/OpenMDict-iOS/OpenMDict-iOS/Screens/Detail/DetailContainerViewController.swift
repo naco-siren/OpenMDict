@@ -21,11 +21,11 @@ class DetailContainerViewController: UIViewController {
     
     // MARK: - Source of Truth
     
-    private var articles: [ArticleItem] = []
+    private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = .system
     
-    var currentArticle: ArticleItem? { articles.first }
+    var currentArticle: ArticleDisplayItem? { articles.first }
     
     // MARK: - Child View Controllers
     
@@ -315,7 +315,7 @@ class DetailContainerViewController: UIViewController {
 
     // MARK: - Public API (called by MainSplitVC)
     
-    func pushArticle(_ article: ArticleItem, animated: Bool) {
+    func pushArticle(_ article: ArticleDisplayItem, animated: Bool) {
         // Check if already exists
         if let existingIndex = articles.firstIndex(of: article) {
             // Move to front
@@ -334,12 +334,12 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
-    func preloadArticle(_ article: ArticleItem) {
+    func preloadArticle(_ article: ArticleDisplayItem) {
         guard !articles.contains(article) else { return }
         articles.append(article)
     }
     
-    func closeArticle(_ article: ArticleItem) {
+    func closeArticle(_ article: ArticleDisplayItem) {
         guard let index = articles.firstIndex(of: article) else { return }
         articles.remove(at: index)
         
@@ -386,15 +386,15 @@ class DetailContainerViewController: UIViewController {
 // MARK: - ArticlesViewControllerDelegate
 
 extension DetailContainerViewController: ArticlesViewControllerDelegate {
-    func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleItem) {
+    func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleDisplayItem) {
         closeArticle(article)
     }
     
-    func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleItem) {
-        print("📖 Selected: \(article.title)")
+    func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleDisplayItem) {
+        print("📖 Selected: \(article.word)")
     }
     
-    func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleItem) {
+    func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleDisplayItem) {
         // Switch to columns
         layoutMode = .columns
         

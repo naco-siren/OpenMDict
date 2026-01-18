@@ -19,7 +19,7 @@ class ArticleCell: UICollectionViewCell {
     // MARK: - State
     
     private var currentLayoutMode: ArticleLayoutMode = .columns
-    private var currentArticle: ArticleItem?
+    private var currentArticle: ArticleDisplayItem?
     private var isBookmarked: Bool = false
     
     // MARK: - Views
@@ -167,15 +167,15 @@ class ArticleCell: UICollectionViewCell {
 
     // MARK: - Configuration
     
-    func configure(with article: ArticleItem, layoutMode: ArticleLayoutMode) {
+    func configure(with article: ArticleDisplayItem, layoutMode: ArticleLayoutMode) {
         let shouldReloadWeb = (currentArticle?.id != article.id)
         currentLayoutMode = layoutMode
         currentArticle = article
         
-        titleLabel.text = article.title
+        titleLabel.text = article.word
         subtitleLabel.text = article.dictName
         
-        // TODO: Combine ArticleItem with bookmark state (loaded from persistence)
+        // TODO: Combine ArticleDisplayItem with bookmark state (loaded from persistence)
         isBookmarked = false
         bookmarkButton.setNeedsUpdateConfiguration()
 

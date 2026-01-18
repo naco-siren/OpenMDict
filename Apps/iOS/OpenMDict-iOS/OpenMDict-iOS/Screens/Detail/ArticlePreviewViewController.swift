@@ -8,7 +8,7 @@
 import UIKit
 
 class ArticlePreviewViewController: UIViewController {
-    init(article: ArticleItem) {
+    init(article: ArticleDisplayItem) {
         super.init(nibName: nil, bundle: nil)
         
         view.backgroundColor = .systemFill
@@ -22,7 +22,7 @@ class ArticlePreviewViewController: UIViewController {
         
         // Title & subtitle
         let titleLabel = UILabel()
-        titleLabel.text = article.title
+        titleLabel.text = article.word
         titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         
         let subtitleLabel = UILabel()

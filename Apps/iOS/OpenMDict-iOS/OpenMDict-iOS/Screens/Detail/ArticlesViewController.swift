@@ -36,9 +36,9 @@ enum ArticleLayoutMode: Int, CaseIterable {
 // MARK: - Delegate
 
 protocol ArticlesViewControllerDelegate: AnyObject {
-    func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleItem)
-    func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleItem)
-    func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleItem)
+    func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleDisplayItem)
+    func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleDisplayItem)
+    func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleDisplayItem)
 }
 
 // MARK: - Articles View Controller
@@ -49,7 +49,7 @@ class ArticlesViewController: UIViewController {
     
     // MARK: - Internal State (view-rendering only, not source of truth)
     
-    private var articles: [ArticleItem] = []
+    private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     
     // MARK: - Collection View
@@ -64,7 +64,7 @@ class ArticlesViewController: UIViewController {
     
     private var pageControl: UIPageControl?
      
-    private var dataSource: UICollectionViewDiffableDataSource<Int, ArticleItem>!
+    private var dataSource: UICollectionViewDiffableDataSource<Int, ArticleDisplayItem>!
     
     private lazy var emptyView: UIView = {
         let v = UIView()
@@ -125,7 +125,7 @@ class ArticlesViewController: UIViewController {
         ])
         
         // Cell registration
-        let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleItem> { [weak self] cell, indexPath, article in
+        let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleDisplayItem> { [weak self] cell, indexPath, article in
             cell.configure(with: article, layoutMode: self?.layoutMode ?? .columns)
             cell.onClose = { [weak self] in
                 guard let self = self else { return }
@@ -133,7 +133,7 @@ class ArticlesViewController: UIViewController {
             }
             cell.onOpenInNewWindow = { SceneDelegate.openNewWindow(for: article) }
             cell.onBookmarkToggle = { isBookmarked in
-                print("🔖 Bookmark: \(article.title): \(isBookmarked)")
+                print("🔖 Bookmark: \(article.word): \(isBookmarked)")
                 // TODO: Implement bookmark persistence
             }
         }
@@ -166,7 +166,7 @@ class ArticlesViewController: UIViewController {
     
     // MARK: - Public API (called by Container)
     
-    func configure(articles: [ArticleItem], animated: Bool) {
+    func configure(articles: [ArticleDisplayItem], animated: Bool) {
         self.articles = articles
         applySnapshot(animated: animated)
         updateEmptyState()
@@ -224,7 +224,7 @@ class ArticlesViewController: UIViewController {
         }
     }
     
-    func scrollToArticle(_ article: ArticleItem, animated: Bool) {
+    func scrollToArticle(_ article: ArticleDisplayItem, animated: Bool) {
         guard let index = articles.firstIndex(of: article),
               dataSource.snapshot().numberOfItems > 0 else { return }
         
@@ -348,7 +348,7 @@ class ArticlesViewController: UIViewController {
     // MARK: - Private
     
     private func applySnapshot(animated: Bool) {
-        var snapshot = NSDiffableDataSourceSnapshot<Int, ArticleItem>()
+        var snapshot = NSDiffableDataSourceSnapshot<Int, ArticleDisplayItem>()
         snapshot.appendSections([0])
         snapshot.appendItems(articles)
         dataSource.apply(snapshot, animatingDifferences: animated)
@@ -430,7 +430,7 @@ extension ArticlesViewController: UICollectionViewDelegate {
                         SceneDelegate.openNewWindow(for: article)
                     },
                     UIAction(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
-                        print("🔖 Bookmark: \(article.title)")
+                        print("🔖 Bookmark: \(article.word)")
                         // TODO: Implement bookmark persistence
                     },
                     UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { _ in

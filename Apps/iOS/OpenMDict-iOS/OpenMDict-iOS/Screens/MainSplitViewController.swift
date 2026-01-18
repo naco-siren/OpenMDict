@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import OpenMDictKit
 
 class MainSplitViewController: UISplitViewController {
     
@@ -17,11 +18,11 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - State
     
-    private var currentGroup: DictionaryGroup?
+    private var currentGroup: MDicts?
     
     // MARK: - Initialization
     
-    init(initialArticle: ArticleItem? = nil) {
+    init(initialArticle: ArticleDisplayItem? = nil) {
         super.init(style: .tripleColumn)
         
         if let article = initialArticle {
@@ -93,7 +94,7 @@ class MainSplitViewController: UISplitViewController {
     }
     
     private func setupInitialState() {
-        let defaultGroup = DictionaryGroup.mockData.first { $0.isDefault }!
+        let defaultGroup = DictionaryService.shared.groups.first { $0.isDefault }!
         currentGroup = defaultGroup
         wordListVC.loadWords(for: defaultGroup)
         dictionaryListVC.setActiveGroup(defaultGroup)
@@ -101,36 +102,34 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Navigation
     
-    private func selectGroup(_ group: DictionaryGroup) {
+    private func selectGroup(_ group: MDicts) {
         currentGroup = group
         wordListVC.loadWords(for: group)
         
         show(.supplementary)
     }
     
-    private func selectDictionary(_ dict: DictionaryItem) {
+    private func selectDictionary(_ dict: MDict) {
         currentGroup = nil
         wordListVC.loadWords(for: dict)
         
         show(.supplementary)
     }
     
-    private func selectWord(_ word: WordItem) {
-        // Find dictionary name from the word's dictId
-        let dictName = DictionaryItem.mockData.first { $0.id == word.dictId }?.name ?? "Unknown"
-        
+    private func selectWord(_ word: WordDisplayItem) {
         // Use stub HTML if available, otherwise placeholder
-        let html = StubHTML.html(for: word.word, dictName: dictName)
+        let html = StubHTML.html(for: word.word, dictName: word.dictName)
         
-        let article = ArticleItem(
-            title: word.word,
-            dictName: dictName,
+        let article = ArticleDisplayItem(
+            word: word.word,
+            dictId: word.dictId,
+            dictName: word.dictName,
             html: html
         )
         showArticle(article, animated: true)
     }
     
-    func showArticle(_ article: ArticleItem, animated: Bool) {
+    func showArticle(_ article: ArticleDisplayItem, animated: Bool) {
         detailContainer.pushArticle(article, animated: animated)
         
         show(.secondary)
@@ -162,7 +161,7 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
 
 extension MainSplitViewController {
     
-    func openInNewWindow(_ article: ArticleItem) {
+    func openInNewWindow(_ article: ArticleDisplayItem) {
         SceneDelegate.openNewWindow(for: article)
     }
 }
