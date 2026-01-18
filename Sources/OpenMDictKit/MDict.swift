@@ -17,6 +17,9 @@ public enum MDictLoadState: Sendable, Equatable {
 /// Single dictionary ViewModel
 /// Holds MDictReader and manages loading state
 ///
+/// Marked as `@MainActor` to ensure all state updates happen on main thread.
+/// Heavy IO work is offloaded via `nonisolated` helper functions.
+///
 /// Usage:
 /// ```swift
 /// let dict = MDict(path: "MyDict.mdx")
@@ -25,23 +28,24 @@ public enum MDictLoadState: Sendable, Equatable {
 ///     print(entry.article.html)
 /// }
 /// ```
+@MainActor
 public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Identity
     
     /// Unique identifier (derived from filename)
-    public let id: String
+    public nonisolated let id: String
     
     /// File path to the MDX
-    public let path: String
+    public nonisolated let path: String
     
     // MARK: - State
     
     /// Lightweight metadata (available before full load)
-    public private(set) var metadata: MDictMetadata?
+    @Published public private(set) var metadata: MDictMetadata?
     
     /// Current loading state
-    public private(set) var state: MDictLoadState = .unloaded
+    @Published public private(set) var state: MDictLoadState = .unloaded
     
     /// Whether this dictionary is enabled for searching
     public var isEnabled: Bool = true
@@ -54,108 +58,62 @@ public final class MDict: ObservableObject, Identifiable {
     /// Whether the dictionary is currently loaded
     public var isLoaded: Bool { _reader != nil }
     
-    // MARK: - Thread Safety
-    
-    private let lock = NSLock()
-    
     // MARK: - Caching
     
-    // TODO: Implement LRU cache for lookup history
-    // private var recentEntries = LRUCache<MDictWordKey, MDictWordEntry>(capacity: 50)
-    
-    /*
-     Cache Strategy Notes:
-     
-     1. Lookup history caching is straightforward - use a separate LRU cache.
-     
-     2. Prefetch caching should be more aggressive but with:
-        - Lower priority
-        - Smaller capacity
-     
-     3. Prefetch cache lifecycle is tied to lookup history:
-        - When a history entry is dequeued, its prefetched entries can be disposed.
-     
-     4. Consider reference counting for shared entries:
-        - Example: Search history is ["apple", "pear"]
-        - Both might reference "fruit" in their related entries
-        - "fruit" has refcount=2 in the shared cache
-        - "pineapple" (only related to "apple") has refcount=1
-        - When "apple" is dequeued from history:
-          - "pineapple" refcount becomes 0 → removed
-          - "fruit" refcount becomes 1 → survives
-     
-     5. The caches might not need to store actual values, just pointers/references.
-    */
+    // TODO: Implement LRU cache as an actor for thread-safe concurrent access
+    // private let cache = LRUCacheActor<MDictWordKey, MDictWordEntry>(capacity: 50)
     
     // MARK: - Initialization
     
     /// Create a dictionary ViewModel from MDX path
     /// Only loads metadata, not full dictionary
-    public init(path: String) {
+    public nonisolated init(path: String) {
         self.path = path
         self.id = Self.generateId(from: path)
         
-        // Load metadata immediately (fast, header only)
-        self.metadata = MDictReader.loadMetadata(from: path)
+        // Note: metadata loading moved to an async call since we're nonisolated here
+        // Will be populated on first load or via loadMetadata()
     }
     
-    /// Create with pre-loaded metadata
-    public init(path: String, metadata: MDictMetadata) {
-        self.path = path
-        self.id = Self.generateId(from: path)
-        self.metadata = metadata
-    }
-    
-    private static func generateId(from path: String) -> String {
+    private nonisolated static func generateId(from path: String) -> String {
         let filename = (path as NSString).lastPathComponent
         return (filename as NSString).deletingPathExtension
     }
     
     // MARK: - Lifecycle
     
-    /// Load the dictionary into memory
-    /// Thread-safe, idempotent
-    public func load() throws {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        guard _reader == nil else { return }
+    /// Load the dictionary asynchronously
+    /// Heavy IO runs on background thread, state updates on MainActor
+    public func load() async throws {
+        guard state == .unloaded || state.isError else { return }
         
         state = .loading
         
         do {
-            _reader = try MDictReader(path: path)
-            metadata = _reader?.metadata
-            state = .loaded
+            // Heavy IO on background thread via nonisolated function
+            let reader = try await loadReaderInBackground(path: path)
+            
+            // Back on MainActor - update state
+            self._reader = reader
+            self.metadata = reader.metadata
+            self.state = .loaded
         } catch {
-            state = .error(error.localizedDescription)
+            self.state = .error(error.localizedDescription)
             throw error
         }
     }
     
-    /// Load asynchronously
-    public func loadAsync() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    try self.load()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-    
     /// Unload the dictionary to free memory
-    /// Thread-safe
     public func unload() {
-        lock.lock()
-        defer { lock.unlock() }
-        
         _reader = nil
         state = .unloaded
-        // TODO: Clear caches
+    }
+    
+    /// Load only metadata (fast, header only)
+    public func loadMetadata() async {
+        if metadata == nil {
+            self.metadata = await loadMetadataInBackground(path: path)
+        }
     }
     
     // MARK: - Lookup API
@@ -164,15 +122,7 @@ public final class MDict: ObservableObject, Identifiable {
     /// - Parameter key: The word to look up
     /// - Returns: Entry with article content, or nil if not found
     public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        // TODO: Check LRU cache first
-        // if let cached = recentEntries[key] { return cached }
-        
-        guard let entry = _reader?.lookup(key) else { return nil }
-        
-        // TODO: Add to LRU cache
-        // recentEntries[key] = entry
-        
-        return entry
+        _reader?.lookup(key)
     }
     
     /// Search for word keys with a prefix
@@ -188,21 +138,13 @@ public final class MDict: ObservableObject, Identifiable {
     // MARK: - Navigation
     
     /// Get previous entry
-    /// - Parameter entry: Current entry
-    /// - Returns: Previous entry or nil if at beginning
     public func prev(_ entry: MDictWordEntry) -> MDictWordEntry? {
-        // TODO: Check prefetch cache
-        // TODO: Trigger prefetch for surrounding entries
-        return _reader?[entry.index - 1]
+        _reader?[entry.index - 1]
     }
     
     /// Get next entry
-    /// - Parameter entry: Current entry
-    /// - Returns: Next entry or nil if at end
     public func next(_ entry: MDictWordEntry) -> MDictWordEntry? {
-        // TODO: Check prefetch cache
-        // TODO: Trigger prefetch for surrounding entries
-        return _reader?[entry.index + 1]
+        _reader?[entry.index + 1]
     }
     
     /// Access entry by index
@@ -228,16 +170,39 @@ public final class MDict: ObservableObject, Identifiable {
     }
 }
 
+// MARK: - Background Loading (nonisolated)
+
+/// Load MDictReader on background thread
+/// This function is nonisolated, so calling it from MainActor will automatically
+/// suspend and run on the cooperative thread pool (similar to Dispatchers.IO)
+private nonisolated func loadReaderInBackground(path: String) async throws -> MDictReader {
+    try MDictReader(path: path)
+}
+
+/// Load metadata only (fast, header parsing)
+private nonisolated func loadMetadataInBackground(path: String) async -> MDictMetadata? {
+    MDictReader.loadMetadata(from: path)
+}
+
+// MARK: - State Helpers
+
+extension MDictLoadState {
+    var isError: Bool {
+        if case .error = self { return true }
+        return false
+    }
+}
+
 // MARK: - Equatable & Hashable
 
 extension MDict: Equatable {
-    public static func == (lhs: MDict, rhs: MDict) -> Bool {
+    public nonisolated static func == (lhs: MDict, rhs: MDict) -> Bool {
         lhs.id == rhs.id
     }
 }
 
 extension MDict: Hashable {
-    public func hash(into hasher: inout Hasher) {
+    public nonisolated func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 }

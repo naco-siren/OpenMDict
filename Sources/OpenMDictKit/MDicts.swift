@@ -1,10 +1,11 @@
 import Foundation
+import Combine
 import OpenMDict
 
 // MARK: - Lookup Result
 
 /// Result from looking up a word across dictionaries
-public struct MDictLookupResult: Sendable {
+public struct MDictLookupResult {
     public let dict: MDict
     public let entry: MDictWordEntry
     
@@ -16,16 +17,19 @@ public struct MDictLookupResult: Sendable {
 
 // MARK: - MDicts
 
-/// Dictionary group with metadata and runtime dictionary references
+/// Dictionary group ViewModel with metadata and runtime dictionary references
 ///
 /// Combines two roles:
 /// - **Persistable metadata**: id, name, isDefault, dictionaryIds (for user-defined groups)
 /// - **Runtime container**: items array populated from DictionaryService
 ///
+/// Marked as `@MainActor` class since it manages UI-facing state and
+/// holds references to `@MainActor` isolated `MDict` instances.
+///
 /// Usage:
 /// ```swift
 /// // Create a group with metadata
-/// var group = MDicts(id: "favorites", name: "Favorites", dictionaryIds: ["wordnet", "gcide"])
+/// let group = MDicts(id: "favorites", name: "Favorites", dictionaryIds: ["wordnet", "gcide"])
 ///
 /// // Populate with actual MDict instances
 /// group.populate(from: allDictionaries)
@@ -35,12 +39,13 @@ public struct MDictLookupResult: Sendable {
 ///     print("\(result.dict.metadata?.title): \(result.entry.article.html)")
 /// }
 /// ```
-public struct MDicts: Identifiable, Hashable {
+@MainActor
+public final class MDicts: ObservableObject, Identifiable {
     
     // MARK: - Persistable Properties
     
     /// Unique identifier for this group
-    public let id: String
+    public nonisolated let id: String
     
     /// Display name
     public var name: String
@@ -54,7 +59,7 @@ public struct MDicts: Identifiable, Hashable {
     // MARK: - Runtime Properties (not persisted)
     
     /// Actual MDict instances, populated by DictionaryService
-    public private(set) var items: [MDict] = []
+    @Published public private(set) var items: [MDict] = []
     
     // MARK: - Initialization
     
@@ -66,7 +71,7 @@ public struct MDicts: Identifiable, Hashable {
         self.dictionaryIds = dictionaryIds
     }
     
-    /// Create from MDict array directly (for backward compatibility / ad-hoc usage)
+    /// Create from MDict array directly (for ad-hoc usage)
     public init(_ items: [MDict]) {
         self.id = UUID().uuidString
         self.name = ""
@@ -86,8 +91,7 @@ public struct MDicts: Identifiable, Hashable {
     // MARK: - Population
     
     /// Populate items from a dictionary list (call after loading from persistence)
-    /// - Parameter allDicts: All available MDict instances
-    public mutating func populate(from allDicts: [MDict]) {
+    public func populate(from allDicts: [MDict]) {
         items = dictionaryIds.compactMap { id in
             allDicts.first { $0.id == id }
         }
@@ -133,13 +137,11 @@ public struct MDicts: Identifiable, Hashable {
     
     /// Look up a word across all active dictionaries
     /// Returns AsyncStream for progressive results (first dict returns first)
-    ///
-    /// - Parameter key: The word to look up
-    /// - Returns: Async stream of lookup results
     public func lookup(_ key: MDictWordKey) -> AsyncStream<MDictLookupResult> {
-        AsyncStream { continuation in
+        let activeItems = active
+        return AsyncStream { continuation in
             Task {
-                for item in active {
+                for item in activeItems {
                     if let entry = item.lookup(key) {
                         continuation.yield(MDictLookupResult(dict: item, entry: entry))
                     }
@@ -150,8 +152,6 @@ public struct MDicts: Identifiable, Hashable {
     }
     
     /// Quick lookup - first result only
-    /// - Parameter key: The word to look up
-    /// - Returns: First matching result or nil
     public func quickLookup(_ key: MDictWordKey) -> MDictLookupResult? {
         for item in active {
             if let entry = item.lookup(key) {
@@ -162,10 +162,6 @@ public struct MDicts: Identifiable, Hashable {
     }
     
     /// Look up in a specific dictionary
-    /// - Parameters:
-    ///   - key: The word to look up
-    ///   - dictId: Dictionary ID to search in
-    /// - Returns: Entry or nil
     public func lookup(_ key: MDictWordKey, in dictId: String) -> MDictWordEntry? {
         item(id: dictId)?.lookup(key)
     }
@@ -173,10 +169,6 @@ public struct MDicts: Identifiable, Hashable {
     // MARK: - Search API
     
     /// Search by prefix across all active dictionaries
-    /// - Parameters:
-    ///   - prefix: Prefix to search for
-    ///   - limit: Maximum results per dictionary
-    /// - Returns: Dictionary mapping dict ID to matches
     public func search(prefix: String, limit: Int = 20) -> [String: [MDictWordKey]] {
         var results: [String: [MDictWordKey]] = [:]
         
@@ -191,10 +183,6 @@ public struct MDicts: Identifiable, Hashable {
     }
     
     /// Get suggestions across all active dictionaries
-    /// - Parameters:
-    ///   - key: The word to find suggestions for
-    ///   - limit: Maximum total suggestions
-    /// - Returns: Array of unique suggestions
     public func suggestions(for key: MDictWordKey, limit: Int = 10) -> [MDictWordKey] {
         var allSuggestions: Set<MDictWordKey> = []
         
@@ -209,10 +197,6 @@ public struct MDicts: Identifiable, Hashable {
     // MARK: - Resource API
     
     /// Get a resource from a specific dictionary
-    /// - Parameters:
-    ///   - path: Resource path
-    ///   - dictId: Dictionary ID
-    /// - Returns: Resource data or nil
     public func resource(for path: String, in dictId: String) -> Data? {
         item(id: dictId)?.resource(for: path)
     }
@@ -229,18 +213,33 @@ public struct MDicts: Identifiable, Hashable {
     /// Load all dictionaries sequentially
     public func loadAll() async {
         for item in items where !item.isLoaded {
-            try? await item.loadAsync()
+            try? await item.load()
         }
     }
     
-    // MARK: - Hashable
+    // MARK: - Statistics
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
+    public var statistics: String {
+        let totalEntries = items.compactMap { $0.metadata?.entryCount }.reduce(0, +)
+        let loadedCount = loaded.count
+        let enabledCount = enabled.count
+        
+        return """
+        Dictionaries: \(count) total, \(loadedCount) loaded, \(enabledCount) enabled
+        Total entries: \(totalEntries)
+        """
+    }
+}
+
+// MARK: - Hashable
+
+extension MDicts: Hashable {
+    public nonisolated static func == (lhs: MDicts, rhs: MDicts) -> Bool {
+        lhs.id == rhs.id
     }
     
-    public static func == (lhs: MDicts, rhs: MDicts) -> Bool {
-        lhs.id == rhs.id
+    public nonisolated func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
@@ -251,38 +250,23 @@ extension MDicts: Codable {
         case id, name, isDefault, dictionaryIds
     }
     
-    public init(from decoder: Decoder) throws {
+    public convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
-        isDefault = try container.decode(Bool.self, forKey: .isDefault)
-        dictionaryIds = try container.decode([String].self, forKey: .dictionaryIds)
-        items = []  // Populated at runtime
+        let id = try container.decode(String.self, forKey: .id)
+        let name = try container.decode(String.self, forKey: .name)
+        let isDefault = try container.decode(Bool.self, forKey: .isDefault)
+        let dictionaryIds = try container.decode([String].self, forKey: .dictionaryIds)
+        self.init(id: id, name: name, isDefault: isDefault, dictionaryIds: dictionaryIds)
     }
     
-    public func encode(to encoder: Encoder) throws {
+    public nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
-        try container.encode(name, forKey: .name)
-        try container.encode(isDefault, forKey: .isDefault)
-        try container.encode(dictionaryIds, forKey: .dictionaryIds)
-        // items is not encoded
-    }
-}
-
-// MARK: - Statistics
-
-extension MDicts {
-    
-    /// Get statistics string
-    public var statistics: String {
-        let totalEntries = items.compactMap { $0.metadata?.entryCount }.reduce(0, +)
-        let loadedCount = loaded.count
-        let enabledCount = enabled.count
-        
-        return """
-        Dictionaries: \(count) total, \(loadedCount) loaded, \(enabledCount) enabled
-        Total entries: \(totalEntries)
-        """
+        // Access MainActor-isolated properties safely
+        MainActor.assumeIsolated {
+            try? container.encode(self.name, forKey: .name)
+            try? container.encode(self.isDefault, forKey: .isDefault)
+            try? container.encode(self.dictionaryIds, forKey: .dictionaryIds)
+        }
     }
 }
