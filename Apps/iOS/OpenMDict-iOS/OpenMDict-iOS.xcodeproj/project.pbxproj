@@ -9,10 +9,16 @@
 /* Begin PBXBuildFile section */
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
+		F8E12DB22F1D73FC00D8E524 /* SampleDictE.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DB12F1D73FC00D8E524 /* SampleDictE.mdx */; };
+		F8E12DB32F1D73FC00D8E524 /* SampleDictF.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DB02F1D73FC00D8E524 /* SampleDictF.mdx */; };
+		F8E12DB42F1D73FC00D8E524 /* SampleDictA.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DAF2F1D73FC00D8E524 /* SampleDictA.mdx */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenMDict-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F8E12DAF2F1D73FC00D8E524 /* SampleDictA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = SampleDictA.mdx; path = "/path/to/open-mdict/dicts/SampleDictA.mdx"; sourceTree = "<absolute>"; };
+		F8E12DB02F1D73FC00D8E524 /* SampleDictF.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = SampleDictF.mdx; path = "/path/to/open-mdict/dicts/SampleDictF.mdx"; sourceTree = "<absolute>"; };
+		F8E12DB12F1D73FC00D8E524 /* SampleDictE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = SampleDictE.mdx; path = "/path/to/open-mdict/dicts/SampleDictE.mdx"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -52,6 +58,7 @@
 		A5AB7E2F2F0E15A000B554E0 = {
 			isa = PBXGroup;
 			children = (
+				F8E12DAD2F1D73D100D8E524 /* Resources */,
 				A5AB7E3A2F0E15A000B554E0 /* OpenMDict-iOS */,
 				F8E12D972F1CA93800D8E524 /* Frameworks */,
 				A5AB7E392F0E15A000B554E0 /* Products */,
@@ -71,6 +78,24 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F8E12DAD2F1D73D100D8E524 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F8E12DAE2F1D73D800D8E524 /* Dictionaries */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		F8E12DAE2F1D73D800D8E524 /* Dictionaries */ = {
+			isa = PBXGroup;
+			children = (
+				F8E12DAF2F1D73FC00D8E524 /* SampleDictA.mdx */,
+				F8E12DB02F1D73FC00D8E524 /* SampleDictF.mdx */,
+				F8E12DB12F1D73FC00D8E524 /* SampleDictE.mdx */,
+			);
+			path = Dictionaries;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,6 +167,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8E12DB22F1D73FC00D8E524 /* SampleDictE.mdx in Resources */,
+				F8E12DB32F1D73FC00D8E524 /* SampleDictF.mdx in Resources */,
+				F8E12DB42F1D73FC00D8E524 /* SampleDictA.mdx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
