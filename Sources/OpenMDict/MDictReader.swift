@@ -134,8 +134,8 @@ public final class MDictReader: @unchecked Sendable {
         let hasMDD = Self.checkMDDExists(mdxPath: path)
         
         self.metadata = MDictMetadata(
-            title: parser.info.title,
-            description: parser.info.description,
+            title: parser.info.title.htmlEntityDecoded,
+            description: parser.info.description.htmlEntityDecoded,
             entryCount: parser.entryCount,
             format: parser.info.format,
             encoding: parser.info.encoding,
@@ -165,8 +165,8 @@ public final class MDictReader: @unchecked Sendable {
         let hasMDD = checkMDDExists(mdxPath: path)
         
         return MDictMetadata(
-            title: info.title,
-            description: info.description,
+            title: info.title.htmlEntityDecoded,
+            description: info.description.htmlEntityDecoded,
             entryCount: info.entryCount,
             format: info.format,
             encoding: info.encoding,
