@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F8E12CC82F1C685F00D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12CC72F1C685F00D8E524 /* OpenMDict */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenMDict-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8E12CC82F1C685F00D8E524 /* OpenMDict in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = "OpenMDict-iOS";
 			packageProductDependencies = (
+				F8E12CC72F1C685F00D8E524 /* OpenMDict */,
 			);
 			productName = "OpenMDict-iOS";
 			productReference = A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */;
@@ -107,6 +113,9 @@
 			);
 			mainGroup = A5AB7E2F2F0E15A000B554E0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A5AB7E392F0E15A000B554E0 /* Products */;
 			projectDirPath = "";
@@ -349,6 +358,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../../OpenMDict;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F8E12CC72F1C685F00D8E524 /* OpenMDict */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OpenMDict;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A5AB7E302F0E15A000B554E0 /* Project object */;
 }
