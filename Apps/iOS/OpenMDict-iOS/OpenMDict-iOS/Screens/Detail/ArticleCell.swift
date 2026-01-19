@@ -295,7 +295,10 @@ extension ArticleCell: WKNavigationDelegate {
             print("📖 Entry link: \(url.host ?? url.absoluteString)")
             decisionHandler(.cancel)
         case "sound":
-            print("🔊 Sound link: \(url.path)")
+            // Play audio from MDD
+            if let dictId = currentArticle?.dictId {
+                AudioService.shared.play(url: url, dictId: dictId)
+            }
             decisionHandler(.cancel)
         case "about":
             decisionHandler(.allow)
