@@ -122,6 +122,7 @@ class ArticleCell: UICollectionViewCell {
         // Content WebView
         let config = WKWebViewConfiguration()
         config.dataDetectorTypes = []
+        config.setURLSchemeHandler(MDictSchemeHandler.shared, forURLScheme: MDictSchemeHandler.scheme)
         let wv = WKWebView(frame: .zero, configuration: config)
         wv.translatesAutoresizingMaskIntoConstraints = false
         wv.isOpaque = false
@@ -185,7 +186,7 @@ class ArticleCell: UICollectionViewCell {
 
         // Load content when Article changes
         if shouldReloadWeb {
-            let styledHTML = wrapHTML(article.html)
+            let styledHTML = wrapHTML(article.html, dictId: article.dictId)
             webView.loadHTMLString(styledHTML, baseURL: nil)
         }
     }
@@ -227,14 +228,17 @@ class ArticleCell: UICollectionViewCell {
     
     func forceReloadWebView() {
         guard let article = currentArticle else { return }
-        let styledHTML = wrapHTML(article.html)
+        let styledHTML = wrapHTML(article.html, dictId: article.dictId)
         webView.loadHTMLString(styledHTML, baseURL: nil)
     }
     
     // MARK: - HTML Rendering
     
-    private func wrapHTML(_ html: String) -> String {
-        """
+    private func wrapHTML(_ html: String, dictId: String) -> String {
+        // Rewrite resource paths to use mdict:// scheme
+        let rewrittenHTML = MDictSchemeHandler.rewriteResourcePaths(in: html, dictId: dictId)
+        
+        return """
         <!DOCTYPE html>
         <html>
         <head>
@@ -260,9 +264,10 @@ class ArticleCell: UICollectionViewCell {
                 .collapse { display: block; margin-top: 12px; padding-top: 8px; border-top: 1px solid \(cssColor(.separator)); }
                 .heading { font-weight: 600; display: block; margin-bottom: 4px; }
                 a { color: \(cssColor(.link)); text-decoration: none; }
+                img { max-width: 100%; height: auto; }
             </style>
         </head>
-        <body>\(html)</body>
+        <body>\(rewrittenHTML)</body>
         </html>
         """
     }
