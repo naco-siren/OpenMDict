@@ -138,6 +138,16 @@ func main() {
                 }
                 getResource(dict: dict, path: args[3])
                 
+            case "debug":
+                guard args.count >= 4 else {
+                    print(colored("Error: Missing prefix for debug", .red))
+                    exit(1)
+                }
+                debugKey(dict: dict, prefix: args[3])
+                
+            case "header":
+                debugHeader(path: mdxPath)
+                
             default:
                 print(colored("Unknown command: \(command)", .red))
                 printUsage()
@@ -174,7 +184,7 @@ func performLookup(dict: MDictReader, word: String) {
         // Extract referenced resources from HTML
         let resourceRefs = extractResourceRefs(from: content)
         
-        let displayContent = content.count > 2000 
+        let displayContent = content.count > 2000
             ? String(content.prefix(2000)) + "\n... [truncated, \(content.count) chars total]"
             : content
         
@@ -235,6 +245,59 @@ func performSearch(dict: MDictReader, prefix: String) {
     print()
 }
 
+func debugKey(dict: MDictReader, prefix: String) {
+    print(colored("🔬 Debug key:", .cyan), prefix)
+    print()
+    
+    let results = dict.search(prefix: prefix, limit: 5)
+    if results.isEmpty {
+        print(colored("No matches found", .yellow))
+        return
+    }
+    
+    for result in results {
+        print("Key: \"\(result)\"")
+        print("  Length: \(result.count) characters")
+        print("  UTF-8 bytes: \(result.utf8.count)")
+        print("  Hex dump: ", terminator: "")
+        for byte in result.utf8 {
+            print(String(format: "%02X ", byte), terminator: "")
+        }
+        print()
+        
+        // Show any non-printable characters
+        var nonPrintable: [(Int, UInt8)] = []
+        for (i, byte) in result.utf8.enumerated() {
+            if byte < 32 || byte > 126 {
+                nonPrintable.append((i, byte))
+            }
+        }
+        if !nonPrintable.isEmpty {
+            print(colored("  ⚠️ Non-printable bytes:", .yellow))
+            for (pos, byte) in nonPrintable {
+                print("    Position \(pos): 0x\(String(format: "%02X", byte)) (\(byte))")
+            }
+        }
+        print()
+    }
+}
+
+func debugHeader(path: String) {
+    print(colored("🔬 Debug header:", .cyan), path)
+    print()
+    
+    guard let (encoding, xml) = MDictReader.readRawHeader(from: path) else {
+        print(colored("Error: Cannot read header", .red))
+        return
+    }
+    
+    print("Encoding: \(encoding)")
+    print()
+    print(colored("Raw header XML:", .yellow))
+    print(xml)
+    print()
+}
+
 func listEntries(dict: MDictReader, count: Int) {
     print(colored("📝 First \(count) entries:", .bold))
     print()
@@ -287,8 +350,8 @@ func getResource(dict: MDictReader, path: String) {
         print()
         
         // Try to find similar resources
-        let similar = dict.allResourcePaths.filter { 
-            $0.lowercased().contains(path.lowercased()) 
+        let similar = dict.allResourcePaths.filter {
+            $0.lowercased().contains(path.lowercased())
         }.prefix(5)
         
         if !similar.isEmpty {
@@ -311,7 +374,7 @@ func getResource(dict: MDictReader, path: String) {
     let textTypes = ["css", "js", "html", "htm", "xml", "json", "txt", "svg"]
     if textTypes.contains(ext) {
         if let content = String(data: data, encoding: .utf8) {
-            let preview = content.count > 1000 
+            let preview = content.count > 1000
                 ? String(content.prefix(1000)) + "\n... [truncated]"
                 : content
             
@@ -380,7 +443,7 @@ func extractResourceRefs(from html: String) -> [ResourceRef] {
                         // Extract path after sound://
                         let audioPath = String(path.dropFirst("sound://".count))
                         ref = ResourceRef(path: audioPath, type: .audio)
-                    } else if path.hasPrefix("/definition/") || 
+                    } else if path.hasPrefix("/definition/") ||
                               path.hasPrefix("/pronunciation/") ||
                               path.hasPrefix("/mywordlist") ||
                               path.hasPrefix("/wordlist/") ||

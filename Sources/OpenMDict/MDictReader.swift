@@ -268,4 +268,36 @@ public final class MDictReader: @unchecked Sendable {
     public var allResourcePaths: [String] {
         resources.allMDDPaths
     }
+    
+    // MARK: - Debug API
+    
+    /// Read raw header XML for debugging
+    /// - Parameter path: Path to the .mdx file
+    /// - Returns: Tuple of (encoding description, raw XML string) or nil if file cannot be read
+    public static func readRawHeader(from path: String) -> (encoding: String, xml: String)? {
+        guard let reader = try? BinaryReader(path: path) else { return nil }
+        
+        do {
+            let headerLen = try reader.readUInt32BE()
+            let headerData = try reader.readBytes(Int(headerLen))
+            
+            let headerStr: String
+            let encoding: String
+            
+            if headerData.count >= 2 && headerData[0] == 0xFF && headerData[1] == 0xFE {
+                headerStr = String(data: Data(headerData), encoding: .utf16LittleEndian) ?? ""
+                encoding = "UTF-16LE (BOM detected)"
+            } else if headerData.count >= 2 && headerData.suffix(2) == Data([0x00, 0x00]) {
+                headerStr = String(data: Data(headerData.dropLast(2)), encoding: .utf16LittleEndian) ?? ""
+                encoding = "UTF-16LE (null-terminated)"
+            } else {
+                headerStr = String(data: Data(headerData), encoding: .utf8) ?? ""
+                encoding = "UTF-8"
+            }
+            
+            return (encoding, headerStr)
+        } catch {
+            return nil
+        }
+    }
 }

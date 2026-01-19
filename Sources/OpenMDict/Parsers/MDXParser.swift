@@ -439,8 +439,13 @@ extension MDXParser {
                 
                 if keyEnd == blockOffset { break }
                 
-                let keyword = String(data: Data(decompressedBlock[blockOffset..<keyEnd]), encoding: encoding) ?? ""
+                let rawKeyword = String(data: Data(decompressedBlock[blockOffset..<keyEnd]), encoding: encoding) ?? ""
+                // Trim whitespace - some dictionaries have trailing spaces in keys
+                let keyword = rawKeyword.trimmingCharacters(in: .whitespaces)
                 blockOffset = keyEnd + nullTermLen
+                
+                // Skip empty keywords after trimming
+                guard !keyword.isEmpty else { continue }
                 
                 allKeywords.append(KeywordEntry(keyword: keyword, recordBlockIndex: 0, recordOffset: entryRecordOffset, recordSize: 0))
             }
