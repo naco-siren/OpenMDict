@@ -7,6 +7,7 @@
 //
 
 import WebKit
+import OpenMDict
 import OpenMDictKit
 
 final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
@@ -44,19 +45,67 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
             return
         }
         
-        // Load resource from MDD
-        // Try multiple path variations (MDD paths can be inconsistent)
+        // Load resource - try MDD first, then fall back to dictionary directory
+        var resourceData: Data?
+        
+        // 1. Try MDD with multiple path variations
         let pathsToTry = [
             resourcePath,                           // /1.png
             String(resourcePath.dropFirst()),       // 1.png (without leading /)
             "\\" + String(resourcePath.dropFirst()) // \1.png (MDD format)
         ]
         
-        var resourceData: Data?
         for path in pathsToTry {
             if let data = dict.resource(for: path) {
                 resourceData = data
                 break
+            }
+        }
+        
+        // 2. Fall back to dictionary directory (for standalone CSS files)
+        if resourceData == nil, let dictPath = dict.metadata?.path {
+            let dictDir = (dictPath as NSString).deletingLastPathComponent
+            let filename = String(resourcePath.dropFirst()) // Remove leading /
+            let filePath = (dictDir as NSString).appendingPathComponent(filename)
+            
+            if FileManager.default.fileExists(atPath: filePath) {
+                resourceData = try? Data(contentsOf: URL(fileURLWithPath: filePath))
+                if resourceData != nil {
+                    print("📄 MDictSchemeHandler: Loaded from directory: \(filename)")
+                }
+            }
+            
+            // Try Bundle.main with case-insensitive matching
+            if resourceData == nil {
+                let baseName = (filename as NSString).deletingPathExtension
+                let ext = (filename as NSString).pathExtension
+                
+                // Try exact match first
+                if let bundleURL = Bundle.main.url(forResource: baseName, withExtension: ext) {
+                    resourceData = try? Data(contentsOf: bundleURL)
+                }
+                
+                // Try dictionary ID as filename (common pattern: dictId.css)
+                if resourceData == nil {
+                    if let bundleURL = Bundle.main.url(forResource: dictId, withExtension: ext) {
+                        resourceData = try? Data(contentsOf: bundleURL)
+                    }
+                }
+                
+                // Try case-insensitive search through all files with this extension
+                if resourceData == nil,
+                   let urls = Bundle.main.urls(forResourcesWithExtension: ext, subdirectory: nil) {
+                    for url in urls {
+                        let urlBaseName = (url.lastPathComponent as NSString).deletingPathExtension
+                        if urlBaseName.lowercased() == baseName.lowercased() {
+                            resourceData = try? Data(contentsOf: url)
+                            if resourceData != nil {
+                                print("📄 MDictSchemeHandler: Loaded from bundle (case-insensitive): \(url.lastPathComponent)")
+                                break
+                            }
+                        }
+                    }
+                }
             }
         }
         
