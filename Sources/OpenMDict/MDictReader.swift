@@ -132,9 +132,10 @@ public final class MDictReader: @unchecked Sendable {
         // Build metadata
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         let hasMDD = Self.checkMDDExists(mdxPath: path)
+        let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded, path: path)
         
         self.metadata = MDictMetadata(
-            title: parser.info.title.htmlEntityDecoded,
+            title: title,
             description: parser.info.description.htmlEntityDecoded,
             entryCount: parser.entryCount,
             format: parser.info.format,
@@ -163,9 +164,10 @@ public final class MDictReader: @unchecked Sendable {
         
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         let hasMDD = checkMDDExists(mdxPath: path)
+        let title = resolveTitle(info.title.htmlEntityDecoded, path: path)
         
         return MDictMetadata(
-            title: info.title.htmlEntityDecoded,
+            title: title,
             description: info.description.htmlEntityDecoded,
             entryCount: info.entryCount,
             format: info.format,
@@ -178,6 +180,27 @@ public final class MDictReader: @unchecked Sendable {
             fileSize: fileSize,
             hasMDD: hasMDD
         )
+    }
+    
+    // MARK: - Private Helpers
+    
+    /// Resolve title, falling back to filename if title is a placeholder
+    private static func resolveTitle(_ rawTitle: String, path: String) -> String {
+        let placeholders = [
+            "Title (No HTML code allowed)",
+            "Title",
+            ""
+        ]
+        
+        let trimmed = rawTitle.trimmingCharacters(in: .whitespaces)
+        
+        if placeholders.contains(trimmed) {
+            // Use filename without extension
+            return (path as NSString).lastPathComponent
+                .replacingOccurrences(of: ".mdx", with: "", options: .caseInsensitive)
+        }
+        
+        return rawTitle
     }
     
     private static func checkMDDExists(mdxPath: String) -> Bool {
