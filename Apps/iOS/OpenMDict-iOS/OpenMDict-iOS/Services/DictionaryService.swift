@@ -55,13 +55,12 @@ final class DictionaryService {
         }
     }
     
-    // TODO: remove bundled logic or move to `Stub` directory
     private func loadBundledDictionaries() {
         let names = ["SampleDictF", "SampleDictA", "SampleDictE"]
         allDictionaries = names.compactMap { name in
             guard let url = Bundle.main.url(
                 forResource: name,
-                withExtension: "mdx",
+                withExtension: "mdx"
             ) else {
                 print("⚠️ Dictionary not found in bundle: \(name).mdx")
                 return nil

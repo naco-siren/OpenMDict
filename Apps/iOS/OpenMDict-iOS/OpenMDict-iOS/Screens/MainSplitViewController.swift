@@ -19,6 +19,7 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - State
     
     private var currentGroup: MDicts?
+    private var currentDict: MDict?
     
     // MARK: - Initialization
     
@@ -71,7 +72,6 @@ class MainSplitViewController: UISplitViewController {
         // Primary: Sidebar (dictionary list)
         setViewController(dictionaryListVC, for: .primary)
          
-
         // Supplementary: Word list
         setViewController(wordListVC, for: .supplementary)
 
@@ -94,8 +94,12 @@ class MainSplitViewController: UISplitViewController {
     }
     
     private func setupInitialState() {
-        let defaultGroup = DictionaryService.shared.groups.first { $0.isDefault }!
+        guard let defaultGroup = DictionaryService.shared.defaultGroup else {
+            print("⚠️ No default group found")
+            return
+        }
         currentGroup = defaultGroup
+        currentDict = nil
         wordListVC.loadWords(for: defaultGroup)
         dictionaryListVC.setActiveGroup(defaultGroup)
     }
@@ -104,6 +108,7 @@ class MainSplitViewController: UISplitViewController {
     
     private func selectGroup(_ group: MDicts) {
         currentGroup = group
+        currentDict = nil
         wordListVC.loadWords(for: group)
         
         show(.supplementary)
@@ -111,15 +116,22 @@ class MainSplitViewController: UISplitViewController {
     
     private func selectDictionary(_ dict: MDict) {
         currentGroup = nil
+        currentDict = dict
         wordListVC.loadWords(for: dict)
         
         show(.supplementary)
     }
     
     private func selectWord(_ word: WordDisplayItem) {
-        // Use stub HTML if available, otherwise placeholder
-        let html = StubHTML.html(for: word.word, dictName: word.dictName)
+        // Try real lookup first
+        if let dict = DictionaryService.shared.dict(id: word.dictId),
+           let article = DictionaryService.shared.lookup(word.word, in: dict) {
+            showArticle(article, animated: true)
+            return
+        }
         
+        // Fallback to stub HTML (for testing or when lookup fails)
+        let html = StubHTML.html(for: word.word, dictName: word.dictName)
         let article = ArticleDisplayItem(
             word: word.word,
             dictId: word.dictId,

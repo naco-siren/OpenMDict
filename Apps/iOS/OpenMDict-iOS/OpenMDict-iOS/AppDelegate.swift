@@ -14,7 +14,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     ) -> Bool {
         // Initialize dictionary service (loads bundled dictionaries)
         DictionaryService.shared.setup()
-        
         return true
     }
     
