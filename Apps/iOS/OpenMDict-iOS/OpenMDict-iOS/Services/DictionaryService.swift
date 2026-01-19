@@ -56,7 +56,7 @@ final class DictionaryService {
     }
     
     private func loadBundledDictionaries() {
-        let names = ["SampleDictF", "SampleDictA", "SampleDictE"]
+        let names = ["SampleDictF", "SampleDictA", "SampleDictE", "SampleDictB"]
         allDictionaries = names.compactMap { name in
             guard let url = Bundle.main.url(
                 forResource: name,
