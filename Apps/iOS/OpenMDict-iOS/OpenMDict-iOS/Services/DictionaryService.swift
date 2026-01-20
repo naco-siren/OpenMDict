@@ -112,6 +112,7 @@ final class DictionaryService {
     // MARK: - Search API
     
     /// Search in a group (returns results from all active dictionaries)
+    /// Results are sorted by word while preserving dictionary order for same word (merge sort)
     func search(prefix: String, in group: MDicts, limit: Int = 50) -> [WordDisplayItem] {
         var results: [WordDisplayItem] = []
         for dict in group.active {
@@ -119,7 +120,14 @@ final class DictionaryService {
             let items = WordDisplayItem.from(words: words, dict: dict)
             results.append(contentsOf: items)
         }
-        return results
+        
+        // Stable sort by word - preserves dictionary order for same word
+        let indexed = results.enumerated().map { ($0.offset, $0.element) }
+        let sorted = indexed.sorted { a, b in
+            let cmp = a.1.word.localizedCaseInsensitiveCompare(b.1.word)
+            return cmp == .orderedSame ? a.0 < b.0 : cmp == .orderedAscending
+        }
+        return sorted.map { $0.1 }
     }
     
     /// Search in a single dictionary
