@@ -215,11 +215,11 @@ public final class MDictReader: @unchecked Sendable {
     /// - Parameter key: The word to look up
     /// - Returns: Entry with article content, or nil if not found
     public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        guard let (definition, index) = parser.lookupWithIndex(key) else {
+        guard let (originalKey, definition, index) = parser.lookupWithIndex(key) else {
             return nil
         }
         return MDictWordEntry(
-            key: key,
+            key: originalKey,  // Use original key from dictionary
             article: MDictWordArticle(html: definition),
             index: index
         )

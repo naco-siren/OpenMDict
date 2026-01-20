@@ -40,7 +40,8 @@ internal final class MDXParser {
     private let header: MDictHeader
     private let keywords: [KeywordEntry]
     private let recordBlocks: [RecordBlockInfo]
-    private let keywordIndex: [String: Int]  // keyword -> index in keywords array
+    private let exactIndex: [String: Int]        // exact keyword -> index
+    private let caseInsensitiveIndex: [String: Int]  // lowercased keyword -> index (for case-insensitive dicts)
     
     // MARK: - Initialization
     
@@ -72,14 +73,21 @@ internal final class MDXParser {
         // Post-process keywords (calculate record sizes and block indices)
         self.keywords = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)
         
-        // Build keyword index HashMap (O(1) lookup)
-        var index: [String: Int] = [:]
-        index.reserveCapacity(keywords.count)
-        for (i, entry) in keywords.enumerated() {
-            let key = header.keyCaseSensitive ? entry.keyword : entry.keyword.lowercased()
-            index[key] = i
+        // Build keyword indexes for O(1) lookup
+        var exact: [String: Int] = [:]
+        var caseInsensitive: [String: Int] = [:]
+        exact.reserveCapacity(keywords.count)
+        if !header.keyCaseSensitive {
+            caseInsensitive.reserveCapacity(keywords.count)
         }
-        self.keywordIndex = index
+        for (i, entry) in keywords.enumerated() {
+            exact[entry.keyword] = i
+            if !header.keyCaseSensitive {
+                caseInsensitive[entry.keyword.lowercased()] = i
+            }
+        }
+        self.exactIndex = exact
+        self.caseInsensitiveIndex = caseInsensitive
         
         // Create public info
         self.info = MDictInfo(
@@ -99,19 +107,28 @@ internal final class MDXParser {
     
     /// Lookup a keyword and return definition with index
     /// - Parameter keyword: The word to look up
-    /// - Returns: Tuple of (definition, index) or nil if not found
-    func lookupWithIndex(_ keyword: String) -> (String, Int)? {
-        let searchKey = header.keyCaseSensitive ? keyword : keyword.lowercased()
-        
-        guard let idx = keywordIndex[searchKey] else {
-            return nil
+    /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
+    func lookupWithIndex(_ keyword: String) -> (String, String, Int)? {
+        // 1. Try exact match first
+        if let idx = exactIndex[keyword] {
+            guard let definition = try? loadRecord(keywords[idx]) else {
+                return nil
+            }
+            return (keywords[idx].keyword, definition, idx)
         }
         
-        guard let definition = try? loadRecord(keywords[idx]) else {
-            return nil
+        // 2. Fallback to case-insensitive match (only for case-insensitive dicts)
+        if !header.keyCaseSensitive {
+            let searchKey = keyword.lowercased()
+            if let idx = caseInsensitiveIndex[searchKey] {
+                guard let definition = try? loadRecord(keywords[idx]) else {
+                    return nil
+                }
+                return (keywords[idx].keyword, definition, idx)
+            }
         }
         
-        return (definition, idx)
+        return nil
     }
     
     /// Get entry at specific index
@@ -134,7 +151,7 @@ internal final class MDXParser {
     /// - Parameters:
     ///   - prefix: Prefix to search for
     ///   - limit: Maximum results (default 20)
-    /// - Returns: Array of matching keywords
+    /// - Returns: Array of matching keywords (original case preserved)
     func search(prefix: String, limit: Int = 20) -> [String] {
         let searchPrefix = header.keyCaseSensitive ? prefix : prefix.lowercased()
         
