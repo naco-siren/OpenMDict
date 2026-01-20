@@ -231,6 +231,58 @@ public final class MDicts: ObservableObject, Identifiable {
     }
 }
 
+// MARK: - MDicts + Lookupable
+
+extension MDicts: @MainActor Lookupable {
+    
+    /// Reactive lookup - merges results from all enabled dictionaries progressively
+    /// Results are emitted cumulatively as each dictionary responds (渐进显示)
+    ///
+    /// Data flow:
+    /// ```
+    /// dict1.lookupPublisher() ──┐
+    /// dict2.lookupPublisher() ──┼──► MergeMany ──► scan (accumulate) ──► sorted results
+    /// dict3.lookupPublisher() ──┘
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - prefix: Search prefix
+    ///   - limit: Maximum results per dictionary
+    /// - Returns: Publisher that emits cumulative sorted results as dictionaries load
+    public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
+        let enabledItems = items.filter { $0.isEnabled }
+        
+        guard !enabledItems.isEmpty else {
+            return Just([]).eraseToAnyPublisher()
+        }
+        
+        // Create a publisher for each dictionary
+        let publishers = enabledItems.map { dict in
+            dict.lookupPublisher(prefix: prefix, limit: limit)
+        }
+        
+        // MergeMany: each dict emits once when ready
+        // scan: accumulates results progressively (A → A+B → A+B+C...)
+        return Publishers.MergeMany(publishers)
+            .scan([WordSearchResult]()) { accumulated, newBatch in
+                var combined = accumulated
+                combined.append(contentsOf: newBatch)
+                return Self.stableSortByWord(combined)
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    /// Stable sort by word - preserves dictionary order for same word
+    private static func stableSortByWord(_ items: [WordSearchResult]) -> [WordSearchResult] {
+        items.enumerated()
+            .sorted { a, b in
+                let cmp = a.element.word.localizedCaseInsensitiveCompare(b.element.word)
+                return cmp == .orderedSame ? a.offset < b.offset : cmp == .orderedAscending
+            }
+            .map { $0.element }
+    }
+}
+
 // MARK: - Hashable
 
 extension MDicts: Hashable {

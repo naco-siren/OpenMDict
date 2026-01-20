@@ -2,28 +2,31 @@
 //  WordListViewController.swift
 //  OpenMDict-iOS
 //
+//  Word search list - subscribes to DictionaryService.$searchResults
+//  All search logic is handled by the reactive pipeline in DictionaryService
+//
 
 import UIKit
+import Combine
 import OpenMDictKit
 
 class WordListViewController: UIViewController {
     
-    // MARK: - Display Mode
-
-    private enum DisplayMode {
-        case group(MDicts)
-        case dictionary(MDict)
-    }
-
-    private var displayMode: DisplayMode?
+    // MARK: - State
+    
     var onWordSelected: ((WordDisplayItem) -> Void)?
     
-    private var words: [WordDisplayItem] = []
-    private var filteredWords: [WordDisplayItem] = []
     private var currentTitle = "Search"
+    private var cancellables = Set<AnyCancellable>()
     
-    private var isSearching: Bool { searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true) }
-    private var displayedWords: [WordDisplayItem] { isSearching ? filteredWords : words }
+    /// Current displayed words (bound to DictionaryService.searchResults)
+    private var displayedWords: [WordDisplayItem] = []
+    
+    private var isSearching: Bool {
+        searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
+    }
+    
+    // MARK: - UI
     
     private lazy var searchController: UISearchController = {
         let sc = UISearchController(searchResultsController: nil)
@@ -52,12 +55,13 @@ class WordListViewController: UIViewController {
         return l
     }()
     
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         navigationItem.backButtonDisplayMode = .minimal
         navigationItem.backButtonTitle = "Word Search"
-        
         navigationController?.navigationBar.prefersLargeTitles = false
         navigationItem.largeTitleDisplayMode = .never
         
@@ -75,70 +79,67 @@ class WordListViewController: UIViewController {
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
+        
+        subscribeToSearchResults()
         updateEmptyState()
         updateTitleView()
     }
     
+    // MARK: - Reactive Binding
+    
+    private func subscribeToSearchResults() {
+        DictionaryService.shared.$searchResults
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] results in
+                self?.displayedWords = results
+                self?.tableView.reloadData()
+                self?.updateEmptyState()
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Context Setting (called by MainSplitVC)
+    
     func loadWords(for group: MDicts) {
-        displayMode = .group(group)
         currentTitle = group.name
-        // Clear - will populate via search
-        words = []
-        filteredWords = []
-        tableView.reloadData()
-        updateEmptyState()
         updateTitleView()
+        
+        // Update search context - triggers reactive pipeline if query exists
+        DictionaryService.shared.setSearchContext(group: group)
+        updateEmptyState()
     }
     
     func loadWords(for dict: MDict) {
-        displayMode = .dictionary(dict)
         currentTitle = dict.metadata?.title ?? dict.id
-        // Clear - will populate via search
-        words = []
-        filteredWords = []
-        tableView.reloadData()
-        updateEmptyState()
         updateTitleView()
+        
+        // Update search context - triggers reactive pipeline if query exists
+        DictionaryService.shared.setSearchContext(dict: dict)
+        updateEmptyState()
     }
     
-    private func performSearch(_ query: String) {
-        guard !query.isEmpty else {
-            filteredWords = []
-            tableView.reloadData()
-            updateEmptyState()
-            return
-        }
-        
-        switch displayMode {
-        case .group(let group):
-            filteredWords = DictionaryService.shared.search(prefix: query, in: group, limit: 50)
-        case .dictionary(let dict):
-            filteredWords = DictionaryService.shared.search(prefix: query, in: dict, limit: 50)
-        case .none:
-            filteredWords = []
-        }
-        
-        tableView.reloadData()
-        updateEmptyState()
-    }
+    // MARK: - UI Updates
     
     private func updateEmptyState() {
         let isEmpty = displayedWords.isEmpty
         emptyLabel.isHidden = !isEmpty
         tableView.isHidden = isEmpty
         
-        if displayMode == nil {
+        let context = DictionaryService.shared.currentContext
+        if case .none = context {
             emptyLabel.text = "Select a dictionary or group"
         } else if isSearching && displayedWords.isEmpty {
-            emptyLabel.text = "No results"
+            emptyLabel.text = "No results for '\(searchController.searchBar.text ?? "")'"
         } else {
             emptyLabel.text = "Type to search"
         }
     }
     
     private func updateTitleView() {
+        let context = DictionaryService.shared.currentContext
         let iconName: String
-        switch displayMode {
+        
+        switch context {
         case .group(let group):
             iconName = group.isDefault ? "books.vertical.fill" : "books.vertical"
         case .dictionary:
@@ -168,6 +169,8 @@ class WordListViewController: UIViewController {
     }
 }
 
+// MARK: - UITableViewDataSource
+
 extension WordListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         displayedWords.count
@@ -180,14 +183,16 @@ extension WordListViewController: UITableViewDataSource {
         c.text = wordItem.word
 
         // Show dictionary name as secondary text when displaying a group
-        if case .group = displayMode {
-            c.secondaryText = wordItem.dictName  // WordDisplayItem already has dictName!
+        if case .group = DictionaryService.shared.currentContext {
+            c.secondaryText = wordItem.dictName
             c.secondaryTextProperties.color = .secondaryLabel
         }
         cell.contentConfiguration = c
         return cell
     }
 }
+
+// MARK: - UITableViewDelegate
 
 extension WordListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -198,28 +203,35 @@ extension WordListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         let word = displayedWords[indexPath.row]
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            let html = StubHTML.html(for: word.word, dictName: word.dictName)
+            guard let self = self else { return nil }
+            
+            // Create a stub article for new window (will be replaced with real lookup)
+            let article = ArticleDisplayItem(
+                word: word.word,
+                dictId: word.dictId,
+                dictName: word.dictName,
+                html: StubHTML.placeholder(for: word.word, dictName: word.dictName),
+                css: nil
+            )
                          
             return UIMenu(children: [
                 UIAction(title: "Open", image: UIImage(systemName: "doc.text")) { _ in
-                    self?.onWordSelected?(word)
+                    self.onWordSelected?(word)
                 },
                 UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { _ in
-                    SceneDelegate.openNewWindow(for: ArticleDisplayItem(
-                        word: word.word,
-                        dictId: word.dictId,
-                        dictName: word.dictName,
-                        html: html
-                    ))
+                    SceneDelegate.openNewWindow(for: article)
                 },
             ])
         }
     }
 }
 
+// MARK: - UISearchResultsUpdating
+
 extension WordListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         let query = searchController.searchBar.text ?? ""
-        performSearch(query)
+        // Just update the query - reactive pipeline handles the rest!
+        DictionaryService.shared.updateSearchQuery(query)
     }
 }

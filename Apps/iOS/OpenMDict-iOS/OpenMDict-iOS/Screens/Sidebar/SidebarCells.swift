@@ -109,6 +109,8 @@ final class UserGroupCell: UICollectionViewListCell {
 /// - When parent group is active: open book with blue tint
 /// - When directly selected: blue background + white
 /// - When highlighted by mirror selection: blue background + white
+/// - Loading state: spinner accessory, gray text
+/// - Error state: exclamationmark.triangle icon
 final class DefaultGroupDictCell: UICollectionViewListCell {
     
     var dict: MDict?
@@ -122,32 +124,65 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         let isParentActive = stateProvider?.activeGroupId == groupId
         let isHighlightedBySelection = stateProvider?.activeDict?.id == dict.id
         let isDirectlySelected = state.isSelected || state.isHighlighted
+        let loadState = dict.state
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.metadata?.title ?? dict.id
         
-        if isParentActive {
-            // Parent group is selected - show open book with blue tint, no special background
-            content.image = UIImage(systemName: "book.fill")
-            content.imageProperties.tintColor = .systemBlue
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
-        } else if isDirectlySelected || isHighlightedBySelection {
-            // This dict is selected (directly or via mirror) - blue background
-            content.image = UIImage(systemName: "book.fill")
-            content.textProperties.color = .white
-            content.imageProperties.tintColor = .white
-            
-            var bg = UIBackgroundConfiguration.listSidebarCell()
-            bg.backgroundColor = .systemBlue
-            backgroundConfiguration = bg
-        } else {
-            // Default state - closed filled book
+        // Handle loading states first
+        switch loadState {
+        case .unloaded, .loading:
+            // Gray text, spinner accessory
             content.image = UIImage(systemName: "book.closed.fill")
+            content.textProperties.color = .secondaryLabel
+            content.imageProperties.tintColor = .secondaryLabel
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            
+            if loadState == .loading {
+                // Show spinner
+                let spinnerConfig = UICellAccessory.CustomViewConfiguration(
+                    customView: {
+                        let spinner = UIActivityIndicatorView(style: .medium)
+                        spinner.startAnimating()
+                        return spinner
+                    }(),
+                    placement: .trailing()
+                )
+                accessories = [.customView(configuration: spinnerConfig)]
+            } else {
+                accessories = []
+            }
+            
+        case .error:
+            // Error state - show warning icon
+            content.image = UIImage(systemName: "exclamationmark.triangle.fill")
+            content.textProperties.color = .systemRed
+            content.imageProperties.tintColor = .systemRed
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            accessories = []
+            
+        case .loaded:
+            // Normal loaded state - original logic
+            if isParentActive {
+                content.image = UIImage(systemName: "book.fill")
+                content.imageProperties.tintColor = .systemBlue
+                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            } else if isDirectlySelected || isHighlightedBySelection {
+                content.image = UIImage(systemName: "book.fill")
+                content.textProperties.color = .white
+                content.imageProperties.tintColor = .white
+                
+                var bg = UIBackgroundConfiguration.listSidebarCell()
+                bg.backgroundColor = .systemBlue
+                backgroundConfiguration = bg
+            } else {
+                content.image = UIImage(systemName: "book.closed.fill")
+                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            }
+            accessories = []
         }
         
         contentConfiguration = content
-        accessories = []
     }
 }
 
@@ -156,6 +191,8 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
 /// Cell for dictionaries inside user groups (mirrors/symbolic links).
 /// - Shows outlined icon (book.closed or book)
 /// - Light selection style (system default, not deep blue)
+/// - Loading state: spinner accessory, gray text
+/// - Error state: exclamationmark.triangle icon
 final class UserGroupDictCell: UICollectionViewListCell {
     
     var dict: MDict?
@@ -169,33 +206,63 @@ final class UserGroupDictCell: UICollectionViewListCell {
         let isParentActive = stateProvider?.activeGroupId == groupId
         let isSelected = state.isSelected || state.isHighlighted
         let isRelatedDictSelected = stateProvider?.activeDict?.id == dict.id
+        let loadState = dict.state
 
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.metadata?.title ?? dict.id
         
-        if isParentActive {
-            // Parent group is selected - open book with blue tint
-            content.image = UIImage(systemName: "book")
-            content.imageProperties.tintColor = .systemBlue
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
-        } else if isSelected || isRelatedDictSelected {
-            // This mirror is selected - light blue style (use blue tint, no custom background)
-            content.image = UIImage(systemName: "book")
-            content.imageProperties.tintColor = .systemBlue
-            content.textProperties.color = .systemBlue
-            
-            var bg = UIBackgroundConfiguration.listSidebarCell()
-            bg.backgroundColor = .tertiarySystemFill
-            backgroundConfiguration = bg
-        } else {
-            // Default state - closed outlined book
+        // Handle loading states first
+        switch loadState {
+        case .unloaded, .loading:
+            // Gray text, spinner accessory
             content.image = UIImage(systemName: "book.closed")
+            content.textProperties.color = .secondaryLabel
+            content.imageProperties.tintColor = .secondaryLabel
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            
+            if loadState == .loading {
+                let spinnerConfig = UICellAccessory.CustomViewConfiguration(
+                    customView: {
+                        let spinner = UIActivityIndicatorView(style: .medium)
+                        spinner.startAnimating()
+                        return spinner
+                    }(),
+                    placement: .trailing()
+                )
+                accessories = [.customView(configuration: spinnerConfig)]
+            } else {
+                accessories = []
+            }
+            
+        case .error:
+            content.image = UIImage(systemName: "exclamationmark.triangle")
+            content.textProperties.color = .systemRed
+            content.imageProperties.tintColor = .systemRed
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            accessories = []
+            
+        case .loaded:
+            // Normal loaded state - original logic
+            if isParentActive {
+                content.image = UIImage(systemName: "book")
+                content.imageProperties.tintColor = .systemBlue
+                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            } else if isSelected || isRelatedDictSelected {
+                content.image = UIImage(systemName: "book")
+                content.imageProperties.tintColor = .systemBlue
+                content.textProperties.color = .systemBlue
+                
+                var bg = UIBackgroundConfiguration.listSidebarCell()
+                bg.backgroundColor = .tertiarySystemFill
+                backgroundConfiguration = bg
+            } else {
+                content.image = UIImage(systemName: "book.closed")
+                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            }
+            accessories = []
         }
         
-        // Let system handle background (light blue for selection)
         contentConfiguration = content
-        accessories = []
     }
 }
 

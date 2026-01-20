@@ -2,14 +2,52 @@
 //  DictionaryService.swift
 //  OpenMDict-iOS
 //
-//  App-level singleton managing dictionary loading, groups, and queries
+//  App-level singleton managing dictionary loading, groups, and queries.
+//  Uses Combine for reactive state management with switchToLatest for query cancellation.
+//
+//  Data flow:
+//  ```
+//  searchQuery$ ─────┐
+//                    ├──► CombineLatest ──► map to lookupPublisher ──► switchToLatest ──► results$
+//  searchContext$ ───┘
+//  ```
 //
 
 import Foundation
+import Combine
 import OpenMDictKit
 
+// MARK: - Search Context
+
+/// Current search context - group or single dictionary
+enum SearchContext: Equatable {
+    case group(MDicts)
+    case dictionary(MDict)
+    case none
+    
+    /// Get the Lookupable for this context
+    var lookupable: (any Lookupable)? {
+        switch self {
+        case .group(let group): return group
+        case .dictionary(let dict): return dict
+        case .none: return nil
+        }
+    }
+    
+    static func == (lhs: SearchContext, rhs: SearchContext) -> Bool {
+        switch (lhs, rhs) {
+        case (.none, .none): return true
+        case (.group(let a), .group(let b)): return a.id == b.id
+        case (.dictionary(let a), .dictionary(let b)): return a.id == b.id
+        default: return false
+        }
+    }
+}
+
+// MARK: - DictionaryService
+
 @MainActor
-final class DictionaryService {
+final class DictionaryService: ObservableObject {
     
     static let shared = DictionaryService()
     
@@ -20,13 +58,78 @@ final class DictionaryService {
     
     /// All groups (including default + user-defined)
     private(set) var groups: [MDicts] = []
+
+    // MARK: - Reactive Search Pipeline (Inputs)
     
-    /// Loading state
-    private(set) var isLoading: Bool = false
+    /// Input: search query
+    private let searchQuerySubject = CurrentValueSubject<String, Never>("")
+    
+    /// Input: search context (group or dictionary)
+    private let searchContextSubject = CurrentValueSubject<SearchContext, Never>(.none)
+    
+    // MARK: - Reactive Search Pipeline (Output)
+    
+    /// Output: search results (updated progressively)
+    @Published private(set) var searchResults: [WordDisplayItem] = []
+    
+    /// Pipeline subscriptions
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Init
     
-    private init() {}
+    private init() {
+        setupSearchPipeline()
+    }
+    
+    // MARK: - Reactive Pipeline Setup
+    
+    /// Core reactive pipeline:
+    /// ```
+    /// (query, context) ──► map to lookupPublisher ──► switchToLatest ──► results
+    ///                                                    ↑
+    ///                                    Key: auto-cancels previous search
+    /// ```
+    private func setupSearchPipeline() {
+        Publishers.CombineLatest(
+            searchQuerySubject
+                .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+                .removeDuplicates(),
+            searchContextSubject
+                .removeDuplicates()
+        )
+        .map { [weak self] query, context -> AnyPublisher<[WordDisplayItem], Never> in
+            guard let self = self,
+                  !query.isEmpty,
+                  let lookupable = context.lookupable else {
+                return Just([]).eraseToAnyPublisher()
+            }
+            
+            // Log search start
+            let contextName: String
+            switch context {
+            case .group(let g): contextName = "group '\(g.name)'"
+            case .dictionary(let d): contextName = "dict '\(d.metadata?.title ?? d.id)'"
+            case .none: contextName = "none"
+            }
+            print("🔍 Search '\(query)' in \(contextName)")
+            
+            // Get lookup publisher and convert WordSearchResult → WordDisplayItem
+            return lookupable.lookupPublisher(prefix: query, limit: 50)
+                .map { results in
+                    results.map { WordDisplayItem(from: $0) }
+                }
+                .eraseToAnyPublisher()
+        }
+        .switchToLatest()  // ⭐ Key: cancels previous search when query/context changes
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] results in
+            self?.searchResults = results
+            if !results.isEmpty {
+                print("🔍 Results: \(results.count) items")
+            }
+        }
+        .store(in: &cancellables)
+    }
     
     // MARK: - Computed
     
@@ -94,8 +197,6 @@ final class DictionaryService {
     // MARK: - Loading
     
     func loadAllDictionaries() async {
-        isLoading = true
-        
         for dict in allDictionaries {
             do {
                 try await dict.load()
@@ -104,39 +205,47 @@ final class DictionaryService {
                 print("❌ Failed to load \(dict.id): \(error)")
             }
         }
-        
-        isLoading = false
         print("📚 All dictionaries loaded")
     }
     
-    // MARK: - Search API
+    // MARK: - Search API (Facade for VC)
     
-    /// Search in a group (returns results from all active dictionaries)
-    /// Results are sorted by word while preserving dictionary order for same word (merge sort)
-    func search(prefix: String, in group: MDicts, limit: Int = 50) -> [WordDisplayItem] {
-        var results: [WordDisplayItem] = []
-        for dict in group.active {
-            let words = dict.search(prefix: prefix, limit: limit)
-            let items = WordDisplayItem.from(words: words, dict: dict)
-            results.append(contentsOf: items)
-        }
-        
-        // Stable sort by word - preserves dictionary order for same word
-        let indexed = results.enumerated().map { ($0.offset, $0.element) }
-        let sorted = indexed.sorted { a, b in
-            let cmp = a.1.word.localizedCaseInsensitiveCompare(b.1.word)
-            return cmp == .orderedSame ? a.0 < b.0 : cmp == .orderedAscending
-        }
-        return sorted.map { $0.1 }
+    /// Update search query - triggers reactive pipeline
+    func updateSearchQuery(_ query: String) {
+        searchQuerySubject.send(query)
     }
     
-    /// Search in a single dictionary
-    func search(prefix: String, in dict: MDict, limit: Int = 50) -> [WordDisplayItem] {
-        let words = dict.search(prefix: prefix, limit: limit)
-        return WordDisplayItem.from(words: words, dict: dict)
+    /// Update search context - triggers reactive pipeline
+    func setSearchContext(_ context: SearchContext) {
+        searchContextSubject.send(context)
     }
     
-    // MARK: - Lookup API
+    /// Convenience: set context to group
+    func setSearchContext(group: MDicts) {
+        setSearchContext(.group(group))
+    }
+    
+    /// Convenience: set context to dictionary
+    func setSearchContext(dict: MDict) {
+        setSearchContext(.dictionary(dict))
+    }
+    
+    /// Clear search
+    func clearSearch() {
+        searchQuerySubject.send("")
+    }
+    
+    /// Current query (for UI state)
+    var currentQuery: String {
+        searchQuerySubject.value
+    }
+    
+    /// Current context (for UI state)
+    var currentContext: SearchContext {
+        searchContextSubject.value
+    }
+    
+    // MARK: - Lookup API (for article display)
     
     /// Lookup in a group (returns AsyncStream for progressive results)
     func lookup(_ word: String, in group: MDicts) -> AsyncStream<ArticleDisplayItem> {

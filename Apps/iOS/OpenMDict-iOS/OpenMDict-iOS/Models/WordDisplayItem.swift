@@ -18,11 +18,18 @@ struct WordDisplayItem: Identifiable, Hashable, Sendable {
     var id: String { "\(dictId):\(word)" }
 }
 
-// MARK: - Factory (MainActor required for MDict access)
+// MARK: - Factory
 
 extension WordDisplayItem {
     
-    /// Create items from MDict search results
+    /// Create from WordSearchResult (from reactive lookup pipeline)
+    init(from result: WordSearchResult) {
+        self.word = result.word
+        self.dictId = result.dictId
+        self.dictName = result.dictName
+    }
+    
+    /// Create items from MDict search results (MainActor required for MDict access)
     @MainActor
     static func from(words: [String], dict: MDict) -> [WordDisplayItem] {
         let name = dict.metadata?.title ?? dict.id

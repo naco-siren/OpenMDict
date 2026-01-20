@@ -170,16 +170,51 @@ public final class MDict: ObservableObject, Identifiable {
     }
 }
 
+// MARK: - MDict + Lookupable
+
+extension MDict: @MainActor Lookupable {
+    
+    /// Reactive lookup - waits for dictionary to load, then emits results once
+    /// - Parameters:
+    ///   - prefix: Search prefix
+    ///   - limit: Maximum results
+    /// - Returns: Publisher that emits results when dictionary is ready
+    public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
+        let dictId = self.id
+        
+        return $state
+            .first { $0 == .loaded || $0.isError }  // Wait until loaded or error
+            .map { [weak self] currentState -> [WordSearchResult] in
+                guard currentState == .loaded,
+                      let self = self else { return [] }
+                
+                // Perform lookup (fast, O(log n))
+                let keys = self.search(prefix: prefix, limit: limit)
+                let dictName = self.metadata?.title ?? dictId
+                
+                return keys.map { key in
+                    WordSearchResult(word: key, dictId: dictId, dictName: dictName)
+                }
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+}
+
 // MARK: - Background Loading (nonisolated)
 
 /// Load MDictReader on background thread
 /// This function is nonisolated, so calling it from MainActor will automatically
 /// suspend and run on the cooperative thread pool (similar to Dispatchers.IO)
+///
+/// Note: @concurrent is needed In Swift 6.2 to guarantee background execution
+@concurrent
 private nonisolated func loadReaderInBackground(path: String) async throws -> MDictReader {
     try MDictReader(path: path)
 }
 
 /// Load metadata only (fast, header parsing)
+@concurrent
 private nonisolated func loadMetadataInBackground(path: String) async -> MDictMetadata? {
     MDictReader.loadMetadata(from: path)
 }

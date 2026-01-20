@@ -13,6 +13,7 @@
 //
 
 import UIKit
+import Combine
 import OpenMDictKit
 
 class DictionaryListViewController: UIViewController, SidebarStateProvider {
@@ -34,6 +35,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     private var groups: [MDicts] { DictionaryService.shared.groups }
     private var dataSource: UICollectionViewDiffableDataSource<Section, SidebarItem>!
+    private var cancellables = Set<AnyCancellable>()
     
     private enum Section: Int, CaseIterable {
         case defaultGroup
@@ -77,6 +79,23 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         configureDataSource()
         applySnapshot()
+        subscribeToDictionaryStates()
+    }
+    
+    // MARK: - State Subscriptions
+    
+    /// Subscribe to all dictionaries' state changes to update cell UI
+    private func subscribeToDictionaryStates() {
+        // Subscribe to each dictionary's state
+        for dict in DictionaryService.shared.allDictionaries {
+            dict.$state
+                .dropFirst()  // Skip initial value
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.invalidateVisibleCellConfigurations()
+                }
+                .store(in: &cancellables)
+        }
     }
     
     // MARK: - Data Source Configuration
@@ -242,12 +261,23 @@ extension DictionaryListViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
         
-        return switch item {
+        switch item {
         case .header:
             // Headers should not be selectable
-            false
+            return false
+            
+        case .dictionary(let dictId, _):
+            // Only allow selecting loaded dictionaries
+            guard let dict = DictionaryService.shared.dict(id: dictId) else { return false }
+            if dict.state != .loaded {
+                let message = dict.state == .loading ? "Loading..." : "Dictionary not loaded"
+                print("⚠️ \(message): \(dict.metadata?.title ?? dict.id)")
+                return false
+            }
+            return true
+            
         default:
-            true
+            return true
         }
     }
     
@@ -271,6 +301,8 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             
         case .dictionary(let dictId, let groupId):
             guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
+            // Note: unloaded dicts are already blocked by shouldSelectItemAt
+            
             // Update state - track if selection was via mirror
             let group = DictionaryService.shared.group(id: groupId)
             let isMirror = !(group?.isDefault ?? true)
