@@ -245,7 +245,7 @@ extension MDicts: Hashable {
 
 // MARK: - Codable (only persistable fields)
 
-extension MDicts: Codable {
+extension MDicts: @MainActor Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, isDefault, dictionaryIds
     }
@@ -259,7 +259,7 @@ extension MDicts: Codable {
         self.init(id: id, name: name, isDefault: isDefault, dictionaryIds: dictionaryIds)
     }
     
-    public nonisolated func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         // Access MainActor-isolated properties safely
