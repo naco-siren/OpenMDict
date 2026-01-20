@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
@@ -8,13 +8,8 @@ let package = Package(
         .iOS(.v15)
     ],
     products: [
-        // Core parsing library (no platform dependencies)
         .library(name: "OpenMDict", targets: ["OpenMDict"]),
-        
-        // ViewModel layer (depends on Combine, for iOS/macOS apps)
         .library(name: "OpenMDictKit", targets: ["OpenMDictKit"]),
-        
-        // CLI tool
         .executable(name: "openmdict", targets: ["OpenMDictCLI"])
     ],
     targets: [
@@ -25,14 +20,14 @@ let package = Package(
             publicHeadersPath: "include"
         ),
         
-        // Core parsing library
+        // Core parsing library (platform-agnostic)
         .target(
             name: "OpenMDict",
             dependencies: ["CLZ"],
             path: "Sources/OpenMDict"
         ),
         
-        // ViewModel layer (MDict, MDicts)
+        // ViewModel layer for iOS/macOS
         .target(
             name: "OpenMDictKit",
             dependencies: ["OpenMDict"],
