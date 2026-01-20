@@ -116,6 +116,9 @@ class ArticlesViewController: UIViewController {
         collectionView.dragDelegate = self
         collectionView.dragInteractionEnabled = true
         
+        // Only allow cell selection in Grid mode
+        collectionView.allowsSelection = (layoutMode == .grid)
+        
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -181,6 +184,10 @@ class ArticlesViewController: UIViewController {
         
         // List mode uses paging behavior
         collectionView.isPagingEnabled = (mode == .list)
+        
+        // Only allow cell selection in Grid mode (to switch to Columns)
+        // In List/Columns, clicks should go to WebView for link handling
+        collectionView.allowsSelection = (mode == .grid)
         
         // Check if scroll direction changed (columns ↔ grid/list)
         let oldIsHorizontal = (oldMode == .columns)
@@ -421,7 +428,7 @@ extension ArticlesViewController: UICollectionViewDelegate {
         return UIContextMenuConfiguration(
             identifier: indexPath as NSCopying,
             previewProvider: {
-                return ArticlePreviewViewController(article: article)     
+                return ArticlePreviewViewController(article: article)
             },
             actionProvider: { [weak self] _ in
                 guard let self = self else { return nil }
