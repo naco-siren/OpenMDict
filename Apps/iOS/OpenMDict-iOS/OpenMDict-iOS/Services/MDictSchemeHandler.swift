@@ -7,7 +7,6 @@
 //
 
 import WebKit
-import OpenMDict
 import OpenMDictKit
 
 final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {

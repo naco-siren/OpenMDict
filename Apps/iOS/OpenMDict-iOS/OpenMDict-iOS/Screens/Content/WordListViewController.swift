@@ -4,7 +4,6 @@
 //
 
 import UIKit
-import OpenMDict
 import OpenMDictKit
 
 class WordListViewController: UIViewController {

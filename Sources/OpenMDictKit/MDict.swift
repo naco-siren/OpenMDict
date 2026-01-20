@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-import OpenMDict
+@_exported import OpenMDict
 
 // MARK: - Load State
 

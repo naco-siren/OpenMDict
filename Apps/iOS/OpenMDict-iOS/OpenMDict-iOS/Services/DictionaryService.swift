@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import OpenMDict
 import OpenMDictKit
 
 @MainActor

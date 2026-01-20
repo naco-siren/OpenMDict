@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import OpenMDict
 import OpenMDictKit
 
 /// Word list cell ViewModel

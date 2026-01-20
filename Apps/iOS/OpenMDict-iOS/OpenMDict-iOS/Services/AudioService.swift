@@ -6,7 +6,6 @@
 //
 
 import AVFoundation
-import OpenMDict
 import OpenMDictKit
 
 @MainActor

@@ -7,7 +7,6 @@
 
 import Foundation
 import UIKit
-import OpenMDict
 import OpenMDictKit
 
 /// Article cell ViewModel

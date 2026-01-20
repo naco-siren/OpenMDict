@@ -10,7 +10,6 @@
 //
 
 import UIKit
-import OpenMDict
 import OpenMDictKit
 
 // MARK: - State Provider Protocol
