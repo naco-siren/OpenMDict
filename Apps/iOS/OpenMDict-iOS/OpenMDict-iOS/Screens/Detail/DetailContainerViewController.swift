@@ -7,7 +7,9 @@
 //
 
 import UIKit
-
+import Combine
+import OpenMDictKit
+ 
 // MARK: - Appearance Mode
 
 enum AppearanceMode: Int {
@@ -24,6 +26,9 @@ class DetailContainerViewController: UIViewController {
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = .system
+    
+    /// Subscriptions
+    private var cancellables = Set<AnyCancellable>()
     
     var currentArticle: ArticleDisplayItem? { articles.first }
     
@@ -126,6 +131,7 @@ class DetailContainerViewController: UIViewController {
         // Install appropriate child for current traits
         updateChildForTraits(traitCollection)
         updateNavigationBar(for: traitCollection)
+        subscribeToDictionaryLoads()
         applyAppearance()
     }
     
@@ -136,6 +142,41 @@ class DetailContainerViewController: UIViewController {
         coordinator.animate { _ in
             self.updateChildForTraits(newCollection)
             self.updateNavigationBar(for: newCollection)
+        }
+    }
+
+    // MARK: - Dictionary Load Subscription
+
+    private func subscribeToDictionaryLoads() {
+        DictionaryService.shared.onDictionaryLoaded
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] dict in
+                self?.handleDictionaryLoaded(dict)
+            }
+            .store(in: &cancellables)
+    }
+
+    /// When a dictionary loads, update any pending articles from that dictionary
+    private func handleDictionaryLoaded(_ dict: MDict) {
+        var didUpdate = false
+
+        for (index, article) in articles.enumerated() {
+            guard case .pending = article.contentState,
+                  article.dictId == dict.id else { continue }
+
+            // Try to look up the word now that dictionary is loaded
+            if let entry = dict.lookup(article.word) {
+                articles[index].contentState = .loaded(html: entry.article.html, css: nil)
+                print("📖 Loaded pending article: \(article.word) from \(dict.id)")
+            } else {
+                articles[index].contentState = .notFound
+                print("⚠️ Word not found: \(article.word) in \(dict.id)")
+            }
+            didUpdate = true
+        }
+
+        if didUpdate {
+            syncStateToActiveChild()
         }
     }
     
@@ -403,6 +444,35 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
         articlesVC.applyLayout(.columns, animated: true)
         articlesVC.scrollToArticle(article, animated: true)
         updateNavigationBar(for: traitCollection)
+    }
+}
+
+// MARK: - ArticleCellDelegate (Entry Links)
+
+extension DetailContainerViewController: ArticleCellDelegate {
+    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String) {
+        print("📖 Entry link: \(word) in \(dictId)")
+
+        // Check if we already have this article
+        let articleId = "\(dictId):\(word)"
+        if let existingIndex = articles.firstIndex(where: { $0.id == articleId }) {
+            // Move to front
+            let article = articles.remove(at: existingIndex)
+            articles.insert(article, at: 0)
+        } else {
+            // Create new article - try to load content if dictionary is ready
+            let dict = DictionaryService.shared.dict(id: dictId)
+            let dictName = dict?.metadata?.title ?? dictId
+
+            var article = ArticleDisplayItem.pending(word: word, dictId: dictId, dictName: dictName)
+            if let dict = dict, let entry = dict.lookup(word) {
+                article.contentState = .loaded(html: entry.article.html, css: nil)
+            }
+            articles.insert(article, at: 0)
+        }
+
+        syncStateToActiveChild()
+        articlesVC.scrollToArticle(articles.first!, animated: true)
     }
 }
 

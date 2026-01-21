@@ -124,20 +124,20 @@ class MainSplitViewController: UISplitViewController {
     
     private func selectWord(_ word: WordDisplayItem) {
         // Try real lookup first
-        if let dict = DictionaryService.shared.dict(id: word.dictId),
-           let article = DictionaryService.shared.lookup(word.word, in: dict) {
-            showArticle(article, animated: true)
-            return
-        }
-        
-        // Fallback to stub HTML (for testing or when lookup fails)
-        let html = StubHTML.html(for: word.word, dictName: word.dictName)
-        let article = ArticleDisplayItem(
+        let dict = DictionaryService.shared.dict(id: word.dictId)
+
+        var article = ArticleDisplayItem(
             word: word.word,
             dictId: word.dictId,
             dictName: word.dictName,
-            html: html
+            contentState: .pending
         )
+
+        // If dictionary is loaded, get the content
+        if let dict = dict, let entry = dict.lookup(word.word) {
+            article.contentState = .loaded(html: entry.article.html, css: nil)
+        }
+        
         showArticle(article, animated: true)
     }
     

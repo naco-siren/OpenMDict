@@ -2,30 +2,49 @@
 //  ArticleDisplayItem.swift
 //  OpenMDict-iOS
 //
-//  ViewModel for article cells
+//  ViewModel for article cells with support for pending/loaded states
 //
 
 import Foundation
 import UIKit
 import OpenMDictKit
 
+// MARK: - Content State
+
+/// Content loading state for an article
+nonisolated enum ArticleContentState: Equatable, Hashable {
+    case pending                              // Dictionary not loaded yet
+    case loaded(html: String, css: String?)   // Content available
+    case notFound                             // Dictionary loaded but word not found
+
+    var html: String? {
+        if case .loaded(let html, _) = self { return html }
+        return nil
+    }
+
+    var css: String? {
+        if case .loaded(_, let css) = self { return css }
+        return nil
+    }
+}
+
+// MARK: - ArticleDisplayItem
+
 /// Article cell ViewModel
-/// Contains HTML content and optional custom CSS from dictionary
-nonisolated struct ArticleDisplayItem: Identifiable, Hashable, Sendable {
+/// Contains word reference and content state (pending/loaded/notFound)
+nonisolated struct ArticleDisplayItem: Identifiable, Hashable {
     let id: String
     let word: String
     let dictId: String
     let dictName: String
-    let html: String
-    let css: String?
+    var contentState: ArticleContentState
     
-    init(word: String, dictId: String, dictName: String, html: String, css: String? = nil) {
+    init(word: String, dictId: String, dictName: String, contentState: ArticleContentState = .pending) {
         self.id = "\(dictId):\(word)"
         self.word = word
         self.dictId = dictId
         self.dictName = dictName
-        self.html = html
-        self.css = css
+        self.contentState = contentState
     }
 }
 
@@ -42,15 +61,20 @@ extension ArticleDisplayItem {
         return activity
     }
     
+    /// Create from NSUserActivity (state restoration / handoff)
+    /// Content will be in pending state - needs to be loaded after dictionary is ready
     static func from(userActivity: NSUserActivity) -> ArticleDisplayItem? {
         guard userActivity.activityType == activityType,
               let info = userActivity.userInfo,
-              let id = info["id"] as? String,
               let word = info["word"] as? String,
               let dictId = info["dictId"] as? String,
               let dictName = info["dictName"] as? String else { return nil }
-        // Note: html is not restored from handoff, will need to re-lookup
-        return ArticleDisplayItem(word: word, dictId: dictId, dictName: dictName, html: "", css: nil)
+        return ArticleDisplayItem(
+            word: word,
+            dictId: dictId,
+            dictName: dictName,
+            contentState: .pending
+        )
     }
 }
 
@@ -61,22 +85,27 @@ extension ArticleDisplayItem {
     /// Create from MDictLookupResult
     @MainActor
     init(from result: MDictLookupResult) {
-        self.id = "\(result.dict.id):\(result.entry.key)"
-        self.word = result.entry.key
-        self.dictId = result.dict.id
-        self.dictName = result.dict.metadata?.title ?? result.dict.id
-        self.html = result.entry.article.html
-        self.css = nil  // TODO: Load from MDD in future milestone
+        self.init(
+            word: result.entry.key,
+            dictId: result.dict.id,
+            dictName: result.dict.metadata?.title ?? result.dict.id,
+            contentState: .loaded(html: result.entry.article.html, css: nil)
+        )
     }
     
     /// Create from MDict and entry
     @MainActor
     init(from entry: MDictWordEntry, dict: MDict, css: String? = nil) {
-        self.id = "\(dict.id):\(entry.key)"
-        self.word = entry.key
-        self.dictId = dict.id
-        self.dictName = dict.metadata?.title ?? dict.id
-        self.html = entry.article.html
-        self.css = css
+        self.init(
+            word: entry.key,
+            dictId: dict.id,
+            dictName: dict.metadata?.title ?? dict.id,
+            contentState: .loaded(html: entry.article.html, css: css)
+        )
+    }
+    
+    /// Create pending article (for state restoration or entry:// links when dict not loaded)
+    static func pending(word: String, dictId: String, dictName: String) -> ArticleDisplayItem {
+        ArticleDisplayItem(word: word, dictId: dictId, dictName: dictName, contentState: .pending)
     }
 }

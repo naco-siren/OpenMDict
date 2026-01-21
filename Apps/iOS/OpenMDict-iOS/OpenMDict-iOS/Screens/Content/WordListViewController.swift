@@ -205,14 +205,17 @@ extension WordListViewController: UITableViewDelegate {
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             guard let self = self else { return nil }
             
-            // Create a stub article for new window (will be replaced with real lookup)
-            let article = ArticleDisplayItem(
+            // Create article - try to load if dictionary is ready
+            let dict = DictionaryService.shared.dict(id: word.dictId)
+            var article = ArticleDisplayItem(
                 word: word.word,
                 dictId: word.dictId,
                 dictName: word.dictName,
-                html: StubHTML.placeholder(for: word.word, dictName: word.dictName),
-                css: nil
+                contentState: .pending
             )
+            if let dict = dict, let entry = dict.lookup(word.word) {
+                article.contentState = .loaded(html: entry.article.html, css: nil)
+            }
                          
             return UIMenu(children: [
                 UIAction(title: "Open", image: UIImage(systemName: "doc.text")) { _ in

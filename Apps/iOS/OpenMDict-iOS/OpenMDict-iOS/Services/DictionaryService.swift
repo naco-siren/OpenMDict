@@ -58,6 +58,11 @@ final class DictionaryService: ObservableObject {
     
     /// All groups (including default + user-defined)
     private(set) var groups: [MDicts] = []
+    
+    // MARK: - Dictionary Load Events
+    
+    /// Emits when a dictionary finishes loading (for UI to refresh pending articles)
+    let onDictionaryLoaded = PassthroughSubject<MDict, Never>()
 
     // MARK: - Reactive Search Pipeline (Inputs)
     
@@ -98,7 +103,7 @@ final class DictionaryService: ObservableObject {
                 .removeDuplicates()
         )
         .map { [weak self] query, context -> AnyPublisher<[WordDisplayItem], Never> in
-            guard let self = self,
+            guard let _ = self,
                   !query.isEmpty,
                   let lookupable = context.lookupable else {
                 return Just([]).eraseToAnyPublisher()
@@ -215,7 +220,7 @@ final class DictionaryService: ObservableObject {
     }
 
     /// Load full reader for all dictionaries (slow, sequential)
-    /// After each dict loads, search results auto-update via lookupPublisher
+    /// After each dict loads, emits onDictionaryLoaded for UI refresh
     func loadAllDictionaries() async {
         let startTime = CFAbsoluteTimeGetCurrent()
         
@@ -223,6 +228,7 @@ final class DictionaryService: ObservableObject {
             do {
                 try await dict.load()
                 print("✅ Loaded: \(dict.metadata?.title ?? dict.id)")
+                onDictionaryLoaded.send(dict)
             } catch {
                 print("❌ Failed to load \(dict.id): \(error)")
             }

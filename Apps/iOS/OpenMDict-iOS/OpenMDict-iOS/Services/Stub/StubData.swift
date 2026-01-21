@@ -24,8 +24,10 @@ enum StubData {
             word: word,
             dictId: "stub",
             dictName: dictName,
-            html: StubHTML.placeholder(for: word, dictName: dictName),
-            css: nil
+            contentState: .loaded(
+                html: StubHTML.placeholder(for: word, dictName: dictName),
+                css: nil
+            )
         )
     }
     
@@ -35,15 +37,19 @@ enum StubData {
                 word: "hello",
                 dictId: "sample-learners",
                 dictName: "Sample Learner's Dictionary",
-                html: StubHTML.sampleLearners_hello,
-                css: nil
+                contentState: .loaded(
+                    html: StubHTML.sampleLearners_hello,
+                    css: nil
+                )
             ),
             ArticleDisplayItem(
                 word: "do",
                 dictId: "sample-thesaurus",
                 dictName: "Sample Thesaurus",
-                html: StubHTML.sampleThesaurus_do,
-                css: nil
+                contentState: .loaded(
+                    html: StubHTML.sampleThesaurus_do,
+                    css: nil
+                )
             ),
         ]
     }

@@ -169,7 +169,9 @@ class ArticleCell: UICollectionViewCell {
     // MARK: - Configuration
     
     func configure(with article: ArticleDisplayItem, layoutMode: ArticleLayoutMode) {
-        let shouldReloadWeb = (currentArticle?.id != article.id)
+        let articleChanged = (currentArticle?.id != article.id)
+        let contentStateChanged = (currentArticle?.contentState != article.contentState)
+                 
         currentLayoutMode = layoutMode
         currentArticle = article
         
@@ -184,12 +186,27 @@ class ArticleCell: UICollectionViewCell {
         webView.scrollView.isScrollEnabled = (layoutMode != .grid)
         webView.isUserInteractionEnabled = (layoutMode != .grid)
 
-        // Load content when Article changes
-        if shouldReloadWeb {
-            let styledHTML = wrapHTML(article.html, dictId: article.dictId)
-            webView.loadHTMLString(styledHTML, baseURL: nil)
+        // Load content when article or content state changes
+        if articleChanged || contentStateChanged {
+            loadContent(for: article)
         }
     }
+    
+    private func loadContent(for article: ArticleDisplayItem) {
+        switch article.contentState {
+        case .pending:
+            let html = pendingHTML(word: article.word)
+            webView.loadHTMLString(html, baseURL: nil)
+
+        case .loaded(let html, _):
+            let styledHTML = wrapHTML(html, dictId: article.dictId)
+            webView.loadHTMLString(styledHTML, baseURL: nil)
+
+        case .notFound:
+            let html = notFoundHTML(word: article.word, dictName: article.dictName)
+            webView.loadHTMLString(html, baseURL: nil)
+         }
+     }
     
     // MARK: - Actions
     
@@ -205,6 +222,7 @@ class ArticleCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        delegate = nil
         onClose = nil
         onOpenInNewWindow = nil
         onBookmarkToggle = nil
@@ -228,8 +246,7 @@ class ArticleCell: UICollectionViewCell {
     
     func forceReloadWebView() {
         guard let article = currentArticle else { return }
-        let styledHTML = wrapHTML(article.html, dictId: article.dictId)
-        webView.loadHTMLString(styledHTML, baseURL: nil)
+        loadContent(for: article)
     }
     
     // MARK: - HTML Rendering
@@ -272,6 +289,66 @@ class ArticleCell: UICollectionViewCell {
         """
     }
     
+    private func pendingHTML(word: String) -> String {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    font-family: -apple-system, system-ui;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 80vh;
+                    margin: 0;
+                    color: \(cssColor(.secondaryLabel));
+                    background: transparent;
+                }
+                .spinner {
+                    width: 24px;
+                    height: 24px;
+                    border: 3px solid \(cssColor(.separator));
+                    border-top-color: \(cssColor(.systemBlue));
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                p { margin-top: 16px; font-size: 15px; }
+            </style>
+        </head>
+        <body>
+            <div class="spinner"></div>
+            <p>Loading "\(word.htmlEscaped)"...</p>
+        </body>
+        </html>
+        """
+    }
+
+    private func notFoundHTML(word: String, dictName: String) -> String {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { font-family: -apple-system; text-align: center; padding-top: 40%; color: \(cssColor(.secondaryLabel)); background: transparent; }
+                .icon { font-size: 48px; margin-bottom: 16px; }
+                h3 { margin: 0; color: \(cssColor(.label)); }
+                p { margin: 8px 0 0 0; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="icon">🔍</div>
+            <h3>"\(word.htmlEscaped)" not found</h3>
+            <p>in \(dictName.htmlEscaped)</p>
+        </body>
+        </html>
+        """
+    }
+    
     private func cssColor(_ uiColor: UIColor) -> String {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         uiColor.resolvedColor(with: traitCollection).getRed(&r, green: &g, blue: &b, alpha: &a)
@@ -306,5 +383,16 @@ extension ArticleCell: WKNavigationDelegate {
             print("🔗 Unknown link: \(url)")
             decisionHandler(.cancel)
         }
+    }
+}
+
+// MARK: - String Extension
+
+private extension String {
+    var htmlEscaped: String {
+        self.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
     }
 }
