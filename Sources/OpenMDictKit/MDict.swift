@@ -8,6 +8,7 @@ import Combine
 public enum MDictLoadState: Sendable, Equatable {
     case unloaded
     case loading
+    case metadataLoaded
     case loaded
     case error(String)
 }
@@ -85,9 +86,11 @@ public final class MDict: ObservableObject, Identifiable {
     /// Load the dictionary asynchronously
     /// Heavy IO runs on background thread, state updates on MainActor
     public func load() async throws {
-        guard state == .unloaded || state.isError else { return }
-        
-        state = .loading
+        guard state == .unloaded || state == .metadataLoaded || state.isError else { return }
+
+        if state != .metadataLoaded {
+            state = .loading
+        }
         
         do {
             // Heavy IO on background thread via nonisolated function
@@ -111,9 +114,13 @@ public final class MDict: ObservableObject, Identifiable {
     
     /// Load only metadata (fast, header only)
     public func loadMetadata() async {
-        if metadata == nil {
+        guard state == .unloaded else { return }
+        
+        if self.metadata == nil {
             self.metadata = await loadMetadataInBackground(path: path)
         }
+        
+        state = .metadataLoaded
     }
     
     // MARK: - Lookup API

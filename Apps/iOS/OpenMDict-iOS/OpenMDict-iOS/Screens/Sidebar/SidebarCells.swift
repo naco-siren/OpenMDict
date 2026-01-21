@@ -161,7 +161,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             accessories = []
             
-        case .loaded:
+        case .metadataLoaded, .loaded:
             // Normal loaded state - original logic
             if isParentActive {
                 content.image = UIImage(systemName: "book.fill")
@@ -241,7 +241,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             accessories = []
             
-        case .loaded:
+        case .metadataLoaded, .loaded:
             // Normal loaded state - original logic
             if isParentActive {
                 content.image = UIImage(systemName: "book")

@@ -153,6 +153,8 @@ final class DictionaryService: ObservableObject {
         setupDefaultGroups()
         
         Task {
+            await loadAllMetadata()
+            
             await loadAllDictionaries()
         }
     }
@@ -195,8 +197,28 @@ final class DictionaryService: ObservableObject {
     }
     
     // MARK: - Loading
-    
+    /// Load only metadata for all dictionaries (fast, parallel)
+    /// After this, sidebar can display dictionary names
+    func loadAllMetadata() async {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        await withTaskGroup(of: Void.self) { group in
+            for dict in allDictionaries {
+                group.addTask {
+                    await dict.loadMetadata()
+                }
+            }
+        }
+
+        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+        print("📖 All metadata loaded in \(String(format: "%.0f", elapsed))ms")
+    }
+
+    /// Load full reader for all dictionaries (slow, sequential)
+    /// After each dict loads, search results auto-update via lookupPublisher
     func loadAllDictionaries() async {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
         for dict in allDictionaries {
             do {
                 try await dict.load()
@@ -205,7 +227,8 @@ final class DictionaryService: ObservableObject {
                 print("❌ Failed to load \(dict.id): \(error)")
             }
         }
-        print("📚 All dictionaries loaded")
+        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+        print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms")
     }
     
     // MARK: - Search API (Facade for VC)
