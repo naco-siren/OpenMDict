@@ -67,7 +67,9 @@ class DetailContainerViewController: UIViewController {
     }()
     
     private lazy var articleVC: ArticleViewController = {
-        ArticleViewController()
+        let vc = ArticleViewController()
+        vc.delegate = self
+        return vc
     }()
     
     private var activeChild: UIViewController?
@@ -157,6 +159,7 @@ class DetailContainerViewController: UIViewController {
         subscribeToDictionaryLoads()
         subscribeToAppearanceChanges()
         subscribeToArticleMoved()
+        loadPendingArticlesIfReady()
         applyAppearance()
     }
     
@@ -267,13 +270,42 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
+    /// Load pending articles if their dictionaries are already loaded
+    /// Called on viewDidLoad to handle cases where dict loaded before this VC
+    private func loadPendingArticlesIfReady() {
+        var didUpdate = false
+        for (index, article) in articles.enumerated() {
+            guard case .pending = article.contentState else { continue }
+
+            // Check if dictionary is already loaded
+            guard let dict = DictionaryService.shared.dict(id: article.dictId),
+                  dict.state == .loaded else { continue }
+
+            if let entry = dict.lookup(article.word) {
+                articles[index].contentState = .loaded(html: entry.article.html, css: nil)
+                print("📖 Loaded pending article (on init): \(article.word) from \(dict.id)")
+            } else {
+                articles[index].contentState = .notFound
+                print("⚠️ Word not found (on init): \(article.word) in \(dict.id)")
+            }
+            didUpdate = true
+        }
+
+        if didUpdate {
+            syncStateToActiveChild()
+        }
+    }
+    
     // MARK: - Child Management
     
     private func updateChildForTraits(_ traits: UITraitCollection) {
         let shouldUseArticlesVC = traits.horizontalSizeClass == .regular
         let targetChild = shouldUseArticlesVC ? articlesVC : articleVC
         
-        guard targetChild !== activeChild else { return }
+        guard targetChild !== activeChild else {
+            print("🔄 → Already correct child, skipping")
+            return
+        }
         
         // Remove old child
         if let old = activeChild {
@@ -542,10 +574,9 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
 
 // MARK: - ArticleCellDelegate (Entry Links)
 
-extension DetailContainerViewController: ArticleCellDelegate {
-    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String) {
-        print("📖 Entry link: \(word) in \(dictId)")
+extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControllerDelegate {
 
+    private func handleEntryLink(word: String, dictId: String) {
         // Check if we already have this article
         let articleId = "\(dictId):\(word)"
         if let existingIndex = articles.firstIndex(where: { $0.id == articleId }) {
@@ -566,6 +597,16 @@ extension DetailContainerViewController: ArticleCellDelegate {
 
         syncStateToActiveChild()
         articlesVC.scrollToArticle(articles.first!, animated: true)
+    }
+
+    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String) {
+        print("📖 Entry link (cell): \(word) in \(dictId)")
+        handleEntryLink(word: word, dictId: dictId)
+    }
+    
+    func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String) {
+        print("📖 Entry link (vc): \(word) in \(dictId)")
+        handleEntryLink(word: word, dictId: dictId)
     }
 }
 

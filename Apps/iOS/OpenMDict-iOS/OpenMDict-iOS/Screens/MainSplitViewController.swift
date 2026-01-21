@@ -64,6 +64,36 @@ class MainSplitViewController: UISplitViewController {
         setupInitialState()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        // Show initial articles (from state restoration or drag) if exist
+        if !detailContainer.allArticles.isEmpty {
+            print("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
+            show(.secondary)
+        }
+    }
+    
+    override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.willTransition(to: newCollection, with: coordinator)
+
+        // Handle compact mode navigation
+        let wasRegular = traitCollection.horizontalSizeClass == .regular
+        let willBeCompact = newCollection.horizontalSizeClass == .compact
+
+        if wasRegular && willBeCompact {
+            coordinator.animate { _ in
+                if self.detailContainer.allArticles.isEmpty {
+                    print("📱 Transitioning to compact: no articles, showing word list")
+                    self.show(.supplementary)
+                } else {
+                    print("📱 Transitioning to compact: has \(self.detailContainer.allArticles.count) articles, showing detail")
+                    self.show(.secondary)
+                }
+            }
+        }
+    }
+    
     // MARK: - Setup
     
     private func setupSplitView() {

@@ -4,6 +4,7 @@
 <dict>
 	<key>NSUserActivityTypes</key>
 	<array>
+		<string>io.github.naco-siren.OpenMDict.sceneState</string>
 		<string>io.github.naco-siren.OpenMDict.viewArticle</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>

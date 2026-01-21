@@ -202,15 +202,15 @@ class ArticleCell: UICollectionViewCell {
     private func loadContent(for article: ArticleDisplayItem) {
         switch article.contentState {
         case .pending:
-            let html = pendingHTML(word: article.word)
+            let html = ArticleHTMLRenderer.renderPending(word: article.word, traitCollection: traitCollection)
             webView.loadHTMLString(html, baseURL: nil)
 
         case .loaded(let html, _):
-            let styledHTML = wrapHTML(html, dictId: article.dictId)
+            let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
             webView.loadHTMLString(styledHTML, baseURL: nil)
 
         case .notFound:
-            let html = notFoundHTML(word: article.word, dictName: article.dictName)
+            let html = ArticleHTMLRenderer.renderNotFound(word: article.word, dictName: article.dictName, traitCollection: traitCollection)
             webView.loadHTMLString(html, baseURL: nil)
          }
      }
@@ -255,112 +255,6 @@ class ArticleCell: UICollectionViewCell {
         guard let article = currentArticle else { return }
         loadContent(for: article)
     }
-    
-    // MARK: - HTML Rendering
-    
-    private func wrapHTML(_ html: String, dictId: String) -> String {
-        // Rewrite resource paths to use mdict:// scheme
-        let rewrittenHTML = MDictSchemeHandler.rewriteResourcePaths(in: html, dictId: dictId)
-        
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <style>
-                * { -webkit-user-select: none; user-select: none; }
-                body {
-                    font-family: -apple-system, system-ui;
-                    font-size: 15px;
-                    line-height: 1.5;
-                    margin: 12px;
-                    padding: 0;
-                    color: \(cssColor(.label));
-                    background: transparent;
-                }
-                h2.h { font-size: 1.3em; margin: 0 0 8px 0; }
-                .pos { color: \(cssColor(.secondaryLabel)); font-style: italic; }
-                .def { display: block; margin: 8px 0; }
-                .x { color: \(cssColor(.secondaryLabel)); display: block; margin: 4px 0 4px 16px; }
-                .x::before { content: "• "; }
-                .phon { color: \(cssColor(.systemBlue)); }
-                .num { font-weight: bold; margin-right: 4px; }
-                .collapse { display: block; margin-top: 12px; padding-top: 8px; border-top: 1px solid \(cssColor(.separator)); }
-                .heading { font-weight: 600; display: block; margin-bottom: 4px; }
-                a { color: \(cssColor(.link)); text-decoration: none; }
-                img { max-width: 100%; height: auto; }
-            </style>
-        </head>
-        <body>\(rewrittenHTML)</body>
-        </html>
-        """
-    }
-    
-    private func pendingHTML(word: String) -> String {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {
-                    font-family: -apple-system, system-ui;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    height: 80vh;
-                    margin: 0;
-                    color: \(cssColor(.secondaryLabel));
-                    background: transparent;
-                }
-                .spinner {
-                    width: 24px;
-                    height: 24px;
-                    border: 3px solid \(cssColor(.separator));
-                    border-top-color: \(cssColor(.systemBlue));
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-                @keyframes spin { to { transform: rotate(360deg); } }
-                p { margin-top: 16px; font-size: 15px; }
-            </style>
-        </head>
-        <body>
-            <div class="spinner"></div>
-            <p>Loading "\(word.htmlEscaped)"...</p>
-        </body>
-        </html>
-        """
-    }
-
-    private func notFoundHTML(word: String, dictName: String) -> String {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body { font-family: -apple-system; text-align: center; padding-top: 40%; color: \(cssColor(.secondaryLabel)); background: transparent; }
-                .icon { font-size: 48px; margin-bottom: 16px; }
-                h3 { margin: 0; color: \(cssColor(.label)); }
-                p { margin: 8px 0 0 0; font-size: 14px; }
-            </style>
-        </head>
-        <body>
-            <div class="icon">🔍</div>
-            <h3>"\(word.htmlEscaped)" not found</h3>
-            <p>in \(dictName.htmlEscaped)</p>
-        </body>
-        </html>
-        """
-    }
-    
-    private func cssColor(_ uiColor: UIColor) -> String {
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        uiColor.resolvedColor(with: traitCollection).getRed(&r, green: &g, blue: &b, alpha: &a)
-        return "rgba(\(Int(r*255)), \(Int(g*255)), \(Int(b*255)), \(a))"
-    }
 }
 
 // MARK: - WKNavigationDelegate
@@ -394,16 +288,5 @@ extension ArticleCell: WKNavigationDelegate {
             print("🔗 Unknown link: \(url)")
             decisionHandler(.cancel)
         }
-    }
-}
-
-// MARK: - String Extension
-
-private extension String {
-    var htmlEscaped: String {
-        self.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
     }
 }

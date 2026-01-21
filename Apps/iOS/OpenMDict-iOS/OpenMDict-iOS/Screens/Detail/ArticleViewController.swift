@@ -7,8 +7,23 @@
 //
 
 import UIKit
+import WebKit
+
+// MARK: - Delegate
+
+protocol ArticleViewControllerDelegate: AnyObject {
+    func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String)
+}
 
 class ArticleViewController: UIViewController {
+    
+    // MARK: - Delegate
+    
+    weak var delegate: ArticleViewControllerDelegate?
+    
+    // MARK: - State
+    
+    private var currentArticle: ArticleDisplayItem?
     
     // MARK: - UI
     
@@ -35,43 +50,42 @@ class ArticleViewController: UIViewController {
         return l
     }()
     
-    private lazy var contentView: UIView = {
-        // Placeholder for WKWebView
-        let v = UIView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-        v.backgroundColor = .systemBackground
+    private lazy var webView: WKWebView = {
+        let config = WKWebViewConfiguration()
+        config.setURLSchemeHandler(MDictSchemeHandler.shared, forURLScheme: "mdict")
         
-        let placeholder = UILabel()
-        placeholder.translatesAutoresizingMaskIntoConstraints = false
-        placeholder.text = "📖\n\n(WKWebView content here)"
-        placeholder.textAlignment = .center
-        placeholder.numberOfLines = 0
-        placeholder.textColor = .tertiaryLabel
-        v.addSubview(placeholder)
-        NSLayoutConstraint.activate([
-            placeholder.centerXAnchor.constraint(equalTo: v.centerXAnchor),
-            placeholder.centerYAnchor.constraint(equalTo: v.centerYAnchor),
-        ])
-        return v
+        let wv = WKWebView(frame: .zero, configuration: config)
+        wv.translatesAutoresizingMaskIntoConstraints = false
+        wv.isOpaque = false
+        wv.backgroundColor = .clear
+        wv.scrollView.backgroundColor = .clear
+        wv.navigationDelegate = self
+        return wv
     }()
     
     private lazy var emptyView: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
+        v.backgroundColor = .systemBackground
+        
         let stack = UIStackView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
         stack.alignment = .center
         stack.spacing = 16
+        
         let img = UIImageView(image: UIImage(systemName: "book.closed"))
         img.tintColor = .tertiaryLabel
         img.preferredSymbolConfiguration = .init(pointSize: 64)
+        
         let lbl = UILabel()
         lbl.text = "Select a word to view"
         lbl.textColor = .secondaryLabel
+        
         stack.addArrangedSubview(img)
         stack.addArrangedSubview(lbl)
         v.addSubview(stack)
+        
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: v.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: v.centerYAnchor),
@@ -90,7 +104,7 @@ class ArticleViewController: UIViewController {
     
     private func setupUI() {
         view.addSubview(headerView)
-        view.addSubview(contentView)
+        view.addSubview(webView)
         view.addSubview(emptyView)
         
         headerView.addSubview(titleLabel)
@@ -110,10 +124,10 @@ class ArticleViewController: UIViewController {
             subtitleLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
             subtitleLabel.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -16),
             
-            contentView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            contentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            webView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
             emptyView.topAnchor.constraint(equalTo: view.topAnchor),
             emptyView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -122,28 +136,104 @@ class ArticleViewController: UIViewController {
         ])
     }
     
+    // MARK: - Trait Changes
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            reloadWebView()
+        }
+    }
+    
     // MARK: - Public API (called by Container)
     
     func configure(article: ArticleDisplayItem?) {
+        let articleChanged = (currentArticle?.id != article?.id)
+        let contentStateChanged = (currentArticle?.contentState != article?.contentState)
+        currentArticle = article
+        
         if let article = article {
-            showArticle(article)
+            showArticle(article, reload: articleChanged || contentStateChanged)
         } else {
             showEmpty()
         }
     }
     
-    private func showArticle(_ article: ArticleDisplayItem) {
+    private func showArticle(_ article: ArticleDisplayItem, reload: Bool) {
         emptyView.isHidden = true
         headerView.isHidden = false
-        contentView.isHidden = false
+        webView.isHidden = false
         
         titleLabel.text = article.word
         subtitleLabel.text = article.dictName
+        
+        if reload {
+            loadContent(for: article)
+        }
     }
     
     private func showEmpty() {
         emptyView.isHidden = false
         headerView.isHidden = true
-        contentView.isHidden = true
+        webView.isHidden = true
+        currentArticle = nil
+    }
+    
+    private func loadContent(for article: ArticleDisplayItem) {
+        switch article.contentState {
+        case .pending:
+            let html = ArticleHTMLRenderer.renderPending(word: article.word, traitCollection: traitCollection)
+            webView.loadHTMLString(html, baseURL: nil)
+            
+        case .loaded(let html, _):
+            let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
+            webView.loadHTMLString(styledHTML, baseURL: nil)
+            
+        case .notFound:
+            let html = ArticleHTMLRenderer.renderNotFound(word: article.word, dictName: article.dictName, traitCollection: traitCollection)
+            webView.loadHTMLString(html, baseURL: nil)
+        }
+    }
+    
+    private func reloadWebView() {
+        guard let article = currentArticle else { return }
+        loadContent(for: article)
+    }
+}
+
+// MARK: - WKNavigationDelegate
+
+extension ArticleViewController: WKNavigationDelegate {
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        
+        let scheme = url.scheme ?? ""
+        
+        switch scheme {
+        case "entry":
+            // Entry link: navigate to word in same dictionary
+            let targetWord = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            if let dictId = currentArticle?.dictId, !targetWord.isEmpty {
+                delegate?.articleViewController(self, didTapEntryLink: targetWord, inDict: dictId)
+            }
+            decisionHandler(.cancel)
+            
+        case "sound":
+            // Play audio from MDD
+            if let dictId = currentArticle?.dictId {
+                AudioService.shared.play(url: url, dictId: dictId)
+            }
+            decisionHandler(.cancel)
+            
+        case "about":
+            decisionHandler(.allow)
+            
+        default:
+            print("🔗 Unknown link: \(url)")
+            decisionHandler(.cancel)
+        }
     }
 }
