@@ -138,7 +138,10 @@ class ArticlesViewController: UIViewController {
                 guard let self = self else { return }
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
             }
-            cell.onOpenInNewWindow = { SceneDelegate.openNewWindow(for: article) }
+            cell.onOpenInNewWindow = { [weak self] in
+                let session = self?.view.window?.windowScene?.session
+                SceneDelegate.openNewWindow(for: article, sourceSession: session)
+            }
             cell.onBookmarkToggle = { isBookmarked in
                 print("🔖 Bookmark: \(article.word): \(isBookmarked)")
                 // TODO: Implement bookmark persistence
@@ -438,7 +441,8 @@ extension ArticlesViewController: UICollectionViewDelegate {
                 guard let self = self else { return nil }
                 return UIMenu(children: [
                     UIAction(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
-                        SceneDelegate.openNewWindow(for: article)
+                        let session = self.view.window?.windowScene?.session
+                        SceneDelegate.openNewWindow(for: article, sourceSession: session)
                     },
                     UIAction(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
                         print("🔖 Bookmark: \(article.word)")
@@ -474,7 +478,13 @@ extension ArticlesViewController: UICollectionViewDragDelegate {
                         at indexPath: IndexPath) -> [UIDragItem] {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return [] }
         
-        let itemProvider = NSItemProvider(object: article.userActivity)
+        // Create user activity with source session ID for tracking
+        let activity = article.userActivity
+        if let sessionId = view.window?.windowScene?.session.persistentIdentifier {
+            activity.userInfo?["sourceSessionId"] = sessionId
+        }
+
+        let itemProvider = NSItemProvider(object: activity)
         let dragItem = UIDragItem(itemProvider: itemProvider)
         dragItem.localObject = article
         return [dragItem]

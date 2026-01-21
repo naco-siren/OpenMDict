@@ -221,8 +221,9 @@ extension WordListViewController: UITableViewDelegate {
                 UIAction(title: "Open", image: UIImage(systemName: "doc.text")) { _ in
                     self.onWordSelected?(word)
                 },
-                UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { _ in
-                    SceneDelegate.openNewWindow(for: article)
+                UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { [weak self] _ in
+                    let session = self?.view.window?.windowScene?.session
+                    SceneDelegate.openNewWindow(for: article, sourceSession: session)
                 },
             ])
         }

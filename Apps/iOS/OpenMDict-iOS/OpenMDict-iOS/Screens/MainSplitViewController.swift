@@ -18,16 +18,29 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - State
     
+    private var initialGroupId: String = ""
     private var currentGroup: MDicts?
     private var currentDict: MDict?
     
     // MARK: - Initialization
     
-    init(initialArticle: ArticleDisplayItem? = nil) {
+    init(
+        initialArticles: [ArticleDisplayItem] = [],
+        initialGroupId: String = "",
+        initialLayoutMode: Int = 0
+    ) {
         super.init(style: .tripleColumn)
         
-        if let article = initialArticle {
+        self.initialGroupId = initialGroupId
+        
+        // Preload articles
+        for article in initialArticles {
             detailContainer.preloadArticle(article)
+        }
+
+        // Set layout mode
+        if let mode = ArticleLayoutMode(rawValue: initialLayoutMode) {
+            detailContainer.setLayoutMode(mode)
         }
     }
     
@@ -91,17 +104,34 @@ class MainSplitViewController: UISplitViewController {
         wordListVC.onWordSelected = { [weak self] wordItem in
             self?.selectWord(wordItem)
         }
+        
+        // Handle articles emptied (e.g., after drag to new window)
+        detailContainer.onArticlesEmptied = { [weak self] in
+            // In compact mode, show supplementary column when articles become empty
+            if self?.traitCollection.horizontalSizeClass == .compact {
+                self?.show(.supplementary)
+            }
+        }
     }
     
     private func setupInitialState() {
-        guard let defaultGroup = DictionaryService.shared.defaultGroup else {
+        // Use restored group or default
+        let group: MDicts?
+        if initialGroupId.isEmpty {
+            group = DictionaryService.shared.defaultGroup
+        } else {
+            group = DictionaryService.shared.group(id: initialGroupId)
+                ?? DictionaryService.shared.defaultGroup
+        }
+
+        guard let group = group else {
             print("⚠️ No default group found")
             return
         }
-        currentGroup = defaultGroup
+        currentGroup = group
         currentDict = nil
-        wordListVC.loadWords(for: defaultGroup)
-        dictionaryListVC.setActiveGroup(defaultGroup)
+        wordListVC.loadWords(for: group)
+        dictionaryListVC.setActiveGroup(group)
     }
     
     // MARK: - Navigation
@@ -150,10 +180,15 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - State Restoration
     
     func currentStateActivity() -> NSUserActivity? {
-        guard let currentArticle = detailContainer.currentArticle else {
-            return nil
-        }
-        return currentArticle.userActivity
+        let articles = detailContainer.allArticles
+        let groupId = currentGroup?.id ?? ""
+        let layoutMode = detailContainer.currentLayoutMode.rawValue
+
+        return ArticleDisplayItem.sceneStateActivity(
+            articles: articles,
+            groupId: groupId,
+            layoutMode: layoutMode
+        )
     }
 }
 
@@ -174,6 +209,8 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
 extension MainSplitViewController {
     
     func openInNewWindow(_ article: ArticleDisplayItem) {
-        SceneDelegate.openNewWindow(for: article)
+        // Get current scene session
+        let session = view.window?.windowScene?.session
+        SceneDelegate.openNewWindow(for: article, sourceSession: session)
     }
 }

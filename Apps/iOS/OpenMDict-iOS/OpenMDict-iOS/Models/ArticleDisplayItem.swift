@@ -51,7 +51,8 @@ nonisolated struct ArticleDisplayItem: Identifiable, Hashable {
 // MARK: - Handoff Support
 
 extension ArticleDisplayItem {
-    static let activityType = "com.openmdict.viewArticle"
+    /// Activity type for single article (drag & drop, handoff)
+    static let activityType = "io.github.naco-siren.OpenMDict.viewArticle"
     
     var userActivity: NSUserActivity {
         let activity = NSUserActivity(activityType: Self.activityType)
@@ -75,6 +76,57 @@ extension ArticleDisplayItem {
             dictName: dictName,
             contentState: .pending
         )
+    }
+}
+
+// MARK: - Scene State Restoration
+
+extension ArticleDisplayItem {
+    /// Activity type for full scene state restoration
+    static let sceneStateActivityType = "io.github.naco-siren.OpenMDict.sceneState"
+
+    /// Create scene state activity with multiple articles
+    static func sceneStateActivity(
+        articles: [ArticleDisplayItem],
+        groupId: String,
+        layoutMode: Int
+    ) -> NSUserActivity {
+        let activity = NSUserActivity(activityType: sceneStateActivityType)
+        activity.title = articles.first?.word ?? "OpenMDict"
+
+        // Encode articles as array of dictionaries (only essential fields)
+        let articlesData = articles.map { article -> [String: String] in
+            ["word": article.word, "dictId": article.dictId, "dictName": article.dictName]
+        }
+
+        activity.userInfo = [
+            "articles": articlesData,
+            "groupId": groupId,
+            "layoutMode": layoutMode
+        ]
+
+        return activity
+    }
+
+    /// Parse scene state from activity
+    static func parseSceneState(from activity: NSUserActivity) -> (articles: [ArticleDisplayItem], groupId: String, layoutMode: Int)? {
+        guard activity.activityType == sceneStateActivityType,
+              let info = activity.userInfo,
+              let articlesData = info["articles"] as? [[String: String]] else {
+            return nil
+        }
+
+        let articles = articlesData.compactMap { dict -> ArticleDisplayItem? in
+            guard let word = dict["word"],
+                  let dictId = dict["dictId"],
+                  let dictName = dict["dictName"] else { return nil }
+            return ArticleDisplayItem.pending(word: word, dictId: dictId, dictName: dictName)
+        }
+
+        let groupId = info["groupId"] as? String ?? ""
+        let layoutMode = info["layoutMode"] as? Int ?? 0
+
+        return (articles, groupId, layoutMode)
     }
 }
 

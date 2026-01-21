@@ -16,8 +16,26 @@ enum AppearanceMode: Int {
     case light = 0
     case system = 1
     case dark = 2
+
+    var userInterfaceStyle: UIUserInterfaceStyle {
+        switch self {
+        case .light: return .light
+        case .system: return .unspecified
+        case .dark: return .dark
+        }
+    }
 }
 
+// MARK: - UserDefaults Extension
+
+extension UserDefaults {
+    private static let appearanceModeKey = "appearanceMode"
+
+    var appearanceMode: AppearanceMode {
+        get { AppearanceMode(rawValue: integer(forKey: Self.appearanceModeKey)) ?? .system }
+        set { set(newValue.rawValue, forKey: Self.appearanceModeKey) }
+    }
+}
 
 class DetailContainerViewController: UIViewController {
     
@@ -25,12 +43,19 @@ class DetailContainerViewController: UIViewController {
     
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
-    private var appearanceMode: AppearanceMode = .system
+    private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
+    
+    /// Called when articles become empty (for compact mode navigation)
+    var onArticlesEmptied: (() -> Void)?
     
     /// Subscriptions
     private var cancellables = Set<AnyCancellable>()
     
-    var currentArticle: ArticleDisplayItem? { articles.first }
+    /// All articles (for state restoration)
+    var allArticles: [ArticleDisplayItem] { articles }
+    
+    /// Current layout mode (for state restoration)
+    var currentLayoutMode: ArticleLayoutMode { layoutMode }
     
     // MARK: - Child View Controllers
     
@@ -91,18 +116,15 @@ class DetailContainerViewController: UIViewController {
         UIMenu(title: "Appearance", children: [
             UIAction(title: "Light", image: .init(systemName: "sun.max"),
                      state: appearanceMode == .light ? .on : .off) { [weak self] _ in
-                self?.appearanceMode = .light
-                self?.applyAppearance()
+                self?.setAppearanceMode(.light)
             },
             UIAction(title: "Auto", image: .init(systemName: "circle.lefthalf.filled"),
                      state: appearanceMode == .system ? .on : .off) { [weak self] _ in
-                self?.appearanceMode = .system
-                self?.applyAppearance()
+                self?.setAppearanceMode(.system)
             },
             UIAction(title: "Dark", image: .init(systemName: "moon"),
                      state: appearanceMode == .dark ? .on : .off) { [weak self] _ in
-                self?.appearanceMode = .dark
-                self?.applyAppearance()
+                self?.setAppearanceMode(.dark)
             },
         ])
     }
@@ -133,8 +155,29 @@ class DetailContainerViewController: UIViewController {
         updateChildForTraits(traitCollection)
         updateNavigationBar(for: traitCollection)
         subscribeToDictionaryLoads()
+        subscribeToAppearanceChanges()
+        subscribeToArticleMoved()
         applyAppearance()
     }
+    
+    private func subscribeToAppearanceChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .appearanceModeDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notif in
+            guard let self else { return }
+            let mode = notif.object as? AppearanceMode
+            
+            Task { @MainActor in
+                guard let mode else { return }
+                self.appearanceMode = mode
+                self.applyAppearance()
+                self.updateNavigationBar(for: self.traitCollection)
+            }
+        }
+    }
+
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
@@ -145,6 +188,49 @@ class DetailContainerViewController: UIViewController {
             self.updateNavigationBar(for: newCollection)
         }
     }
+    
+    private func subscribeToArticleMoved() {
+        NotificationCenter.default.addObserver(
+            forName: .articleMovedToNewScene,
+            object: nil,
+            queue: .main
+        ) { [weak self] notif in
+            guard let self else { return }
+            // Extract Sendable values immediately
+            let articleId = notif.userInfo?["articleId"] as? String
+            let sourceSessionId = notif.userInfo?["sourceSessionId"] as? String
+            
+            Task { @MainActor in
+                self.handleArticleMovedToNewScene(articleId: articleId, sourceSessionId: sourceSessionId)
+            }
+        }
+    }
+
+    /// Handle notification when an article was dragged to a new window
+    private func handleArticleMovedToNewScene(articleId: String?, sourceSessionId: String?) {
+        guard let articleId, let sourceSessionId else {
+            return
+        }
+
+        // Check if this is the source window
+        guard let mySessionId = view.window?.windowScene?.session.persistentIdentifier,
+              mySessionId == sourceSessionId else {
+            return  // Not from this window, ignore
+        }
+
+        // Remove the article from this window
+        if let index = articles.firstIndex(where: { $0.id == articleId }) {
+            articles.remove(at: index)
+            print("📤 Removed dragged article: \(articleId)")
+            syncStateToActiveChild()
+
+            // If articles empty and compact mode, notify to show supplementary
+            if articles.isEmpty {
+                onArticlesEmptied?()
+            }
+        }
+    }
+    
 
     // MARK: - Dictionary Load Subscription
 
@@ -394,6 +480,12 @@ class DetailContainerViewController: UIViewController {
         // TODO: Show some placeholder articles become empty
     }
     
+    /// Set layout mode (for state restoration)
+    func setLayoutMode(_ mode: ArticleLayoutMode) {
+        layoutMode = mode
+        // Will be applied when view loads
+    }
+    
     // MARK: - Actions
     
     @objc private func layoutChanged(_ sender: UISegmentedControl) {
@@ -404,18 +496,18 @@ class DetailContainerViewController: UIViewController {
     
     @objc private func appearanceChanged(_ sender: UISegmentedControl) {
         appearanceMode = AppearanceMode(rawValue: sender.selectedSegmentIndex) ?? .system
-        applyAppearance()
+        setAppearanceMode(appearanceMode)
     }
 
+    /// Set appearance mode and broadcast to all windows
+    private func setAppearanceMode(_ mode: AppearanceMode) {
+        UserDefaults.standard.appearanceMode = mode
+        NotificationCenter.default.post(name: .appearanceModeDidChange, object: mode)
+    }
+    
     private func applyAppearance() {
-        let style: UIUserInterfaceStyle = switch appearanceMode {
-        case .light: .light
-        case .system: .unspecified
-        case .dark: .dark
-        }
-
-        view.window?.overrideUserInterfaceStyle = style
-        
+        view.window?.overrideUserInterfaceStyle = appearanceMode.userInterfaceStyle
+   
         // Refresh nav bar to update representativeItem icon
         updateNavigationBar(for: traitCollection)
     }

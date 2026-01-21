@@ -18,26 +18,54 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         let window = UIWindow(windowScene: windowScene)
         
-        // Check if there's a userActivity specifying an article to open
-        let initialArticle: ArticleDisplayItem?
+        // Parse restoration state
+        var initialArticles: [ArticleDisplayItem] = []
+        var initialGroupId: String = ""
+        var initialLayoutMode: Int = 0
+        var sourceSessionId: String? = nil
+
         if let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity {
-            initialArticle = ArticleDisplayItem.from(userActivity: activity)
-        } else {
-            initialArticle = nil
+            if let sceneState = ArticleDisplayItem.parseSceneState(from: activity) {
+                // Full scene restoration
+                initialArticles = sceneState.articles
+                initialGroupId = sceneState.groupId
+                initialLayoutMode = sceneState.layoutMode
+            } else if let article = ArticleDisplayItem.from(userActivity: activity) {
+                // Single article (from drag & drop or handoff)
+                initialArticles = [article]
+                sourceSessionId = activity.userInfo?["sourceSessionId"] as? String
+            }
         }
         
         // Create main interface
-        let splitVC = MainSplitViewController(initialArticle: initialArticle)
+        let splitVC = MainSplitViewController(
+            initialArticles: initialArticles,
+            initialGroupId: initialGroupId,
+            initialLayoutMode: initialLayoutMode
+        )
         window.rootViewController = splitVC
         
         self.window = window
         window.makeKeyAndVisible()
         
         // Set window title (shown in App Switcher)
-        if let article = initialArticle {
-            windowScene.title = article.word
+        // Set window title
+        if let firstArticle = initialArticles.first {
+            windowScene.title = firstArticle.word
         } else {
             windowScene.title = "OpenMDict"
+        }
+        
+        // Notify source window if this was a drag & drop
+        if let sourceSessionId = sourceSessionId, let articleId = initialArticles.first?.id {
+            NotificationCenter.default.post(
+                name: .articleMovedToNewScene,
+                object: nil,
+                userInfo: [
+                    "articleId": articleId,
+                    "sourceSessionId": sourceSessionId
+                ]
+            )
         }
     }
     
@@ -62,8 +90,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 extension SceneDelegate {
     
     /// Request opening a new window for the specified article
-    static func openNewWindow(for article: ArticleDisplayItem) {
+    static func openNewWindow(for article: ArticleDisplayItem, sourceSession: UISceneSession? = nil) {
         let activity = article.userActivity
+
+        // Add source session ID for tracking
+        if let sessionId = sourceSession?.persistentIdentifier {
+            activity.userInfo?["sourceSessionId"] = sessionId
+        }
         
         UIApplication.shared.requestSceneSessionActivation(
             nil,

@@ -4,7 +4,7 @@
 <dict>
 	<key>NSUserActivityTypes</key>
 	<array>
-		<string>com.openmdict.viewArticle</string>
+		<string>io.github.naco-siren.OpenMDict.viewArticle</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
