@@ -47,6 +47,9 @@ class ArticlesViewController: UIViewController {
     
     weak var delegate: ArticlesViewControllerDelegate?
     
+    /// Delegate for handling entry:// links from cells
+    weak var cellDelegate: ArticleCellDelegate?
+    
     // MARK: - Internal State (view-rendering only, not source of truth)
     
     private var articles: [ArticleDisplayItem] = []
@@ -129,6 +132,7 @@ class ArticlesViewController: UIViewController {
         
         // Cell registration
         let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleDisplayItem> { [weak self] cell, indexPath, article in
+            cell.delegate = self?.cellDelegate
             cell.configure(with: article, layoutMode: self?.layoutMode ?? .columns)
             cell.onClose = { [weak self] in
                 guard let self = self else { return }

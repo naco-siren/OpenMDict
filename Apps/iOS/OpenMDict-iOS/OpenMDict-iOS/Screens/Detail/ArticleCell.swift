@@ -8,10 +8,17 @@
 import UIKit
 import WebKit
 
+// MARK: - Delegate
+
+protocol ArticleCellDelegate: AnyObject {
+    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String)
+}
+
 class ArticleCell: UICollectionViewCell {
     
     // MARK: - Callbacks
     
+    weak var delegate: ArticleCellDelegate?
     var onClose: (() -> Void)?
     var onOpenInNewWindow: (() -> Void)?
     var onBookmarkToggle: ((Bool) -> Void)?
@@ -369,7 +376,11 @@ extension ArticleCell: WKNavigationDelegate {
         
         switch scheme {
         case "entry":
-            print("📖 Entry link: \(url.host ?? url.absoluteString)")
+            // Entry link: navigate to word in same dictionary
+            let targetWord = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            if let dictId = currentArticle?.dictId, !targetWord.isEmpty {
+                delegate?.articleCell(self, didTapEntryLink: targetWord, inDict: dictId)
+            }
             decisionHandler(.cancel)
         case "sound":
             // Play audio from MDD

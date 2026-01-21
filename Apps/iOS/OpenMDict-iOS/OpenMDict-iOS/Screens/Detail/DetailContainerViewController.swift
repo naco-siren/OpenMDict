@@ -37,6 +37,7 @@ class DetailContainerViewController: UIViewController {
     private lazy var articlesVC: ArticlesViewController = {
         let vc = ArticlesViewController()
         vc.delegate = self
+        vc.cellDelegate = self
         return vc
     }()
     
