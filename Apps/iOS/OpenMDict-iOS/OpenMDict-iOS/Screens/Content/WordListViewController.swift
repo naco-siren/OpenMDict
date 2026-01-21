@@ -16,6 +16,9 @@ class WordListViewController: UIViewController {
     
     var onWordSelected: ((WordDisplayItem) -> Void)?
     
+    /// Per-scene search session (injected by MainSplitVC)
+    var searchSession: SearchSession?
+    
     private var currentTitle = "Search"
     private var cancellables = Set<AnyCancellable>()
     
@@ -23,7 +26,7 @@ class WordListViewController: UIViewController {
     private var displayedWords: [WordDisplayItem] = []
     
     private var isSearching: Bool {
-        searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
+        !(searchController.searchBar.text?.isEmpty ?? true)
     }
     
     // MARK: - UI
@@ -88,12 +91,13 @@ class WordListViewController: UIViewController {
     // MARK: - Reactive Binding
     
     private func subscribeToSearchResults() {
-        DictionaryService.shared.$searchResults
+        searchSession?.$results
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
-                self?.displayedWords = results
-                self?.tableView.reloadData()
-                self?.updateEmptyState()
+                guard let self else { return }
+                self.displayedWords = results
+                self.tableView.reloadData()
+                self.updateEmptyState()
             }
             .store(in: &cancellables)
     }
@@ -105,7 +109,7 @@ class WordListViewController: UIViewController {
         updateTitleView()
         
         // Update search context - triggers reactive pipeline if query exists
-        DictionaryService.shared.setSearchContext(group: group)
+        searchSession?.setContext(group: group)
         updateEmptyState()
     }
     
@@ -114,7 +118,7 @@ class WordListViewController: UIViewController {
         updateTitleView()
         
         // Update search context - triggers reactive pipeline if query exists
-        DictionaryService.shared.setSearchContext(dict: dict)
+        searchSession?.setContext(dict: dict)
         updateEmptyState()
     }
     
@@ -125,7 +129,7 @@ class WordListViewController: UIViewController {
         emptyLabel.isHidden = !isEmpty
         tableView.isHidden = isEmpty
         
-        let context = DictionaryService.shared.currentContext
+        let context = searchSession?.currentContext ?? .none
         if case .none = context {
             emptyLabel.text = "Select a dictionary or group"
         } else if isSearching && displayedWords.isEmpty {
@@ -136,7 +140,7 @@ class WordListViewController: UIViewController {
     }
     
     private func updateTitleView() {
-        let context = DictionaryService.shared.currentContext
+        let context = searchSession?.currentContext ?? .none
         let iconName: String
         
         switch context {
@@ -183,7 +187,7 @@ extension WordListViewController: UITableViewDataSource {
         c.text = wordItem.word
 
         // Show dictionary name as secondary text when displaying a group
-        if case .group = DictionaryService.shared.currentContext {
+        if case .group = searchSession?.currentContext {
             c.secondaryText = wordItem.dictName
             c.secondaryTextProperties.color = .secondaryLabel
         }
@@ -236,6 +240,6 @@ extension WordListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         let query = searchController.searchBar.text ?? ""
         // Just update the query - reactive pipeline handles the rest!
-        DictionaryService.shared.updateSearchQuery(query)
+        searchSession?.updateQuery(query)
     }
 }

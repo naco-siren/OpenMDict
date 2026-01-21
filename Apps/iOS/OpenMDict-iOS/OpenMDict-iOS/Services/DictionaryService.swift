@@ -44,6 +44,12 @@ enum SearchContext: Equatable {
     }
 }
 
+// MARK: - SearchSession (defined in SearchSession.swift)
+
+// SearchSession is a per-scene search handler.
+// DictionaryService provides factory method to create them.
+// See SearchSession.swift for implementation.
+
 // MARK: - DictionaryService
 
 @MainActor
@@ -63,77 +69,15 @@ final class DictionaryService: ObservableObject {
     
     /// Emits when a dictionary finishes loading (for UI to refresh pending articles)
     let onDictionaryLoaded = PassthroughSubject<MDict, Never>()
-
-    // MARK: - Reactive Search Pipeline (Inputs)
     
-    /// Input: search query
-    private let searchQuerySubject = CurrentValueSubject<String, Never>("")
+    private init() {}
     
-    /// Input: search context (group or dictionary)
-    private let searchContextSubject = CurrentValueSubject<SearchContext, Never>(.none)
+    // MARK: - Search Session Factory
     
-    // MARK: - Reactive Search Pipeline (Output)
-    
-    /// Output: search results (updated progressively)
-    @Published private(set) var searchResults: [WordDisplayItem] = []
-    
-    /// Pipeline subscriptions
-    private var cancellables = Set<AnyCancellable>()
-    
-    // MARK: - Init
-    
-    private init() {
-        setupSearchPipeline()
-    }
-    
-    // MARK: - Reactive Pipeline Setup
-    
-    /// Core reactive pipeline:
-    /// ```
-    /// (query, context) ──► map to lookupPublisher ──► switchToLatest ──► results
-    ///                                                    ↑
-    ///                                    Key: auto-cancels previous search
-    /// ```
-    private func setupSearchPipeline() {
-        Publishers.CombineLatest(
-            searchQuerySubject
-                .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
-                .removeDuplicates(),
-            searchContextSubject
-                .removeDuplicates()
-        )
-        .map { [weak self] query, context -> AnyPublisher<[WordDisplayItem], Never> in
-            guard let _ = self,
-                  !query.isEmpty,
-                  let lookupable = context.lookupable else {
-                return Just([]).eraseToAnyPublisher()
-            }
-            
-            // Log search start
-            let contextName: String
-            switch context {
-            case .group(let g): contextName = "group '\(g.name)'"
-            case .dictionary(let d): contextName = "dict '\(d.metadata?.title ?? d.id)'"
-            case .none: contextName = "none"
-            }
-            print("🔍 Search '\(query)' in \(contextName)")
-            
-            // Get lookup publisher and convert WordSearchResult → WordDisplayItem
-            return lookupable.lookupPublisher(prefix: query, limit: 50)
-                .map { results in
-                    results.map { WordDisplayItem(from: $0) }
-                }
-                .eraseToAnyPublisher()
-        }
-        .switchToLatest()  // ⭐ Key: cancels previous search when query/context changes
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] results in
-            self?.searchResults = results
-            if !results.isEmpty {
-                print("🔍 Results: \(results.count) items")
-            }
-        }
-        .store(in: &cancellables)
+    /// Create a new search session for a scene
+    /// Each scene should hold its own SearchSession instance
+    func createSearchSession() -> SearchSession {
+        SearchSession()
     }
     
     // MARK: - Computed
@@ -235,43 +179,6 @@ final class DictionaryService: ObservableObject {
         }
         let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
         print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms")
-    }
-    
-    // MARK: - Search API (Facade for VC)
-    
-    /// Update search query - triggers reactive pipeline
-    func updateSearchQuery(_ query: String) {
-        searchQuerySubject.send(query)
-    }
-    
-    /// Update search context - triggers reactive pipeline
-    func setSearchContext(_ context: SearchContext) {
-        searchContextSubject.send(context)
-    }
-    
-    /// Convenience: set context to group
-    func setSearchContext(group: MDicts) {
-        setSearchContext(.group(group))
-    }
-    
-    /// Convenience: set context to dictionary
-    func setSearchContext(dict: MDict) {
-        setSearchContext(.dictionary(dict))
-    }
-    
-    /// Clear search
-    func clearSearch() {
-        searchQuerySubject.send("")
-    }
-    
-    /// Current query (for UI state)
-    var currentQuery: String {
-        searchQuerySubject.value
-    }
-    
-    /// Current context (for UI state)
-    var currentContext: SearchContext {
-        searchContextSubject.value
     }
     
     // MARK: - Lookup API (for article display)

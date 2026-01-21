@@ -17,7 +17,10 @@ class MainSplitViewController: UISplitViewController {
     private let detailContainer = DetailContainerViewController()
     
     // MARK: - State
-    
+
+    /// Per-scene search session
+    private let searchSession = DictionaryService.shared.createSearchSession()
+
     private var initialGroupId: String = ""
     private var currentGroup: MDicts?
     private var currentDict: MDict?
@@ -82,6 +85,9 @@ class MainSplitViewController: UISplitViewController {
     }
     
     private func setupChildControllers() {
+        // Inject search session into word list
+        wordListVC.searchSession = searchSession
+        
         // Primary: Sidebar (dictionary list)
         setViewController(dictionaryListVC, for: .primary)
          
