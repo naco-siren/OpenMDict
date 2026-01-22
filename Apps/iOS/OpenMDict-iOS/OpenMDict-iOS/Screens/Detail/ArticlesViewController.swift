@@ -9,30 +9,6 @@
 import UIKit
 import WebKit
 
-// MARK: - Layout Mode
-
-enum ArticleLayoutMode: Int, CaseIterable {
-    case columns = 0
-    case grid = 1
-    case list = 2
-    
-    var title: String {
-        switch self {
-        case .columns: return "Columns"
-        case .grid: return "Grid"
-        case .list: return "List"
-        }
-    }
-    
-    var icon: UIImage {
-        switch self {
-        case .columns: return UIImage(systemName: "rectangle.split.3x1")!
-        case .grid: return UIImage(systemName: "square.grid.2x2")!
-        case .list: return UIImage(systemName: "list.bullet")!
-        }
-    }
-}
-
 // MARK: - Delegate
 
 protocol ArticlesViewControllerDelegate: AnyObject {
@@ -165,9 +141,9 @@ class ArticlesViewController: UIViewController {
             view.addSubview(pc)
             NSLayoutConstraint.activate([
                 pc.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
-                pc.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                // Note: top + bottom implicitly define vertical centering, no need for centerY
                 pc.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-                pc.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 8),
+                pc.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
             ])
             pc.isHidden = true
             pageControl = pc
