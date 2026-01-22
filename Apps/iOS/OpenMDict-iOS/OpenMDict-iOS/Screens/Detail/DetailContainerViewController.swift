@@ -17,7 +17,8 @@ class DetailContainerViewController: UIViewController {
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
-    
+    private var zoom = ZoomLevel()
+     
     /// Called when articles become empty (for compact mode navigation)
     var onArticlesEmptied: (() -> Void)?
     
@@ -104,21 +105,43 @@ class DetailContainerViewController: UIViewController {
         ])
     }
     
-    private lazy var zoomMenu: UIMenu = {
+    private var zoomMenu: UIMenu {
+        let title = "Current zoom level: \(zoom.displayString)"
+        
+        let zoomInAction = UIAction(
+            title: "Zoom In",
+            image: UIImage(systemName: "plus.magnifyingglass"),
+            attributes: zoom.canZoomIn ? [] : .disabled
+        ) { [weak self] _ in
+            self?.zoomIn()
+        }
+        
+        let resetAction = UIAction(
+            title: "Reset",
+            image: UIImage(systemName: "1.magnifyingglass"),
+            attributes: zoom.isDefault ? .disabled : []
+        ) { [weak self] _ in
+            self?.resetZoom()
+        }
+        
+        let zoomOutAction = UIAction(
+            title: "Zoom Out",
+            image: UIImage(systemName: "minus.magnifyingglass"),
+            attributes: zoom.canZoomOut ? [] : .disabled
+        ) { [weak self] _ in
+            self?.zoomOut()
+        }
+        
         if #available(iOS 16.0, *) {
-            UIMenu(title: "Zoom", preferredElementSize: .small, children: [
-                UIAction(title: "Zoom out", image: UIImage(systemName: "minus.magnifyingglass"), attributes: .keepsMenuPresented) { _ in },
-                UIAction(title: "Reset", image: UIImage(systemName: "1.magnifyingglass"), attributes: .keepsMenuPresented) { _ in },
-                UIAction(title: "Zoom in", image: UIImage(systemName: "plus.magnifyingglass"), attributes: .keepsMenuPresented) { _ in },
+            return UIMenu(title: title, preferredElementSize: .small, children: [
+                zoomOutAction, resetAction, zoomInAction
             ])
         } else {
-            UIMenu(title: "Zoom", children: [
-                UIAction(title: "Zoom out", image: UIImage(systemName: "minus.magnifyingglass")) { _ in },
-                UIAction(title: "Reset", image: UIImage(systemName: "1.magnifyingglass")) { _ in },
-                UIAction(title: "Zoom in", image: UIImage(systemName: "plus.magnifyingglass")) { _ in },
+            return UIMenu(title: title, children: [
+                zoomInAction, resetAction, zoomOutAction
             ])
         }
-    }()
+    }
     
     // MARK: - Lifecycle
     
@@ -366,9 +389,15 @@ class DetailContainerViewController: UIViewController {
                         menu: zoomMenu
                     ),
                     items: [
-                        .init(title: "Zoom out", image: .init(systemName: "minus.magnifyingglass")),
-                        .init(title: "Reset", image: .init(systemName: "1.magnifyingglass")),
-                        .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass")),
+                        .init(title: "Zoom out", image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.zoomOut()
+                        }),
+                        .init(title: zoom.displayString, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.resetZoom()
+                        }),
+                        .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.zoomIn()
+                        }),
                     ]
                 ),
             ]
@@ -382,13 +411,17 @@ class DetailContainerViewController: UIViewController {
                 .init(customView: appearanceSegment)
             ]
             navigationItem.rightBarButtonItems = [
-                .init(title: "Zoom out", image: .init(systemName: "minus.magnifyingglass"), primaryAction: nil),
-                .init(title: "Reset", image: .init(systemName: "1.magnifyingglass"), primaryAction: nil),
-                .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass"), primaryAction: nil),
+                .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                    self?.zoomIn()
+                }),
+                .init(title: "Reset", image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                    self?.resetZoom()
+                }),
+                .init(title: "Zoom out", image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                    self?.zoomOut()
+                }),
             ]
         }
-        
-        
     }
     
     private func setupCompactNavigationBar() {
@@ -409,14 +442,20 @@ class DetailContainerViewController: UIViewController {
                 .optionalGroup(
                     customizationIdentifier: "zoom",
                     representativeItem: .init(
-                        title: "Zoom",
+                        title: "Current level: \(zoom.displayString)",
                         image: .init(systemName: "textformat.size"),
                         menu: zoomMenu
                     ),
                     items: [
-                        .init(title: "Zoom out", image: .init(systemName: "minus.magnifyingglass")),
-                        .init(title: "Reset", image: .init(systemName: "1.magnifyingglass")),
-                        .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass")),
+                        .init(title: "Zoom out", image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.zoomOut()
+                        }),
+                        .init(title: "Reset", image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.resetZoom()
+                        }),
+                        .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.zoomIn()
+                        }),
                     ]
                 ),
             ]
@@ -517,8 +556,33 @@ class DetailContainerViewController: UIViewController {
         updateNavigationBar(for: traitCollection)
     }
     
-    @objc private func zoomChanged(_ sender: UISegmentedControl) {
-        print("🔍 Zoom: \(sender.selectedSegmentIndex)")
+    // MARK: - Zoom
+
+    private func zoomIn() {
+        zoom.zoomIn()
+        applyZoom()
+    }
+
+    private func zoomOut() {
+        zoom.zoomOut()
+        applyZoom()
+    }
+
+    private func resetZoom() {
+        zoom.reset()
+        applyZoom()
+    }
+
+    private func applyZoom() {
+        print("🔍 Zoom level: \(zoom.displayString)")
+             
+
+        // Apply to child VCs
+        articlesVC.setZoomLevel(zoom.current)
+        articleVC.setZoomLevel(zoom.current)
+
+        // Update nav bar to refresh zoom menu
+        updateNavigationBar(for: traitCollection)
     }
 }
 

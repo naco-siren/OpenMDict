@@ -24,6 +24,7 @@ class ArticleViewController: UIViewController {
     // MARK: - State
     
     private var currentArticle: ArticleDisplayItem?
+    private var currentZoomLevel: Int = ZoomLevel.defaultLevel
     
     // MARK: - UI
     
@@ -198,6 +199,18 @@ class ArticleViewController: UIViewController {
     private func reloadWebView() {
         guard let article = currentArticle else { return }
         loadContent(for: article)
+    }
+    
+    // MARK: - Zoom
+    
+    func setZoomLevel(_ level: Int) {
+        currentZoomLevel = level
+        let js = "document.body.style.fontSize = '\(level)%';"
+        webView.evaluateJavaScript(js) { _, error in
+            if let error = error {
+                print("⚠️ Zoom JS error: \(error)")
+            }
+        }
     }
 }
 

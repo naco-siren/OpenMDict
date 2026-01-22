@@ -30,6 +30,7 @@ class ArticlesViewController: UIViewController {
     
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
+    private var zoomLevel: Int = ZoomLevel.defaultLevel
     
     // MARK: - Collection View
     
@@ -110,6 +111,7 @@ class ArticlesViewController: UIViewController {
         let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleDisplayItem> { [weak self] cell, indexPath, article in
             cell.delegate = self?.cellDelegate
             cell.configure(with: article, layoutMode: self?.layoutMode ?? .columns)
+            cell.setZoomLevel(self?.zoomLevel ?? 100)
             cell.onClose = { [weak self] in
                 guard let self = self else { return }
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
@@ -224,6 +226,17 @@ class ArticlesViewController: UIViewController {
         case .grid, .list: .centeredVertically
         }
         collectionView.scrollToItem(at: indexPath, at: scrollPosition, animated: animated)
+    }
+    
+    func setZoomLevel(_ level: Int) {
+        zoomLevel = level
+
+        // Update all visible cells
+        for cell in collectionView.visibleCells {
+            if let articleCell = cell as? ArticleCell {
+                articleCell.setZoomLevel(level)
+            }
+        }
     }
     
     // MARK: - Layouts

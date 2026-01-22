@@ -28,6 +28,7 @@ class ArticleCell: UICollectionViewCell {
     private var currentLayoutMode: ArticleLayoutMode = .columns
     private var currentArticle: ArticleDisplayItem?
     private var isBookmarked: Bool = false
+    private var currentZoomLevel: Int = ZoomLevel.defaultLevel
     
     // MARK: - Views
     
@@ -255,6 +256,16 @@ class ArticleCell: UICollectionViewCell {
         guard let article = currentArticle else { return }
         loadContent(for: article)
     }
+    
+    func setZoomLevel(_ level: Int) {
+        currentZoomLevel = level
+        let js = "document.body.style.fontSize = '\(level)%';"
+        webView.evaluateJavaScript(js) { _, error in
+            if let error = error {
+                print("⚠️ Zoom JS error: \(error)")
+            }
+        }
+    }
 }
 
 // MARK: - WKNavigationDelegate
@@ -287,6 +298,14 @@ extension ArticleCell: WKNavigationDelegate {
         default:
             print("🔗 Unknown link: \(url)")
             decisionHandler(.cancel)
+        }
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Apply zoom level after content loads
+        if currentZoomLevel != ZoomLevel.defaultLevel {
+            let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
+            webView.evaluateJavaScript(js, completionHandler: nil)
         }
     }
 }
