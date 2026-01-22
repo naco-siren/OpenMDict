@@ -156,9 +156,14 @@ class DetailContainerViewController: UIViewController {
         subscribeToAppearanceChanges()
         subscribeToArticleMoved()
         loadPendingArticlesIfReady()
-        applyAppearance()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Apply appearance after window is available
+        applyAppearance()
+    }
+
     private func subscribeToAppearanceChanges() {
         NotificationCenter.default.addObserver(
             forName: .appearanceModeDidChange,
