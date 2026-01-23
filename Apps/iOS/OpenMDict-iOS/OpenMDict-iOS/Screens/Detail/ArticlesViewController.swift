@@ -21,6 +21,10 @@ protocol ArticlesViewControllerDelegate: AnyObject {
 
 class ArticlesViewController: UIViewController {
     
+    private let instanceID = UUID().uuidString.prefix(8)
+    
+    private var lastKnownSafeAreaTop: CGFloat = -1
+
     weak var delegate: ArticlesViewControllerDelegate?
     
     /// Delegate for handling entry:// links from cells
@@ -37,6 +41,7 @@ class ArticlesViewController: UIViewController {
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: createLayout(for: layoutMode))
         cv.translatesAutoresizingMaskIntoConstraints = false
+        cv.contentInsetAdjustmentBehavior = .never
         cv.backgroundColor = .systemGroupedBackground
         cv.delegate = self
         return cv
@@ -70,10 +75,23 @@ class ArticlesViewController: UIViewController {
         return v
     }()
     
+    /// Get effective safe area, falling back to parent's safe area if ours is 0.
+    /// This handles the edge case where child VC is created during trait transition
+    /// and its safe area never propagates from parent.
+    private var effectiveSafeAreaTop: CGFloat {
+        let myTop = view.safeAreaInsets.top
+        if myTop > 0 { return myTop }
+        // Fallback to parent's safe area
+        let parentTop = parent?.view.safeAreaInsets.top ?? 0
+        return parentTop
+    }
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        print("📐 [\(instanceID)] ArticlesVC.viewDidLoad - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+
         view.backgroundColor = .systemGroupedBackground
         setupCollectionView()
         view.addSubview(emptyView)
@@ -90,6 +108,69 @@ class ArticlesViewController: UIViewController {
         updateEmptyState()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        print("📐 [\(instanceID)] ArticlesVC.viewWillAppear - safeArea: \(view.safeAreaInsets), view.frame: \(view.frame), cv.frame: \(collectionView.frame)")
+        print("📐 [\(instanceID)] ArticlesVC.viewWillAppear - contentInsetAdjustmentBehavior: \(collectionView.contentInsetAdjustmentBehavior.rawValue)")
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        print("📐 [\(instanceID)] ArticlesVC.viewDidAppear - safeArea: \(view.safeAreaInsets), view.frame: \(view.frame), cv.frame: \(collectionView.frame)")
+        print("📐 [\(instanceID)] ArticlesVC.viewDidAppear - cv.contentInset: \(collectionView.contentInset), cv.adjustedContentInset: \(collectionView.adjustedContentInset)")
+        print("📐 [\(instanceID)] ArticlesVC.viewDidAppear - cv.contentInsetAdjustmentBehavior: \(collectionView.contentInsetAdjustmentBehavior.rawValue)")
+        
+        // Log first visible cell position if any
+        if let firstCell = collectionView.visibleCells.first {
+            print("📐 [\(instanceID)] ArticlesVC.viewDidAppear - firstCell.frame: \(firstCell.frame)")
+        }
+        
+        // Final safety check: if safe area is still 0 but we're in a nav controller, force layout rebuild
+        // This handles edge cases where safe area propagation is delayed during trait transitions
+        if view.safeAreaInsets.top == 0 && parent?.navigationController != nil {
+            DispatchQueue.main.async { [weak self] in
+                self?.checkAndFixSafeAreaLayout()
+            }
+        }
+    }
+    
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        print("📐 [\(instanceID)] ArticlesVC.viewSafeAreaInsetsDidChange - safeArea: \(view.safeAreaInsets)")
+        
+        // Force layout recalculation when safe area changes
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        print("📐 [\(instanceID)] ArticlesVC.viewDidLayoutSubviews - safeArea: \(view.safeAreaInsets), view.frame: \(view.frame), cv.frame: \(collectionView.frame)")
+        print("📐 [\(instanceID)] ArticlesVC.viewDidLayoutSubviews - contentInsetAdjustmentBehavior: \(collectionView.contentInsetAdjustmentBehavior.rawValue), adjustedContentInset: \(collectionView.adjustedContentInset)")
+        
+        // Detect safe area changes - viewSafeAreaInsetsDidChange may not be called
+        // when ArticlesVC is added as child during trait transition
+        let currentSafeAreaTop = view.safeAreaInsets.top
+        if currentSafeAreaTop != lastKnownSafeAreaTop {
+            print("📐 [\(instanceID)] Safe area changed: \(lastKnownSafeAreaTop) → \(currentSafeAreaTop), invalidating layout")
+            lastKnownSafeAreaTop = currentSafeAreaTop
+            // Must recreate layout, not just invalidate - invalidateLayout doesn't always reposition cells
+            let newLayout = createLayout(for: layoutMode)
+            collectionView.setCollectionViewLayout(newLayout, animated: false)
+
+        }
+    }
+    
+    /// Check if safe area has updated and fix layout if needed
+    private func checkAndFixSafeAreaLayout() {
+        let currentSafeArea = view.safeAreaInsets.top
+        if currentSafeArea != lastKnownSafeAreaTop && currentSafeArea > 0 {
+            print("📐 [\(instanceID)] checkAndFixSafeAreaLayout - safe area now \(currentSafeArea), was \(lastKnownSafeAreaTop)")
+            lastKnownSafeAreaTop = currentSafeArea
+            let newLayout = createLayout(for: layoutMode)
+            collectionView.setCollectionViewLayout(newLayout, animated: false)
+        }
+    }
+    
     // MARK: - Collection View Setup
     
     private func setupCollectionView() {
@@ -100,12 +181,15 @@ class ArticlesViewController: UIViewController {
         collectionView.allowsSelection = (layoutMode == .grid)
         
         view.addSubview(collectionView)
+        // ORIGINAL: view.topAnchor (no safe area)
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        
+        print("📐 [\(instanceID)] ArticlesVC.setupCollectionView - contentInsetAdjustmentBehavior: \(collectionView.contentInsetAdjustmentBehavior.rawValue)")
         
         // Cell registration
         let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleDisplayItem> { [weak self] cell, indexPath, article in
@@ -143,16 +227,27 @@ class ArticlesViewController: UIViewController {
             view.addSubview(pc)
             NSLayoutConstraint.activate([
                 pc.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
-                // Note: top + bottom implicitly define vertical centering, no need for centerY
                 pc.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
                 pc.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
             ])
             pc.isHidden = true
             pageControl = pc
         }
+        
+        print("📐 [\(instanceID)] ArticlesVC.setupCollectionView - contentInsetAdjustmentBehavior: \(collectionView.contentInsetAdjustmentBehavior.rawValue)")
     }
     
     // MARK: - Public API (called by Container)
+    
+    /// Called by parent when safe area changes during trait transition
+    func invalidateLayoutForSafeAreaChange() {
+        print("📐 [\(instanceID)] ArticlesVC.invalidateLayoutForSafeAreaChange called, current safeArea: \(view.safeAreaInsets)")
+        
+        // Just invalidating doesn't fully update cell positions
+        // Force recreate the entire layout
+        let newLayout = createLayout(for: layoutMode)
+        collectionView.setCollectionViewLayout(newLayout, animated: false)
+    }
     
     func configure(articles: [ArticleDisplayItem], animated: Bool) {
         self.articles = articles
@@ -263,6 +358,10 @@ class ArticlesViewController: UIViewController {
     }
 
     private func createGridSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let safeTop = effectiveSafeAreaTop
+        
+        print("📐 [\(instanceID)] ArticlesVC.createGridSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
+        
         // Calculate columns based on container width
         let containerWidth = environment.container.effectiveContentSize.width
         let columnCount = max(2, Int(floor(containerWidth / 320)))
@@ -287,20 +386,28 @@ class ArticlesViewController: UIViewController {
         )
         
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
-        
+        section.contentInsets = NSDirectionalEdgeInsets(top: safeTop + 8, leading: 8, bottom: 8, trailing: 8)
+
         return section
     }
 
     private func createListSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        // Each item takes fills all space after a top margin to avoiding conflicting with navigation bar
+        let safeTop = effectiveSafeAreaTop
+        
+        print("📐 [\(instanceID)] ArticlesVC.createListSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
+        
+        // For vertical scroll layouts, effectiveContentSize.height doesn't account for safe area
+        // So we calculate the correct height ourselves using effectiveSafeAreaTop
+        let correctedHeight = view.bounds.height - safeTop
+                 
+        // Each item fills all space
         let itemSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalHeight(1.0)
+            heightDimension: .absolute(correctedHeight),
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 72, leading: 0, bottom: 16, trailing: 0)
-        
+        item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0)
+
         // Group height equals container to ensure full-height paging
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
@@ -311,12 +418,25 @@ class ArticlesViewController: UIViewController {
         group.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: leadingMargin, bottom: 0, trailing: 0)
         
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+        // For vertical scroll with contentInsetAdjustmentBehavior = .never,
+        // we ALWAYS need top inset to push content below the nav bar
+        section.contentInsets = NSDirectionalEdgeInsets(top: safeTop, leading: 16, bottom: 0, trailing: 16)
+        section.interGroupSpacing = 0
         
         return section
     }
 
     private func createColumnsSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let safeTop = effectiveSafeAreaTop
+        let mySafeTop = view.safeAreaInsets.top
+        print("📐 [\(instanceID)] ArticlesVC.createColumnsSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
+        
+        // Calculate correct content height, accounting for safe area
+        // When child's safe area is 0 but parent has safe area, effectiveContentSize is wrong
+        let containerHeight = environment.container.effectiveContentSize.height
+        let needsCorrection = mySafeTop == 0 && safeTop > 0
+        let correctedHeight = needsCorrection ? containerHeight - safeTop : containerHeight
+                 
         // With horizontal scrollDirection, cells fill the full height
         // and scroll horizontally across the screen
         let itemSize = NSCollectionLayoutSize(
@@ -327,22 +447,22 @@ class ArticlesViewController: UIViewController {
         let bottomMargin: CGFloat =
             if #available(iOS 26, *) {
                 0
-            } else if #available(iOS 16, *) {
-                16
             } else {
-                0
+                16
             }
-    
         item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: bottomMargin, trailing: 0)
 
+        // Use corrected height instead of fractionalHeight(1.0) to fix safe area issue
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .absolute(400),
-            heightDimension: .fractionalHeight(1.0)
+            heightDimension: .absolute(correctedHeight)
         )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
         
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+        // When safe area is broken (child's is 0 but parent has it), add top inset
+        let topInset: CGFloat = needsCorrection ? safeTop : 0
+        section.contentInsets = NSDirectionalEdgeInsets(top: topInset, leading: 16, bottom: 0, trailing: 16)
         section.interGroupSpacing = 16
 
         return section

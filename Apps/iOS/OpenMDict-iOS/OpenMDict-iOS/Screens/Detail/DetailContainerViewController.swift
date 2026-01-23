@@ -12,6 +12,8 @@ import OpenMDictKit
 
 class DetailContainerViewController: UIViewController {
     
+    private let instanceID = UUID().uuidString.prefix(8)
+    
     // MARK: - Source of Truth
     
     private var articles: [ArticleDisplayItem] = []
@@ -147,6 +149,7 @@ class DetailContainerViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        print("📐 [\(instanceID)] DetailContainer.viewDidLoad - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
         view.backgroundColor = .systemGroupedBackground
         
         // Install appropriate child for current traits
@@ -158,10 +161,37 @@ class DetailContainerViewController: UIViewController {
         loadPendingArticlesIfReady()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        print("📐 [\(instanceID)] DetailContainer.viewWillAppear - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+    }
+    
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        print("📐 [\(instanceID)] DetailContainer.viewDidAppear - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
         // Apply appearance after window is available
         applyAppearance()
+    }
+    
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        print("📐 [\(instanceID)] DetailContainer.viewSafeAreaInsetsDidChange - safeArea: \(view.safeAreaInsets)")
+        
+        // Child VC's safe area updates after parent's
+        // Delay to ensure safe area has propagated to child
+        if activeChild === articlesVC {
+            DispatchQueue.main.async { [weak self] in
+                self?.articlesVC.invalidateLayoutForSafeAreaChange()
+            }
+        }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        print("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+        if let child = activeChild {
+            print("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - child.view.frame: \(child.view.frame)")
+        }
     }
 
     private func subscribeToAppearanceChanges() {
@@ -185,11 +215,18 @@ class DetailContainerViewController: UIViewController {
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
+        print("📐 [\(instanceID)] DetailContainer.willTransition - from \(traitCollection.horizontalSizeClass.rawValue) to \(newCollection.horizontalSizeClass.rawValue)")
         
-        // Pass in newCollection instead of self.traitCollection
         coordinator.animate { _ in
             self.updateChildForTraits(newCollection)
             self.updateNavigationBar(for: newCollection)
+        } completion: { _ in
+            // Safe area propagation only completes after the transition animation finishes.
+            // Force layout rebuild here to ensure correct cell positioning.
+            if newCollection.horizontalSizeClass == .regular {
+                print("📐 [\(self.instanceID)] DetailContainer.willTransition completion - triggering layout rebuild")
+                self.articlesVC.invalidateLayoutForSafeAreaChange()
+            }
         }
     }
     
@@ -225,7 +262,7 @@ class DetailContainerViewController: UIViewController {
         // Remove the article from this window
         if let index = articles.firstIndex(where: { $0.id == articleId }) {
             articles.remove(at: index)
-            print("📤 Removed dragged article: \(articleId)")
+            print("📤 [\(instanceID)] Removed dragged article: \(articleId)")
             syncStateToActiveChild()
 
             // If articles empty and compact mode, notify to show supplementary
@@ -303,8 +340,11 @@ class DetailContainerViewController: UIViewController {
         let shouldUseArticlesVC = traits.horizontalSizeClass == .regular
         let targetChild = shouldUseArticlesVC ? articlesVC : articleVC
         
+        print("📐 [\(instanceID)] DetailContainer.updateChildForTraits - shouldUseArticlesVC: \(shouldUseArticlesVC), current activeChild: \(activeChild == nil ? "nil" : (activeChild === articlesVC ? "articlesVC" : "articleVC"))")
+        print("📐 [\(instanceID)] DetailContainer.updateChildForTraits - my safeArea: \(view.safeAreaInsets), my frame: \(view.frame)")
+        
         guard targetChild !== activeChild else {
-            print("🔄 → Already correct child, skipping")
+            print("[\(instanceID)] 🔄 → Already correct child, skipping")
             return
         }
         
@@ -320,6 +360,7 @@ class DetailContainerViewController: UIViewController {
         targetChild.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(targetChild.view)
         NSLayoutConstraint.activate([
+            // ORIGINAL: view.topAnchor
             targetChild.view.topAnchor.constraint(equalTo: view.topAnchor),
             targetChild.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             targetChild.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -327,6 +368,8 @@ class DetailContainerViewController: UIViewController {
         ])
         targetChild.didMove(toParent: self)
         activeChild = targetChild
+        
+        print("📐 [\(instanceID)] DetailContainer.updateChildForTraits - after install, child.view.frame: \(targetChild.view.frame)")
         
         // Sync state to new child
         syncStateToActiveChild()
@@ -351,10 +394,14 @@ class DetailContainerViewController: UIViewController {
         
         if isRegular {
             setupRegularNavigationBar()
-            setupSearchBar(placeholder: "Search opened articles for keywords...")
+            if #available(iOS 16, *) {
+                setupSearchBar(placeholder: "Keywords to highlight...")
+            }
         } else {
             setupCompactNavigationBar()
-            setupSearchBar(placeholder: "keywords...")
+            if #available(iOS 16, *) {
+                setupSearchBar(placeholder: "Keywords...")
+            }
         }
     }
     
@@ -487,6 +534,9 @@ class DetailContainerViewController: UIViewController {
             navigationItem.preferredSearchBarPlacement = .integratedButton
         } else if #available(iOS 16, *) {
             navigationItem.preferredSearchBarPlacement = .inline
+        } else {
+            searchController.obscuresBackgroundDuringPresentation = true
+            searchController.hidesNavigationBarDuringPresentation = false
         }
     }
 
