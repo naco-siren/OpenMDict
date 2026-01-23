@@ -83,6 +83,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
         splitVC.showArticle(article, animated: true)
     }
+    
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        // Proactively save state when entering background.
+        // This ensures state is captured even during rapid app switcher operations,
+        // since stateRestorationActivity(for:) may not be called in time.
+        guard let splitVC = window?.rootViewController as? MainSplitViewController else { return }
+        scene.userActivity = splitVC.currentStateActivity()
+    }
+    
+    func sceneDidDisconnect(_ scene: UIScene) {
+        // Scene released by system. Resources cleaned up automatically.
+    }
 }
 
 // MARK: - Multi-Window Helper
