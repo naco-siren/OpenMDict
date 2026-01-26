@@ -149,7 +149,8 @@ class DetailContainerViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("📐 [\(instanceID)] DetailContainer.viewDidLoad - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+        debugLog("📐 [\(instanceID)] DetailContainer.viewDidLoad - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+        
         view.backgroundColor = .systemGroupedBackground
         
         // Install appropriate child for current traits
@@ -163,20 +164,22 @@ class DetailContainerViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        print("📐 [\(instanceID)] DetailContainer.viewWillAppear - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+
+        debugLog("📐 [\(instanceID)] DetailContainer.viewWillAppear - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        print("📐 [\(instanceID)] DetailContainer.viewDidAppear - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+        debugLog("📐 [\(instanceID)] DetailContainer.viewDidAppear - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+        
         // Apply appearance after window is available
         applyAppearance()
     }
     
     override func viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
-        print("📐 [\(instanceID)] DetailContainer.viewSafeAreaInsetsDidChange - safeArea: \(view.safeAreaInsets)")
-        
+        debugLog("📐 [\(instanceID)] DetailContainer.viewSafeAreaInsetsDidChange - safeArea: \(view.safeAreaInsets)")
+
         // Child VC's safe area updates after parent's
         // Delay to ensure safe area has propagated to child
         if activeChild === articlesVC {
@@ -188,9 +191,9 @@ class DetailContainerViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        print("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
+        debugLog("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - safeArea: \(view.safeAreaInsets), frame: \(view.frame)")
         if let child = activeChild {
-            print("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - child.view.frame: \(child.view.frame)")
+            debugLog("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - child.view.frame: \(child.view.frame)")
         }
     }
 
@@ -215,8 +218,8 @@ class DetailContainerViewController: UIViewController {
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
-        print("📐 [\(instanceID)] DetailContainer.willTransition - from \(traitCollection.horizontalSizeClass.rawValue) to \(newCollection.horizontalSizeClass.rawValue)")
-        
+        debugLog("📐 [\(instanceID)] DetailContainer.willTransition - from \(traitCollection.horizontalSizeClass.rawValue) to \(newCollection.horizontalSizeClass.rawValue)")
+
         coordinator.animate { _ in
             self.updateChildForTraits(newCollection)
             self.updateNavigationBar(for: newCollection)
@@ -224,7 +227,7 @@ class DetailContainerViewController: UIViewController {
             // Safe area propagation only completes after the transition animation finishes.
             // Force layout rebuild here to ensure correct cell positioning.
             if newCollection.horizontalSizeClass == .regular {
-                print("📐 [\(self.instanceID)] DetailContainer.willTransition completion - triggering layout rebuild")
+                debugLog("📐 [\(self.instanceID)] DetailContainer.willTransition completion - triggering layout rebuild")
                 self.articlesVC.invalidateLayoutForSafeAreaChange()
             }
         }
@@ -262,7 +265,7 @@ class DetailContainerViewController: UIViewController {
         // Remove the article from this window
         if let index = articles.firstIndex(where: { $0.id == articleId }) {
             articles.remove(at: index)
-            print("📤 [\(instanceID)] Removed dragged article: \(articleId)")
+            debugLog("📤 [\(instanceID)] Removed dragged article: \(articleId)")
             syncStateToActiveChild()
 
             // If articles empty and compact mode, notify to show supplementary
@@ -295,10 +298,10 @@ class DetailContainerViewController: UIViewController {
             // Try to look up the word now that dictionary is loaded
             if let entry = dict.lookup(article.word) {
                 articles[index].contentState = .loaded(html: entry.article.html, css: nil)
-                print("📖 Loaded pending article: \(article.word) from \(dict.id)")
+                debugLog("📖 Loaded pending article: \(article.word) from \(dict.id)")
             } else {
                 articles[index].contentState = .notFound
-                print("⚠️ Word not found: \(article.word) in \(dict.id)")
+                debugLog("⚠️ Word not found: \(article.word) in \(dict.id)")
             }
             didUpdate = true
         }
@@ -321,10 +324,10 @@ class DetailContainerViewController: UIViewController {
 
             if let entry = dict.lookup(article.word) {
                 articles[index].contentState = .loaded(html: entry.article.html, css: nil)
-                print("📖 Loaded pending article (on init): \(article.word) from \(dict.id)")
+                debugLog("📖 Loaded pending article (on init): \(article.word) from \(dict.id)")
             } else {
                 articles[index].contentState = .notFound
-                print("⚠️ Word not found (on init): \(article.word) in \(dict.id)")
+                debugLog("⚠️ Word not found (on init): \(article.word) in \(dict.id)")
             }
             didUpdate = true
         }
@@ -339,10 +342,10 @@ class DetailContainerViewController: UIViewController {
     private func updateChildForTraits(_ traits: UITraitCollection) {
         let shouldUseArticlesVC = traits.horizontalSizeClass == .regular
         let targetChild = shouldUseArticlesVC ? articlesVC : articleVC
-        
-        print("📐 [\(instanceID)] DetailContainer.updateChildForTraits - shouldUseArticlesVC: \(shouldUseArticlesVC), current activeChild: \(activeChild == nil ? "nil" : (activeChild === articlesVC ? "articlesVC" : "articleVC"))")
-        print("📐 [\(instanceID)] DetailContainer.updateChildForTraits - my safeArea: \(view.safeAreaInsets), my frame: \(view.frame)")
-        
+
+        debugLog("📐 [\(instanceID)] DetailContainer.updateChildForTraits - shouldUseArticlesVC: \(shouldUseArticlesVC), current activeChild: \(activeChild == nil ? "nil" : (activeChild === articlesVC ? "articlesVC" : "articleVC"))")
+        debugLog("📐 [\(instanceID)] DetailContainer.updateChildForTraits - my safeArea: \(view.safeAreaInsets), my frame: \(view.frame)")
+
         guard targetChild !== activeChild else {
             print("[\(instanceID)] 🔄 → Already correct child, skipping")
             return
@@ -368,9 +371,8 @@ class DetailContainerViewController: UIViewController {
         ])
         targetChild.didMove(toParent: self)
         activeChild = targetChild
-        
-        print("📐 [\(instanceID)] DetailContainer.updateChildForTraits - after install, child.view.frame: \(targetChild.view.frame)")
-        
+        debugLog("📐 [\(instanceID)] DetailContainer.updateChildForTraits - after install, child.view.frame: \(targetChild.view.frame)")
+
         // Sync state to new child
         syncStateToActiveChild()
     }
@@ -630,7 +632,6 @@ class DetailContainerViewController: UIViewController {
 
     private func applyZoom() {
         print("🔍 Zoom level: \(zoom.displayString)")
-             
 
         // Apply to child VCs
         articlesVC.setZoomLevel(zoom.current)
