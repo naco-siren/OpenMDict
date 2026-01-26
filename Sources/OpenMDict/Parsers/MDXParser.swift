@@ -106,15 +106,31 @@ internal final class MDXParser {
     // MARK: - Lookup API
     
     /// Lookup a keyword and return definition with index
+    /// Automatically follows @@@LINK= redirects (up to 5 levels)
     /// - Parameter keyword: The word to look up
     /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
     func lookupWithIndex(_ keyword: String) -> (String, String, Int)? {
+        return lookupWithRedirect(keyword, depth: 0)
+    }
+
+    /// Internal lookup with redirect following
+    /// - Parameters:
+    ///   - keyword: The word to look up
+    ///   - depth: Current redirect depth (to prevent infinite loops)
+    /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
+    private func lookupWithRedirect(_ keyword: String, depth: Int) -> (String, String, Int)? {
+       // Prevent infinite redirect loops
+        guard depth < 5 else {
+            print("⚠️ MDXParser: Max redirect depth reached for '\(keyword)'")
+            return nil
+        }
+
         // 1. Try exact match first
         if let idx = exactIndex[keyword] {
             guard let definition = try? loadRecord(keywords[idx]) else {
                 return nil
             }
-            return (keywords[idx].keyword, definition, idx)
+            return resolveRedirect(keyword: keywords[idx].keyword, definition: definition, index: idx, depth: depth)
         }
         
         // 2. Fallback to case-insensitive match (only for case-insensitive dicts)
@@ -124,13 +140,41 @@ internal final class MDXParser {
                 guard let definition = try? loadRecord(keywords[idx]) else {
                     return nil
                 }
-                return (keywords[idx].keyword, definition, idx)
+                return resolveRedirect(keyword: keywords[idx].keyword, definition: definition, index: idx, depth: depth)
             }
         }
         
         return nil
     }
     
+    /// Check if definition is a @@@LINK= redirect and follow it
+    /// - Parameters:
+    ///   - keyword: Original keyword
+    ///   - definition: Definition content to check
+    ///   - index: Original index
+    ///   - depth: Current redirect depth
+    /// - Returns: Final resolved entry or original if not a redirect
+    private func resolveRedirect(keyword: String, definition: String, index: Int, depth: Int) -> (String, String, Int)? {
+        let trimmed = definition.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check for @@@LINK= prefix (case-insensitive)
+        let linkPrefix = "@@@LINK="
+        guard trimmed.uppercased().hasPrefix(linkPrefix) else {
+            // Not a redirect, return as-is
+            return (keyword, definition, index)
+        }
+
+        // Extract target keyword
+        let target = String(trimmed.dropFirst(linkPrefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !target.isEmpty else {
+            print("⚠️ MDXParser: Empty @@@LINK= target for '\(keyword)'")
+            return (keyword, definition, index)
+        }
+
+        // Follow redirect
+        return lookupWithRedirect(target, depth: depth + 1)
+    }
+
     /// Get entry at specific index
     /// - Parameter index: Index in keyword list
     /// - Returns: Tuple of (keyword, definition) or nil if out of bounds
