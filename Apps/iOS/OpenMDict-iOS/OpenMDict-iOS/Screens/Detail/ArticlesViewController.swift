@@ -606,3 +606,25 @@ extension ArticlesViewController: UICollectionViewDragDelegate {
         return [dragItem]
     }
 }
+
+// MARK: - Find in Page
+
+@available(iOS 16.0, *)
+extension ArticlesViewController {
+
+    /// Present Find UI on the first visible article cell
+    func presentFindInCurrentArticle() {
+        guard let firstVisibleCell = collectionView.visibleCells
+            .compactMap({ $0 as? ArticleCell })
+            .first else { return }
+
+        firstVisibleCell.presentFind()
+    }
+
+    /// Dismiss Find UI on all visible cells
+    func dismissFind() {
+        for cell in collectionView.visibleCells {
+            (cell as? ArticleCell)?.dismissFind()
+        }
+    }
+}

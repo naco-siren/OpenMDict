@@ -77,8 +77,6 @@ class DetailContainerViewController: UIViewController {
         case .dark: UIImage(systemName: "moon")!
         }
     }
-  
-    private let searchController = UISearchController()
     
     // MARK: - Navigation Bar Items (Compact mode - Menus)
     
@@ -396,14 +394,14 @@ class DetailContainerViewController: UIViewController {
         
         if isRegular {
             setupRegularNavigationBar()
-            if #available(iOS 16, *) {
-                setupSearchBar(placeholder: "Keywords to highlight...")
-            }
+//            if #available(iOS 16, *) {
+//                setupSearchBar(placeholder: "Keywords to highlight...")
+//            }
         } else {
             setupCompactNavigationBar()
-            if #available(iOS 16, *) {
-                setupSearchBar(placeholder: "Keywords...")
-            }
+//            if #available(iOS 16, *) {
+//                setupSearchBar(placeholder: "Keywords...")
+//            }
         }
     }
     
@@ -456,7 +454,13 @@ class DetailContainerViewController: UIViewController {
                 ),
             ]
             
-            navigationItem.trailingItemGroups = []
+            navigationItem.trailingItemGroups = [
+                .fixedGroup(items: [
+                    .init(title: "Find", image: UIImage(systemName: "magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                        self?.presentFind()
+                    }),
+                ])
+            ]
             
         } else {
             // iOS 15: Best effort with standard items
@@ -464,6 +468,7 @@ class DetailContainerViewController: UIViewController {
                 .init(customView: layoutSegment),
                 .init(customView: appearanceSegment)
             ]
+            
             navigationItem.rightBarButtonItems = [
                 .init(title: "Zoom in", image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
                     self?.zoomIn()
@@ -512,6 +517,13 @@ class DetailContainerViewController: UIViewController {
                         }),
                     ]
                 ),
+                .fixedGroup(
+                    items: [
+                        .init(title: "Find", image: .init(systemName: "magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.presentFind()
+                        }),
+                    ]
+                ),
             ]
         } else {
             navigationItem.leftBarButtonItems = []
@@ -522,25 +534,25 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
-    private func setupSearchBar(placeholder: String) {
-        searchController.delegate = self
-        // TODO: TO BE IMPLEMENTED
-        // searchController.searchResultsUpdater = self
-        searchController.searchBar.autocapitalizationType = .none
-        searchController.searchBar.placeholder = placeholder
-        // TODO: only highlight the keywords after WKWebView is implmented, but maybe also provide `next`/`previous` navigation?
-        // searchController.searchBar.delegate = self
-
-        navigationItem.searchController = searchController
-        if #available(iOS 26, *) {
-            navigationItem.preferredSearchBarPlacement = .integratedButton
-        } else if #available(iOS 16, *) {
-            navigationItem.preferredSearchBarPlacement = .inline
-        } else {
-            searchController.obscuresBackgroundDuringPresentation = true
-            searchController.hidesNavigationBarDuringPresentation = false
-        }
-    }
+//    private func setupSearchBar(placeholder: String) {
+//        searchController.delegate = self
+//        // TODO: TO BE IMPLEMENTED
+//        // searchController.searchResultsUpdater = self
+//        searchController.searchBar.autocapitalizationType = .none
+//        searchController.searchBar.placeholder = placeholder
+//        // TODO: only highlight the keywords after WKWebView is implmented, but maybe also provide `next`/`previous` navigation?
+//        // searchController.searchBar.delegate = self
+//
+//        navigationItem.searchController = searchController
+//        if #available(iOS 26, *) {
+//            navigationItem.preferredSearchBarPlacement = .integratedButton
+//        } else if #available(iOS 16, *) {
+//            navigationItem.preferredSearchBarPlacement = .inline
+//        } else {
+//            searchController.obscuresBackgroundDuringPresentation = true
+//            searchController.hidesNavigationBarDuringPresentation = false
+//        }
+//    }
 
     // MARK: - Public API (called by MainSplitVC)
     
@@ -640,6 +652,33 @@ class DetailContainerViewController: UIViewController {
         // Update nav bar to refresh zoom menu
         updateNavigationBar(for: traitCollection)
     }
+    
+    // MARK: - Find in Page
+
+    @available(iOS 16.0, *)
+    private func presentFind() {
+        if activeChild === articlesVC {
+            articlesVC.presentFindInCurrentArticle()
+        } else if activeChild === articleVC {
+            articleVC.presentFind()
+        }
+    }
+
+    // MARK: - Keyboard Shortcuts
+
+    override var keyCommands: [UIKeyCommand]? {
+        if #available(iOS 16.0, *) {
+            return [
+                UIKeyCommand(title: "Find", action: #selector(handleFindShortcut), input: "f", modifierFlags: .command)
+            ]
+        }
+        return nil
+    }
+
+    @available(iOS 16.0, *)
+    @objc private func handleFindShortcut() {
+        presentFind()
+    }
 }
 
 // MARK: - ArticlesViewControllerDelegate
@@ -703,26 +742,26 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
     }
 }
 
-extension DetailContainerViewController: UISearchControllerDelegate {
-    
-    func presentSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-    }
-    
-    func willPresentSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-    }
-    
-    func didPresentSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-    }
-    
-    func willDismissSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-    }
-    
-    func didDismissSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-    }
-    
-}
+//extension DetailContainerViewController: UISearchControllerDelegate {
+//    
+//    func presentSearchController(_ searchController: UISearchController) {
+//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+//    }
+//    
+//    func willPresentSearchController(_ searchController: UISearchController) {
+//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+//    }
+//    
+//    func didPresentSearchController(_ searchController: UISearchController) {
+//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+//    }
+//    
+//    func willDismissSearchController(_ searchController: UISearchController) {
+//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+//    }
+//    
+//    func didDismissSearchController(_ searchController: UISearchController) {
+//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+//    }
+//    
+//}

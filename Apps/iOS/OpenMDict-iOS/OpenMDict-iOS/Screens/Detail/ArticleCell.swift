@@ -137,6 +137,9 @@ class ArticleCell: UICollectionViewCell {
         wv.backgroundColor = .clear
         wv.scrollView.backgroundColor = .clear
         wv.navigationDelegate = self
+        if #available(iOS 16.0, *) {
+            wv.isFindInteractionEnabled = true
+        }
         containerView.addSubview(wv)
         webView = wv
         
@@ -265,6 +268,18 @@ class ArticleCell: UICollectionViewCell {
                 print("⚠️ Zoom JS error: \(error)")
             }
         }
+    }
+    
+    /// Present system Find UI (iOS 16+)
+    @available(iOS 16.0, *)
+    func presentFind() {
+        webView.findInteraction?.presentFindNavigator(showingReplace: false)
+    }
+    
+    /// Dismiss system Find UI (iOS 16+)
+    @available(iOS 16.0, *)
+    func dismissFind() {
+        webView.findInteraction?.dismissFindNavigator()
     }
 }
 

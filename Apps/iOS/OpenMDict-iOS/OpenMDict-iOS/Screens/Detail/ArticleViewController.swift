@@ -61,6 +61,9 @@ class ArticleViewController: UIViewController {
         wv.backgroundColor = .clear
         wv.scrollView.backgroundColor = .clear
         wv.navigationDelegate = self
+        if #available(iOS 16.0, *) {
+            wv.isFindInteractionEnabled = true
+        }
         return wv
     }()
     
@@ -211,6 +214,20 @@ class ArticleViewController: UIViewController {
                 print("⚠️ Zoom JS error: \(error)")
             }
         }
+    }
+
+    // MARK: - Find
+
+    /// Present system Find UI (iOS 16+)
+    @available(iOS 16.0, *)
+    func presentFind() {
+        webView.findInteraction?.presentFindNavigator(showingReplace: false)
+    }
+
+    /// Dismiss system Find UI (iOS 16+)
+    @available(iOS 16.0, *)
+    func dismissFind() {
+        webView.findInteraction?.dismissFindNavigator()
     }
 }
 
