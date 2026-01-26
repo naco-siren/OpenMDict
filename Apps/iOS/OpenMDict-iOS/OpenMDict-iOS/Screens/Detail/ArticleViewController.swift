@@ -218,16 +218,16 @@ class ArticleViewController: UIViewController {
 
     // MARK: - Find
 
-    /// Present system Find UI (iOS 16+)
+    /// Present or hide system Find UI (iOS 16+)
     @available(iOS 16.0, *)
-    func presentFind() {
-        webView.findInteraction?.presentFindNavigator(showingReplace: false)
-    }
-
-    /// Dismiss system Find UI (iOS 16+)
-    @available(iOS 16.0, *)
-    func dismissFind() {
-        webView.findInteraction?.dismissFindNavigator()
+    func toggleFind() {
+        if let findInteraction = webView.findInteraction {
+            if (findInteraction.isFindNavigatorVisible) {
+                findInteraction.dismissFindNavigator()
+            } else {
+                findInteraction.presentFindNavigator(showingReplace: false)
+            }
+        }
     }
 }
 

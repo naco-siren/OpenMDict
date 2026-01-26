@@ -47,7 +47,70 @@ enum ArticleHTMLRenderer {
                 .heading { font-weight: 600; display: block; margin-bottom: 4px; }
                 a { color: \(cssColor(.link, traitCollection)); text-decoration: none; }
                 img { max-width: 100%; height: auto; }
+                
+                /* Find overlay - dims the page */
+                .find-overlay {
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(128, 128, 128, 0.3);
+                    pointer-events: none;
+                    z-index: 9998;
+                }
+                
+                /* Find highlight - appears above overlay */
+                mark.find-hl {
+                    position: relative;
+                    z-index: 9999;
+                    background-color: #ffeb3b;
+                    border-radius: 3px;
+                    padding: 1px 2px;
+                    margin: -1px -2px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                }
             </style>
+            <script>
+            var findOverlay = null;
+            
+            function highlightKeyword(keyword) {
+                // Remove old highlights
+                document.querySelectorAll('mark.find-hl').forEach(m => {
+                    const text = document.createTextNode(m.textContent);
+                    m.parentNode.replaceChild(text, m);
+                });
+                document.body.normalize();
+                
+                // Remove overlay
+                if (findOverlay) { findOverlay.remove(); findOverlay = null; }
+                
+                if (!keyword || keyword.length < 1) return 0;
+                
+                // Add overlay
+                findOverlay = document.createElement('div');
+                findOverlay.className = 'find-overlay';
+                document.body.appendChild(findOverlay);
+                
+                // Escape regex special chars
+                const escaped = keyword.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+                const regex = new RegExp('(' + escaped + ')', 'gi');
+                
+                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+                    acceptNode: n => n.parentNode.className === 'find-overlay' ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+                });
+                const nodes = [];
+                while (walker.nextNode()) nodes.push(walker.currentNode);
+                
+                let count = 0;
+                nodes.forEach(node => {
+                    if (regex.test(node.nodeValue)) {
+                        const span = document.createElement('span');
+                        span.innerHTML = node.nodeValue.replace(regex, '<mark class="find-hl">$1</mark>');
+                        node.parentNode.replaceChild(span, node);
+                        count += (node.nodeValue.match(regex) || []).length;
+                    }
+                });
+                return count;
+            }
+            </script>
         </head>
         <body>\(rewrittenHTML)</body>
         </html>

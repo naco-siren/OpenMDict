@@ -36,6 +36,9 @@ class ArticlesViewController: UIViewController {
     private var layoutMode: ArticleLayoutMode = .columns
     private var zoomLevel: Int = ZoomLevel.defaultLevel
     
+    // Track cell that needs to present find after context menu dismisses
+    private var pendingFindIndexPath: IndexPath?
+    
     // MARK: - Collection View
     
     private lazy var collectionView: UICollectionView = {
@@ -207,6 +210,9 @@ class ArticlesViewController: UIViewController {
             cell.onBookmarkToggle = { isBookmarked in
                 print("🔖 Bookmark: \(article.word): \(isBookmarked)")
                 // TODO: Implement bookmark persistence
+            }
+            cell.onWillPresentFind = { [weak self] in
+                self?.dismissAllFindsExcept(cell)
             }
         }
         
@@ -494,6 +500,16 @@ class ArticlesViewController: UIViewController {
         let indexPath = IndexPath(item: sender.currentPage, section: 0)
         collectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
     }
+    
+    private func dismissAllFindsExcept(_ excludeCell: ArticleCell?) {
+        guard #available(iOS 16.0, *) else { return }
+        
+        for cell in collectionView.visibleCells {
+            if let articleCell = cell as? ArticleCell, articleCell !== excludeCell {
+                articleCell.dismissFind()
+            }
+        }
+    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -556,16 +572,22 @@ extension ArticlesViewController: UICollectionViewDelegate {
             actionProvider: { [weak self] _ in
                 guard let self = self else { return nil }
                 return UIMenu(children: [
-                    UIAction(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
-                        let session = self.view.window?.windowScene?.session
-                        SceneDelegate.openNewWindow(for: article, sourceSession: session)
-                    },
                     UIAction(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
                         print("🔖 Bookmark: \(article.word)")
                         // TODO: Implement bookmark persistence
                     },
-                    UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { _ in
-                        self.delegate?.articlesViewController(self, didCloseArticle: article)
+                    UIAction(title: "Find in Page", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+                        guard #available(iOS 16.0, *) else { return }
+                        self?.pendingFindIndexPath = indexPath
+                    },
+                    UIAction(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
+                        let session = self.view.window?.windowScene?.session
+                        SceneDelegate.openNewWindow(for: article, sourceSession: session)
+                    },
+                    UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
+                        if let self = self {
+                            self.delegate?.articlesViewController(self, didCloseArticle: article)
+                        }
                     },
                 ])
             }
@@ -575,8 +597,21 @@ extension ArticlesViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView,
                         willEndContextMenuInteraction configuration: UIContextMenuConfiguration,
                         animator: UIContextMenuInteractionAnimating?) {
+        let pendingFind = self.pendingFindIndexPath
+        self.pendingFindIndexPath = nil
+        
         animator?.addCompletion { [weak self] in
             guard let self = self else { return }
+            
+            // Handle pending find request first
+            if #available(iOS 16.0, *), let indexPath = pendingFind,
+               let cell = self.collectionView.cellForItem(at: indexPath) as? ArticleCell {
+                self.dismissAllFindsExcept(cell)
+                cell.presentFind()
+                return  // Skip reload when presenting find
+            }
+            
+            // Normal case: reload visible cells
             for cell in self.collectionView.visibleCells {
                 if let articleCell = cell as? ArticleCell {
                     articleCell.forceReloadWebView()
@@ -611,20 +646,10 @@ extension ArticlesViewController: UICollectionViewDragDelegate {
 
 @available(iOS 16.0, *)
 extension ArticlesViewController {
-
-    /// Present Find UI on the first visible article cell
-    func presentFindInCurrentArticle() {
-        guard let firstVisibleCell = collectionView.visibleCells
-            .compactMap({ $0 as? ArticleCell })
-            .first else { return }
-
-        firstVisibleCell.presentFind()
-    }
-
-    /// Dismiss Find UI on all visible cells
-    func dismissFind() {
+    /// Highlight keyword in all visible cells using JavaScript
+    func highlightKeywordInAllCells(_ keyword: String?) {
         for cell in collectionView.visibleCells {
-            (cell as? ArticleCell)?.dismissFind()
+            (cell as? ArticleCell)?.highlightKeyword(keyword)
         }
     }
 }

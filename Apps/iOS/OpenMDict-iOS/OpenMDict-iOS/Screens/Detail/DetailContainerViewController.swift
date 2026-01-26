@@ -78,6 +78,8 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
+    private let searchController = UISearchController()
+    
     // MARK: - Navigation Bar Items (Compact mode - Menus)
     
     private lazy var layoutMenu: UIMenu = {
@@ -394,14 +396,12 @@ class DetailContainerViewController: UIViewController {
         
         if isRegular {
             setupRegularNavigationBar()
-//            if #available(iOS 16, *) {
-//                setupSearchBar(placeholder: "Keywords to highlight...")
-//            }
+            if #available(iOS 16, *) {
+                setupSearchBar(placeholder: "Keywords to highlight...")
+            }
         } else {
             setupCompactNavigationBar()
-//            if #available(iOS 16, *) {
-//                setupSearchBar(placeholder: "Keywords...")
-//            }
+            navigationItem.searchController = nil
         }
     }
     
@@ -454,13 +454,7 @@ class DetailContainerViewController: UIViewController {
                 ),
             ]
             
-            navigationItem.trailingItemGroups = [
-                .fixedGroup(items: [
-                    .init(title: "Find", image: UIImage(systemName: "magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                        self?.presentFind()
-                    }),
-                ])
-            ]
+            navigationItem.trailingItemGroups = []
             
         } else {
             // iOS 15: Best effort with standard items
@@ -534,25 +528,19 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
-//    private func setupSearchBar(placeholder: String) {
-//        searchController.delegate = self
-//        // TODO: TO BE IMPLEMENTED
-//        // searchController.searchResultsUpdater = self
-//        searchController.searchBar.autocapitalizationType = .none
-//        searchController.searchBar.placeholder = placeholder
-//        // TODO: only highlight the keywords after WKWebView is implmented, but maybe also provide `next`/`previous` navigation?
-//        // searchController.searchBar.delegate = self
-//
-//        navigationItem.searchController = searchController
-//        if #available(iOS 26, *) {
-//            navigationItem.preferredSearchBarPlacement = .integratedButton
-//        } else if #available(iOS 16, *) {
-//            navigationItem.preferredSearchBarPlacement = .inline
-//        } else {
-//            searchController.obscuresBackgroundDuringPresentation = true
-//            searchController.hidesNavigationBarDuringPresentation = false
-//        }
-//    }
+    private func setupSearchBar(placeholder: String) {
+        searchController.delegate = self
+        searchController.searchResultsUpdater = self
+        searchController.searchBar.autocapitalizationType = .none
+        searchController.searchBar.placeholder = placeholder
+
+        navigationItem.searchController = searchController
+        if #available(iOS 26, *) {
+            navigationItem.preferredSearchBarPlacement = .integratedButton
+        } else if #available(iOS 16, *) {
+            navigationItem.preferredSearchBarPlacement = .inline
+        }
+    }
 
     // MARK: - Public API (called by MainSplitVC)
     
@@ -652,32 +640,38 @@ class DetailContainerViewController: UIViewController {
         // Update nav bar to refresh zoom menu
         updateNavigationBar(for: traitCollection)
     }
-    
+
     // MARK: - Find in Page
 
-    @available(iOS 16.0, *)
     private func presentFind() {
-        if activeChild === articlesVC {
-            articlesVC.presentFindInCurrentArticle()
-        } else if activeChild === articleVC {
-            articleVC.presentFind()
+        guard #available(iOS 16.0, *) else { return }
+        
+        if activeChild === articleVC {
+            articleVC.toggleFind()
         }
     }
-
+    
     // MARK: - Keyboard Shortcuts
 
     override var keyCommands: [UIKeyCommand]? {
-        if #available(iOS 16.0, *) {
-            return [
-                UIKeyCommand(title: "Find", action: #selector(handleFindShortcut), input: "f", modifierFlags: .command)
-            ]
+        guard #available(iOS 16.0, *) else { return nil }
+        
+        // Only intercept ⌘F in Regular mode (ArticlesVC)
+        // In Compact mode (ArticleVC), let WebView handle it natively
+        if traitCollection.horizontalSizeClass == .regular {
+            return [UIKeyCommand(title: "Find", action: #selector(handleFindShortcut), input: "f", modifierFlags: .command)]
         }
         return nil
     }
 
-    @available(iOS 16.0, *)
     @objc private func handleFindShortcut() {
-        presentFind()
+        // Toggle search bar focus in Regular mode
+        if searchController.isActive {
+            searchController.isActive = false
+        } else {
+            searchController.isActive = true
+            searchController.searchBar.becomeFirstResponder()
+        }
     }
 }
 
@@ -742,26 +736,36 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
     }
 }
 
-//extension DetailContainerViewController: UISearchControllerDelegate {
-//    
-//    func presentSearchController(_ searchController: UISearchController) {
-//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-//    }
-//    
-//    func willPresentSearchController(_ searchController: UISearchController) {
-//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-//    }
-//    
-//    func didPresentSearchController(_ searchController: UISearchController) {
-//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-//    }
-//    
-//    func willDismissSearchController(_ searchController: UISearchController) {
-//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-//    }
-//    
-//    func didDismissSearchController(_ searchController: UISearchController) {
-//        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
-//    }
-//    
-//}
+extension DetailContainerViewController: UISearchControllerDelegate {
+    
+    func presentSearchController(_ searchController: UISearchController) {
+        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+    }
+    
+    func willPresentSearchController(_ searchController: UISearchController) {
+        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+    }
+    
+    func didPresentSearchController(_ searchController: UISearchController) {
+        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+    }
+    
+    func willDismissSearchController(_ searchController: UISearchController) {
+        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+    }
+    
+    func didDismissSearchController(_ searchController: UISearchController) {
+        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+    }
+}
+
+// MARK: - UISearchResultsUpdating (Regular mode - JS highlight)
+
+extension DetailContainerViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        if #available(iOS 16, *) {
+            let keyword = searchController.searchBar.text
+            articlesVC.highlightKeywordInAllCells(keyword)
+        }
+    }
+}

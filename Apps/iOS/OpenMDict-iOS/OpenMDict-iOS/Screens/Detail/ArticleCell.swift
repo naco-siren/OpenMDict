@@ -22,6 +22,7 @@ class ArticleCell: UICollectionViewCell {
     var onClose: (() -> Void)?
     var onOpenInNewWindow: (() -> Void)?
     var onBookmarkToggle: ((Bool) -> Void)?
+    var onWillPresentFind: (() -> Void)?
 
     // MARK: - State
     
@@ -56,6 +57,15 @@ class ArticleCell: UICollectionViewCell {
     private let subtitleLabel = UILabel()
     
     // Trailing toolbar buttons
+    private lazy var findButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "magnifyingglass")
+        config.baseForegroundColor = .secondaryLabel
+        let btn = UIButton(configuration: config)
+        btn.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
+        return btn
+    }()
+    
     private lazy var newWindowButton: UIButton = {
         var config = UIButton.Configuration.plain()
         config.image = UIImage(systemName: "rectangle.badge.plus")
@@ -121,7 +131,7 @@ class ArticleCell: UICollectionViewCell {
         headerView.addSubview(titleStack)
         
         // Trailing toolbar
-        let toolbarStack = UIStackView(arrangedSubviews: [newWindowButton, closeButton])
+        let toolbarStack = UIStackView(arrangedSubviews: [findButton, newWindowButton, closeButton])
         toolbarStack.axis = .horizontal
         toolbarStack.spacing = 0
         toolbarStack.translatesAutoresizingMaskIntoConstraints = false
@@ -220,14 +230,21 @@ class ArticleCell: UICollectionViewCell {
      }
     
     // MARK: - Actions
-    
-    @objc private func closeTapped() { onClose?() }
-    @objc private func newWindowTapped() { onOpenInNewWindow?() }
     @objc private func bookmarkTapped() {
         isBookmarked.toggle()
         bookmarkButton.setNeedsUpdateConfiguration()
         onBookmarkToggle?(isBookmarked)
     }
+    
+    @objc private func findTapped() {
+        guard #available(iOS 16.0, *) else { return }
+        onWillPresentFind?()
+        presentFind()
+    }
+
+    @objc private func newWindowTapped() { onOpenInNewWindow?() }
+
+    @objc private func closeTapped() { onClose?() }
     
     // MARK: - Lifecycle
     
@@ -237,6 +254,7 @@ class ArticleCell: UICollectionViewCell {
         onClose = nil
         onOpenInNewWindow = nil
         onBookmarkToggle = nil
+        onWillPresentFind = nil
         currentArticle = nil
         isBookmarked = false
     }
@@ -280,6 +298,24 @@ class ArticleCell: UICollectionViewCell {
     @available(iOS 16.0, *)
     func dismissFind() {
         webView.findInteraction?.dismissFindNavigator()
+    }
+    
+    /// Check if find navigator is currently visible (iOS 16+)
+    var isFindNavigatorVisible: Bool {
+        guard #available(iOS 16.0, *) else { return false }
+        
+        return webView.findInteraction?.isFindNavigatorVisible ?? false
+    }
+    
+    // MARK: - JavaScript Highlight (for multi-article search)
+    
+    /// Highlight keyword using JavaScript (works across all cells)
+    func highlightKeyword(_ keyword: String?) {
+        let escaped = (keyword ?? "").replacingOccurrences(of: "'", with: "\\'")
+        let js = "highlightKeyword('\(escaped)')"
+        webView.evaluateJavaScript(js) { result, error in
+            // result = match count, can be used for UI feedback
+        }
     }
 }
 
