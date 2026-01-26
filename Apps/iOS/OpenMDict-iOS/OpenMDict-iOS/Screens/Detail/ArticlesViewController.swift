@@ -356,83 +356,21 @@ class ArticlesViewController: UIViewController {
             configuration: configuration
         )
     }
-
-    private func createGridSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        let safeTop = effectiveSafeAreaTop
-        
-        print("📐 [\(instanceID)] ArticlesVC.createGridSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
-        
-        // Calculate columns based on container width
-        let containerWidth = environment.container.effectiveContentSize.width
-        let columnCount = max(2, Int(floor(containerWidth / 320)))
-        let itemFraction = 1.0 / CGFloat(columnCount)
-        
-        let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(itemFraction),
-            heightDimension: .fractionalWidth(itemFraction)  // Square cells
-        )
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
-        
-        let groupSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalWidth(itemFraction)
-        )
-        
-        // Use subitems array with explicit count - NOT subitem:count:
-        let group = NSCollectionLayoutGroup.horizontal(
-            layoutSize: groupSize,
-            subitems: Array(repeating: item, count: columnCount)
-        )
-        
-        let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: safeTop + 8, leading: 8, bottom: 8, trailing: 8)
-
-        return section
-    }
-
-    private func createListSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        let safeTop = effectiveSafeAreaTop
-        
-        print("📐 [\(instanceID)] ArticlesVC.createListSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
-        
-        // For vertical scroll layouts, effectiveContentSize.height doesn't account for safe area
-        // So we calculate the correct height ourselves using effectiveSafeAreaTop
-        let correctedHeight = view.bounds.height - safeTop
-                 
-        // Each item fills all space
-        let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(correctedHeight),
-        )
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0)
-
-        // Group height equals container to ensure full-height paging
-        let groupSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalHeight(1.0)
-        )
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
-        let leadingMargin: CGFloat = if #available(iOS 16, *) { 12 } else { 0 }
-        group.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: leadingMargin, bottom: 0, trailing: 0)
-        
-        let section = NSCollectionLayoutSection(group: group)
-        // For vertical scroll with contentInsetAdjustmentBehavior = .never,
-        // we ALWAYS need top inset to push content below the nav bar
-        section.contentInsets = NSDirectionalEdgeInsets(top: safeTop, leading: 16, bottom: 0, trailing: 16)
-        section.interGroupSpacing = 0
-        
-        return section
-    }
-
+    
     private func createColumnsSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let safeTop = effectiveSafeAreaTop
         let mySafeTop = view.safeAreaInsets.top
         print("📐 [\(instanceID)] ArticlesVC.createColumnsSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
         
-        // Calculate correct content height, accounting for safe area
-        // When child's safe area is 0 but parent has safe area, effectiveContentSize is wrong
+        // IMPORTANT: Horizontal scroll behavior in UICollectionViewCompositionalLayout
+        // ============================================================================
+        // For horizontal scroll, the system AUTOMATICALLY:
+        // 1. Subtracts safe area from effectiveContentSize.height (768 → 698)
+        // 2. Positions cells below the safe area
+        //
+        // However, when child VC's safe area is 0 (due to trait transition timing),
+        // the system doesn't know about safe area, so we must manually correct.
+        // This is why we need `needsCorrection` only for columns, not for grid/list.
         let containerHeight = environment.container.effectiveContentSize.height
         let needsCorrection = mySafeTop == 0 && safeTop > 0
         let correctedHeight = needsCorrection ? containerHeight - safeTop : containerHeight
@@ -460,11 +398,87 @@ class ArticlesViewController: UIViewController {
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
         
         let section = NSCollectionLayoutSection(group: group)
-        // When safe area is broken (child's is 0 but parent has it), add top inset
+        // Only add top inset when safe area correction is needed (see comment above)
         let topInset: CGFloat = needsCorrection ? safeTop : 0
         section.contentInsets = NSDirectionalEdgeInsets(top: topInset, leading: 16, bottom: 0, trailing: 16)
         section.interGroupSpacing = 16
 
+        return section
+    }
+
+    private func createGridSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let safeTop = effectiveSafeAreaTop
+        
+        print("📐 [\(instanceID)] ArticlesVC.createGridSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
+        
+        // IMPORTANT: Vertical scroll behavior in UICollectionViewCompositionalLayout
+        // ==========================================================================
+        // For vertical scroll, the system does NOT automatically handle safe area:
+        // 1. effectiveContentSize.height remains full height (768, not 698)
+        // 2. Cells start at Y=0, ignoring safe area
+        //
+        // Therefore, we ALWAYS need to manually add safeTop as top inset.
+
+        // Calculate columns based on container width
+        let containerWidth = environment.container.effectiveContentSize.width
+        let columnCount = max(2, Int(floor(containerWidth / 320)))
+        let itemFraction = 1.0 / CGFloat(columnCount)
+        
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(itemFraction),
+            heightDimension: .fractionalWidth(itemFraction)  // Square cells
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
+        
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalWidth(itemFraction)
+        )
+        
+        // Use subitems array with explicit count - NOT subitem:count:
+        let group = NSCollectionLayoutGroup.horizontal(
+            layoutSize: groupSize,
+            subitems: Array(repeating: item, count: columnCount)
+        )
+        
+        let section = NSCollectionLayoutSection(group: group)
+        // Always add safe area as top inset (vertical scroll doesn't auto-handle it)
+        section.contentInsets = NSDirectionalEdgeInsets(top: safeTop + 8, leading: 8, bottom: 8, trailing: 8)
+
+        return section
+    }
+
+    private func createListSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let safeTop = effectiveSafeAreaTop
+        
+        print("📐 [\(instanceID)] ArticlesVC.createListSection - safeArea: \(view.safeAreaInsets), effectiveSafeTop: \(safeTop), containerSize: \(environment.container.effectiveContentSize)")
+        
+        // Vertical scroll: must calculate height manually (see createGridSection comment)
+        let correctedHeight = view.bounds.height - safeTop
+                 
+        // Each item fills all space
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .absolute(correctedHeight),
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0)
+
+        // Group height equals container to ensure full-height paging
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalHeight(1.0)
+        )
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        let leadingMargin: CGFloat = if #available(iOS 16, *) { 12 } else { 0 }
+        group.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: leadingMargin, bottom: 0, trailing: 0)
+        
+        let section = NSCollectionLayoutSection(group: group)
+        // Always add safe area as top inset (vertical scroll doesn't auto-handle it)
+        section.contentInsets = NSDirectionalEdgeInsets(top: safeTop, leading: 16, bottom: 0, trailing: 16)
+        section.interGroupSpacing = 0
+        
         return section
     }
     
