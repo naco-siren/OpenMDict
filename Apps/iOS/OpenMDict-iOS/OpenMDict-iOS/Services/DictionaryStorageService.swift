@@ -260,6 +260,18 @@ final class DictionaryStorageService {
         print("📄 Saved manifest")
     }
     
+    // MARK: - Manifest Mutation
+    
+    /// Update the default group order
+    func updateDefaultOrder(_ order: [String]) {
+        manifest.groups.defaultOrder = order
+    }
+    
+    /// Update user groups
+    func updateUserGroups(_ groups: [DictionaryManifest.UserGroup]) {
+        manifest.groups.userGroups = groups
+    }
+    
     // MARK: - Directory Management
     
     /// Ensure root directory exists
