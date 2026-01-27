@@ -2,19 +2,37 @@
 //  MainSplitViewController.swift
 //  OpenMDict-iOS
 //
-//  Triple column split view controller
+//  Triple column split view controller with dual-mode support:
+//  - Lookup Mode: WordList + DetailContainer (default)
+//  - Management Mode: DictManageList + DictConfig
 //
 
 import UIKit
 import OpenMDictKit
 
+// MARK: - App Mode
+
+enum AppMode {
+    case lookup      // Default: word search and article display
+    case management  // Dictionary management and import
+}
+
 class MainSplitViewController: UISplitViewController {
     
-    // MARK: - Child Controllers
+    // MARK: - Child Controllers (Lookup Mode)
     
     private let dictionaryListVC = DictionaryListViewController()
     private let wordListVC = WordListViewController()
     private let detailContainer = DetailContainerViewController()
+    
+    // MARK: - Child Controllers (Management Mode)
+    
+    private lazy var dictManageListVC = DictManageListViewController()
+    private lazy var dictConfigVC = DictConfigViewController()
+    
+    // MARK: - Mode State
+    
+    private(set) var currentMode: AppMode = .lookup
     
     // MARK: - State
 
@@ -130,11 +148,17 @@ class MainSplitViewController: UISplitViewController {
     
     private func setupDelegates() {
         dictionaryListVC.onGroupSelected = { [weak self] group in
+            self?.switchToLookupModeIfNeeded()
             self?.selectGroup(group)
         }
         
         dictionaryListVC.onDictionarySelected = { [weak self] dict in
+            self?.switchToLookupModeIfNeeded()
             self?.selectDictionary(dict)
+        }
+        
+        dictionaryListVC.onManageDictsSelected = { [weak self] in
+            self?.switchToManagementMode()
         }
         
         wordListVC.onWordSelected = { [weak self] wordItem in
@@ -147,6 +171,32 @@ class MainSplitViewController: UISplitViewController {
             if self?.traitCollection.horizontalSizeClass == .compact {
                 self?.show(.supplementary)
             }
+        }
+        
+        // Management mode callbacks
+        dictManageListVC.onDictionarySelected = { [weak self] entry in
+            self?.dictConfigVC.showEditMode(for: entry)
+        }
+        
+        dictManageListVC.onAddDictionaryTapped = { [weak self] in
+            self?.dictConfigVC.showImportMode()
+        }
+        
+        dictConfigVC.onDismiss = { [weak self] in
+            self?.dictConfigVC.showEmptyState()
+        }
+        
+        dictConfigVC.onImportComplete = { [weak self] dictionaryId in
+            Task { @MainActor in
+                await DictionaryService.shared.refreshAfterImport(dictionaryId)
+                self?.dictManageListVC.reloadData()
+            }
+        }
+        
+        dictConfigVC.onDeleteComplete = { [weak self] dictionaryId in
+            DictionaryService.shared.refreshAfterDelete(dictionaryId)
+            self?.dictManageListVC.reloadData()
+            self?.dictConfigVC.showEmptyState()
         }
     }
     
@@ -211,6 +261,59 @@ class MainSplitViewController: UISplitViewController {
         detailContainer.pushArticle(article, animated: animated)
         
         show(.secondary)
+    }
+    
+    // MARK: - Mode Switching
+    
+    /// Switch to management mode (dictionary list + config)
+    func switchToManagementMode() {
+        guard currentMode != .management else { return }
+        currentMode = .management
+        
+        // Wrap in navigation controllers if needed
+        let manageListNav = dictManageListVC.navigationController
+            ?? UINavigationController(rootViewController: dictManageListVC)
+        let configNav = dictConfigVC.navigationController
+            ?? UINavigationController(rootViewController: dictConfigVC)
+        
+        setViewController(manageListNav, for: .supplementary)
+        setViewController(configNav, for: .secondary)
+        
+        // Show empty state initially
+        dictConfigVC.showEmptyState()
+        
+        show(.supplementary)
+        
+        print("📚 Switched to Management mode")
+    }
+    
+    /// Switch to lookup mode (word list + detail)
+    func switchToLookupMode() {
+        guard currentMode != .lookup else { return }
+        currentMode = .lookup
+        
+        // Wrap in navigation controllers if needed
+        let wordListNav = wordListVC.navigationController
+            ?? UINavigationController(rootViewController: wordListVC)
+        let detailNav = detailContainer.navigationController
+            ?? UINavigationController(rootViewController: detailContainer)
+        
+        setViewController(wordListNav, for: .supplementary)
+        setViewController(detailNav, for: .secondary)
+        
+        show(.supplementary)
+        
+        // Deselect management item in sidebar
+        dictionaryListVC.deselectManagementItem()
+        
+        print("🔍 Switched to Lookup mode")
+    }
+    
+    /// Switch to lookup mode only if currently in management mode
+    private func switchToLookupModeIfNeeded() {
+        if currentMode == .management {
+            switchToLookupMode()
+        }
     }
     
     // MARK: - State Restoration

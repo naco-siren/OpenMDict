@@ -14,8 +14,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     case header(String, isBold: Bool)
     case group(id: String, isDefault: Bool)
     case dictionary(id: String, groupId: String)
-    case importDict
-    case deleteDict
+    case manageDicts
     case settings
     
     var itemId: String {
@@ -23,8 +22,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
         case .header(let t, _): return "header:\(t)"
         case .group(let id, _): return "group:\(id)"
         case .dictionary(let id, let gid): return "dict:\(gid):\(id)"
-        case .importDict: return "action:import"
-        case .deleteDict: return "action:delete"
+        case .manageDicts: return "action:manage"
         case .settings: return "action:settings"
         }
     }

@@ -300,20 +300,31 @@ final class ManagementActionCell: UICollectionViewListCell {
         super.updateConfiguration(using: state)
         guard let item = item else { return }
         
+        let isActive = state.isSelected || state.isHighlighted
+        
         var content = UIListContentConfiguration.sidebarCell()
         
         switch item {
-        case .importDict:
-            content.text = "Import Dictionary"
-            content.image = UIImage(systemName: "square.and.arrow.down")
-        case .deleteDict:
-            content.text = "Delete Dictionaries"
-            content.image = UIImage(systemName: "trash")
+        case .manageDicts:
+            content.text = "Manage Dictionaries"
+            content.image = UIImage(systemName: "square.grid.3x1.folder.badge.plus")
         case .settings:
             content.text = "App Settings"
             content.image = UIImage(systemName: "gearshape")
         default:
             break
+        }
+        
+        // Apply selected styling (blue background + white text/icon)
+        if isActive {
+            content.textProperties.color = .white
+            content.imageProperties.tintColor = .white
+
+            var bg = UIBackgroundConfiguration.listSidebarCell()
+            bg.backgroundColor = .systemBlue
+            backgroundConfiguration = bg
+        } else {
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
         }
         
         contentConfiguration = content

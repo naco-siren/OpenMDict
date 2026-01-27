@@ -22,6 +22,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     var onGroupSelected: ((MDicts) -> Void)?
     var onDictionarySelected: ((MDict) -> Void)?
+    var onManageDictsSelected: (() -> Void)?
     
     // MARK: - State (SidebarStateProvider)
     
@@ -193,7 +194,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .importDict, .deleteDict, .settings:
+            case .manageDicts, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -237,7 +238,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let mgmtHeader = SidebarItem.header("Management", isBold: false)
         mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.importDict, .deleteDict, .settings], to: mgmtHeader)
+        mgmtSnapshot.append([.manageDicts, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
         dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: false)
     }
@@ -250,6 +251,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private func invalidateVisibleCellConfigurations() {
         for cell in collectionView.visibleCells {
             cell.setNeedsUpdateConfiguration()
+        }
+    }
+    
+    /// Deselect the management item (called when switching back to lookup mode)
+    func deselectManagementItem() {
+        if let indexPath = dataSource.indexPath(for: .manageDicts) {
+            collectionView.deselectItem(at: indexPath, animated: true)
         }
     }
 }
@@ -313,13 +321,23 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Notify delegate
             onDictionarySelected?(dict)
             
-        case .importDict:
-            collectionView.deselectItem(at: indexPath, animated: true)
-            print("📥 Import dictionary - TODO")
-            
-        case .deleteDict:
-            collectionView.deselectItem(at: indexPath, animated: true)
-            print("🗑️ Delete dictionaries - TODO")
+        case .manageDicts:
+            // Clear active state so other cells don't show as active
+            activeGroupId = nil
+            activeDict = nil
+
+            // Deselect all other items except this one
+            for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                if selectedIndexPath != indexPath {
+                    collectionView.deselectItem(at: selectedIndexPath, animated: true)
+                }
+            }
+
+            // Trigger cell updates to remove active styling from other cells
+            invalidateVisibleCellConfigurations()
+
+            // Notify delegate to switch to management mode
+            onManageDictsSelected?()
             
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)
