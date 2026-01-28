@@ -19,9 +19,11 @@ enum AppMode {
 
 class MainSplitViewController: UISplitViewController {
     
+    // MARK: - Sidebar Controller (Main Navigation)
+    private let dictionaryListVC = DictionaryListViewController()
+    
     // MARK: - Child Controllers (Lookup Mode)
     
-    private let dictionaryListVC = DictionaryListViewController()
     private let wordListVC = WordListViewController()
     private let detailContainer = DetailContainerViewController()
     
@@ -101,12 +103,24 @@ class MainSplitViewController: UISplitViewController {
 
         if wasRegular && willBeCompact {
             coordinator.animate { _ in
-                if self.detailContainer.allArticles.isEmpty {
-                    print("📱 Transitioning to compact: no articles, showing word list")
-                    self.show(.supplementary)
-                } else {
-                    print("📱 Transitioning to compact: has \(self.detailContainer.allArticles.count) articles, showing detail")
-                    self.show(.secondary)
+                switch self.currentMode {
+                case .lookup:
+                    if self.detailContainer.allArticles.isEmpty {
+                        debugLog("📱 Transitioning to compact (lookup): no articles, showing word list")
+                        self.show(.supplementary)
+                    } else {
+                        debugLog("📱 Transitioning to compact (lookup): has \(self.detailContainer.allArticles.count) articles, showing detail")
+                        self.show(.secondary)
+                    }
+
+                case .management:
+                    if self.dictConfigVC.currentState != .empty {
+                        debugLog("📱 Transitioning to compact (management): editing/importing, showing config")
+                        self.show(.secondary)
+                    } else {
+                        debugLog("📱 Transitioning to compact (management): idle, showing list")
+                        self.show(.supplementary)
+                    }
                 }
             }
         }
@@ -198,6 +212,11 @@ class MainSplitViewController: UISplitViewController {
             self?.dictManageListVC.reloadData()
             self?.dictConfigVC.showEmptyState()
         }
+        
+        dictManageListVC.onDeleteStateChanged = { [weak self] isDeleting in
+            // Lock/unlock sidebar during deletion
+            self?.dictionaryListVC.view.isUserInteractionEnabled = !isDeleting
+        }
     }
     
     private func setupInitialState() {
@@ -267,24 +286,26 @@ class MainSplitViewController: UISplitViewController {
     
     /// Switch to management mode (dictionary list + config)
     func switchToManagementMode() {
-        guard currentMode != .management else { return }
-        currentMode = .management
+        if currentMode != .management {
+            currentMode = .management
+
+            // Wrap in navigation controllers if needed
+            let manageListNav = dictManageListVC.navigationController
+                ?? UINavigationController(rootViewController: dictManageListVC)
+            let configNav = dictConfigVC.navigationController
+                ?? UINavigationController(rootViewController: dictConfigVC)
+
+            setViewController(manageListNav, for: .supplementary)
+            setViewController(configNav, for: .secondary)
+
+            // Show empty state initially
+            dictConfigVC.showEmptyState()
+
+            print("📚 Switched to Management mode")
+        }
         
-        // Wrap in navigation controllers if needed
-        let manageListNav = dictManageListVC.navigationController
-            ?? UINavigationController(rootViewController: dictManageListVC)
-        let configNav = dictConfigVC.navigationController
-            ?? UINavigationController(rootViewController: dictConfigVC)
-        
-        setViewController(manageListNav, for: .supplementary)
-        setViewController(configNav, for: .secondary)
-        
-        // Show empty state initially
-        dictConfigVC.showEmptyState()
-        
+        // Always show supplementary (for compact mode re-navigation)
         show(.supplementary)
-        
-        print("📚 Switched to Management mode")
     }
     
     /// Switch to lookup mode (word list + detail)
@@ -339,7 +360,15 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
         _ svc: UISplitViewController,
         topColumnForCollapsingToProposedTopColumn proposedTopColumn: UISplitViewController.Column
     ) -> UISplitViewController.Column {
-        return .supplementary
+        return switch currentMode {
+        case .lookup:
+            // Show detail if there are articles, otherwise show word list
+            if !detailContainer.allArticles.isEmpty { .secondary } else { .supplementary }
+
+        case .management:
+            // Show config if actively editing/importing, otherwise show list
+            if dictConfigVC.currentState != .empty { .secondary } else { .supplementary }
+        }
     }
 }
 

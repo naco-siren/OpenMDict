@@ -284,6 +284,22 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             }
             return true
             
+        case .manageDicts:
+            // Disable until all dictionaries are loaded
+            let allLoaded = DictionaryService.shared.allDictionaries.allSatisfy {
+                switch $0.state {
+                case .loaded, .error(_):
+                     true
+                default:
+                    false
+                }
+            }
+            if !allLoaded {
+                print("⚠️ Dictionaries still loading, cannot manage yet")
+                return false
+            }
+            return true
+            
         default:
             return true
         }

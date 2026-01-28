@@ -302,6 +302,20 @@ final class ManagementActionCell: UICollectionViewListCell {
         
         let isActive = state.isSelected || state.isHighlighted
         
+        // Check if all dictionaries are loaded (for manageDicts item)
+        let allDictsLoaded: Bool = {
+            guard case .manageDicts = item else { return true }
+            
+            return DictionaryService.shared.allDictionaries.allSatisfy {
+                switch $0.state {
+                case .loaded, .error(_):
+                    true
+                default:
+                    false
+                }
+            }
+        }()
+        
         var content = UIListContentConfiguration.sidebarCell()
         
         switch item {
@@ -315,8 +329,15 @@ final class ManagementActionCell: UICollectionViewListCell {
             break
         }
         
-        // Apply selected styling (blue background + white text/icon)
-        if isActive {
+        // Apply styling based on state
+        if !allDictsLoaded {
+            // Disabled state - gray out
+            content.textProperties.color = .tertiaryLabel
+            content.imageProperties.tintColor = .tertiaryLabel
+            
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+        } else if isActive {
+            // Selected state - blue background + white text/icon
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
 
@@ -324,6 +345,7 @@ final class ManagementActionCell: UICollectionViewListCell {
             bg.backgroundColor = .systemBlue
             backgroundConfiguration = bg
         } else {
+            // Normal state
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
         }
         
