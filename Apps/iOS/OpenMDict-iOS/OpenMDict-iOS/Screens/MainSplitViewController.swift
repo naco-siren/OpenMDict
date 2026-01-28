@@ -4,7 +4,7 @@
 //
 //  Triple column split view controller with dual-mode support:
 //  - Lookup Mode: WordList + DetailContainer (default)
-//  - Management Mode: DictManageList + DictConfig
+//  - Management Mode: UserLibrary + DictConfig
 //
 
 import UIKit
@@ -29,7 +29,7 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Child Controllers (Management Mode)
     
-    private lazy var dictManageListVC = DictManageListViewController()
+    private lazy var userLibraryVC = UserLibraryViewController()
     private lazy var dictConfigVC = DictConfigViewController()
     
     // MARK: - Mode State
@@ -136,9 +136,6 @@ class MainSplitViewController: UISplitViewController {
         preferredPrimaryColumnWidthFraction = 0.25
         minimumPrimaryColumnWidth = 250
         
-        preferredSupplementaryColumnWidthFraction = 0.25
-        minimumSupplementaryColumnWidth = 250
-        
         navigationItem.backButtonDisplayMode = .minimal
         
         presentsWithGesture = true
@@ -188,12 +185,17 @@ class MainSplitViewController: UISplitViewController {
         }
         
         // Management mode callbacks
-        dictManageListVC.onDictionarySelected = { [weak self] entry in
+        userLibraryVC.onDictionarySelected = { [weak self] entry in
             self?.dictConfigVC.showEditMode(for: entry)
         }
         
-        dictManageListVC.onAddDictionaryTapped = { [weak self] in
+        userLibraryVC.onAddDictionaryTapped = { [weak self] in
             self?.dictConfigVC.showImportMode()
+        }
+        
+        userLibraryVC.onDeleteStateChanged = { [weak self] isDeleting in
+            // Lock/unlock sidebar during deletion
+            self?.dictionaryListVC.view.isUserInteractionEnabled = !isDeleting
         }
         
         dictConfigVC.onDismiss = { [weak self] in
@@ -203,19 +205,14 @@ class MainSplitViewController: UISplitViewController {
         dictConfigVC.onImportComplete = { [weak self] dictionaryId in
             Task { @MainActor in
                 await DictionaryService.shared.refreshAfterImport(dictionaryId)
-                self?.dictManageListVC.reloadData()
+                self?.userLibraryVC.reloadData()
             }
         }
         
         dictConfigVC.onDeleteComplete = { [weak self] dictionaryId in
             DictionaryService.shared.refreshAfterDelete(dictionaryId)
-            self?.dictManageListVC.reloadData()
+            self?.userLibraryVC.reloadData()
             self?.dictConfigVC.showEmptyState()
-        }
-        
-        dictManageListVC.onDeleteStateChanged = { [weak self] isDeleting in
-            // Lock/unlock sidebar during deletion
-            self?.dictionaryListVC.view.isUserInteractionEnabled = !isDeleting
         }
     }
     
@@ -288,10 +285,14 @@ class MainSplitViewController: UISplitViewController {
     func switchToManagementMode() {
         if currentMode != .management {
             currentMode = .management
+            
+            // Wider supplementary for library list
+            preferredSupplementaryColumnWidthFraction = 0.35
+            minimumSupplementaryColumnWidth = 320
 
             // Wrap in navigation controllers if needed
-            let manageListNav = dictManageListVC.navigationController
-                ?? UINavigationController(rootViewController: dictManageListVC)
+            let manageListNav = userLibraryVC.navigationController
+                ?? UINavigationController(rootViewController: userLibraryVC)
             let configNav = dictConfigVC.navigationController
                 ?? UINavigationController(rootViewController: dictConfigVC)
 
@@ -312,6 +313,10 @@ class MainSplitViewController: UISplitViewController {
     func switchToLookupMode() {
         guard currentMode != .lookup else { return }
         currentMode = .lookup
+        
+        // Narrower supplementary for word list
+        preferredSupplementaryColumnWidthFraction = 0.25
+        minimumSupplementaryColumnWidth = 250
         
         // Wrap in navigation controllers if needed
         let wordListNav = wordListVC.navigationController

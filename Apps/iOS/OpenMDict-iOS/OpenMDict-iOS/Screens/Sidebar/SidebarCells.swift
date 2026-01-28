@@ -268,7 +268,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
 
 // MARK: - Section Header Cell
 
-/// Cell for section headers (User Groups, Management).
+/// Cell for section headers ("My Groups", "Management").
 final class SidebarHeaderCell: UICollectionViewListCell {
     
     var title: String?
@@ -320,7 +320,7 @@ final class ManagementActionCell: UICollectionViewListCell {
         
         switch item {
         case .manageDicts:
-            content.text = "Manage Dictionaries"
+            content.text = "My Library"
             content.image = UIImage(systemName: "square.grid.3x1.folder.badge.plus")
         case .settings:
             content.text = "App Settings"

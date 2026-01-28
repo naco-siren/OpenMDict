@@ -1,5 +1,5 @@
 //
-//  DictManageListViewController.swift
+//  UserLibraryViewController.swift
 //  OpenMDict-iOS
 //
 //  Supplementary column for Management Mode.
@@ -14,7 +14,7 @@
 import UIKit
 import OpenMDictKit
 
-class DictManageListViewController: UIViewController {
+class UserLibraryViewController: UIViewController {
     
     // MARK: - State
     
@@ -118,7 +118,7 @@ class DictManageListViewController: UIViewController {
         imageView.contentMode = .scaleAspectFit
 
         let label = UILabel()
-        label.text = "Manage Dictionaries"
+        label.text = "My Library"
         label.font = .systemFont(ofSize: 17, weight: .semibold)
 
         let stack = UIStackView(arrangedSubviews: [imageView, label])
@@ -502,7 +502,7 @@ class DictManageListViewController: UIViewController {
 
 // MARK: - UICollectionViewDelegate
 
-extension DictManageListViewController: UICollectionViewDelegate {
+extension UserLibraryViewController: UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }

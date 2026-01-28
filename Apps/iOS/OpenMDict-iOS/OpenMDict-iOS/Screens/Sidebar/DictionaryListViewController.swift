@@ -220,9 +220,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         defaultSnapshot.expand([defaultGroupItem])
         dataSource.apply(defaultSnapshot, to: .defaultGroup, animatingDifferences: false)
         
-        // Section 1: User Groups - with header
+        // Section 1: My Groups - with header
         var userSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
-        let userHeader = SidebarItem.header("User Groups", isBold: false)
+        let userHeader = SidebarItem.header("My Groups", isBold: false)
         userSnapshot.append([userHeader])
         for group in userGroups {
             let groupItem = SidebarItem.group(id: group.id, isDefault: false)
