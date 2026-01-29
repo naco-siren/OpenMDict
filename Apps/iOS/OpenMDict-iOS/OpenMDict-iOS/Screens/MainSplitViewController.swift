@@ -168,7 +168,7 @@ class MainSplitViewController: UISplitViewController {
             self?.selectDictionary(dict)
         }
         
-        dictionaryListVC.onManageDictsSelected = { [weak self] in
+        dictionaryListVC.onImportDictionarySelected = { [weak self] in
             self?.switchToManagementMode()
         }
         
@@ -329,8 +329,8 @@ class MainSplitViewController: UISplitViewController {
         
         show(.supplementary)
         
-        // Deselect management item in sidebar
-        dictionaryListVC.deselectManagementItem()
+        // Deselect import item in sidebar
+        dictionaryListVC.deselectImportItem()
         
         print("🔍 Switched to Lookup mode")
     }

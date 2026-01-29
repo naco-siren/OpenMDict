@@ -22,7 +22,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     var onGroupSelected: ((MDicts) -> Void)?
     var onDictionarySelected: ((MDict) -> Void)?
-    var onManageDictsSelected: (() -> Void)?
+    var onImportDictionarySelected: (() -> Void)?
     
     // MARK: - State (SidebarStateProvider)
     
@@ -69,6 +69,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         
+        // Edit button (system editButtonItem handles Edit/Done toggle)
+        navigationItem.rightBarButtonItem = editButtonItem
+        
         view.backgroundColor = .systemGroupedBackground
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -79,8 +82,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         ])
         
         configureDataSource()
-        applySnapshot()
+        applySnapshot(animated: false)
         subscribeToDictionaryStates()
+    }
+    
+    override func setEditing(_ editing: Bool, animated: Bool) {
+        super.setEditing(editing, animated: animated)
+        applySnapshot(animated: animated)
     }
     
     // MARK: - State Subscriptions
@@ -194,7 +202,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .manageDicts, .settings:
+            case .importDictionary, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -204,7 +212,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     // MARK: - Snapshot
     
-    private func applySnapshot() {
+    private func applySnapshot(animated: Bool) {
         guard let defaultGroup = groups.first(where: { $0.isDefault }) else {
             print("⚠️ No default group found")
             return
@@ -215,10 +223,18 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         var defaultSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let defaultGroupItem = SidebarItem.group(id: defaultGroup.id, isDefault: true)
         defaultSnapshot.append([defaultGroupItem])
-        let defaultChildren = defaultGroup.items.map { SidebarItem.dictionary(id: $0.id, groupId: defaultGroup.id) }
+        
+        // Dictionary children
+        var defaultChildren = defaultGroup.items.map { SidebarItem.dictionary(id: $0.id, groupId: defaultGroup.id) }
+        
+        // Add "Import Dictionary" at the end (only visible in Edit mode)
+        if isEditing {
+            defaultChildren.append(.importDictionary)
+        }
+        
         defaultSnapshot.append(defaultChildren, to: defaultGroupItem)
         defaultSnapshot.expand([defaultGroupItem])
-        dataSource.apply(defaultSnapshot, to: .defaultGroup, animatingDifferences: false)
+        dataSource.apply(defaultSnapshot, to: .defaultGroup, animatingDifferences: animated)
         
         // Section 1: My Groups - with header
         var userSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
@@ -232,15 +248,15 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             userSnapshot.expand([groupItem])
         }
         userSnapshot.expand([userHeader])
-        dataSource.apply(userSnapshot, to: .userGroups, animatingDifferences: false)
+        dataSource.apply(userSnapshot, to: .userGroups, animatingDifferences: animated)
         
         // Section 2: Management - with header
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let mgmtHeader = SidebarItem.header("Management", isBold: false)
         mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.manageDicts, .settings], to: mgmtHeader)
+        mgmtSnapshot.append([.settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
-        dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: false)
+        dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
     }
     
     // MARK: - State Update
@@ -254,9 +270,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
     }
     
-    /// Deselect the management item (called when switching back to lookup mode)
-    func deselectManagementItem() {
-        if let indexPath = dataSource.indexPath(for: .manageDicts) {
+    /// Deselect the import item (called when switching back to lookup mode)
+    func deselectImportItem() {
+        if let indexPath = dataSource.indexPath(for: .importDictionary) {
             collectionView.deselectItem(at: indexPath, animated: true)
         }
     }
@@ -280,22 +296,6 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             if dict.state != .loaded {
                 let message = dict.state == .loading ? "Loading..." : "Dictionary not loaded"
                 print("⚠️ \(message): \(dict.metadata?.title ?? dict.id)")
-                return false
-            }
-            return true
-            
-        case .manageDicts:
-            // Disable until all dictionaries are loaded
-            let allLoaded = DictionaryService.shared.allDictionaries.allSatisfy {
-                switch $0.state {
-                case .loaded, .error(_):
-                     true
-                default:
-                    false
-                }
-            }
-            if !allLoaded {
-                print("⚠️ Dictionaries still loading, cannot manage yet")
                 return false
             }
             return true
@@ -337,7 +337,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Notify delegate
             onDictionarySelected?(dict)
             
-        case .manageDicts:
+        case .importDictionary:
             // Clear active state so other cells don't show as active
             activeGroupId = nil
             activeDict = nil
@@ -353,7 +353,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             invalidateVisibleCellConfigurations()
 
             // Notify delegate to switch to management mode
-            onManageDictsSelected?()
+            onImportDictionarySelected?()
             
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)

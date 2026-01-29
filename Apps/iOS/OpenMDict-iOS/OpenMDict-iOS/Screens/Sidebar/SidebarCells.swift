@@ -291,7 +291,7 @@ final class SidebarHeaderCell: UICollectionViewListCell {
 
 // MARK: - Management Action Cell
 
-/// Cell for management actions (Import, Delete, Settings).
+/// Cell for management actions (Import Dictionary, Settings).
 final class ManagementActionCell: UICollectionViewListCell {
     
     var item: SidebarItem?
@@ -302,26 +302,12 @@ final class ManagementActionCell: UICollectionViewListCell {
         
         let isActive = state.isSelected || state.isHighlighted
         
-        // Check if all dictionaries are loaded (for manageDicts item)
-        let allDictsLoaded: Bool = {
-            guard case .manageDicts = item else { return true }
-            
-            return DictionaryService.shared.allDictionaries.allSatisfy {
-                switch $0.state {
-                case .loaded, .error(_):
-                    true
-                default:
-                    false
-                }
-            }
-        }()
-        
         var content = UIListContentConfiguration.sidebarCell()
         
         switch item {
-        case .manageDicts:
-            content.text = "My Library"
-            content.image = UIImage(systemName: "square.grid.3x1.folder.badge.plus")
+        case .importDictionary:
+            content.text = "Import Dictionary"
+            content.image = UIImage(systemName: "plus.rectangle.on.folder")
         case .settings:
             content.text = "App Settings"
             content.image = UIImage(systemName: "gearshape")
@@ -330,13 +316,7 @@ final class ManagementActionCell: UICollectionViewListCell {
         }
         
         // Apply styling based on state
-        if !allDictsLoaded {
-            // Disabled state - gray out
-            content.textProperties.color = .tertiaryLabel
-            content.imageProperties.tintColor = .tertiaryLabel
-            
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
-        } else if isActive {
+        if isActive {
             // Selected state - blue background + white text/icon
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
