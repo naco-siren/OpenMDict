@@ -276,6 +276,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             collectionView.deselectItem(at: indexPath, animated: true)
         }
     }
+    
+    /// Reload sidebar data (called after import/delete)
+    func reloadData() {
+        applySnapshot(animated: true)
+    }
 }
 
 // MARK: - UICollectionViewDelegate

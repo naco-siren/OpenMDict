@@ -4,7 +4,7 @@
 //
 //  Triple column split view controller with dual-mode support:
 //  - Lookup Mode: WordList + DetailContainer (default)
-//  - Management Mode: UserLibrary + DictConfig
+//  - Management Mode: DictConfig (import/edit dictionary)
 //
 
 import UIKit
@@ -29,8 +29,7 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Child Controllers (Management Mode)
     
-    private lazy var userLibraryVC = UserLibraryViewController()
-    private lazy var dictConfigVC = DictConfigViewController()
+    private lazy var dictInfoVC = DictInfoViewController()
     
     // MARK: - Mode State
     
@@ -114,13 +113,8 @@ class MainSplitViewController: UISplitViewController {
                     }
 
                 case .management:
-                    if self.dictConfigVC.currentState != .empty {
-                        debugLog("📱 Transitioning to compact (management): editing/importing, showing config")
-                        self.show(.secondary)
-                    } else {
-                        debugLog("📱 Transitioning to compact (management): idle, showing list")
-                        self.show(.supplementary)
-                    }
+                    debugLog("📱 Transitioning to compact (management): showing config")
+                    self.show(.supplementary)
                 }
             }
         }
@@ -185,34 +179,22 @@ class MainSplitViewController: UISplitViewController {
         }
         
         // Management mode callbacks
-        userLibraryVC.onDictionarySelected = { [weak self] entry in
-            self?.dictConfigVC.showEditMode(for: entry)
+        dictInfoVC.onDismiss = { [weak self] in
+            self?.switchToLookupMode()
         }
         
-        userLibraryVC.onAddDictionaryTapped = { [weak self] in
-            self?.dictConfigVC.showImportMode()
-        }
-        
-        userLibraryVC.onDeleteStateChanged = { [weak self] isDeleting in
-            // Lock/unlock sidebar during deletion
-            self?.dictionaryListVC.view.isUserInteractionEnabled = !isDeleting
-        }
-        
-        dictConfigVC.onDismiss = { [weak self] in
-            self?.dictConfigVC.showEmptyState()
-        }
-        
-        dictConfigVC.onImportComplete = { [weak self] dictionaryId in
+        dictInfoVC.onImportComplete = { [weak self] dictionaryId in
             Task { @MainActor in
                 await DictionaryService.shared.refreshAfterImport(dictionaryId)
-                self?.userLibraryVC.reloadData()
+                self?.dictionaryListVC.reloadData()
+                self?.switchToLookupMode()
             }
         }
         
-        dictConfigVC.onDeleteComplete = { [weak self] dictionaryId in
+        dictInfoVC.onDeleteComplete = { [weak self] dictionaryId in
             DictionaryService.shared.refreshAfterDelete(dictionaryId)
-            self?.userLibraryVC.reloadData()
-            self?.dictConfigVC.showEmptyState()
+            self?.dictionaryListVC.reloadData()
+            self?.switchToLookupMode()
         }
     }
     
@@ -281,31 +263,25 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Mode Switching
     
-    /// Switch to management mode (dictionary list + config)
+    /// Switch to management mode (import dictionary flow)
     func switchToManagementMode() {
         if currentMode != .management {
             currentMode = .management
             
-            // Wider supplementary for library list
-            preferredSupplementaryColumnWidthFraction = 0.35
-            minimumSupplementaryColumnWidth = 320
+            // Wrap in navigation controller if needed
+            let configNav = dictInfoVC.navigationController
+                ?? UINavigationController(rootViewController: dictInfoVC)
 
-            // Wrap in navigation controllers if needed
-            let manageListNav = userLibraryVC.navigationController
-                ?? UINavigationController(rootViewController: userLibraryVC)
-            let configNav = dictConfigVC.navigationController
-                ?? UINavigationController(rootViewController: dictConfigVC)
+            // Set config as supplementary (second column)
+            setViewController(configNav, for: .supplementary)
+            
+            // Show import mode
+            dictInfoVC.showImportMode()
 
-            setViewController(manageListNav, for: .supplementary)
-            setViewController(configNav, for: .secondary)
-
-            // Show empty state initially
-            dictConfigVC.showEmptyState()
-
-            print("📚 Switched to Management mode")
+            print("📚 Switched to Management mode (Import)")
         }
         
-        // Always show supplementary (for compact mode re-navigation)
+        // Always show supplementary
         show(.supplementary)
     }
     
@@ -371,8 +347,8 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
             if !detailContainer.allArticles.isEmpty { .secondary } else { .supplementary }
 
         case .management:
-            // Show config if actively editing/importing, otherwise show list
-            if dictConfigVC.currentState != .empty { .secondary } else { .supplementary }
+            // Always show supplementary (config VC)
+            .supplementary
         }
     }
 }
