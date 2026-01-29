@@ -19,7 +19,6 @@ class WordListViewController: UIViewController {
     /// Per-scene search session (injected by MainSplitVC)
     var searchSession: SearchSession?
     
-    private var currentTitle = "Search"
     private var cancellables = Set<AnyCancellable>()
     
     /// Current displayed words (bound to DictionaryService.searchResults)
@@ -105,20 +104,16 @@ class WordListViewController: UIViewController {
     // MARK: - Context Setting (called by MainSplitVC)
     
     func loadWords(for group: MDicts) {
-        currentTitle = group.name
-        updateTitleView()
-        
         // Update search context - triggers reactive pipeline if query exists
         searchSession?.setContext(group: group)
+        updateTitleView()
         updateEmptyState()
     }
     
     func loadWords(for dict: MDict) {
-        currentTitle = dict.metadata?.title ?? dict.id
-        updateTitleView()
-        
         // Update search context - triggers reactive pipeline if query exists
         searchSession?.setContext(dict: dict)
+        updateTitleView()
         updateEmptyState()
     }
     
@@ -142,12 +137,15 @@ class WordListViewController: UIViewController {
     private func updateTitleView() {
         let context = searchSession?.currentContext ?? .none
         let iconName: String
+        let titleText: String
         
         switch context {
         case .group(let group):
             iconName = group.isDefault ? "books.vertical.fill" : "books.vertical"
-        case .dictionary:
+            titleText = group.name
+        case .dictionary(let dict):
             iconName = "book.fill"
+            titleText = dict.metadata?.title ?? dict.id
         case .none:
             title = nil
             navigationItem.title = nil
@@ -160,7 +158,7 @@ class WordListViewController: UIViewController {
         imageView.contentMode = .scaleAspectFit
 
         let label = UILabel()
-        label.text = currentTitle
+        label.text = titleText
         label.font = .systemFont(ofSize: 17, weight: .semibold)
 
         let stack = UIStackView(arrangedSubviews: [imageView, label])

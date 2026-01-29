@@ -131,6 +131,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             [weak self] cell, indexPath, groupId in
             guard let group = self?.groups.first(where: { $0.id == groupId }) else { return }
             cell.group = group
+            cell.stateProvider = self
         }
         
         // User Group Cell

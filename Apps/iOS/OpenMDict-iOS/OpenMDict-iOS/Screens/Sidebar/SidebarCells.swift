@@ -29,20 +29,24 @@ protocol SidebarStateProvider: AnyObject {
 
 /// Cell for the "All Dictionaries" group.
 /// - Always shows filled icon (books.vertical.fill)
-/// - Blue background + white text when selected
+/// - Blue background + white text when selected (only in lookup mode, not editing)
 final class DefaultGroupCell: UICollectionViewListCell {
     
     var group: MDicts?
+    weak var stateProvider: SidebarStateProvider?
     
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
         guard let group = group else { return }
         
+        let isEditing = stateProvider?.isEditingMode ?? false
+        
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
         content.image = UIImage(systemName: "books.vertical.fill")
         
-        let isActive = state.isSelected || state.isHighlighted
+        // Only show selection highlight when NOT in edit mode
+        let isActive = !isEditing && (state.isSelected || state.isHighlighted)
         
         if isActive {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .bold)
@@ -68,7 +72,7 @@ final class DefaultGroupCell: UICollectionViewListCell {
 
 /// Cell for user-created dictionary groups.
 /// - Shows outlined icon normally, filled when this group is active
-/// - Blue background + white text when selected
+/// - Blue background + white text when selected (only in lookup mode, not editing)
 final class UserGroupCell: UICollectionViewListCell {
     
     var group: MDicts?
@@ -80,7 +84,10 @@ final class UserGroupCell: UICollectionViewListCell {
         
         // Check if this group is the active one (for icon state)
         let isGroupActive = stateProvider?.activeGroupId == group.id
-        let isSelected = state.isSelected || state.isHighlighted
+        let isEditing = stateProvider?.isEditingMode ?? false
+        
+        // Only show selection highlight when NOT in edit mode
+        let isSelected = !isEditing && (state.isSelected || state.isHighlighted)
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
@@ -111,11 +118,11 @@ final class UserGroupCell: UICollectionViewListCell {
 /// Cell for dictionaries inside "All Dictionaries".
 /// - Always shows filled icon (book.closed.fill or book.fill)
 /// - When parent group is active: open book with blue tint
-/// - When directly selected: blue background + white
-/// - When highlighted by mirror selection: blue background + white
+/// - When directly selected: blue background + white (only in lookup mode)
+/// - When highlighted by mirror selection: blue background + white (only in lookup mode)
 /// - Loading state: spinner accessory, gray text
 /// - Error state: exclamationmark.triangle icon
-/// - Edit mode: info button accessory
+/// - Edit mode: info button accessory, NO selection highlight
 final class DefaultGroupDictCell: UICollectionViewListCell {
     
     var dict: MDict?
@@ -128,12 +135,23 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         
         let isParentActive = stateProvider?.activeGroupId == groupId
         let isHighlightedBySelection = stateProvider?.activeDict?.id == dict.id
-        let isDirectlySelected = state.isSelected || state.isHighlighted
         let loadState = dict.state
         let isEditing = stateProvider?.isEditingMode ?? false
         
+        // In edit mode: NEVER show selection highlight (blue background)
+        // In lookup mode: show highlight if selected or if this dict is the active one
+        let shouldHighlight: Bool
+        if isEditing {
+            shouldHighlight = false
+        } else {
+            shouldHighlight = state.isSelected || state.isHighlighted || isHighlightedBySelection
+        }
+        
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.metadata?.title ?? dict.id
+        
+        var bg = UIBackgroundConfiguration.listSidebarCell()
+        bg.backgroundColorTransformer = nil
         
         // Build accessories based on state
         var cellAccessories: [UICellAccessory] = []
@@ -145,7 +163,8 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             content.image = UIImage(systemName: "book.closed.fill")
             content.textProperties.color = .secondaryLabel
             content.imageProperties.tintColor = .secondaryLabel
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            
+            bg.backgroundColor = .clear
             
             if loadState == .loading {
                 // Show spinner
@@ -163,29 +182,39 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         case .error:
             // Error state - show warning icon
             content.image = UIImage(systemName: "exclamationmark.triangle.fill")
-            content.textProperties.color = .systemRed
             content.imageProperties.tintColor = .systemRed
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            content.textProperties.color = .systemRed
+            
+            bg.backgroundColor = .clear
             
         case .metadataLoaded, .loaded:
-            // Normal loaded state - original logic
-            if isParentActive {
+            // Normal loaded state
+            
+            if shouldHighlight && !isEditing {
+                // Selected state - blue background + white
+                content.image = UIImage(systemName: "book.fill")
+                content.imageProperties.tintColor = .white
+                content.textProperties.color = .white
+                
+                bg.backgroundColor = .systemBlue
+            } else if isParentActive && !isEditing {
+                // Parent group is active (but this dict not directly selected) - show open book with blue tint
                 content.image = UIImage(systemName: "book.fill")
                 content.imageProperties.tintColor = .systemBlue
-                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
-            } else if isDirectlySelected || isHighlightedBySelection {
-                content.image = UIImage(systemName: "book.fill")
-                content.textProperties.color = .white
-                content.imageProperties.tintColor = .white
+                content.textProperties.color = .label
                 
-                var bg = UIBackgroundConfiguration.listSidebarCell()
-                bg.backgroundColor = .systemBlue
-                backgroundConfiguration = bg
+                bg.backgroundColor = .clear
             } else {
+                // Normal unselected state (including edit mode)
                 content.image = UIImage(systemName: "book.closed.fill")
-                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+                content.imageProperties.tintColor = .systemBlue
+                content.textProperties.color = .label
+                
+                bg.backgroundColor = .clear
             }
         }
+        
+        backgroundConfiguration = bg
         
         // Add info button in edit mode (for loaded dictionaries)
         if isEditing && (loadState == .metadataLoaded || loadState == .loaded) {
@@ -223,7 +252,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
 
 /// Cell for dictionaries inside user groups (mirrors/symbolic links).
 /// - Shows outlined icon (book.closed or book)
-/// - Light selection style (system default, not deep blue)
+/// - Light selection style (system default, not deep blue) - only in lookup mode
 /// - Loading state: spinner accessory, gray text
 /// - Error state: exclamationmark.triangle icon
 final class UserGroupDictCell: UICollectionViewListCell {
@@ -237,9 +266,12 @@ final class UserGroupDictCell: UICollectionViewListCell {
         guard let dict = dict else { return }
         
         let isParentActive = stateProvider?.activeGroupId == groupId
-        let isSelected = state.isSelected || state.isHighlighted
-        let isRelatedDictSelected = stateProvider?.activeDict?.id == dict.id
         let loadState = dict.state
+        let isEditing = stateProvider?.isEditingMode ?? false
+        
+        // Only show selection highlight when NOT in edit mode
+        let isSelected = !isEditing && (state.isSelected || state.isHighlighted)
+        let isRelatedDictSelected = !isEditing && (stateProvider?.activeDict?.id == dict.id)
 
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.metadata?.title ?? dict.id
@@ -275,8 +307,8 @@ final class UserGroupDictCell: UICollectionViewListCell {
             accessories = []
             
         case .metadataLoaded, .loaded:
-            // Normal loaded state - original logic
-            if isParentActive {
+            // Normal loaded state
+            if isParentActive && !isEditing {
                 content.image = UIImage(systemName: "book")
                 content.imageProperties.tintColor = .systemBlue
                 backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()

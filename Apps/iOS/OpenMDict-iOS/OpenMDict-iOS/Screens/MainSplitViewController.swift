@@ -30,6 +30,7 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - Child Controllers (Management Mode)
     
     private lazy var dictInfoVC = DictInfoViewController()
+    private lazy var dictResourceEditorVC = DictResourceEditorViewController()
     
     // MARK: - Mode State
     
@@ -157,13 +158,12 @@ class MainSplitViewController: UISplitViewController {
         // Inject search session into word list
         wordListVC.searchSession = searchSession
         
-        // Primary: Sidebar (dictionary list)
+        // Primary: Sidebar (dictionary list) - no nav controller needed, split view handles it
         setViewController(dictionaryListVC, for: .primary)
          
-        // Supplementary: Word list
+        // Supplementary & Secondary: Set up for lookup mode (default)
+        // Don't wrap in nav controllers here - split view manages navigation
         setViewController(wordListVC, for: .supplementary)
-
-        // Secondary: Detail container (manages iPad/iPhone views)
         setViewController(detailContainer, for: .secondary)
     }
     
@@ -215,6 +215,16 @@ class MainSplitViewController: UISplitViewController {
             DictionaryService.shared.refreshAfterDelete(dictionaryId)
             self?.dictionaryListVC.reloadData()
             self?.switchToLookupMode()
+        }
+        
+        // Compact mode only: push resource editor from DictInfoVC
+        dictInfoVC.onManageResources = { [weak self] dictId in
+            guard let self = self else { return }
+            // Only in compact mode - push to nav stack
+            if self.traitCollection.horizontalSizeClass == .compact {
+                self.dictResourceEditorVC.showEditor(for: dictId)
+                self.dictInfoVC.navigationController?.pushViewController(self.dictResourceEditorVC, animated: true)
+            }
         }
     }
     
@@ -295,12 +305,16 @@ class MainSplitViewController: UISplitViewController {
         if currentMode != .management {
             currentMode = .management
             
-            // Wrap in navigation controller if needed
-            let configNav = dictInfoVC.navigationController
-                ?? UINavigationController(rootViewController: dictInfoVC)
-
-            // Set config as supplementary (second column)
-            setViewController(configNav, for: .supplementary)
+            // Clear columns first to ensure proper replacement
+            setViewController(nil, for: .supplementary)
+            setViewController(nil, for: .secondary)
+            
+            // Set supplementary (second column): DictInfo wrapped in nav for nav bar buttons
+            let infoNav = UINavigationController(rootViewController: dictInfoVC)
+            setViewController(infoNav, for: .supplementary)
+            
+            // Set secondary (third column): DictResourceEditor
+            setViewController(dictResourceEditorVC, for: .secondary)
 
             print("📚 Switched to Management mode")
         }
@@ -308,8 +322,10 @@ class MainSplitViewController: UISplitViewController {
         // Show appropriate mode
         if showImport {
             dictInfoVC.showImportMode()
+            dictResourceEditorVC.showEmptyState()
         } else if let dictId = editDictId {
             dictInfoVC.showEditMode(for: dictId)
+            dictResourceEditorVC.showEditor(for: dictId)
         }
         
         // Always show supplementary
@@ -325,14 +341,13 @@ class MainSplitViewController: UISplitViewController {
         preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupSupplementaryFraction
         minimumSupplementaryColumnWidth = ColumnWidth.lookupSupplementaryMin
         
-        // Wrap in navigation controllers if needed
-        let wordListNav = wordListVC.navigationController
-            ?? UINavigationController(rootViewController: wordListVC)
-        let detailNav = detailContainer.navigationController
-            ?? UINavigationController(rootViewController: detailContainer)
+        // Clear columns first to ensure proper replacement
+        setViewController(nil, for: .supplementary)
+        setViewController(nil, for: .secondary)
         
-        setViewController(wordListNav, for: .supplementary)
-        setViewController(detailNav, for: .secondary)
+        // Set view controllers for lookup mode
+        setViewController(wordListVC, for: .supplementary)
+        setViewController(detailContainer, for: .secondary)
         
         show(.supplementary)
         

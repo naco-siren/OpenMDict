@@ -5,9 +5,16 @@
 //  Dictionary configuration view controller.
 //  Shows dictionary info form for Import or Edit mode.
 //
-//  Two modes:
-//  - Import: Select MDX file, preview metadata, confirm import
-//  - Edit: View/edit dictionary info, delete dictionary
+//  Navigation:
+//  - Regular mode: Manual close button (split view columns side-by-side, no system back)
+//  - Compact mode: System back button (split view collapsed, use backAction to intercept)
+//  - Done: System .done button, enabled only when hasUnsavedChanges
+//
+//  Behavior:
+//  - No changes: Back/Close navigates away directly
+//  - Has changes: Back/Close shows discard alert, Done shows save/import alert
+//
+//  Compact mode only: "Manage Resources" row to push DictResourceEditorVC
 //
 
 import UIKit
@@ -16,10 +23,10 @@ import OpenMDictKit
 
 // MARK: - State
 
-enum DictConfigState: Equatable {
-    case empty
-    case importing
-    case editing(dictionaryId: String)
+enum DictConfigMode: Equatable {
+    case empty              // No dictionary - prompt to select file
+    case importing          // File selected, showing preview
+    case editing(dictId: String)  // Editing existing dictionary
 }
 
 // MARK: - View Controller
@@ -32,13 +39,23 @@ class DictInfoViewController: UIViewController {
     var onImportComplete: ((String) -> Void)?
     var onDeleteComplete: ((String) -> Void)?
     
+    /// Callback to push resource editor in compact mode
+    var onManageResources: ((String) -> Void)?
+    
     // MARK: - State
     
-    private(set) var currentState: DictConfigState = .empty {
+    private(set) var currentMode: DictConfigMode = .empty {
         didSet {
             if isViewLoaded {
                 updateUI()
             }
+        }
+    }
+    
+    /// Tracks if user has made changes that need saving
+    private var hasUnsavedChanges: Bool = false {
+        didSet {
+            updateDoneButtonState()
         }
     }
     
@@ -48,12 +65,16 @@ class DictInfoViewController: UIViewController {
     /// Current dictionary ID (for edit mode)
     private var currentDictId: String?
     
+    /// Edited display name (tracks changes)
+    private var editedDisplayName: String?
+    
     // MARK: - UI
     
     private enum Section: Int, CaseIterable {
         case fileSelection   // Import mode: "Select MDX File" button
         case metadata        // Title, description (from MDX header)
         case displayName     // Editable display name
+        case resources       // "Manage Resources" (compact mode only)
         case actions         // Delete button (edit mode only)
     }
     
@@ -62,6 +83,7 @@ class DictInfoViewController: UIViewController {
         case metadataTitle(String)
         case metadataDescription(String)
         case displayNameField(String)
+        case manageResources
         case deleteButton
     }
     
@@ -120,6 +142,35 @@ class DictInfoViewController: UIViewController {
         return view
     }()
     
+    // MARK: - Navigation Items
+    
+    /// System Done button (enabled only when hasUnsavedChanges)
+    private lazy var doneButton: UIBarButtonItem = {
+        let button = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(doneTapped)
+        )
+        button.isEnabled = false
+        return button
+    }()
+    
+    /// Check if split view is collapsed (compact mode)
+    /// More reliable than checking own traitCollection, which may be incorrect
+    /// when embedded in a navigation controller inside split view column
+    private var isSplitViewCollapsed: Bool {
+        // Walk up the parent chain to find the split view
+        var vc: UIViewController? = self
+        while let current = vc {
+            if let splitVC = current as? UISplitViewController {
+                return splitVC.isCollapsed
+            }
+            vc = current.parent
+        }
+        // Fallback: assume collapsed if trait collection is compact
+        return traitCollection.horizontalSizeClass == .compact
+    }
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
@@ -142,8 +193,70 @@ class DictInfoViewController: UIViewController {
             emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
         
+        // Setup backAction for iOS 16+ (intercepts system back button in compact mode)
+        if #available(iOS 16.0, *) {
+            navigationItem.backAction = UIAction { [weak self] _ in
+                self?.handleBackNavigation()
+            }
+        }
+        
         configureDataSource()
         updateUI()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        updateLeftBarButton()
+    }
+    
+    @objc private func closeButtonTapped() {
+        handleBackNavigation()
+    }
+    
+    /// Update left bar button based on size class
+    /// - Regular mode: Show close button (no system back in side-by-side columns)
+    /// - Compact mode: No custom button (system provides back button, intercepted by backAction on iOS 16+)
+    private func updateLeftBarButton() {
+        let isCollapsed = isSplitViewCollapsed
+        debugLog("📋 updateLeftBarButton: isSplitViewCollapsed=\(isCollapsed)")
+        
+        if !isCollapsed {
+            // Regular mode: columns side by side, need manual close button
+            let closeButton = UIBarButtonItem(
+                barButtonSystemItem: .close,
+                target: self,
+                action: #selector(closeButtonTapped)
+            )
+            navigationItem.leftBarButtonItem = closeButton
+        } else {
+            // Compact mode: split view collapsed, system provides back button
+            navigationItem.leftBarButtonItem = nil
+        }
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        
+        // Note: In split view supplementary column, horizontalSizeClass is always .compact
+        // So we can't rely on it to detect split view collapse. Instead use viewWillLayoutSubviews.
+    }
+    
+    /// Track previous collapsed state to detect changes
+    private var previousIsCollapsed: Bool?
+    
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        
+        // Detect split view collapsed state changes
+        let isCollapsed = isSplitViewCollapsed
+        if previousIsCollapsed != isCollapsed {
+            debugLog("📋 viewWillLayoutSubviews: isCollapsed changed from \(previousIsCollapsed?.description ?? "nil") to \(isCollapsed)")
+            previousIsCollapsed = isCollapsed
+            
+            updateLeftBarButton()
+            applyCurrentSnapshot()  // Show/hide "Manage Resources"
+        }
     }
     
     // MARK: - Data Source
@@ -166,16 +279,29 @@ class DictInfoViewController: UIViewController {
             content.text = label
             content.secondaryText = value.isEmpty ? "—" : value
             content.secondaryTextProperties.color = value.isEmpty ? .tertiaryLabel : .label
+            content.secondaryTextProperties.numberOfLines = 0
             cell.contentConfiguration = content
             cell.accessories = []
         }
         
-        // Display Name Cell (editable - TODO: make actually editable)
+        // Display Name Cell (editable)
         let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
             var content = UIListContentConfiguration.valueCell()
             content.text = "Display Name"
             content.secondaryText = value.isEmpty ? "Enter name..." : value
             content.secondaryTextProperties.color = value.isEmpty ? .placeholderText : .label
+            cell.contentConfiguration = content
+            cell.accessories = [.disclosureIndicator()]
+        }
+        
+        // Manage Resources Cell (compact mode only)
+        let manageResourcesReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
+            var content = UIListContentConfiguration.cell()
+            content.text = "Manage Resources"
+            content.image = UIImage(systemName: "doc.badge.gearshape")
+            content.imageProperties.tintColor = .systemBlue
+            content.secondaryText = "CSS, fonts, and more"
+            content.secondaryTextProperties.color = .secondaryLabel
             cell.contentConfiguration = content
             cell.accessories = [.disclosureIndicator()]
         }
@@ -206,6 +332,9 @@ class DictInfoViewController: UIViewController {
             case .displayNameField(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: displayNameReg, for: indexPath, item: value)
                 
+            case .manageResources:
+                return collectionView.dequeueConfiguredReusableCell(using: manageResourcesReg, for: indexPath, item: ())
+                
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
             }
@@ -215,51 +344,42 @@ class DictInfoViewController: UIViewController {
     // MARK: - UI Updates
     
     private func updateUI() {
-        switch currentState {
+        navigationItem.rightBarButtonItem = doneButton
+        
+        switch currentMode {
         case .empty:
             title = "Import Dictionary"
-            navigationItem.leftBarButtonItem = UIBarButtonItem(
-                barButtonSystemItem: .cancel,
-                target: self,
-                action: #selector(cancelTapped)
-            )
-            navigationItem.rightBarButtonItem = nil
             emptyStateView.isHidden = false
             collectionView.isHidden = true
+            hasUnsavedChanges = false
             
         case .importing:
             title = "Import Dictionary"
-            navigationItem.leftBarButtonItem = UIBarButtonItem(
-                barButtonSystemItem: .cancel,
-                target: self,
-                action: #selector(cancelTapped)
-            )
-            navigationItem.rightBarButtonItem = UIBarButtonItem(
-                title: "Import",
-                style: .done,
-                target: self,
-                action: #selector(importTapped)
-            )
-            navigationItem.rightBarButtonItem?.isEnabled = selectedMDXURL != nil
             emptyStateView.isHidden = true
             collectionView.isHidden = false
+            hasUnsavedChanges = true  // File selected = has changes to import
             applyImportSnapshot()
             
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
             title = dict?.metadata?.title ?? "Dictionary"
-            navigationItem.leftBarButtonItem = UIBarButtonItem(
-                barButtonSystemItem: .cancel,
-                target: self,
-                action: #selector(cancelTapped)
-            )
-            navigationItem.rightBarButtonItem = UIBarButtonItem(
-                barButtonSystemItem: .done,
-                target: self,
-                action: #selector(saveTapped)
-            )
             emptyStateView.isHidden = true
             collectionView.isHidden = false
+            applyEditSnapshot(dictId: dictId)
+        }
+    }
+    
+    private func updateDoneButtonState() {
+        doneButton.isEnabled = hasUnsavedChanges
+    }
+    
+    private func applyCurrentSnapshot() {
+        switch currentMode {
+        case .empty:
+            break  // No snapshot needed for empty state
+        case .importing:
+            applyImportSnapshot()
+        case .editing(let dictId):
             applyEditSnapshot(dictId: dictId)
         }
     }
@@ -279,7 +399,7 @@ class DictInfoViewController: UIViewController {
                 .metadataTitle("Preview Title"),
                 .metadataDescription("Preview Description")
             ], toSection: .metadata)
-            snapshot.appendItems([.displayNameField("")], toSection: .displayName)
+            snapshot.appendItems([.displayNameField(editedDisplayName ?? "")], toSection: .displayName)
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
@@ -299,62 +419,141 @@ class DictInfoViewController: UIViewController {
         
         // Display name section
         snapshot.appendSections([.displayName])
-        snapshot.appendItems([.displayNameField(dict.metadata?.title ?? "")], toSection: .displayName)
+        let displayName = editedDisplayName ?? dict.metadata?.title ?? ""
+        snapshot.appendItems([.displayNameField(displayName)], toSection: .displayName)
         
-        // Delete section (only for user-imported dictionaries)
-        // TODO: Check if dictionary is user-imported vs bundled
+        // Manage Resources section (ONLY in compact mode - when split view is collapsed)
+        // In regular mode (columns side-by-side), the third column shows the resource editor
+        let isCollapsed = isSplitViewCollapsed
+        debugLog("📋 applyEditSnapshot: isSplitViewCollapsed=\(isCollapsed), showManageResources=\(isCollapsed)")
+        if isCollapsed {
+            snapshot.appendSections([.resources])
+            snapshot.appendItems([.manageResources], toSection: .resources)
+        }
+        
+        // Delete section
+        // TODO: Only show for user-imported dictionaries, not bundled ones
         snapshot.appendSections([.actions])
         snapshot.appendItems([.deleteButton], toSection: .actions)
         
         dataSource.apply(snapshot, animatingDifferences: false)
     }
     
-    // MARK: - Actions
+    // MARK: - Navigation Actions
     
-    @objc private func selectFileTapped() {
-        showDocumentPicker()
+    /// Handle back navigation (called by system back button via backAction)
+    private func handleBackNavigation() {
+        if hasUnsavedChanges {
+            showAbandonChangesAlert()
+        } else {
+            performDismiss()
+        }
     }
     
-    @objc private func cancelTapped() {
+    @objc private func doneTapped() {
+        switch currentMode {
+        case .empty:
+            break  // Should not happen - Done is disabled
+            
+        case .importing:
+            showConfirmImportAlert()
+            
+        case .editing:
+            showConfirmSaveAlert()
+        }
+    }
+    
+    /// Actually perform the dismiss action
+    private func performDismiss() {
+        // Reset internal state (but NOT currentMode - let MainSplitVC handle the mode switch first)
+        // This prevents the empty state from flashing before switchToLookupMode() takes effect
         selectedMDXURL = nil
         currentDictId = nil
-        currentState = .empty
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        
+        // Call onDismiss which triggers switchToLookupMode() in MainSplitVC
+        // The mode will be reset when showImportMode() or showEditMode() is called next time
         onDismiss?()
+        
+        // In compact mode, we need to navigate back to sidebar (primary column)
+        // because switchToLookupMode() only replaces view controllers but doesn't navigate
+        if isSplitViewCollapsed, let splitVC = findSplitViewController() {
+            debugLog("📋 performDismiss: compact mode, showing primary")
+            splitVC.show(.primary)
+        }
     }
     
-    @objc private func importTapped() {
+    /// Find the parent split view controller
+    private func findSplitViewController() -> UISplitViewController? {
+        var vc: UIViewController? = self
+        while let current = vc {
+            if let splitVC = current as? UISplitViewController {
+                return splitVC
+            }
+            vc = current.parent
+        }
+        return nil
+    }
+    
+    // MARK: - Alerts
+    
+    private func showAbandonChangesAlert() {
+        let alert = UIAlertController(
+            title: "Discard Changes?",
+            message: "You have unsaved changes. Are you sure you want to discard them?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+            self?.performDismiss()
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func showConfirmImportAlert() {
         guard let url = selectedMDXURL else { return }
         
-        // TODO: Perform actual import
-        print("📥 Importing from: \(url.lastPathComponent)")
+        let alert = UIAlertController(
+            title: "Import Dictionary?",
+            message: "Import \"\(url.lastPathComponent)\" to your library?",
+            preferredStyle: .alert
+        )
         
-        // Simulate import completion
-        let fakeDictId = UUID().uuidString
-        selectedMDXURL = nil
-        currentState = .empty
-        onImportComplete?(fakeDictId)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Import", style: .default) { [weak self] _ in
+            self?.performImport()
+        })
+        
+        present(alert, animated: true)
     }
     
-    @objc private func saveTapped() {
-        guard case .editing(let dictId) = currentState else { return }
+    private func showConfirmSaveAlert() {
+        let alert = UIAlertController(
+            title: "Save Changes?",
+            message: "Save your changes to this dictionary?",
+            preferredStyle: .alert
+        )
         
-        // TODO: Save changes
-        print("💾 Saving changes for: \(dictId)")
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+            self?.performSave()
+        })
         
-        currentDictId = nil
-        currentState = .empty
-        onDismiss?()
+        present(alert, animated: true)
     }
     
     private func showDeleteConfirmation() {
-        guard case .editing(let dictId) = currentState else { return }
+        guard case .editing(let dictId) = currentMode else { return }
         
         let dict = DictionaryService.shared.dict(id: dictId)
-        let title = dict?.metadata?.title ?? "this dictionary"
+        let dictTitle = dict?.metadata?.title ?? "this dictionary"
         
         let alert = UIAlertController(
             title: "Delete Dictionary",
-            message: "Are you sure you want to delete \"\(title)\"? This action cannot be undone.",
+            message: "Are you sure you want to delete \"\(dictTitle)\"? This action cannot be undone.",
             preferredStyle: .alert
         )
         
@@ -366,12 +565,58 @@ class DictInfoViewController: UIViewController {
         present(alert, animated: true)
     }
     
+    // MARK: - Perform Actions
+    
+    @objc private func selectFileTapped() {
+        showDocumentPicker()
+    }
+    
+    private func performImport() {
+        guard let url = selectedMDXURL else { return }
+        
+        // TODO: Perform actual import
+        print("📥 Importing from: \(url.lastPathComponent)")
+        
+        // Simulate import completion
+        let fakeDictId = UUID().uuidString
+        
+        // Reset state
+        selectedMDXURL = nil
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        currentMode = .empty
+        
+        onImportComplete?(fakeDictId)
+    }
+    
+    private func performSave() {
+        guard case .editing(let dictId) = currentMode else { return }
+        
+        // TODO: Save changes (display name, etc.)
+        print("💾 Saving changes for: \(dictId)")
+        if let newName = editedDisplayName {
+            print("   New display name: \(newName)")
+        }
+        
+        // Reset state
+        currentDictId = nil
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        currentMode = .empty
+        
+        onDismiss?()
+    }
+    
     private func performDelete(dictId: String) {
         // TODO: Perform actual delete
         print("🗑️ Deleting dictionary: \(dictId)")
         
+        // Reset state
         currentDictId = nil
-        currentState = .empty
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        currentMode = .empty
+        
         onDeleteComplete?(dictId)
     }
     
@@ -383,33 +628,58 @@ class DictInfoViewController: UIViewController {
         present(picker, animated: true)
     }
     
+    private func showDisplayNameEditor() {
+        guard case .editing(let dictId) = currentMode else { return }
+        let dict = DictionaryService.shared.dict(id: dictId)
+        let currentName = editedDisplayName ?? dict?.metadata?.title ?? ""
+        
+        let alert = UIAlertController(
+            title: "Display Name",
+            message: "Enter a custom display name for this dictionary",
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { textField in
+            textField.text = currentName
+            textField.placeholder = "Display name"
+            textField.clearButtonMode = .whileEditing
+        }
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+            guard let newName = alert.textFields?.first?.text else { return }
+            self?.editedDisplayName = newName
+            self?.hasUnsavedChanges = true
+            self?.applyCurrentSnapshot()
+        })
+        
+        present(alert, animated: true)
+    }
+    
     // MARK: - Public API
     
     func showEmptyState() {
         selectedMDXURL = nil
         currentDictId = nil
-        currentState = .empty
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        currentMode = .empty
     }
     
     func showImportMode() {
         selectedMDXURL = nil
         currentDictId = nil
-        currentState = .empty  // Start with empty, showing file picker prompt
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        currentMode = .empty  // Start with empty, showing file picker prompt
     }
     
     func showEditMode(for dictId: String) {
         selectedMDXURL = nil
         currentDictId = dictId
-        currentState = .editing(dictionaryId: dictId)
-    }
-    
-    // Legacy API compatibility
-    func showEditMode(for entry: DictionaryManifest.DictionaryEntry?) {
-        if let entry = entry {
-            showEditMode(for: entry.id)
-        } else {
-            showEmptyState()
-        }
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        currentMode = .editing(dictId: dictId)
     }
 }
 
@@ -427,8 +697,12 @@ extension DictInfoViewController: UICollectionViewDelegate {
             showDocumentPicker()
             
         case .displayNameField:
-            // TODO: Show edit dialog or inline editing
-            print("📝 Edit display name - TODO")
+            showDisplayNameEditor()
+            
+        case .manageResources:
+            if case .editing(let dictId) = currentMode {
+                onManageResources?(dictId)
+            }
             
         case .deleteButton:
             showDeleteConfirmation()
@@ -447,7 +721,7 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         guard let url = urls.first else { return }
         
         selectedMDXURL = url
-        currentState = .importing
+        currentMode = .importing
         
         print("📄 Selected: \(url.lastPathComponent)")
     }
