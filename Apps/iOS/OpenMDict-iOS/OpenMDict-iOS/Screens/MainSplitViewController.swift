@@ -4,7 +4,7 @@
 //
 //  Triple column split view controller with dual-mode support:
 //  - Lookup Mode: WordList + DetailContainer (default)
-//  - Management Mode: DictConfig (import/edit dictionary)
+//  - Management Mode: DictInfo (import/edit dictionary)
 //
 
 import UIKit
@@ -34,6 +34,18 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - Mode State
     
     private(set) var currentMode: AppMode = .lookup
+    
+    // MARK: - Column Width Constants
+    
+    private enum ColumnWidth {
+        // Lookup mode: narrower supplementary for word list
+        static let lookupSupplementaryFraction: CGFloat = 0.25
+        static let lookupSupplementaryMin: CGFloat = 250
+        
+        // Management mode: wider supplementary for form UI
+        static let managementSupplementaryFraction: CGFloat = 0.35
+        static let managementSupplementaryMin: CGFloat = 320
+    }
     
     // MARK: - State
 
@@ -130,6 +142,10 @@ class MainSplitViewController: UISplitViewController {
         preferredPrimaryColumnWidthFraction = 0.25
         minimumPrimaryColumnWidth = 250
         
+        // IMPORTANT: Set initial supplementary width for lookup mode
+        preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupSupplementaryFraction
+        minimumSupplementaryColumnWidth = ColumnWidth.lookupSupplementaryMin
+        
         navigationItem.backButtonDisplayMode = .minimal
         
         presentsWithGesture = true
@@ -163,7 +179,11 @@ class MainSplitViewController: UISplitViewController {
         }
         
         dictionaryListVC.onImportDictionarySelected = { [weak self] in
-            self?.switchToManagementMode()
+            self?.switchToManagementMode(showImport: true)
+        }
+        
+        dictionaryListVC.onDictionaryInfoSelected = { [weak self] dictId in
+            self?.switchToManagementMode(showImport: false, editDictId: dictId)
         }
         
         wordListVC.onWordSelected = { [weak self] wordItem in
@@ -263,8 +283,15 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Mode Switching
     
-    /// Switch to management mode (import dictionary flow)
-    func switchToManagementMode() {
+    /// Switch to management mode
+    /// - Parameters:
+    ///   - showImport: If true, show import mode; if false, show edit mode
+    ///   - editDictId: Dictionary ID to edit (only used when showImport is false)
+    private func switchToManagementMode(showImport: Bool, editDictId: String? = nil) {
+        // ALWAYS set wider supplementary for management UI (even if already in management mode)
+        preferredSupplementaryColumnWidthFraction = ColumnWidth.managementSupplementaryFraction
+        minimumSupplementaryColumnWidth = ColumnWidth.managementSupplementaryMin
+        
         if currentMode != .management {
             currentMode = .management
             
@@ -274,11 +301,15 @@ class MainSplitViewController: UISplitViewController {
 
             // Set config as supplementary (second column)
             setViewController(configNav, for: .supplementary)
-            
-            // Show import mode
-            dictInfoVC.showImportMode()
 
-            print("📚 Switched to Management mode (Import)")
+            print("📚 Switched to Management mode")
+        }
+        
+        // Show appropriate mode
+        if showImport {
+            dictInfoVC.showImportMode()
+        } else if let dictId = editDictId {
+            dictInfoVC.showEditMode(for: dictId)
         }
         
         // Always show supplementary
@@ -291,8 +322,8 @@ class MainSplitViewController: UISplitViewController {
         currentMode = .lookup
         
         // Narrower supplementary for word list
-        preferredSupplementaryColumnWidthFraction = 0.25
-        minimumSupplementaryColumnWidth = 250
+        preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupSupplementaryFraction
+        minimumSupplementaryColumnWidth = ColumnWidth.lookupSupplementaryMin
         
         // Wrap in navigation controllers if needed
         let wordListNav = wordListVC.navigationController

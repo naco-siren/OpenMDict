@@ -23,6 +23,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onGroupSelected: ((MDicts) -> Void)?
     var onDictionarySelected: ((MDict) -> Void)?
     var onImportDictionarySelected: (() -> Void)?
+    var onDictionaryInfoSelected: ((String) -> Void)?  // dictId
     
     // MARK: - State (SidebarStateProvider)
     
@@ -89,6 +90,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     override func setEditing(_ editing: Bool, animated: Bool) {
         super.setEditing(editing, animated: animated)
         applySnapshot(animated: animated)
+        // Trigger cell updates so dict cells show/hide info button
+        invalidateVisibleCellConfigurations()
     }
     
     // MARK: - State Subscriptions
@@ -168,8 +171,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         // Management Action Cell
         let actionReg = UICollectionView.CellRegistration<ManagementActionCell, SidebarItem> {
-            cell, indexPath, item in
+            [weak self] cell, indexPath, item in
             cell.item = item
+            cell.stateProvider = self
         }
         
         // Create data source with cell provider
@@ -281,6 +285,19 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     func reloadData() {
         applySnapshot(animated: true)
     }
+    
+    // MARK: - SidebarStateProvider (Edit Mode)
+    
+    /// Whether the sidebar is in edit mode
+    var isEditingMode: Bool { isEditing }
+    
+    /// Handle info button tap from cell
+    func didTapInfoButton(forDictId dictId: String) {
+        // Exit edit mode first
+        setEditing(false, animated: true)
+        // Then notify to show dictionary info
+        onDictionaryInfoSelected?(dictId)
+    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -295,7 +312,21 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Headers should not be selectable
             return false
             
+        case .group:
+            // In edit mode, groups are not selectable (only drag reorder allowed)
+            // Exit edit mode is only via Done button or navigating to a management action
+            if isEditing {
+                return false
+            }
+            return true
+            
         case .dictionary(let dictId, _):
+            // In edit mode, dictionaries are not selectable
+            // (info button tap is handled separately, not via selection)
+            if isEditing {
+                return false
+            }
+            
             // Only allow selecting loaded dictionaries
             guard let dict = DictionaryService.shared.dict(id: dictId) else { return false }
             if dict.state != .loaded {
@@ -305,8 +336,13 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             }
             return true
             
-        default:
+        case .importDictionary:
+            // Import Dictionary is only visible in edit mode and should be selectable
             return true
+            
+        case .settings:
+            // Management actions (except importDictionary) are disabled in edit mode
+            return !isEditing
         }
     }
     
@@ -343,6 +379,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             onDictionarySelected?(dict)
             
         case .importDictionary:
+            // Exit edit mode first
+            setEditing(false, animated: true)
+            
             // Clear active state so other cells don't show as active
             activeGroupId = nil
             activeDict = nil

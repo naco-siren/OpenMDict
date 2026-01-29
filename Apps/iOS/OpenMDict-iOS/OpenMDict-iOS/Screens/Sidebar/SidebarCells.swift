@@ -19,6 +19,10 @@ import OpenMDictKit
 protocol SidebarStateProvider: AnyObject {
     var activeGroupId: String? { get }
     var activeDict: (id: String, mirrored: Bool)? { get }
+    var isEditingMode: Bool { get }
+    
+    /// Called when info button is tapped on a dictionary cell
+    func didTapInfoButton(forDictId dictId: String)
 }
 
 // MARK: - Default Group Cell (All Dictionaries)
@@ -111,6 +115,7 @@ final class UserGroupCell: UICollectionViewListCell {
 /// - When highlighted by mirror selection: blue background + white
 /// - Loading state: spinner accessory, gray text
 /// - Error state: exclamationmark.triangle icon
+/// - Edit mode: info button accessory
 final class DefaultGroupDictCell: UICollectionViewListCell {
     
     var dict: MDict?
@@ -125,9 +130,13 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         let isHighlightedBySelection = stateProvider?.activeDict?.id == dict.id
         let isDirectlySelected = state.isSelected || state.isHighlighted
         let loadState = dict.state
+        let isEditing = stateProvider?.isEditingMode ?? false
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.metadata?.title ?? dict.id
+        
+        // Build accessories based on state
+        var cellAccessories: [UICellAccessory] = []
         
         // Handle loading states first
         switch loadState {
@@ -148,9 +157,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
                     }(),
                     placement: .trailing()
                 )
-                accessories = [.customView(configuration: spinnerConfig)]
-            } else {
-                accessories = []
+                cellAccessories.append(.customView(configuration: spinnerConfig))
             }
             
         case .error:
@@ -159,7 +166,6 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             content.textProperties.color = .systemRed
             content.imageProperties.tintColor = .systemRed
             backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
-            accessories = []
             
         case .metadataLoaded, .loaded:
             // Normal loaded state - original logic
@@ -179,10 +185,37 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
                 content.image = UIImage(systemName: "book.closed.fill")
                 backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             }
-            accessories = []
         }
         
+        // Add info button in edit mode (for loaded dictionaries)
+        if isEditing && (loadState == .metadataLoaded || loadState == .loaded) {
+            let infoButton = createInfoButton(for: dict.id)
+            let infoConfig = UICellAccessory.CustomViewConfiguration(
+                customView: infoButton,
+                placement: .trailing(displayed: .always)
+            )
+            cellAccessories.append(.customView(configuration: infoConfig))
+        }
+        
+        accessories = cellAccessories
         contentConfiguration = content
+    }
+    
+    private func createInfoButton(for dictId: String) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "info.circle"), for: .normal)
+        button.tintColor = .systemBlue
+        
+        // Store dictId for action handler
+        button.accessibilityIdentifier = dictId
+        button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
+        
+        return button
+    }
+    
+    @objc private func infoButtonTapped(_ sender: UIButton) {
+        guard let dictId = sender.accessibilityIdentifier else { return }
+        stateProvider?.didTapInfoButton(forDictId: dictId)
     }
 }
 
@@ -292,15 +325,22 @@ final class SidebarHeaderCell: UICollectionViewListCell {
 // MARK: - Management Action Cell
 
 /// Cell for management actions (Import Dictionary, Settings).
+/// Disabled (grayed out) when sidebar is in edit mode.
 final class ManagementActionCell: UICollectionViewListCell {
     
     var item: SidebarItem?
+    weak var stateProvider: SidebarStateProvider?
     
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
         guard let item = item else { return }
         
         let isActive = state.isSelected || state.isHighlighted
+        let isEditing = stateProvider?.isEditingMode ?? false
+        
+        // Import Dictionary is only visible in edit mode, but other management
+        // actions (Settings, etc.) should be disabled during edit mode
+        let isDisabled = isEditing && item != .importDictionary
         
         var content = UIListContentConfiguration.sidebarCell()
         
@@ -316,7 +356,12 @@ final class ManagementActionCell: UICollectionViewListCell {
         }
         
         // Apply styling based on state
-        if isActive {
+        if isDisabled {
+            // Disabled state - gray text/icon
+            content.textProperties.color = .tertiaryLabel
+            content.imageProperties.tintColor = .tertiaryLabel
+            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+        } else if isActive {
             // Selected state - blue background + white text/icon
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
