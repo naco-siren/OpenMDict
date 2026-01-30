@@ -10,6 +10,6 @@ import UIKit
 func debugLog(_ message: @autoclosure () -> String, file: String = #file, line: Int = #line) {
     #if VERBOSE_LOGGING
     let filename = (file as NSString).lastPathComponent
-    print("📐 [\(filename):\(line)] \(message())")
+    print("ℹ️ [\(filename):\(line)] \(message())")
     #endif
 }
