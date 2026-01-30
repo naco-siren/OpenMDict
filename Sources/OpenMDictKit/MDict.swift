@@ -48,6 +48,26 @@ public final class MDict: ObservableObject, Identifiable {
     /// Current loading state
     @Published public private(set) var state: MDictLoadState = .unloaded
     
+    // MARK: - Parsed Description
+
+    /// Cleaned description (HTML stripped, metadata removed)
+    public var cleanedDescription: String? {
+        guard let desc = metadata?.description, !desc.isEmpty else { return nil }
+        return MDictDescriptionParser.cleanDescription(desc)
+    }
+
+    /// Extracted title from description (may differ from metadata.title)
+    public var extractedTitle: String? {
+        guard let desc = metadata?.description, !desc.isEmpty else { return nil }
+        return MDictDescriptionParser.tryExtractTitle(from: desc)
+    }
+
+    /// Extracted author from description
+    public var extractedAuthor: String? {
+        guard let desc = metadata?.description, !desc.isEmpty else { return nil }
+        return MDictDescriptionParser.tryExtractAuthor(from: desc)
+    }
+    
     /// Whether this dictionary is enabled for searching
     public var isEnabled: Bool = true
     

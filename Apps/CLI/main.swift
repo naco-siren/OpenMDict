@@ -34,6 +34,11 @@ func printUsage() {
         openmdict <mdx_file> resources [count]      List resources from MDD
         openmdict <mdx_file> resource <path>        Get a specific resource
     
+    \(colored("Debug Commands:", .yellow))
+        openmdict <mdx_file> header                 Show raw header XML
+        openmdict <mdx_file> describe               Parse description (test extraction)
+        openmdict <mdx_file> debug <word>           Debug key lookup (hex bytes)
+    
     \(colored("Examples:", .yellow))
         openmdict MyDict.mdx
         openmdict MyDict.mdx lookup hello
@@ -41,6 +46,8 @@ func printUsage() {
         openmdict MyDict.mdx list 20
         openmdict MyDict.mdx resources 10
         openmdict MyDict.mdx resource mydict.css
+        openmdict MyDict.mdx header
+        openmdict MyDict.mdx describe
     
     """)
 }
@@ -79,6 +86,14 @@ func main() {
         print("  Engine Version: ", dict.metadata.engineVersion)
         print("  Encrypted:      ", dict.metadata.isEncrypted ? colored("Yes", .yellow) : colored("No", .green))
         print("  Case Sensitive: ", dict.metadata.isCaseSensitive ? "Yes" : "No")
+        if !dict.metadata.creationDate.isEmpty {
+            print("  Created:        ", dict.metadata.creationDate)
+        }
+        if !dict.metadata.description.isEmpty {
+            let cleanDesc = cleanDescription(dict.metadata.description)
+            let truncated = cleanDesc.count > 100 ? String(cleanDesc.prefix(100)) + "..." : cleanDesc
+            print("  Description:    ", colored(truncated, .dim))
+        }
         print()
         
         // Resource info
@@ -147,6 +162,9 @@ func main() {
                 
             case "header":
                 debugHeader(path: mdxPath)
+                
+            case "describe":
+                debugDescribe(dict: dict)
                 
             default:
                 print(colored("Unknown command: \(command)", .red))
@@ -396,6 +414,66 @@ func getResource(dict: MDictReader, path: String) {
 }
 
 // MARK: - Helpers
+
+/// Clean description using MDictDescriptionParser
+func cleanDescription(_ description: String) -> String {
+    MDictDescriptionParser.cleanDescription(description)
+}
+
+/// Debug describe command - test description extraction
+func debugDescribe(dict: MDictReader) {
+    print(colored("🔬 Description Parsing Test", .bold))
+    print()
+    
+    let rawDesc = dict.metadata.description
+    let title = dict.metadata.title
+    
+    // Raw description
+    print(colored("Raw Title:", .yellow))
+    print("  \(title)")
+    print()
+    
+    print(colored("Raw Description (first 1000 chars):", .yellow))
+    let truncatedRaw = rawDesc.count > 1000 ? String(rawDesc.prefix(1000)) + "..." : rawDesc
+    print("  \(truncatedRaw)")
+    print()
+    
+    // Extracted title
+    print(colored("Extracted Title:", .green))
+    if let extracted = MDictDescriptionParser.tryExtractTitle(from: rawDesc) {
+        print("  ✓ \(extracted)")
+    } else {
+        print("  ✗ (extraction failed)")
+    }
+    print()
+    
+    // Extracted author
+    print(colored("Extracted Author:", .green))
+    if let author = MDictDescriptionParser.tryExtractAuthor(from: rawDesc) {
+        print("  ✓ \(author)")
+    } else {
+        print("  ✗ (extraction failed)")
+    }
+    print()
+    
+    // Cleaned description
+    print(colored("Cleaned Description:", .green))
+    let cleaned = MDictDescriptionParser.cleanDescription(rawDesc)
+    if cleaned.isEmpty {
+        print("  (empty)")
+    } else {
+        let truncatedClean = cleaned.count > 500 ? String(cleaned.prefix(500)) + "..." : cleaned
+        print("  \(truncatedClean.debugDescription)")
+    }
+    print()
+    
+    // Summary
+    print(colored("Summary:", .bold))
+    print("  Title is placeholder: ", title == "Title (No HTML code allowed)" || title.isEmpty ? colored("Yes", .yellow) : colored("No", .green))
+    print("  Has extractable title: ", MDictDescriptionParser.tryExtractTitle(from: rawDesc) != nil ? colored("Yes", .green) : colored("No", .yellow))
+    print("  Has author: ", MDictDescriptionParser.tryExtractAuthor(from: rawDesc) != nil ? colored("Yes", .green) : colored("No", .yellow))
+    print()
+}
 
 struct ResourceRef {
     enum RefType {
