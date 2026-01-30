@@ -109,26 +109,27 @@ class MainSplitViewController: UISplitViewController {
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
 
-        // Handle compact mode navigation
         let wasRegular = traitCollection.horizontalSizeClass == .regular
         let willBeCompact = newCollection.horizontalSizeClass == .compact
 
-        if wasRegular && willBeCompact {
-            coordinator.animate { _ in
-                switch self.currentMode {
-                case .lookup:
-                    if self.detailContainer.allArticles.isEmpty {
-                        debugLog("📱 Transitioning to compact (lookup): no articles, showing word list")
-                        self.show(.supplementary)
-                    } else {
-                        debugLog("📱 Transitioning to compact (lookup): has \(self.detailContainer.allArticles.count) articles, showing detail")
-                        self.show(.secondary)
-                    }
-
-                case .management:
-                    debugLog("📱 Transitioning to compact (management): showing config")
+        // Only handle regular → compact transition
+        // Compact → regular is handled automatically by split view
+        guard wasRegular && willBeCompact else { return }
+        
+        coordinator.animate { _ in
+            switch self.currentMode {
+            case .lookup:
+                if self.detailContainer.allArticles.isEmpty {
+                    debugLog("📱 Transitioning to compact (lookup): no articles, showing word list")
                     self.show(.supplementary)
+                } else {
+                    debugLog("📱 Transitioning to compact (lookup): has \(self.detailContainer.allArticles.count) articles, showing detail")
+                    self.show(.secondary)
                 }
+
+            case .management:
+                debugLog("📱 Transitioning to compact (management): showing config")
+                self.show(.supplementary)
             }
         }
     }
@@ -217,13 +218,13 @@ class MainSplitViewController: UISplitViewController {
             self?.switchToLookupMode()
         }
         
-        // Compact mode only: push resource editor from DictInfoVC
+        // Compact mode only: show resource editor
         dictInfoVC.onManageResources = { [weak self] dictId in
             guard let self = self else { return }
-            // Only in compact mode - push to nav stack
+            // In compact mode, show secondary column (resource editor)
             if self.traitCollection.horizontalSizeClass == .compact {
                 self.dictResourceEditorVC.showEditor(for: dictId)
-                self.dictInfoVC.navigationController?.pushViewController(self.dictResourceEditorVC, animated: true)
+                self.show(.secondary)
             }
         }
     }
@@ -309,9 +310,8 @@ class MainSplitViewController: UISplitViewController {
             setViewController(nil, for: .supplementary)
             setViewController(nil, for: .secondary)
             
-            // Set supplementary (second column): DictInfo wrapped in nav for nav bar buttons
-            let infoNav = UINavigationController(rootViewController: dictInfoVC)
-            setViewController(infoNav, for: .supplementary)
+            // Set supplementary (second column): DictInfo directly (no nav controller needed)
+            setViewController(dictInfoVC, for: .supplementary)
             
             // Set secondary (third column): DictResourceEditor
             setViewController(dictResourceEditorVC, for: .secondary)

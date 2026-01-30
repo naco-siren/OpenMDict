@@ -193,46 +193,8 @@ class DictInfoViewController: UIViewController {
             emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
         
-        // Setup backAction for iOS 16+ (intercepts system back button in compact mode)
-        if #available(iOS 16.0, *) {
-            navigationItem.backAction = UIAction { [weak self] _ in
-                self?.handleBackNavigation()
-            }
-        }
-        
         configureDataSource()
         updateUI()
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        updateLeftBarButton()
-    }
-    
-    @objc private func closeButtonTapped() {
-        handleBackNavigation()
-    }
-    
-    /// Update left bar button based on size class
-    /// - Regular mode: Show close button (no system back in side-by-side columns)
-    /// - Compact mode: No custom button (system provides back button, intercepted by backAction on iOS 16+)
-    private func updateLeftBarButton() {
-        let isCollapsed = isSplitViewCollapsed
-        debugLog("📋 updateLeftBarButton: isSplitViewCollapsed=\(isCollapsed)")
-        
-        if !isCollapsed {
-            // Regular mode: columns side by side, need manual close button
-            let closeButton = UIBarButtonItem(
-                barButtonSystemItem: .close,
-                target: self,
-                action: #selector(closeButtonTapped)
-            )
-            navigationItem.leftBarButtonItem = closeButton
-        } else {
-            // Compact mode: split view collapsed, system provides back button
-            navigationItem.leftBarButtonItem = nil
-        }
     }
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -254,8 +216,8 @@ class DictInfoViewController: UIViewController {
             debugLog("📋 viewWillLayoutSubviews: isCollapsed changed from \(previousIsCollapsed?.description ?? "nil") to \(isCollapsed)")
             previousIsCollapsed = isCollapsed
             
-            updateLeftBarButton()
-            applyCurrentSnapshot()  // Show/hide "Manage Resources"
+            // Show/hide "Manage Resources"
+            applyCurrentSnapshot()
         }
     }
     

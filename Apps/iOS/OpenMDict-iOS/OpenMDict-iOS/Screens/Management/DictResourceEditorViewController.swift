@@ -72,35 +72,6 @@ class DictResourceEditorViewController: UIViewController {
         updateUI()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        // In regular mode (shown as third column), hide back button
-        // In compact mode (pushed from DictInfoVC), show back button for navigation
-        if traitCollection.horizontalSizeClass == .regular {
-            navigationItem.hidesBackButton = true
-            navigationItem.leftBarButtonItem = nil
-            navigationController?.navigationBar.topItem?.hidesBackButton = true
-        } else {
-            // Compact mode - allow back button
-            navigationItem.hidesBackButton = false
-        }
-    }
-    
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        
-        // Update back button visibility when size class changes
-        if traitCollection.horizontalSizeClass != previousTraitCollection?.horizontalSizeClass {
-            if traitCollection.horizontalSizeClass == .regular {
-                navigationItem.hidesBackButton = true
-                navigationItem.leftBarButtonItem = nil
-            } else {
-                navigationItem.hidesBackButton = false
-            }
-        }
-    }
-    
     // MARK: - Setup
     
     private func setupUI() {
