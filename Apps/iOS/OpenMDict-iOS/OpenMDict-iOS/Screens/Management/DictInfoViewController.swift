@@ -62,11 +62,17 @@ class DictInfoViewController: UIViewController {
     /// Selected MDX file URL (for import mode)
     private var selectedMDXURL: URL?
     
+    /// Previewed metadata (for import mode, loaded from selected MDX)
+    private var previewMetadata: MDictMetadata?
+    
     /// Current dictionary ID (for edit mode)
     private var currentDictId: String?
     
     /// Edited display name (tracks changes)
     private var editedDisplayName: String?
+    
+    /// Tracks if selected MDX is already imported (for duplicate detection)
+    private var isDuplicateDetected: Bool = false
     
     // MARK: - UI
     
@@ -85,6 +91,7 @@ class DictInfoViewController: UIViewController {
         case displayNameField(String)
         case manageResources
         case deleteButton
+        case duplicateWarning
     }
     
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
@@ -278,6 +285,17 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
+        // Duplicate Warning Cell
+        let duplicateWarningReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
+            var content = UIListContentConfiguration.cell()
+            content.text = "This dictionary is already imported"
+            content.textProperties.color = .systemOrange
+            content.image = UIImage(systemName: "exclamationmark.triangle.fill")
+            content.imageProperties.tintColor = .systemOrange
+            cell.contentConfiguration = content
+            cell.accessories = []
+        }
+        
         dataSource = UICollectionViewDiffableDataSource<Section, Item>(collectionView: collectionView) {
             collectionView, indexPath, item in
             
@@ -299,6 +317,9 @@ class DictInfoViewController: UIViewController {
                 
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
+                
+            case .duplicateWarning:
+                return collectionView.dequeueConfiguredReusableCell(using: duplicateWarningReg, for: indexPath, item: ())
             }
         }
     }
@@ -332,7 +353,8 @@ class DictInfoViewController: UIViewController {
     }
     
     private func updateDoneButtonState() {
-        doneButton.isEnabled = hasUnsavedChanges
+        // Disable Done button if no changes OR if duplicate detected in import mode
+        doneButton.isEnabled = hasUnsavedChanges && !isDuplicateDetected
     }
     
     private func applyCurrentSnapshot() {
@@ -353,15 +375,26 @@ class DictInfoViewController: UIViewController {
         snapshot.appendSections([.fileSelection])
         snapshot.appendItems([.selectFile], toSection: .fileSelection)
         
-        // If file selected, show metadata preview
-        if selectedMDXURL != nil {
+        // If file selected and metadata loaded, show preview
+        if let metadata = previewMetadata {
+            let cleanedDesc = MDictDescriptionParser.cleanDescription(metadata.description)
+            let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: metadata.description)
+
             snapshot.appendSections([.metadata, .displayName])
-            // TODO: Read actual metadata from MDX file
             snapshot.appendItems([
-                .metadataTitle("Preview Title"),
-                .metadataDescription("Preview Description")
+                .metadataTitle(metadata.title),
+                .metadataDescription(cleanedDesc)
             ], toSection: .metadata)
-            snapshot.appendItems([.displayNameField(editedDisplayName ?? "")], toSection: .displayName)
+            
+            // Use extracted title as placeholder suggestion, fallback to metadata.title
+            let placeholder = extractedTitle ?? metadata.title
+            snapshot.appendItems([.displayNameField(editedDisplayName ?? placeholder)], toSection: .displayName)
+            
+            // Show duplicate warning if detected
+            if isDuplicateDetected {
+                snapshot.appendSections([.actions])
+                snapshot.appendItems([.duplicateWarning], toSection: .actions)
+            }
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
@@ -370,18 +403,23 @@ class DictInfoViewController: UIViewController {
     private func applyEditSnapshot(dictId: String) {
         guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
         
+        // Use cleaned description instead of raw HTML
+        let cleanedDesc = dict.cleanedDescription ?? dict.metadata?.description ?? ""
+        let extractedTitle = dict.extractedTitle
+        
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
         // Metadata section
         snapshot.appendSections([.metadata])
         snapshot.appendItems([
             .metadataTitle(dict.metadata?.title ?? ""),
-            .metadataDescription(dict.metadata?.description ?? "")
+            .metadataDescription(cleanedDesc)
         ], toSection: .metadata)
         
         // Display name section
         snapshot.appendSections([.displayName])
-        let displayName = editedDisplayName ?? dict.metadata?.title ?? ""
+        // Use extracted title as default if no custom display name
+        let displayName = editedDisplayName ?? extractedTitle ?? dict.metadata?.title ?? ""
         snapshot.appendItems([.displayNameField(displayName)], toSection: .displayName)
         
         // Manage Resources section (ONLY in compact mode - when split view is collapsed)
@@ -430,6 +468,7 @@ class DictInfoViewController: UIViewController {
         // Reset internal state (but NOT currentMode - let MainSplitVC handle the mode switch first)
         // This prevents the empty state from flashing before switchToLookupMode() takes effect
         selectedMDXURL = nil
+        previewMetadata = nil
         currentDictId = nil
         editedDisplayName = nil
         hasUnsavedChanges = false
@@ -534,52 +573,116 @@ class DictInfoViewController: UIViewController {
     }
     
     private func performImport() {
-        guard let url = selectedMDXURL else { return }
+        guard let url = selectedMDXURL,
+              let metadata = previewMetadata,
+              let headerSHA256 = metadata.headerSHA256 else {
+            print("❌ Import failed: missing URL or metadata")
+            return
+        }
         
-        // TODO: Perform actual import
-        print("📥 Importing from: \(url.lastPathComponent)")
+        // Double-check for duplicate (should already be caught by UI)
+        if DictionaryStorageService.shared.isDuplicateImport(headerSHA256: headerSHA256) {
+            print("❌ Import blocked: duplicate detected")
+            return
+        }
         
-        // Simulate import completion
-        let fakeDictId = UUID().uuidString
+        // Determine display name
+        let displayName = editedDisplayName
+            ?? MDictDescriptionParser.tryExtractTitle(from: metadata.description)
+            ?? metadata.title
         
-        // Reset state
-        selectedMDXURL = nil
-        editedDisplayName = nil
-        hasUnsavedChanges = false
-        currentMode = .empty
+        // Create SelectedFile for the MDX
+        let mdxFile = SelectedFile(url: url)
         
-        onImportComplete?(fakeDictId)
+        Task {
+            do {
+                let dictId = try await DictionaryStorageService.shared.importDictionary(
+                    mdxFile: mdxFile,
+                    displayName: displayName,
+                    headerSHA256: headerSHA256
+                )
+
+                // Refresh DictionaryService to pick up the new dictionary
+                await DictionaryService.shared.refreshAfterImport(dictId)
+
+                print("✅ Import completed: \(dictId)")
+
+                // Reset state on main thread
+                await MainActor.run {
+                    selectedMDXURL = nil
+                    previewMetadata = nil
+                    editedDisplayName = nil
+                    isDuplicateDetected = false
+                    hasUnsavedChanges = false
+                    currentMode = .empty
+
+                    onImportComplete?(dictId)
+                }
+            } catch {
+                print("❌ Import failed: \(error)")
+                await MainActor.run {
+                    showImportError(error)
+                }
+            }
+        }
     }
     
     private func performSave() {
         guard case .editing(let dictId) = currentMode else { return }
         
-        // TODO: Save changes (display name, etc.)
-        print("💾 Saving changes for: \(dictId)")
+        // Save display name if changed
         if let newName = editedDisplayName {
-            print("   New display name: \(newName)")
+            do {
+                try DictionaryStorageService.shared.updateDisplayName(id: dictId, newName: newName)
+                print("💾 Saved display name: \(newName)")
+            } catch {
+                print("❌ Failed to save display name: \(error)")
+            }
         }
         
         // Reset state
-        currentDictId = nil
         editedDisplayName = nil
         hasUnsavedChanges = false
-        currentMode = .empty
         
         onDismiss?()
     }
     
     private func performDelete(dictId: String) {
-        // TODO: Perform actual delete
-        print("🗑️ Deleting dictionary: \(dictId)")
-        
-        // Reset state
-        currentDictId = nil
-        editedDisplayName = nil
-        hasUnsavedChanges = false
-        currentMode = .empty
-        
-        onDeleteComplete?(dictId)
+        do {
+            try DictionaryStorageService.shared.deleteDictionary(id: dictId)
+            DictionaryService.shared.refreshAfterDelete(dictId)
+            print("🗑️ Deleted dictionary: \(dictId)")
+
+            // Reset state
+            editedDisplayName = nil
+            hasUnsavedChanges = false
+            currentMode = .empty
+
+            onDeleteComplete?(dictId)
+        } catch {
+            print("❌ Failed to delete dictionary: \(error)")
+            showDeleteError(error)
+        }
+    }
+    
+    private func showImportError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "Import Failed",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+
+    private func showDeleteError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "Delete Failed",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
     
     private func showDocumentPicker() {
@@ -683,9 +786,48 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         guard let url = urls.first else { return }
         
         selectedMDXURL = url
-        currentMode = .importing
         
-        print("📄 Selected: \(url.lastPathComponent)")
+        // Load metadata preview from selected MDX BEFORE setting mode
+        var loadedMetadata: MDictMetadata?
+        debugLog("🔍 Parsing metadata of \(url.lastPathComponent)...")
+        
+        if url.startAccessingSecurityScopedResource() {
+            loadedMetadata = MDictReader.loadMetadata(from: url.path)
+            url.stopAccessingSecurityScopedResource()
+        } else {
+            loadedMetadata = MDictReader.loadMetadata(from: url.path)
+        }
+        
+        // Debug: log parsed metadata
+        if let meta = loadedMetadata {
+            debugLog("📖 Raw title: \(meta.title)")
+            debugLog("📖 Raw description (first 200 chars): \(String(meta.description.prefix(200)))")
+            debugLog("📖 headerSHA256: \(meta.headerSHA256 ?? "nil")")
+            
+            let cleanedDesc = MDictDescriptionParser.cleanDescription(meta.description)
+            let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: meta.description)
+            debugLog("✨ Cleaned description (first 200 chars): \(String(cleanedDesc.prefix(200)))")
+            debugLog("✨ Extracted title: \(extractedTitle ?? "nil")")
+        } else {
+            debugLog("❌ Failed to load metadata from \(url.lastPathComponent)")
+        }
+        
+        previewMetadata = loadedMetadata
+        
+        // Check for duplicate import
+        if let sha256 = loadedMetadata?.headerSHA256 {
+            isDuplicateDetected = DictionaryStorageService.shared.isDuplicateImport(headerSHA256: sha256)
+            debugLog("🔍 Duplicate check: \(isDuplicateDetected ? "DUPLICATE FOUND" : "OK")")
+        } else {
+            isDuplicateDetected = false
+            debugLog("⚠️ No SHA256 hash available for duplicate check")
+        }
+        
+        // NOW set the mode (triggers updateUI with previewMetadata already set)
+        currentMode = .importing
+        hasUnsavedChanges = true  // Mark as having changes so Done button enables
+        
+        debugLog("📄 Selected: \(url.lastPathComponent)\(isDuplicateDetected ? " (DUPLICATE)" : "")")
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
