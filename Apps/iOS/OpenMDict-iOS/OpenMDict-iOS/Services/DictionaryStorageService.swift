@@ -154,6 +154,7 @@ struct ImportFormState {
 
 enum DictionaryImportError: LocalizedError {
     case noMDXSelected
+    case duplicateImport(existingId: String)
     case fileAccessDenied(URL)
     case copyFailed(URL, Error)
     case manifestSaveFailed(Error)
@@ -163,6 +164,8 @@ enum DictionaryImportError: LocalizedError {
         switch self {
         case .noMDXSelected:
             return "No MDX file selected"
+        case .duplicateImport:
+            return "This dictionary has already been imported"
         case .fileAccessDenied(let url):
             return "Cannot access file: \(url.lastPathComponent)"
         case .copyFailed(let url, let error):
@@ -311,16 +314,26 @@ final class DictionaryStorageService {
     ///   - jsFiles: Selected JS files
     ///   - fontFiles: Selected font files
     ///   - displayName: User-visible name
-    /// - Returns: The new dictionary's ID
+    ///   - headerSHA256: SHA256 hash of MDX header (used as storage directory name)
+    /// - Returns: The new dictionary's ID (same as headerSHA256)
+    /// - Throws: `DictionaryImportError.duplicateImport` if dictionary already exists
     func importDictionary(
         mdxFile: SelectedFile,
         mddFiles: [SelectedFile] = [],
         cssFiles: [SelectedFile] = [],
         jsFiles: [SelectedFile] = [],
         fontFiles: [SelectedFile] = [],
-        displayName: String
+        displayName: String,
+        headerSHA256: String
     ) async throws -> String {
-        let id = UUID().uuidString
+        // Use SHA256 hash as the dictionary ID / directory name
+        // This enables automatic duplicate detection based on content
+        let id = headerSHA256
+        
+        // Check for duplicate (directory already exists)
+        if isDuplicateImport(headerSHA256: id) {
+            throw DictionaryImportError.duplicateImport(existingId: id)
+        }
         
         // 1. Create directory structure
         do {
@@ -377,7 +390,7 @@ final class DictionaryStorageService {
             throw DictionaryImportError.manifestSaveFailed(error)
         }
         
-        print("✅ Imported dictionary: \(displayName) (id: \(id))")
+        print("✅ Imported dictionary: \(displayName) (id: \(id.prefix(16))...)")
         return id
     }
     
@@ -494,6 +507,22 @@ final class DictionaryStorageService {
     /// Check if a dictionary with this original filename exists
     func isAlreadyImported(originalFileName: String) -> DictionaryManifest.DictionaryEntry? {
         manifest.dictionary(originalFileName: originalFileName)
+    }
+    
+    /// Check if a dictionary with this SHA256 hash is already imported
+    /// The hash is used as directory name, so we check if the directory exists
+    func isDuplicateImport(headerSHA256: String) -> Bool {
+        let dirURL = dictionaryDirectoryURL(id: headerSHA256)
+        return FileManager.default.fileExists(atPath: dirURL.path)
+    }
+    
+    // MARK: - Update
+    
+    /// Update the display name for a dictionary
+    func updateDisplayName(id: String, newName: String) throws {
+        manifest.updateDisplayName(id: id, newName: newName)
+        try saveManifest()
+        print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
     }
     
     // MARK: - UTTypes

@@ -304,23 +304,36 @@ struct RecordBlockInfo {
 
 // MARK: - Header Parsing
 
+/// Result of reading header with raw data for hashing
+internal struct MDictInfoWithRawHeader {
+    let info: MDictInfo
+    /// Raw header bytes (for SHA256 hash calculation)
+    let headerData: Data
+}
+
 extension MDXParser {
     
     /// Read only the header without parsing keywords (fast)
     /// Used for displaying dictionary list without full loading
     static func readHeaderOnly(path: String) -> MDictInfo? {
+        readHeaderOnlyWithData(path: path)?.info
+    }
+    
+    /// Read header and return both parsed info and raw header data
+    /// The raw header data is used for SHA256 hash calculation (duplicate detection)
+    static func readHeaderOnlyWithData(path: String) -> MDictInfoWithRawHeader? {
         guard FileManager.default.fileExists(atPath: path),
               let reader = try? BinaryReader(path: path) else {
             return nil
         }
         
-        guard let header = try? parseHeader(reader) else {
+        guard let (header, headerData) = try? parseHeaderWithData(reader) else {
             return nil
         }
         
         // We can't know the exact entry count without parsing keywords,
         // but we can estimate from header or return 0
-        return MDictInfo(
+        let info = MDictInfo(
             title: header.title,
             description: header.description,
             entryCount: 0,  // Unknown without full parse
@@ -331,23 +344,32 @@ extension MDXParser {
             isEncrypted: header.encrypted != 0,
             isCaseSensitive: header.keyCaseSensitive
         )
+        
+        return MDictInfoWithRawHeader(info: info, headerData: headerData)
+    }
+    
+    /// Parse header and return both the parsed struct and raw bytes
+    static func parseHeaderWithData(_ reader: BinaryReader) throws -> (MDictHeader, Data) {
+        let headerLen = try reader.readUInt32BE()
+        let headerBytes = try reader.readBytes(Int(headerLen))
+        _ = try reader.readUInt32LE()  // adler32
+        
+        let headerData = Data(headerBytes)
+        
+        let headerStr: String
+        if headerBytes.count >= 2 && headerBytes[0] == 0xFF && headerBytes[1] == 0xFE {
+            headerStr = String(data: headerData, encoding: .utf16LittleEndian) ?? ""
+        } else if headerBytes.count >= 2 && headerBytes.suffix(2) == Data([0x00, 0x00]) {
+            headerStr = String(data: Data(headerBytes.dropLast(2)), encoding: .utf16LittleEndian) ?? ""
+        } else {
+            headerStr = String(data: headerData, encoding: .utf8) ?? ""
+        }
+        
+        return (parseHeaderXML(headerStr), headerData)
     }
     
     static func parseHeader(_ reader: BinaryReader) throws -> MDictHeader {
-        let headerLen = try reader.readUInt32BE()
-        let headerData = try reader.readBytes(Int(headerLen))
-        _ = try reader.readUInt32LE()  // adler32
-        
-        let headerStr: String
-        if headerData.count >= 2 && headerData[0] == 0xFF && headerData[1] == 0xFE {
-            headerStr = String(data: Data(headerData), encoding: .utf16LittleEndian) ?? ""
-        } else if headerData.count >= 2 && headerData.suffix(2) == Data([0x00, 0x00]) {
-            headerStr = String(data: Data(headerData.dropLast(2)), encoding: .utf16LittleEndian) ?? ""
-        } else {
-            headerStr = String(data: Data(headerData), encoding: .utf8) ?? ""
-        }
-        
-        return parseHeaderXML(headerStr)
+        try parseHeaderWithData(reader).0
     }
     
     private static func parseHeaderXML(_ xml: String) -> MDictHeader {

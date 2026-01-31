@@ -199,6 +199,13 @@ extension DictionaryManifest {
         }
     }
     
+    /// Update only the display name for a dictionary
+    mutating func updateDisplayName(id: String, newName: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].displayName = newName
+        }
+    }
+    
     /// Add a new user group
     mutating func addUserGroup(_ group: UserGroup) {
         groups.userGroups.append(group)

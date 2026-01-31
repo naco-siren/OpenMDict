@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 // MARK: - Public Types
 
@@ -58,6 +59,11 @@ public struct MDictMetadata: Sendable {
     
     /// Whether associated MDD files exist
     public let hasMDD: Bool
+    
+    /// SHA256 hash of the MDX header bytes.
+    /// Used as the dictionary's unique identifier for storage and duplicate detection.
+    /// Note: This is specifically SHA256, not MD5 or any other hash algorithm.
+    public let headerSHA256: String?
 }
 
 // MARK: - Errors
@@ -134,6 +140,10 @@ public final class MDictReader: @unchecked Sendable {
         let hasMDD = Self.checkMDDExists(mdxPath: path)
         let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded, path: path)
         
+        // Compute SHA256 of header for duplicate detection
+        // Note: We read the header again here, but it's a small overhead compared to full parsing
+        let headerSHA256 = Self.computeHeaderSHA256(path: path)
+        
         self.metadata = MDictMetadata(
             title: title,
             description: parser.info.description.htmlEntityDecoded,
@@ -146,7 +156,8 @@ public final class MDictReader: @unchecked Sendable {
             isCaseSensitive: parser.info.isCaseSensitive,
             path: path,
             fileSize: fileSize,
-            hasMDD: hasMDD
+            hasMDD: hasMDD,
+            headerSHA256: headerSHA256
         )
     }
     
@@ -158,13 +169,18 @@ public final class MDictReader: @unchecked Sendable {
     /// - Parameter path: Path to the .mdx file
     /// - Returns: Metadata or nil if file cannot be read
     public static func loadMetadata(from path: String) -> MDictMetadata? {
-        guard let info = MDXParser.readHeaderOnly(path: path) else {
+        guard let result = MDXParser.readHeaderOnlyWithData(path: path) else {
             return nil
         }
         
+        let info = result.info
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         let hasMDD = checkMDDExists(mdxPath: path)
         let title = resolveTitle(info.title.htmlEntityDecoded, path: path)
+        
+        // Compute SHA256 hash of header bytes for duplicate detection
+        // Using SHA256 (not MD5 or other algorithms) for better collision resistance
+        let headerSHA256 = sha256Hash(of: result.headerData)
         
         return MDictMetadata(
             title: title,
@@ -178,8 +194,26 @@ public final class MDictReader: @unchecked Sendable {
             isCaseSensitive: info.isCaseSensitive,
             path: path,
             fileSize: fileSize,
-            hasMDD: hasMDD
+            hasMDD: hasMDD,
+            headerSHA256: headerSHA256
         )
+    }
+    
+    // MARK: - SHA256 Hash Helpers
+    
+    /// Compute SHA256 hash of MDX header bytes
+    /// Used for duplicate detection when importing dictionaries
+    private static func computeHeaderSHA256(path: String) -> String? {
+        guard let result = MDXParser.readHeaderOnlyWithData(path: path) else {
+            return nil
+        }
+        return sha256Hash(of: result.headerData)
+    }
+    
+    /// Compute SHA256 hash of data and return as lowercase hex string
+    private static func sha256Hash(of data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
     
     // MARK: - Private Helpers
