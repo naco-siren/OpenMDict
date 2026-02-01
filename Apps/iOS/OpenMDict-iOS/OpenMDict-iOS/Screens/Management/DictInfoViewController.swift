@@ -41,6 +41,9 @@ class DictInfoViewController: UIViewController {
     
     /// Callback to push resource editor in compact mode
     var onManageResources: ((String) -> Void)?
+
+    /// Callback for "View Existing Dictionary" navigation (when duplicate detected)
+    var onViewExistingDictionary: ((String) -> Void)?
     
     // MARK: - State
     
@@ -71,27 +74,29 @@ class DictInfoViewController: UIViewController {
     /// Edited display name (tracks changes)
     private var editedDisplayName: String?
     
-    /// Tracks if selected MDX is already imported (for duplicate detection)
-    private var isDuplicateDetected: Bool = false
+    /// Existing dictionary ID if duplicate detected (nil = no duplicate)
+    /// When non-nil, import is blocked and user should view the existing dictionary
+    private var duplicatedDictId: String?
     
     // MARK: - UI
     
     private enum Section: Int, CaseIterable {
-        case fileSelection   // Import mode: "Select MDX File" button
-        case metadata        // Title, description (from MDX header)
-        case displayName     // Editable display name
-        case resources       // "Manage Resources" (compact mode only)
-        case actions         // Delete button (edit mode only)
+        case duplicateWarning   // Import mode: duplicate detected warning (at very top)
+        case fileSelection      // Import mode: "Select MDX File" button
+        case metadata           // Title, description (from MDX header)
+        case displayName        // Editable display name
+        case resources          // "Manage Resources" (compact mode only)
+        case actions            // Delete button (edit mode only)
     }
     
     private nonisolated enum Item: Hashable {
         case selectFile
+        case duplicateWarning(existingId: String)
         case metadataTitle(String)
         case metadataDescription(String)
         case displayNameField(String)
         case manageResources
         case deleteButton
-        case duplicateWarning
     }
     
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
@@ -241,6 +246,25 @@ class DictInfoViewController: UIViewController {
             cell.accessories = [.disclosureIndicator()]
         }
         
+        // Duplicate Warning Cell
+        let duplicateWarningReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, existingId in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = "Dictionary Already Imported"
+            content.textProperties.color = .systemOrange
+            content.secondaryText = "This dictionary has already been imported. Tap to view the existing one."
+            content.secondaryTextProperties.color = .secondaryLabel
+            content.secondaryTextProperties.numberOfLines = 0
+            content.image = UIImage(systemName: "exclamationmark.triangle.fill")
+            content.imageProperties.tintColor = .systemOrange
+            cell.contentConfiguration = content
+            cell.accessories = [.disclosureIndicator()]
+
+            // Orange background tint
+            var bgConfig = UIBackgroundConfiguration.listGroupedCell()
+            bgConfig.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.1)
+            cell.backgroundConfiguration = bgConfig
+        }
+        
         // Metadata Cell (read-only)
         let metadataReg = UICollectionView.CellRegistration<UICollectionViewListCell, (String, String)> { cell, indexPath, tuple in
             let (label, value) = tuple
@@ -285,23 +309,15 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
-        // Duplicate Warning Cell
-        let duplicateWarningReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
-            var content = UIListContentConfiguration.cell()
-            content.text = "This dictionary is already imported"
-            content.textProperties.color = .systemOrange
-            content.image = UIImage(systemName: "exclamationmark.triangle.fill")
-            content.imageProperties.tintColor = .systemOrange
-            cell.contentConfiguration = content
-            cell.accessories = []
-        }
-        
         dataSource = UICollectionViewDiffableDataSource<Section, Item>(collectionView: collectionView) {
             collectionView, indexPath, item in
             
             switch item {
             case .selectFile:
                 return collectionView.dequeueConfiguredReusableCell(using: selectFileReg, for: indexPath, item: ())
+                
+            case .duplicateWarning(let existingId):
+                return collectionView.dequeueConfiguredReusableCell(using: duplicateWarningReg, for: indexPath, item: existingId)
                 
             case .metadataTitle(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: metadataReg, for: indexPath, item: ("Title", value))
@@ -317,9 +333,6 @@ class DictInfoViewController: UIViewController {
                 
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
-                
-            case .duplicateWarning:
-                return collectionView.dequeueConfiguredReusableCell(using: duplicateWarningReg, for: indexPath, item: ())
             }
         }
     }
@@ -354,7 +367,7 @@ class DictInfoViewController: UIViewController {
     
     private func updateDoneButtonState() {
         // Disable Done button if no changes OR if duplicate detected in import mode
-        doneButton.isEnabled = hasUnsavedChanges && !isDuplicateDetected
+        doneButton.isEnabled = hasUnsavedChanges && duplicatedDictId == nil
     }
     
     private func applyCurrentSnapshot() {
@@ -371,30 +384,39 @@ class DictInfoViewController: UIViewController {
     private func applyImportSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
-        // File selection section
-        snapshot.appendSections([.fileSelection])
-        snapshot.appendItems([.selectFile], toSection: .fileSelection)
-        
-        // If file selected and metadata loaded, show preview
+        // If no file selected yet, show file selection button
+        // Otherwise show metadata preview (file info is in metadata title)
         if let metadata = previewMetadata {
+            // Duplicate warning at very top (if detected)
+            if let existingId = duplicatedDictId {
+                snapshot.appendSections([.duplicateWarning])
+                snapshot.appendItems([.duplicateWarning(existingId: existingId)], toSection: .duplicateWarning)
+            }
+
+            // Metadata section (always visible)
             let cleanedDesc = MDictDescriptionParser.cleanDescription(metadata.description)
             let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: metadata.description)
 
-            snapshot.appendSections([.metadata, .displayName])
+            snapshot.appendSections([.metadata])
             snapshot.appendItems([
                 .metadataTitle(metadata.title),
                 .metadataDescription(cleanedDesc)
             ], toSection: .metadata)
             
-            // Use extracted title as placeholder suggestion, fallback to metadata.title
-            let placeholder = extractedTitle ?? metadata.title
-            snapshot.appendItems([.displayNameField(editedDisplayName ?? placeholder)], toSection: .displayName)
-            
-            // Show duplicate warning if detected
-            if isDuplicateDetected {
-                snapshot.appendSections([.actions])
-                snapshot.appendItems([.duplicateWarning], toSection: .actions)
+            // Display Name section - ONLY when NOT duplicate
+            // When duplicate, user should view existing instead of editing this one
+            if duplicatedDictId == nil {
+                snapshot.appendSections([.displayName])
+                let placeholder = extractedTitle ?? metadata.title
+                snapshot.appendItems([.displayNameField(editedDisplayName ?? placeholder)], toSection: .displayName)
+
+                // Manage Resources - ONLY in compact mode AND NOT duplicate
+                // (resources section doesn't make sense for a duplicate that won't be imported)
             }
+        } else {
+            // No file selected - show file selection button
+            snapshot.appendSections([.fileSelection])
+            snapshot.appendItems([.selectFile], toSection: .fileSelection)
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
@@ -612,7 +634,7 @@ class DictInfoViewController: UIViewController {
                     selectedMDXURL = nil
                     previewMetadata = nil
                     editedDisplayName = nil
-                    isDuplicateDetected = false
+                    duplicatedDictId = nil
                     hasUnsavedChanges = false
                     currentMode = .empty
 
@@ -694,9 +716,19 @@ class DictInfoViewController: UIViewController {
     }
     
     private func showDisplayNameEditor() {
-        guard case .editing(let dictId) = currentMode else { return }
-        let dict = DictionaryService.shared.dict(id: dictId)
-        let currentName = editedDisplayName ?? dict?.metadata?.title ?? ""
+        // Get current name based on mode
+        let currentName: String
+        switch currentMode {
+        case .editing(let dictId):
+            let dict = DictionaryService.shared.dict(id: dictId)
+            let extractedTitle = dict?.extractedTitle
+            currentName = editedDisplayName ?? extractedTitle ?? dict?.metadata?.title ?? ""
+        case .importing:
+            let extractedTitle = previewMetadata.flatMap { MDictDescriptionParser.tryExtractTitle(from: $0.description) }
+            currentName = editedDisplayName ?? extractedTitle ?? previewMetadata?.title ?? ""
+        case .empty:
+            return  // Can't edit in empty mode
+        }
         
         let alert = UIAlertController(
             title: "Display Name",
@@ -728,6 +760,7 @@ class DictInfoViewController: UIViewController {
         currentDictId = nil
         editedDisplayName = nil
         hasUnsavedChanges = false
+        duplicatedDictId = nil
         currentMode = .empty
     }
     
@@ -736,6 +769,7 @@ class DictInfoViewController: UIViewController {
         currentDictId = nil
         editedDisplayName = nil
         hasUnsavedChanges = false
+        duplicatedDictId = nil
         currentMode = .empty  // Start with empty, showing file picker prompt
     }
     
@@ -744,6 +778,7 @@ class DictInfoViewController: UIViewController {
         currentDictId = dictId
         editedDisplayName = nil
         hasUnsavedChanges = false
+        duplicatedDictId = nil
         currentMode = .editing(dictId: dictId)
     }
 }
@@ -761,7 +796,16 @@ extension DictInfoViewController: UICollectionViewDelegate {
         case .selectFile:
             showDocumentPicker()
             
+        case .duplicateWarning(let existingId):
+            // Navigate to existing dictionary
+            // This calls the callback which MainSplitVC will handle
+            if let onViewExisting = onViewExistingDictionary {
+                onViewExisting(existingId)
+            }
+            
         case .displayNameField:
+            // Don't allow when duplicate detected
+            guard duplicatedDictId == nil else { return }
             showDisplayNameEditor()
             
         case .manageResources:
@@ -787,47 +831,31 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         selectedMDXURL = url
         
-        // Load metadata preview from selected MDX BEFORE setting mode
-        var loadedMetadata: MDictMetadata?
-        debugLog("🔍 Parsing metadata of \(url.lastPathComponent)...")
-        
+        // Load metadata preview from selected MDX
+        var metadata: MDictMetadata?
         if url.startAccessingSecurityScopedResource() {
-            loadedMetadata = MDictReader.loadMetadata(from: url.path)
+            metadata = MDictReader.loadMetadata(from: url.path)
             url.stopAccessingSecurityScopedResource()
         } else {
-            loadedMetadata = MDictReader.loadMetadata(from: url.path)
+            metadata = MDictReader.loadMetadata(from: url.path)
         }
         
-        // Debug: log parsed metadata
-        if let meta = loadedMetadata {
-            debugLog("📖 Raw title: \(meta.title)")
-            debugLog("📖 Raw description (first 200 chars): \(String(meta.description.prefix(200)))")
-            debugLog("📖 headerSHA256: \(meta.headerSHA256 ?? "nil")")
-            
-            let cleanedDesc = MDictDescriptionParser.cleanDescription(meta.description)
-            let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: meta.description)
-            debugLog("✨ Cleaned description (first 200 chars): \(String(cleanedDesc.prefix(200)))")
-            debugLog("✨ Extracted title: \(extractedTitle ?? "nil")")
+        previewMetadata = metadata
+        
+        // Check for duplicate using SHA256 (SHA256 is used as directory id)
+        if let sha256 = metadata?.headerSHA256 {
+            if DictionaryStorageService.shared.isDuplicateImport(headerSHA256: sha256) {
+                duplicatedDictId = sha256  // SHA256 is the existing dict's id
+                print("⚠️ Duplicate detected: existing dictionary \(sha256)")
+            } else {
+                duplicatedDictId = nil
+            }
         } else {
-            debugLog("❌ Failed to load metadata from \(url.lastPathComponent)")
+            duplicatedDictId = nil
         }
         
-        previewMetadata = loadedMetadata
-        
-        // Check for duplicate import
-        if let sha256 = loadedMetadata?.headerSHA256 {
-            isDuplicateDetected = DictionaryStorageService.shared.isDuplicateImport(headerSHA256: sha256)
-            debugLog("🔍 Duplicate check: \(isDuplicateDetected ? "DUPLICATE FOUND" : "OK")")
-        } else {
-            isDuplicateDetected = false
-            debugLog("⚠️ No SHA256 hash available for duplicate check")
-        }
-        
-        // NOW set the mode (triggers updateUI with previewMetadata already set)
         currentMode = .importing
-        hasUnsavedChanges = true  // Mark as having changes so Done button enables
-        
-        debugLog("📄 Selected: \(url.lastPathComponent)\(isDuplicateDetected ? " (DUPLICATE)" : "")")
+        print("📄 Selected: \(url.lastPathComponent)")
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {

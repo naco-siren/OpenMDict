@@ -176,7 +176,8 @@ final class DictionaryService: ObservableObject {
                 print("⚠️ Imported dictionary MDX not found: \(entry.displayName)")
                 return nil
             }
-            return MDict(path: mdxPath)
+            // Use manifest's entry.id (SHA256) as the MDict id, not "0" from filename
+            return MDict(path: mdxPath, id: entry.id)
         }
         
         // Track as imported
@@ -296,7 +297,8 @@ final class DictionaryService: ObservableObject {
     func refreshAfterImport(_ id: String) async {
         // 1. Create MDict instance
         let mdxPath = storage.mdxURL(id: id).path
-        let newDict = MDict(path: mdxPath)
+        // Use SHA256 as id, not "0" from 0.mdx filename
+        let newDict = MDict(path: mdxPath, id: id)
         
         // 2. Track as imported
         dictionarySources[id] = .imported

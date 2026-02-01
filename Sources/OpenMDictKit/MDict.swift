@@ -87,13 +87,18 @@ public final class MDict: ObservableObject, Identifiable {
     // MARK: - Initialization
     
     /// Create a dictionary ViewModel from MDX path
-    /// Only loads metadata, not full dictionary
+    /// ID is derived from filename (e.g., "MyDict" from "MyDict.mdx")
     public nonisolated init(path: String) {
         self.path = path
         self.id = Self.generateId(from: path)
-        
-        // Note: metadata loading moved to an async call since we're nonisolated here
-        // Will be populated on first load or via loadMetadata()
+    }
+    
+    /// Create a dictionary ViewModel with explicit ID
+    /// Use this for imported dictionaries where ID should be the storage directory name (SHA256)
+    /// rather than the filename (which is always "0.mdx")
+    public nonisolated init(path: String, id: String) {
+        self.path = path
+        self.id = id
     }
     
     private nonisolated static func generateId(from path: String) -> String {
