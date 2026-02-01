@@ -27,6 +27,9 @@ class DetailContainerViewController: UIViewController {
     /// Subscriptions
     private var cancellables = Set<AnyCancellable>()
     
+    /// Per-dictionary subscriptions for pending articles (dictId → subscription)
+    private var pendingDictSubscriptions: [String: AnyCancellable] = [:]
+    
     /// All articles (for state restoration)
     var allArticles: [ArticleDisplayItem] { articles }
     
@@ -156,9 +159,10 @@ class DetailContainerViewController: UIViewController {
         // Install appropriate child for current traits
         updateChildForTraits(traitCollection)
         updateNavigationBar(for: traitCollection)
-        subscribeToDictionaryLoads()
+        
         subscribeToAppearanceChanges()
         subscribeToArticleMoved()
+        
         loadPendingArticlesIfReady()
     }
     
@@ -276,19 +280,32 @@ class DetailContainerViewController: UIViewController {
     }
     
 
-    // MARK: - Dictionary Load Subscription
+    // MARK: - Pending Article Subscriptions
 
-    private func subscribeToDictionaryLoads() {
-        DictionaryService.shared.onDictionaryLoaded
+    /// Subscribe to a specific dictionary's load state for pending articles
+    /// Uses flatMap to handle race condition: dict may not exist yet in allDictionaries
+    private func subscribeToDict(id: String) {
+        // Already subscribed
+        guard pendingDictSubscriptions[id] == nil else { return }
+
+        // Chain: wait for dict to appear in allDictionaries → wait for it to load
+        pendingDictSubscriptions[id] = DictionaryService.shared.$allDictionaries
+            .compactMap { dicts in dicts.first { $0.id == id } }  // Wait for dict to appear
+            .first()  // Only take first appearance
+            .flatMap { dict in
+                dict.$state
+                    .filter { $0 == .loaded }
+                    .map { _ in dict }  // Preserve dict reference
+                    .first()  // Only take first loaded event
+            }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] dict in
-                self?.handleDictionaryLoaded(dict)
+                self?.handleDictLoaded(dict)
             }
-            .store(in: &cancellables)
     }
 
-    /// When a dictionary loads, update any pending articles from that dictionary
-    private func handleDictionaryLoaded(_ dict: MDict) {
+    /// When a subscribed dictionary loads, update its pending articles
+    private func handleDictLoaded(_ dict: MDict) {
         var didUpdate = false
 
         for (index, article) in articles.enumerated() {
@@ -309,6 +326,9 @@ class DetailContainerViewController: UIViewController {
         if didUpdate {
             syncStateToActiveChild()
         }
+        
+        // Cleanup subscription
+        pendingDictSubscriptions.removeValue(forKey: dict.id)
     }
     
     /// Load pending articles if their dictionaries are already loaded
@@ -318,7 +338,7 @@ class DetailContainerViewController: UIViewController {
         for (index, article) in articles.enumerated() {
             guard case .pending = article.contentState else { continue }
 
-            // Check if dictionary is already loaded
+            // Check if dictionary exists and is already loaded
             guard let dict = DictionaryService.shared.dict(id: article.dictId),
                   dict.state == .loaded else { continue }
 
@@ -566,6 +586,11 @@ class DetailContainerViewController: UIViewController {
     func preloadArticle(_ article: ArticleDisplayItem) {
         guard !articles.contains(article) else { return }
         articles.append(article)
+        
+        // If pending, subscribe to the dictionary's load state
+        if case .pending = article.contentState {
+            subscribeToDict(id: article.dictId)
+        }
     }
     
     func closeArticle(_ article: ArticleDisplayItem) {
@@ -717,6 +742,9 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
             var article = ArticleDisplayItem.pending(word: word, dictId: dictId, dictName: dictName)
             if let dict = dict, let entry = dict.lookup(word) {
                 article.contentState = .loaded(html: entry.article.html, css: nil)
+            } else {
+                // Dictionary not loaded yet, subscribe to its load state
+                subscribeToDict(id: dictId)
             }
             articles.insert(article, at: 0)
         }

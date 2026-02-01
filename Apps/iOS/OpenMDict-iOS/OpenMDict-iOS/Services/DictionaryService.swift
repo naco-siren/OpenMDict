@@ -72,18 +72,13 @@ final class DictionaryService: ObservableObject {
     // MARK: - State
     
     /// All dictionary instances (bundled + imported)
-    private(set) var allDictionaries: [MDict] = []
+    @Published private(set) var allDictionaries: [MDict] = []
     
     /// Track which dictionaries are bundled vs imported
     private(set) var dictionarySources: [String: DictionarySource] = [:]
     
     /// All groups (including default + user-defined)
-    private(set) var groups: [MDicts] = []
-    
-    // MARK: - Dictionary Load Events
-    
-    /// Emits when a dictionary finishes loading (for UI to refresh pending articles)
-    let onDictionaryLoaded = PassthroughSubject<MDict, Never>()
+    @Published private(set) var groups: [MDicts] = []
     
     private init() {}
     
@@ -278,7 +273,7 @@ final class DictionaryService: ObservableObject {
     }
 
     /// Load full reader for all dictionaries (slow, sequential)
-    /// After each dict loads, emits onDictionaryLoaded for UI refresh
+    /// MDict.$state changes will notify subscribers directly
     func loadAllDictionaries() async {
         let startTime = CFAbsoluteTimeGetCurrent()
         
@@ -286,7 +281,6 @@ final class DictionaryService: ObservableObject {
             do {
                 try await dict.load()
                 print("✅ Loaded: \(dict.metadata?.title ?? dict.id)")
-                onDictionaryLoaded.send(dict)
             } catch {
                 print("❌ Failed to load \(dict.id): \(error)")
             }
@@ -323,13 +317,9 @@ final class DictionaryService: ObservableObject {
         do {
             try await newDict.load()
             print("✅ Loaded imported dictionary: \(newDict.metadata?.title ?? id)")
-            onDictionaryLoaded.send(newDict)
         } catch {
             print("❌ Failed to load imported dictionary \(id): \(error)")
         }
-        
-        // 6. Notify UI
-        objectWillChange.send()
     }
     
     /// Called after deleting a dictionary
@@ -347,9 +337,6 @@ final class DictionaryService: ObservableObject {
         
         // 3. Persist updated groups
         try? persistGroups()
-        
-        // 4. Notify UI
-        objectWillChange.send()
         
         print("🗑️ Removed dictionary from service: \(id)")
     }

@@ -37,7 +37,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
     private var groups: [MDicts] { DictionaryService.shared.groups }
     private var dataSource: UICollectionViewDiffableDataSource<Section, SidebarItem>!
-    private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Subscriptions
+    
+    private var listChangeCancellable: AnyCancellable?
+    private var groupsChangeCancellable: AnyCancellable?
+    /// Subscriptions to individual MDict.$state (re-created when list changes)
+    private var dictStateCancellables = Set<AnyCancellable>()
     
     private enum Section: Int, CaseIterable {
         case defaultGroup
@@ -84,7 +90,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         configureDataSource()
         applySnapshot(animated: false)
-        subscribeToDictionaryStates()
+        setupSubscriptions()
     }
     
     override func setEditing(_ editing: Bool, animated: Bool) {
@@ -95,18 +101,51 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
     
     // MARK: - State Subscriptions
+
+    private func setupSubscriptions() {
+        // 1. Subscribe to dictionary list changes (import/delete)
+        listChangeCancellable = DictionaryService.shared.$allDictionaries
+            .dropFirst()  // Skip initial value
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleDictionaryListChanged()
+            }
+
+        // 2. Subscribe to group changes
+        groupsChangeCancellable = DictionaryService.shared.$groups
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.applySnapshot(animated: true)
+            }
+
+        // 3. Subscribe to each dictionary's load state
+        subscribeToAllDictionaryStates()
+    }
+
+    /// Handle dictionary list changes (import/delete)
+    private func handleDictionaryListChanged() {
+        // Re-subscribe to new list of dictionaries
+        subscribeToAllDictionaryStates()
+        // Refresh snapshot
+        applySnapshot(animated: true)
+    }
+
+    /// Subscribe to all dictionaries' load state changes to update cell UI
+    private func subscribeToAllDictionaryStates() {
+        // Clear old subscriptions
+        dictStateCancellables.removeAll()
+
+        // Subscribe to each dictionary's $state
     
-    /// Subscribe to all dictionaries' state changes to update cell UI
-    private func subscribeToDictionaryStates() {
-        // Subscribe to each dictionary's state
         for dict in DictionaryService.shared.allDictionaries {
             dict.$state
-                .dropFirst()  // Skip initial value
+                .dropFirst()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     self?.invalidateVisibleCellConfigurations()
                 }
-                .store(in: &cancellables)
+                .store(in: &dictStateCancellables)
         }
     }
     
