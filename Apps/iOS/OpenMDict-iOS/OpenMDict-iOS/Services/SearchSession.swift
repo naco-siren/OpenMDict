@@ -59,7 +59,14 @@ final class SearchSession: ObservableObject {
             let contextName: String
             switch context {
             case .group(let g): contextName = "group '\(g.name)'"
-            case .dictionary(let d): contextName = "dict '\(d.metadata?.title ?? d.id)'"
+            case .dictionary(let d):
+                let displayName: String
+                if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == d.id }) {
+                    displayName = entry.displayName
+                } else {
+                    displayName = d.extractedTitle ?? d.metadata?.title ?? d.id
+                }
+                contextName = "dict '\(displayName)'"
             case .none: contextName = "none"
             }
             print("🔍 Search '\(query)' in \(contextName)")

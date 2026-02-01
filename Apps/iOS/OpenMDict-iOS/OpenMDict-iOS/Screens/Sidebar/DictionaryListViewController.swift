@@ -261,6 +261,10 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             print("⚠️ No default group found")
             return
         }
+        
+        print("📋 applySnapshot - defaultGroup.items: \(defaultGroup.items.map { $0.id })")
+        print("📋 applySnapshot - dictionaryIds: \(defaultGroup.dictionaryIds)")
+        
         let userGroups = groups.filter { !$0.isDefault }
         
         // Section 0: Default Group (All Dictionaries) - no header wrapper

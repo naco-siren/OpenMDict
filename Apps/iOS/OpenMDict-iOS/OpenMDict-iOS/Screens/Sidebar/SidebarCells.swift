@@ -148,7 +148,12 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         }
         
         var content = UIListContentConfiguration.sidebarCell()
-        content.text = dict.metadata?.title ?? dict.id
+        content.text =
+            if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
+                entry.displayName
+            } else {
+                dict.extractedTitle ?? dict.metadata?.title ?? dict.id
+            }
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         bg.backgroundColorTransformer = nil
@@ -274,7 +279,15 @@ final class UserGroupDictCell: UICollectionViewListCell {
         let isRelatedDictSelected = !isEditing && (stateProvider?.activeDict?.id == dict.id)
 
         var content = UIListContentConfiguration.sidebarCell()
-        content.text = dict.metadata?.title ?? dict.id
+        content.text =
+            if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
+                entry.displayName
+            } else {
+                dict.extractedTitle ?? dict.metadata?.title ?? dict.id
+            }
+        
+        var bg = UIBackgroundConfiguration.listSidebarCell()
+        bg.backgroundColorTransformer = nil
         
         // Handle loading states first
         switch loadState {
@@ -283,7 +296,6 @@ final class UserGroupDictCell: UICollectionViewListCell {
             content.image = UIImage(systemName: "book.closed")
             content.textProperties.color = .secondaryLabel
             content.imageProperties.tintColor = .secondaryLabel
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             
             if loadState == .loading {
                 let spinnerConfig = UICellAccessory.CustomViewConfiguration(
@@ -303,7 +315,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
             content.image = UIImage(systemName: "exclamationmark.triangle")
             content.textProperties.color = .systemRed
             content.imageProperties.tintColor = .systemRed
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+
             accessories = []
             
         case .metadataLoaded, .loaded:
@@ -311,23 +323,22 @@ final class UserGroupDictCell: UICollectionViewListCell {
             if isParentActive && !isEditing {
                 content.image = UIImage(systemName: "book")
                 content.imageProperties.tintColor = .systemBlue
-                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+
             } else if isSelected || isRelatedDictSelected {
                 content.image = UIImage(systemName: "book")
                 content.imageProperties.tintColor = .systemBlue
                 content.textProperties.color = .systemBlue
                 
-                var bg = UIBackgroundConfiguration.listSidebarCell()
                 bg.backgroundColor = .tertiarySystemFill
-                backgroundConfiguration = bg
+                
             } else {
                 content.image = UIImage(systemName: "book.closed")
-                backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
             }
             accessories = []
         }
         
         contentConfiguration = content
+        backgroundConfiguration = bg
     }
 }
 

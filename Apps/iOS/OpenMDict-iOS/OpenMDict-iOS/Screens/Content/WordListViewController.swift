@@ -145,7 +145,11 @@ class WordListViewController: UIViewController {
             titleText = group.name
         case .dictionary(let dict):
             iconName = "book.fill"
-            titleText = dict.metadata?.title ?? dict.id
+            titleText = if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
+                entry.displayName
+            } else {
+                dict.extractedTitle ?? dict.metadata?.title ?? dict.id
+            }
         case .none:
             title = nil
             navigationItem.title = nil

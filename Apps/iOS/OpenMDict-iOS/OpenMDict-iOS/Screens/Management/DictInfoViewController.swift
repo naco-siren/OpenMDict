@@ -842,6 +842,18 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         previewMetadata = metadata
         
+        // Log metadata details (describe style)
+        if let m = metadata {
+            print("📋 Metadata loaded:")
+            print("   Title: \(m.title.isEmpty ? "(empty)" : m.title)")
+            print("   Entries: \(m.entryCount)")
+            print("   Format: \(m.format), Encoding: \(m.encoding)")
+            print("   Engine: \(m.engineVersion)")
+            print("   SHA256: \(m.headerSHA256?.prefix(16) ?? "nil")...")
+            let extracted = MDictDescriptionParser.tryExtractTitle(from: m.description)
+            print("   Extracted title: \(extracted ?? "(none)")")
+        }
+        
         // Check for duplicate using SHA256 (SHA256 is used as directory id)
         if let sha256 = metadata?.headerSHA256 {
             if DictionaryStorageService.shared.isDuplicateImport(headerSHA256: sha256) {

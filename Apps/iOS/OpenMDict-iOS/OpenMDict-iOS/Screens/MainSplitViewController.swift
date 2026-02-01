@@ -206,8 +206,7 @@ class MainSplitViewController: UISplitViewController {
         
         dictInfoVC.onImportComplete = { [weak self] dictionaryId in
             Task { @MainActor in
-                await DictionaryService.shared.refreshAfterImport(dictionaryId)
-                self?.dictionaryListVC.reloadData()
+                // refreshAfterImport already called in DictInfoVC.performImport()
                 self?.switchToLookupMode()
             }
         }

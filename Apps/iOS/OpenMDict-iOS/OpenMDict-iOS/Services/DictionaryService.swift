@@ -295,6 +295,14 @@ final class DictionaryService: ObservableObject {
     /// Called after importing a new dictionary
     /// - Parameter id: The new dictionary's ID
     func refreshAfterImport(_ id: String) async {
+        print("🔄 refreshAfterImport: \(id.prefix(16))...")
+
+        // Safety check: don't add if already exists
+        if allDictionaries.contains(where: { $0.id == id }) {
+            print("⚠️ Dictionary already in allDictionaries, skipping")
+            return
+        }
+        
         // 1. Create MDict instance
         let mdxPath = storage.mdxURL(id: id).path
         // Use SHA256 as id, not "0" from 0.mdx filename
@@ -303,11 +311,19 @@ final class DictionaryService: ObservableObject {
         // 2. Track as imported
         dictionarySources[id] = .imported
         allDictionaries.append(newDict)
+        print("📚 allDictionaries count: \(allDictionaries.count)")
         
         // 3. Add to default group
         if let defaultGroup = defaultGroup {
-            defaultGroup.dictionaryIds.append(id)
+            // Check before append to prevent duplicates
+            if !defaultGroup.dictionaryIds.contains(id) {
+                defaultGroup.dictionaryIds.append(id)
+                print("✅ Added to dictionaryIds, count: \(defaultGroup.dictionaryIds.count)")
+            } else {
+                print("⚠️ ID already in dictionaryIds, skipping")
+            }
             defaultGroup.populate(from: allDictionaries)
+            print("📋 defaultGroup.items count: \(defaultGroup.items.count)")
         }
         
         // 4. Persist updated default order

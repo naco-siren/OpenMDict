@@ -176,9 +176,18 @@ extension DictionaryManifest {
     
     /// Add a new dictionary entry
     mutating func addDictionary(_ entry: DictionaryEntry) {
+        // Prevent duplicate entries
+        guard !dictionaries.contains(where: { $0.id == entry.id }) else {
+            print("⚠️ Dictionary \(entry.id.prefix(16))... already in manifest")
+            return
+        }
+        
         dictionaries.append(entry)
-        // Also add to default order at the end
-        groups.defaultOrder.append(entry.id)
+        
+        // Also add to default order at the end (if not already there)
+        if !groups.defaultOrder.contains(entry.id) {
+            groups.defaultOrder.append(entry.id)
+        }
     }
     
     /// Remove a dictionary entry by ID
