@@ -281,7 +281,7 @@ final class DictionaryService: ObservableObject {
         for dict in allDictionaries {
             do {
                 try await dict.load()
-                print("✅ Loaded: \(dict.metadata?.title ?? dict.id)")
+                print("✅ Loaded: \(dict.displayTitle)")
             } catch {
                 print("❌ Failed to load \(dict.id): \(error)")
             }
@@ -334,7 +334,13 @@ final class DictionaryService: ObservableObject {
         
         do {
             try await newDict.load()
-            print("✅ Loaded imported dictionary: \(newDict.metadata?.title ?? id)")
+            // Debug: show raw title vs resolved title
+            if let meta = newDict.metadata {
+                print("✅ Loaded imported dictionary:")
+                print("  id: \(id)")
+                print("  metadata.title (resolved): \(meta.title)")
+                print("  description prefix: \(meta.description.prefix(100))...")
+            }
         } catch {
             print("❌ Failed to load imported dictionary \(id): \(error)")
         }

@@ -41,7 +41,8 @@ public struct MDictWordEntry: Sendable {
 
 /// Lightweight dictionary metadata (can be loaded without full parsing)
 public struct MDictMetadata: Sendable {
-    public let title: String
+    /// Title from MDX header. nil if the header contains only a placeholder.
+    public let title: String?
     public let description: String
     public let entryCount: Int
     public let format: String
@@ -134,11 +135,11 @@ public final class MDictReader: @unchecked Sendable {
         
         self.parser = try MDXParser(path: path)
         self.resources = ResourceProvider(mdxPath: path)
-        
+
         // Build metadata
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         let hasMDD = Self.checkMDDExists(mdxPath: path)
-        let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded, path: path)
+        let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded)
         
         // Compute SHA256 of header for duplicate detection
         // Note: We read the header again here, but it's a small overhead compared to full parsing
@@ -176,7 +177,7 @@ public final class MDictReader: @unchecked Sendable {
         let info = result.info
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         let hasMDD = checkMDDExists(mdxPath: path)
-        let title = resolveTitle(info.title.htmlEntityDecoded, path: path)
+        let title = resolveTitle(info.title.htmlEntityDecoded)
         
         // Compute SHA256 hash of header bytes for duplicate detection
         // Using SHA256 (not MD5 or other algorithms) for better collision resistance
@@ -219,7 +220,7 @@ public final class MDictReader: @unchecked Sendable {
     // MARK: - Private Helpers
     
     /// Resolve title, falling back to filename if title is a placeholder
-    private static func resolveTitle(_ rawTitle: String, path: String) -> String {
+    private static func resolveTitle(_ rawTitle: String) -> String? {
         let placeholders = [
             "Title (No HTML code allowed)",
             "Title",
@@ -229,9 +230,7 @@ public final class MDictReader: @unchecked Sendable {
         let trimmed = rawTitle.trimmingCharacters(in: .whitespaces)
         
         if placeholders.contains(trimmed) {
-            // Use filename without extension
-            return (path as NSString).lastPathComponent
-                .replacingOccurrences(of: ".mdx", with: "", options: .caseInsensitive)
+            return nil
         }
         
         return rawTitle

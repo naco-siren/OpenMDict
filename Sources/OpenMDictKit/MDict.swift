@@ -68,6 +68,15 @@ public final class MDict: ObservableObject, Identifiable {
         return MDictDescriptionParser.tryExtractAuthor(from: desc)
     }
     
+    /// Best available title for display (without user customization)
+    /// Priority: extractedTitle > metadata.title > id
+    /// Note: User-customized displayName should be handled at UI layer via manifest lookup
+    public var displayTitle: String {
+        if let extracted = extractedTitle { return extracted }
+        if let title = metadata?.title { return title }
+        return id
+    }
+    
     /// Whether this dictionary is enabled for searching
     public var isEnabled: Bool = true
     

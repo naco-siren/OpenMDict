@@ -399,7 +399,8 @@ class DictInfoViewController: UIViewController {
 
             snapshot.appendSections([.metadata])
             snapshot.appendItems([
-                .metadataTitle(metadata.title),
+                // TODO: Fall back to source filename
+                .metadataTitle(metadata.title ?? "???"),
                 .metadataDescription(cleanedDesc)
             ], toSection: .metadata)
             
@@ -407,7 +408,8 @@ class DictInfoViewController: UIViewController {
             // When duplicate, user should view existing instead of editing this one
             if duplicatedDictId == nil {
                 snapshot.appendSections([.displayName])
-                let placeholder = extractedTitle ?? metadata.title
+                // TODO: Fall back to source filename
+                let placeholder = extractedTitle ?? metadata.title ?? "???"
                 snapshot.appendItems([.displayNameField(editedDisplayName ?? placeholder)], toSection: .displayName)
 
                 // Manage Resources - ONLY in compact mode AND NOT duplicate
@@ -612,6 +614,7 @@ class DictInfoViewController: UIViewController {
         let displayName = editedDisplayName
             ?? MDictDescriptionParser.tryExtractTitle(from: metadata.description)
             ?? metadata.title
+            ?? "???" // TODO: Fall back to source filename
         
         // Create SelectedFile for the MDX
         let mdxFile = SelectedFile(url: url)
@@ -844,8 +847,10 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         // Log metadata details (describe style)
         if let m = metadata {
+            // TODO: Fall back to source filename
+            let title = if let title = m.title, !title.isEmpty { title } else { "(empty)" }
             print("📋 Metadata loaded:")
-            print("   Title: \(m.title.isEmpty ? "(empty)" : m.title)")
+            print("   Title: \(title)")
             print("   Entries: \(m.entryCount)")
             print("   Format: \(m.format), Encoding: \(m.encoding)")
             print("   Engine: \(m.engineVersion)")

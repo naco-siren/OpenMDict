@@ -152,7 +152,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
                 entry.displayName
             } else {
-                dict.extractedTitle ?? dict.metadata?.title ?? dict.id
+                dict.displayTitle
             }
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
@@ -283,7 +283,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
             if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
                 entry.displayName
             } else {
-                dict.extractedTitle ?? dict.metadata?.title ?? dict.id
+                dict.displayTitle
             }
         
         var bg = UIBackgroundConfiguration.listSidebarCell()

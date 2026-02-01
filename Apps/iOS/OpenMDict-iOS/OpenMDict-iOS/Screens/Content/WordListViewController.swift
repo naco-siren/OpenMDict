@@ -148,7 +148,7 @@ class WordListViewController: UIViewController {
             titleText = if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
                 entry.displayName
             } else {
-                dict.extractedTitle ?? dict.metadata?.title ?? dict.id
+                dict.displayTitle
             }
         case .none:
             title = nil
