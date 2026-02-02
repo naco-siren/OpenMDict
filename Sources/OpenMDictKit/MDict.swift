@@ -11,6 +11,29 @@ public enum MDictLoadState: Sendable, Equatable {
     case metadataLoaded
     case loaded
     case error(String)
+    
+    var isError: Bool {
+        if case .error = self { return true }
+        return false
+    }
+}
+
+// MARK: - Background Load Results
+
+/// Result from full dictionary load (includes extraction done in background)
+private struct MDictLoadResult: Sendable {
+    let reader: MDictReader
+    let cleanedDescription: String?
+    let extractedTitle: String?
+    let extractedAuthor: String?
+}
+
+/// Result from metadata-only load (includes extraction done in background)
+private struct MDictMetadataResult: Sendable {
+    let metadata: MDictMetadata?
+    let cleanedDescription: String?
+    let extractedTitle: String?
+    let extractedAuthor: String?
 }
 
 // MARK: - MDict (ViewModel)
@@ -34,53 +57,70 @@ public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Identity
     
-    /// Unique identifier (derived from filename)
+    /// Unique identifier
+    /// - For bundled: derived from filename (e.g., "MyDict")
+    /// - For imported: SHA256 hash of MDX header
     public nonisolated let id: String
     
     /// File path to the MDX
     public nonisolated let path: String
     
-    // MARK: - State
+    // MARK: - Injected Properties (set by app layer)
     
-    /// Lightweight metadata (available before full load)
+    /// User-customized display name (from manifest)
+    /// Set by DictionaryService after creating MDict instance.
+    public var userDisplayName: String?
+    
+    /// Original filename when imported (e.g., "MyDict.mdx")
+    /// Used as fallback when title is empty. Set by DictionaryService.
+    public var originalFileName: String?
+    
+    // MARK: - Published State
+    
+    /// Lightweight metadata (available after loadMetadata or load)
     @Published public private(set) var metadata: MDictMetadata?
     
     /// Current loading state
     @Published public private(set) var state: MDictLoadState = .unloaded
     
-    // MARK: - Parsed Description
-
-    /// Cleaned description (HTML stripped, metadata removed)
-    public var cleanedDescription: String? {
-        guard let desc = metadata?.description, !desc.isEmpty else { return nil }
-        return MDictDescriptionParser.cleanDescription(desc)
-    }
-
-    /// Extracted title from description (may differ from metadata.title)
-    public var extractedTitle: String? {
-        guard let desc = metadata?.description, !desc.isEmpty else { return nil }
-        return MDictDescriptionParser.tryExtractTitle(from: desc)
-    }
-
-    /// Extracted author from description
-    public var extractedAuthor: String? {
-        guard let desc = metadata?.description, !desc.isEmpty else { return nil }
-        return MDictDescriptionParser.tryExtractAuthor(from: desc)
-    }
-    
-    /// Best available title for display (without user customization)
-    /// Priority: extractedTitle > metadata.title > id
-    /// Note: User-customized displayName should be handled at UI layer via manifest lookup
-    public var displayTitle: String {
-        if let extracted = extractedTitle { return extracted }
-        if let title = metadata?.title { return title }
-        return id
-    }
-    
     /// Whether this dictionary is enabled for searching
     public var isEnabled: Bool = true
     
-    // MARK: - Resource
+    // MARK: - Parsed Description (populated during background load)
+    
+    /// Cleaned description (HTML stripped, metadata removed)
+    /// Populated during load/loadMetadata - access is O(1), no computation.
+    public private(set) var cleanedDescription: String?
+    
+    /// Extracted title from description (may differ from metadata.title)
+    /// Populated during load/loadMetadata - access is O(1), no computation.
+    public private(set) var extractedTitle: String?
+    
+    /// Extracted author from description
+    /// Populated during load/loadMetadata - access is O(1), no computation.
+    public private(set) var extractedAuthor: String?
+    
+    // MARK: - Display Titles (computed, but cheap - just property access)
+    
+    /// Best available title for UI display
+    /// Priority: userDisplayName > extractedTitle > metadata.title > originalFileName (no ext) > id
+    public var displayTitle: String {
+        if let name = userDisplayName, !name.isEmpty { return name }
+        if let extracted = extractedTitle { return extracted }
+        if let title = metadata?.title { return title }
+        if let original = originalFileName {
+            return (original as NSString).deletingPathExtension
+        }
+        return id
+    }
+    
+    /// Title for logging (stable, not affected by extraction or user preference)
+    /// Priority: metadata.title > id
+    public var loggingTitle: String {
+        metadata?.title ?? id
+    }
+    
+    // MARK: - Reader
     
     /// The actual dictionary reader (nil when unloaded)
     private var _reader: MDictReader?
@@ -88,18 +128,13 @@ public final class MDict: ObservableObject, Identifiable {
     /// Whether the dictionary is currently loaded
     public var isLoaded: Bool { _reader != nil }
     
-    // MARK: - Caching
-    
-    // TODO: Implement LRU cache as an actor for thread-safe concurrent access
-    // private let cache = LRUCacheActor<MDictWordKey, MDictWordEntry>(capacity: 50)
-    
     // MARK: - Initialization
     
     /// Create a dictionary ViewModel from MDX path
     /// ID is derived from filename (e.g., "MyDict" from "MyDict.mdx")
     public nonisolated init(path: String) {
         self.path = path
-        self.id = Self.generateId(from: path)
+        self.id = Self.extractId(from: path)
     }
     
     /// Create a dictionary ViewModel with explicit ID
@@ -110,15 +145,15 @@ public final class MDict: ObservableObject, Identifiable {
         self.id = id
     }
     
-    private nonisolated static func generateId(from path: String) -> String {
+    private nonisolated static func extractId(from path: String) -> String {
         let filename = (path as NSString).lastPathComponent
         return (filename as NSString).deletingPathExtension
     }
     
     // MARK: - Lifecycle
     
-    /// Load the dictionary asynchronously
-    /// Heavy IO runs on background thread, state updates on MainActor
+    /// Load the dictionary asynchronously (full load with keywords)
+    /// Heavy IO + extraction runs on background thread, state updates on MainActor
     public func load() async throws {
         guard state == .unloaded || state == .metadataLoaded || state.isError else { return }
 
@@ -127,12 +162,15 @@ public final class MDict: ObservableObject, Identifiable {
         }
         
         do {
-            // Heavy IO on background thread via nonisolated function
-            let reader = try await loadReaderInBackground(path: path)
+            // Heavy IO + extraction on background thread
+            let result = try await performFullLoad(path: path)
             
             // Back on MainActor - update state
-            self._reader = reader
-            self.metadata = reader.metadata
+            self._reader = result.reader
+            self.metadata = result.reader.metadata
+            self.cleanedDescription = result.cleanedDescription
+            self.extractedTitle = result.extractedTitle
+            self.extractedAuthor = result.extractedAuthor
             self.state = .loaded
         } catch {
             self.state = .error(error.localizedDescription)
@@ -140,21 +178,26 @@ public final class MDict: ObservableObject, Identifiable {
         }
     }
     
+    /// Load only metadata (fast, header only)
+    /// Extraction still happens in background.
+    public func loadMetadata() async {
+        guard state == .unloaded else { return }
+        
+        // Background load + extraction
+        let result = await performMetadataLoad(path: path)
+        
+        self.metadata = result.metadata
+        self.cleanedDescription = result.cleanedDescription
+        self.extractedTitle = result.extractedTitle
+        self.extractedAuthor = result.extractedAuthor
+        self.state = .metadataLoaded
+    }
+    
     /// Unload the dictionary to free memory
     public func unload() {
         _reader = nil
         state = .unloaded
-    }
-    
-    /// Load only metadata (fast, header only)
-    public func loadMetadata() async {
-        guard state == .unloaded else { return }
-        
-        if self.metadata == nil {
-            self.metadata = await loadMetadataInBackground(path: path)
-        }
-        
-        state = .metadataLoaded
+        // Keep metadata and extracted info - they're small
     }
     
     // MARK: - Lookup API
@@ -216,22 +259,17 @@ public final class MDict: ObservableObject, Identifiable {
 extension MDict: @MainActor Lookupable {
     
     /// Reactive lookup - waits for dictionary to load, then emits results once
-    /// - Parameters:
-    ///   - prefix: Search prefix
-    ///   - limit: Maximum results
-    /// - Returns: Publisher that emits results when dictionary is ready
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
         let dictId = self.id
         
         return $state
-            .first { $0 == .loaded || $0.isError }  // Wait until loaded or error
+            .first { $0 == .loaded || $0.isError }
             .map { [weak self] currentState -> [WordSearchResult] in
                 guard currentState == .loaded,
                       let self = self else { return [] }
                 
-                // Perform lookup (fast, O(log n))
                 let keys = self.search(prefix: prefix, limit: limit)
-                let dictName = self.metadata?.title ?? dictId
+                let dictName = self.displayTitle
                 
                 return keys.map { key in
                     WordSearchResult(word: key, dictId: dictId, dictName: dictName)
@@ -244,29 +282,61 @@ extension MDict: @MainActor Lookupable {
 
 // MARK: - Background Loading (nonisolated)
 
-/// Load MDictReader on background thread
-/// This function is nonisolated, so calling it from MainActor will automatically
-/// suspend and run on the cooperative thread pool (similar to Dispatchers.IO)
-///
-/// Note: @concurrent is needed In Swift 6.2 to guarantee background execution
+/// Full load: parse MDX + extract description info
+/// Runs entirely on background thread.
 @concurrent
-private nonisolated func loadReaderInBackground(path: String) async throws -> MDictReader {
-    try MDictReader(path: path)
+private nonisolated func performFullLoad(path: String) async throws -> MDictLoadResult {
+    let reader = try MDictReader(path: path)
+    
+    // Piggyback extraction while still on background thread
+    let desc = reader.metadata.description
+    let (cleaned, title, author) = extractDescriptionInfo(desc)
+    
+    return MDictLoadResult(
+        reader: reader,
+        cleanedDescription: cleaned,
+        extractedTitle: title,
+        extractedAuthor: author
+    )
 }
 
-/// Load metadata only (fast, header parsing)
+/// Metadata-only load: parse header + extract description info
+/// Runs entirely on background thread.
 @concurrent
-private nonisolated func loadMetadataInBackground(path: String) async -> MDictMetadata? {
-    MDictReader.loadMetadata(from: path)
-}
-
-// MARK: - State Helpers
-
-extension MDictLoadState {
-    var isError: Bool {
-        if case .error = self { return true }
-        return false
+private nonisolated func performMetadataLoad(path: String) async -> MDictMetadataResult {
+    guard let metadata = MDictReader.loadMetadata(from: path) else {
+        return MDictMetadataResult(
+            metadata: nil,
+            cleanedDescription: nil,
+            extractedTitle: nil,
+            extractedAuthor: nil
+        )
     }
+    
+    // Piggyback extraction while still on background thread
+    let desc = metadata.description
+    let (cleaned, title, author) = extractDescriptionInfo(desc)
+    
+    return MDictMetadataResult(
+        metadata: metadata,
+        cleanedDescription: cleaned,
+        extractedTitle: title,
+        extractedAuthor: author
+    )
+}
+
+/// Extract cleaned description, title, and author from description HTML
+/// Called from background thread during load.
+private nonisolated func extractDescriptionInfo(_ description: String) -> (String?, String?, String?) {
+    guard !description.isEmpty else {
+        return (nil, nil, nil)
+    }
+    
+    let cleaned = MDictDescriptionParser.cleanDescription(description)
+    let title = MDictDescriptionParser.tryExtractTitle(from: description)
+    let author = MDictDescriptionParser.tryExtractAuthor(from: description)
+    
+    return (cleaned, title, author)
 }
 
 // MARK: - Equatable & Hashable
