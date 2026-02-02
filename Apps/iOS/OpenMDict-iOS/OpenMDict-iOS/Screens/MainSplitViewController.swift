@@ -205,9 +205,25 @@ class MainSplitViewController: UISplitViewController {
         }
         
         dictInfoVC.onImportComplete = { [weak self] dictionaryId in
-            Task { @MainActor in
-                // refreshAfterImport already called in DictInfoVC.performImport()
-                self?.switchToLookupMode()
+            guard let self = self else { return }
+
+            // Refresh sidebar to show new dictionary
+            self.dictionaryListVC.reloadData()
+
+            // Select default group and load its words
+            if let defaultGroup = DictionaryService.shared.defaultGroup {
+                self.currentGroup = defaultGroup
+                self.currentDict = nil
+                self.wordListVC.loadWords(for: defaultGroup)
+                self.dictionaryListVC.setActiveGroup(defaultGroup)
+            }
+
+            // Switch to lookup mode
+            self.switchToLookupMode()
+
+            // In compact mode, navigate back to sidebar to show new dictionary
+            if self.traitCollection.horizontalSizeClass == .compact {
+                self.show(.primary)
             }
         }
         
