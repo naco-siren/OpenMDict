@@ -105,6 +105,24 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         configureDataSource()
         applySnapshot(animated: false)
         setupSubscriptions()
+        
+        // Apply any pending selection (set before view was loaded)
+        applyPendingSelection()
+    }
+    
+    /// Apply pending selection after snapshot is ready
+    private func applyPendingSelection() {
+        if let groupId = activeGroupId {
+            // Find the group to determine if it's default
+            let isDefault = groups.first(where: { $0.id == groupId })?.isDefault ?? false
+            if let indexPath = dataSource.indexPath(for: .group(id: groupId, isDefault: isDefault)) {
+                collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+                invalidateVisibleCellConfigurations()
+            }
+        } else if let dictInfo = activeDict {
+            // TODO: Handle pending dictionary selection if needed
+            _ = dictInfo
+        }
     }
     
     override func setEditing(_ editing: Bool, animated: Bool) {
