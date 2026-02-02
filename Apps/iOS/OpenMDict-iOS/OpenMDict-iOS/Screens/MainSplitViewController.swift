@@ -305,6 +305,9 @@ class MainSplitViewController: UISplitViewController {
         if currentMode != .management {
             currentMode = .management
             
+            dictionaryListVC.appMode = .management
+            dictionaryListVC.setNeedsUpdateAllCells()
+            
             // Clear columns first to ensure proper replacement
             setViewController(nil, for: .supplementary)
             setViewController(nil, for: .secondary)
@@ -335,6 +338,9 @@ class MainSplitViewController: UISplitViewController {
     func switchToLookupMode() {
         guard currentMode != .lookup else { return }
         currentMode = .lookup
+        
+        dictionaryListVC.appMode = .lookup
+        dictionaryListVC.setNeedsUpdateAllCells()
         
         // Narrower supplementary for word list
         preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupSupplementaryFraction

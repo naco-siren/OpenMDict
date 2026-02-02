@@ -17,9 +17,11 @@ import OpenMDictKit
 /// Protocol for cells to query the current selection state from the view controller.
 /// This decouples cells from the specific VC implementation.
 protocol SidebarStateProvider: AnyObject {
+    var appMode: AppMode { get }
+    var isEditingMode: Bool { get }
+    
     var activeGroupId: String? { get }
     var activeDict: (id: String, mirrored: Bool)? { get }
-    var isEditingMode: Bool { get }
     
     /// Called when info button is tapped on a dictionary cell
     func didTapInfoButton(forDictId dictId: String)
@@ -39,32 +41,38 @@ final class DefaultGroupCell: UICollectionViewListCell {
         super.updateConfiguration(using: state)
         guard let group = group else { return }
         
+        let isLookupMode = stateProvider?.appMode == .lookup
         let isEditing = stateProvider?.isEditingMode ?? false
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
         content.image = UIImage(systemName: "books.vertical.fill")
         
+        var bg = UIBackgroundConfiguration.listSidebarCell()
+        
         // Only show selection highlight when NOT in edit mode
-        let isActive = !isEditing && (state.isSelected || state.isHighlighted)
+        let isActive = isLookupMode && !isEditing && (state.isSelected || state.isHighlighted)
         
         if isActive {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .bold)
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
             
-            var bg = UIBackgroundConfiguration.listSidebarCell()
             bg.backgroundColor = .systemBlue
-            backgroundConfiguration = bg
             
             accessories = [.outlineDisclosure(options: .init(style: .cell, tintColor: .white))]
         } else {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .medium)
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            content.textProperties.color = .label
+            content.imageProperties.tintColor = .systemBlue
+            
+            bg.backgroundColor = .clear
+            
             accessories = [.outlineDisclosure(options: .init(style: .cell))]
         }
         
         contentConfiguration = content
+        backgroundConfiguration = bg
     }
 }
 
@@ -83,33 +91,39 @@ final class UserGroupCell: UICollectionViewListCell {
         guard let group = group else { return }
         
         // Check if this group is the active one (for icon state)
-        let isGroupActive = stateProvider?.activeGroupId == group.id
+        let isLookupMode = stateProvider?.appMode == .lookup
         let isEditing = stateProvider?.isEditingMode ?? false
+        let isGroupActive = stateProvider?.activeGroupId == group.id
         
         // Only show selection highlight when NOT in edit mode
-        let isSelected = !isEditing && (state.isSelected || state.isHighlighted)
+        let isSelected = isLookupMode && !isEditing && (state.isSelected || state.isHighlighted)
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
         content.image = UIImage(systemName: isGroupActive ? "books.vertical.fill" : "books.vertical")
+        
+        var bg = UIBackgroundConfiguration.listSidebarCell()
         
         if isSelected {
             content.textProperties.font = .systemFont(ofSize: 18, weight: .semibold)
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
             
-            var bg = UIBackgroundConfiguration.listSidebarCell()
             bg.backgroundColor = .systemBlue
-            backgroundConfiguration = bg
             
             accessories = [.outlineDisclosure(options: .init(style: .cell, tintColor: .white))]
         } else {
             content.textProperties.font = .systemFont(ofSize: 18, weight: .regular)
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+            content.textProperties.color = .label
+            content.imageProperties.tintColor = .systemBlue
+            
+            bg.backgroundColor = .clear
+            
             accessories = [.outlineDisclosure(options: .init(style: .cell))]
         }
         
         contentConfiguration = content
+        backgroundConfiguration = bg
     }
 }
 
@@ -133,19 +147,22 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         super.updateConfiguration(using: state)
         guard let dict = dict, let groupId = groupId else { return }
         
+        let isLookupMode = stateProvider?.appMode == .lookup
+        let isEditing = stateProvider?.isEditingMode ?? false
+        
         let isParentActive = stateProvider?.activeGroupId == groupId
         let isHighlightedBySelection = stateProvider?.activeDict?.id == dict.id
+        
         let loadState = dict.state
-        let isEditing = stateProvider?.isEditingMode ?? false
         
         // In edit mode: NEVER show selection highlight (blue background)
         // In lookup mode: show highlight if selected or if this dict is the active one
-        let shouldHighlight: Bool
-        if isEditing {
-            shouldHighlight = false
-        } else {
-            shouldHighlight = state.isSelected || state.isHighlighted || isHighlightedBySelection
-        }
+        let shouldHighlight =
+            if !isLookupMode || isEditing {
+                false
+            } else {
+                state.isSelected || state.isHighlighted || isHighlightedBySelection
+            }
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.displayTitle
@@ -190,14 +207,14 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         case .metadataLoaded, .loaded:
             // Normal loaded state
             
-            if shouldHighlight && !isEditing {
+            if shouldHighlight {
                 // Selected state - blue background + white
                 content.image = UIImage(systemName: "book.fill")
                 content.imageProperties.tintColor = .white
                 content.textProperties.color = .white
                 
                 bg.backgroundColor = .systemBlue
-            } else if isParentActive && !isEditing {
+            } else if isLookupMode && !isEditing && isParentActive {
                 // Parent group is active (but this dict not directly selected) - show open book with blue tint
                 content.image = UIImage(systemName: "book.fill")
                 content.imageProperties.tintColor = .systemBlue
@@ -265,13 +282,15 @@ final class UserGroupDictCell: UICollectionViewListCell {
         super.updateConfiguration(using: state)
         guard let dict = dict else { return }
         
-        let isParentActive = stateProvider?.activeGroupId == groupId
-        let loadState = dict.state
+        let isLookupMode = stateProvider?.appMode == .lookup
         let isEditing = stateProvider?.isEditingMode ?? false
         
+        let isParentActive = stateProvider?.activeGroupId == groupId
+        let loadState = dict.state
+        
         // Only show selection highlight when NOT in edit mode
-        let isSelected = !isEditing && (state.isSelected || state.isHighlighted)
-        let isRelatedDictSelected = !isEditing && (stateProvider?.activeDict?.id == dict.id)
+        let isSelected = isLookupMode && !isEditing && (state.isSelected || state.isHighlighted)
+        let isRelatedDictSelected = isLookupMode && !isEditing && (stateProvider?.activeDict?.id == dict.id)
 
         var content = UIListContentConfiguration.sidebarCell()
         content.text = dict.displayTitle
@@ -310,7 +329,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
             
         case .metadataLoaded, .loaded:
             // Normal loaded state
-            if isParentActive && !isEditing {
+            if isLookupMode && !isEditing && isParentActive {
                 content.image = UIImage(systemName: "book")
                 content.imageProperties.tintColor = .systemBlue
 

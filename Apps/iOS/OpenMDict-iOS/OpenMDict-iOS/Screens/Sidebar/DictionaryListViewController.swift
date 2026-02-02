@@ -25,13 +25,27 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onImportDictionarySelected: (() -> Void)?
     var onDictionaryInfoSelected: ((String) -> Void)?  // dictId
     
-    // MARK: - State (SidebarStateProvider)
+    // MARK: - SidebarStateProvider
+    
+    /// Whether the sidebar is in edit mode
+    var isEditingMode: Bool { isEditing }
+    
+    /// Current app mode (updated by MainSplitViewController)
+    var appMode: AppMode = .lookup
     
     /// Currently active group (when a group is selected)
     private(set) var activeGroupId: String? = nil
     
     /// Currently active dictionary and whether it was selected via a mirror
     private(set) var activeDict: (id: String, mirrored: Bool)? = nil
+
+    /// Handle info button tap from cell
+    func didTapInfoButton(forDictId dictId: String) {
+        // Exit edit mode first
+        setEditing(false, animated: true)
+        // Then notify to show dictionary info
+        onDictionaryInfoSelected?(dictId)
+    }
     
     // MARK: - Data
     
@@ -330,17 +344,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         applySnapshot(animated: true)
     }
     
-    // MARK: - SidebarStateProvider (Edit Mode)
-    
-    /// Whether the sidebar is in edit mode
-    var isEditingMode: Bool { isEditing }
-    
-    /// Handle info button tap from cell
-    func didTapInfoButton(forDictId dictId: String) {
-        // Exit edit mode first
-        setEditing(false, animated: true)
-        // Then notify to show dictionary info
-        onDictionaryInfoSelected?(dictId)
+    /// Trigger all visible cells to update their configuration (e.g., when app mode changes)
+    func setNeedsUpdateAllCells() {
+        for cell in collectionView.visibleCells {
+            cell.setNeedsUpdateConfiguration()
+        }
     }
 }
 
