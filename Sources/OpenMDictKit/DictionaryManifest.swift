@@ -1,9 +1,11 @@
 //
 //  DictionaryManifest.swift
-//  OpenMDict-iOS
+//  OpenMDictKit
 //
 //  Data model for persisting user-imported dictionaries and group configurations.
 //  Stored as JSON in Library/Dictionaries/manifest.json
+//
+//  Moved from iOS app layer to enable sharing between iOS and macOS.
 //
 
 import Foundation
@@ -11,10 +13,20 @@ import Foundation
 // MARK: - DictionaryManifest
 
 /// Root structure for manifest.json
-struct DictionaryManifest: Codable {
-    var version: Int = 1
-    var dictionaries: [DictionaryEntry] = []
-    var groups: GroupsConfig = GroupsConfig()
+public struct DictionaryManifest: Codable {
+    public var version: Int = 1
+    public var dictionaries: [DictionaryEntry] = []
+    public var groups: GroupsConfig = GroupsConfig()
+    
+    public init(
+        version: Int = 1,
+        dictionaries: [DictionaryEntry] = [],
+        groups: GroupsConfig = GroupsConfig()
+    ) {
+        self.version = version
+        self.dictionaries = dictionaries
+        self.groups = groups
+    }
 }
 
 // MARK: - DictionaryEntry
@@ -22,36 +34,34 @@ struct DictionaryManifest: Codable {
 extension DictionaryManifest {
     
     /// Metadata for a user-imported dictionary
-    struct DictionaryEntry: Codable, Identifiable {
-        /// UUID for this dictionary (used as folder name)
-        let id: String
+    public struct DictionaryEntry: Codable, Identifiable {
+        /// SHA256 hash of MDX header (used as folder name and unique ID)
+        public let id: String
         
         /// User-editable display name
-        var displayName: String
+        public var displayName: String
         
         /// Original filename when imported (e.g., "MyDict.mdx")
-        /// Used for duplicate detection
-        let originalFileName: String
+        /// Used for duplicate detection and as display fallback
+        public let originalFileName: String
         
         /// Import timestamp
-        let importedAt: Date
+        public let importedAt: Date
         
         /// Number of MDD files (0-N)
-        var mdd: Int
+        public var mdd: Int
         
         /// Number of custom CSS files (0-N)
-        var css: Int
+        public var css: Int
         
         /// Number of custom JS files (0-N)
-        var js: Int
+        public var js: Int
         
         /// Number of custom font files (0-N)
-        var fonts: Int
+        public var fonts: Int
         
-        // MARK: - Initialization
-        
-        init(
-            id: String = UUID().uuidString,
+        public init(
+            id: String,
             displayName: String,
             originalFileName: String,
             importedAt: Date = Date(),
@@ -77,35 +87,41 @@ extension DictionaryManifest {
 extension DictionaryManifest {
     
     /// Configuration for dictionary groups
-    struct GroupsConfig: Codable {
+    public struct GroupsConfig: Codable {
         /// Ordered list of dictionary IDs for the default "All Dictionaries" group
-        /// Format: "bundled:{filename}" for bundled, UUID for imported
-        var defaultOrder: [String] = []
+        /// Format: "bundled:{filename}" for bundled, SHA256 hash for imported
+        public var defaultOrder: [String] = []
         
         /// User-created groups
-        var userGroups: [UserGroup] = []
+        public var userGroups: [UserGroup] = []
+        
+        public init(
+            defaultOrder: [String] = [],
+            userGroups: [UserGroup] = []
+        ) {
+            self.defaultOrder = defaultOrder
+            self.userGroups = userGroups
+        }
     }
     
     /// A user-created dictionary group
-    struct UserGroup: Codable, Identifiable {
+    public struct UserGroup: Codable, Identifiable {
         /// UUID for this group
-        let id: String
+        public let id: String
         
         /// Display name
-        var name: String
+        public var name: String
         
         /// Creation timestamp
-        let createdAt: Date
+        public let createdAt: Date
         
         /// Last modification timestamp
-        var modifiedAt: Date
+        public var modifiedAt: Date
         
         /// Ordered list of dictionary IDs in this group
-        var dictionaryIds: [String]
+        public var dictionaryIds: [String]
         
-        // MARK: - Initialization
-        
-        init(
+        public init(
             id: String = UUID().uuidString,
             name: String,
             createdAt: Date = Date(),
@@ -126,57 +142,56 @@ extension DictionaryManifest {
 extension DictionaryManifest {
     
     /// Prefix for bundled dictionary IDs
-    static let bundledPrefix = "bundled:"
+    public static let bundledPrefix = "bundled:"
     
     /// Create ID for a bundled dictionary
-    static func bundledId(for filename: String) -> String {
+    public static func bundledId(for filename: String) -> String {
         "\(bundledPrefix)\(filename)"
     }
     
     /// Check if an ID refers to a bundled dictionary
-    static func isBundledId(_ id: String) -> Bool {
+    public static func isBundledId(_ id: String) -> Bool {
         id.hasPrefix(bundledPrefix)
     }
     
     /// Extract filename from a bundled dictionary ID
-    static func bundledFilename(from id: String) -> String? {
+    public static func bundledFilename(from id: String) -> String? {
         guard isBundledId(id) else { return nil }
         return String(id.dropFirst(bundledPrefix.count))
     }
 }
 
-// MARK: - Manifest Query Helpers
+// MARK: - Query Helpers
 
 extension DictionaryManifest {
     
     /// Find a dictionary entry by ID
-    func dictionary(id: String) -> DictionaryEntry? {
+    public func dictionary(id: String) -> DictionaryEntry? {
         dictionaries.first { $0.id == id }
     }
     
     /// Find a dictionary entry by original filename
-    func dictionary(originalFileName: String) -> DictionaryEntry? {
+    public func dictionary(originalFileName: String) -> DictionaryEntry? {
         dictionaries.first { $0.originalFileName == originalFileName }
     }
     
     /// Find a user group by ID
-    func userGroup(id: String) -> UserGroup? {
+    public func userGroup(id: String) -> UserGroup? {
         groups.userGroups.first { $0.id == id }
     }
     
     /// Check if a dictionary with this original filename is already imported
-    func isAlreadyImported(originalFileName: String) -> Bool {
+    public func isAlreadyImported(originalFileName: String) -> Bool {
         dictionary(originalFileName: originalFileName) != nil
     }
 }
 
-// MARK: - Manifest Mutation Helpers
+// MARK: - Mutation Helpers
 
 extension DictionaryManifest {
     
     /// Add a new dictionary entry
-    mutating func addDictionary(_ entry: DictionaryEntry) {
-        // Prevent duplicate entries
+    public mutating func addDictionary(_ entry: DictionaryEntry) {
         guard !dictionaries.contains(where: { $0.id == entry.id }) else {
             print("⚠️ Dictionary \(entry.id.prefix(16))... already in manifest")
             return
@@ -184,16 +199,14 @@ extension DictionaryManifest {
         
         dictionaries.append(entry)
         
-        // Also add to default order at the end (if not already there)
         if !groups.defaultOrder.contains(entry.id) {
             groups.defaultOrder.append(entry.id)
         }
     }
     
     /// Remove a dictionary entry by ID
-    mutating func removeDictionary(id: String) {
+    public mutating func removeDictionary(id: String) {
         dictionaries.removeAll { $0.id == id }
-        // Also remove from all groups
         groups.defaultOrder.removeAll { $0 == id }
         for i in groups.userGroups.indices {
             groups.userGroups[i].dictionaryIds.removeAll { $0 == id }
@@ -202,31 +215,31 @@ extension DictionaryManifest {
     }
     
     /// Update a dictionary entry
-    mutating func updateDictionary(_ entry: DictionaryEntry) {
+    public mutating func updateDictionary(_ entry: DictionaryEntry) {
         if let index = dictionaries.firstIndex(where: { $0.id == entry.id }) {
             dictionaries[index] = entry
         }
     }
     
     /// Update only the display name for a dictionary
-    mutating func updateDisplayName(id: String, newName: String) {
+    public mutating func updateDisplayName(id: String, newName: String) {
         if let index = dictionaries.firstIndex(where: { $0.id == id }) {
             dictionaries[index].displayName = newName
         }
     }
     
     /// Add a new user group
-    mutating func addUserGroup(_ group: UserGroup) {
+    public mutating func addUserGroup(_ group: UserGroup) {
         groups.userGroups.append(group)
     }
     
     /// Remove a user group by ID
-    mutating func removeUserGroup(id: String) {
+    public mutating func removeUserGroup(id: String) {
         groups.userGroups.removeAll { $0.id == id }
     }
     
     /// Update a user group
-    mutating func updateUserGroup(_ group: UserGroup) {
+    public mutating func updateUserGroup(_ group: UserGroup) {
         if let index = groups.userGroups.firstIndex(where: { $0.id == group.id }) {
             var updated = group
             updated.modifiedAt = Date()
