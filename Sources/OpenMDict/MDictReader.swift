@@ -44,7 +44,8 @@ public struct MDictMetadata: Sendable {
     /// Title from MDX header. nil if the header contains only a placeholder.
     public let title: String?
     public let description: String
-    public let entryCount: Int
+    /// Entry count. nil for header-only loads (call full load to get actual count).
+    public let entryCount: Int?
     public let format: String
     public let encoding: String
     public let engineVersion: String

@@ -6,7 +6,7 @@ import Foundation
 internal struct MDictInfo {
     let title: String
     let description: String
-    let entryCount: Int
+    let entryCount: Int?
     let format: String
     let encoding: String
     let engineVersion: String
@@ -332,11 +332,10 @@ extension MDXParser {
         }
         
         // We can't know the exact entry count without parsing keywords,
-        // but we can estimate from header or return 0
         let info = MDictInfo(
             title: header.title,
             description: header.description,
-            entryCount: 0,  // Unknown without full parse
+            entryCount: nil,  // Unknown without full parse
             format: header.format,
             encoding: header.encoding,
             engineVersion: header.generatedByEngineVersion,
