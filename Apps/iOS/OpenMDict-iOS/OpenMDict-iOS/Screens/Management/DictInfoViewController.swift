@@ -93,6 +93,7 @@ class DictInfoViewController: UIViewController {
         case selectFile
         case duplicateWarning(existingId: String)
         case metadataTitle(String)
+        case metadataEntryCount(Int)
         case metadataDescription(String)
         case displayNameField(String)
         case manageResources
@@ -277,6 +278,23 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
+        // Entry Count Cell (read-only, handles nil)
+        let entryCountReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int?> { cell, indexPath, count in
+            var content = UIListContentConfiguration.valueCell()
+            content.text = "Entries"
+            if let count = count {
+                let formatter = NumberFormatter()
+                formatter.numberStyle = .decimal
+                content.secondaryText = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+                content.secondaryTextProperties.color = .label
+            } else {
+                content.secondaryText = "Unknown"
+                content.secondaryTextProperties.color = .tertiaryLabel
+            }
+            cell.contentConfiguration = content
+            cell.accessories = []
+        }
+        
         // Display Name Cell (editable)
         let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
             var content = UIListContentConfiguration.valueCell()
@@ -322,6 +340,9 @@ class DictInfoViewController: UIViewController {
             case .metadataTitle(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: metadataReg, for: indexPath, item: ("Title", value))
                 
+            case .metadataEntryCount(let count):
+                return collectionView.dequeueConfiguredReusableCell(using: entryCountReg, for: indexPath, item: count)
+                         
             case .metadataDescription(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: metadataReg, for: indexPath, item: ("Description", value))
                 
@@ -358,7 +379,7 @@ class DictInfoViewController: UIViewController {
             
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
-            title = dict?.metadata?.title ?? "Dictionary"
+            title = dict?.loggingTitle
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             applyEditSnapshot(dictId: dictId)
@@ -386,7 +407,8 @@ class DictInfoViewController: UIViewController {
         
         // If no file selected yet, show file selection button
         // Otherwise show metadata preview (file info is in metadata title)
-        if let metadata = previewMetadata {
+        if let metadata = previewMetadata,
+           let sourceFileName = selectedMDXURL?.deletingPathExtension().lastPathComponent {
             // Duplicate warning at very top (if detected)
             if let existingId = duplicatedDictId {
                 snapshot.appendSections([.duplicateWarning])
@@ -394,23 +416,26 @@ class DictInfoViewController: UIViewController {
             }
 
             // Metadata section (always visible)
-            let cleanedDesc = MDictDescriptionParser.cleanDescription(metadata.description)
             let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: metadata.description)
-
+            let titleDisplay = metadata.title ?? sourceFileName
+            let cleanedDesc = MDictDescriptionParser.cleanDescription(metadata.description)
+            
             snapshot.appendSections([.metadata])
-            snapshot.appendItems([
-                // TODO: Fall back to source filename
-                .metadataTitle(metadata.title ?? "???"),
-                .metadataDescription(cleanedDesc)
-            ], toSection: .metadata)
+            var metadataItems: [Item] = [.metadataTitle(titleDisplay)]
+            // Only show entry count if available (not nil from header-only load)
+            if let entryCount = metadata.entryCount {
+                metadataItems.append(.metadataEntryCount(entryCount))
+            }
+            metadataItems.append(.metadataDescription(cleanedDesc))
+            snapshot.appendItems(metadataItems, toSection: .metadata)
             
             // Display Name section - ONLY when NOT duplicate
             // When duplicate, user should view existing instead of editing this one
             if duplicatedDictId == nil {
                 snapshot.appendSections([.displayName])
                 // TODO: Fall back to source filename
-                let placeholder = extractedTitle ?? metadata.title ?? "???"
-                snapshot.appendItems([.displayNameField(editedDisplayName ?? placeholder)], toSection: .displayName)
+                let displayName = editedDisplayName ?? extractedTitle ?? metadata.title ?? sourceFileName
+                snapshot.appendItems([.displayNameField(editedDisplayName ?? displayName)], toSection: .displayName)
 
                 // Manage Resources - ONLY in compact mode AND NOT duplicate
                 // (resources section doesn't make sense for a duplicate that won't be imported)
@@ -435,15 +460,18 @@ class DictInfoViewController: UIViewController {
         
         // Metadata section
         snapshot.appendSections([.metadata])
-        snapshot.appendItems([
-            .metadataTitle(dict.metadata?.title ?? ""),
-            .metadataDescription(cleanedDesc)
-        ], toSection: .metadata)
+        var metadataItems: [Item] = [.metadataTitle(dict.loggingTitle)]
+        // Only show entry count if available (not nil from header-only load)
+        if let entryCount = previewMetadata?.entryCount {
+            metadataItems.append(.metadataEntryCount(entryCount))
+        }
+        metadataItems.append(.metadataDescription(cleanedDesc))
+        snapshot.appendItems(metadataItems, toSection: .metadata)
         
         // Display name section
         snapshot.appendSections([.displayName])
         // Use extracted title as default if no custom display name
-        let displayName = editedDisplayName ?? extractedTitle ?? dict.metadata?.title ?? ""
+        let displayName = editedDisplayName ?? extractedTitle ?? dict.loggingTitle
         snapshot.appendItems([.displayNameField(displayName)], toSection: .displayName)
         
         // Manage Resources section (ONLY in compact mode - when split view is collapsed)
