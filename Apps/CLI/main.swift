@@ -79,7 +79,7 @@ func main() {
         
         // Dictionary info
         print(colored("Dictionary Info:", .bold))
-        print("  Title:          ", dict.metadata.title)
+        print("  Title:          ", dict.metadata.title ?? "(no title)")
         print("  Entries:        ", colored("\(dict.entryCount)", .green))
         print("  Format:         ", dict.metadata.format)
         print("  Encoding:       ", dict.metadata.encoding)
@@ -426,7 +426,7 @@ func debugDescribe(dict: MDictReader) {
     print()
     
     let rawDesc = dict.metadata.description
-    let title = dict.metadata.title
+    let title = dict.metadata.title ?? "(no title)"
     
     // Raw description
     print(colored("Raw Title:", .yellow))
@@ -469,7 +469,8 @@ func debugDescribe(dict: MDictReader) {
     
     // Summary
     print(colored("Summary:", .bold))
-    print("  Title is placeholder: ", title == "Title (No HTML code allowed)" || title.isEmpty ? colored("Yes", .yellow) : colored("No", .green))
+    let isPlaceholder = title == "Title (No HTML code allowed)" || title == "(no title)" || title.isEmpty
+    print("  Title is placeholder: ", isPlaceholder ? colored("Yes", .yellow) : colored("No", .green))
     print("  Has extractable title: ", MDictDescriptionParser.tryExtractTitle(from: rawDesc) != nil ? colored("Yes", .green) : colored("No", .yellow))
     print("  Has author: ", MDictDescriptionParser.tryExtractAuthor(from: rawDesc) != nil ? colored("Yes", .green) : colored("No", .yellow))
     print()
