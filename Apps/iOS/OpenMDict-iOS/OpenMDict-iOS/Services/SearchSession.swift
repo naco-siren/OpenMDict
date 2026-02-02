@@ -59,8 +59,7 @@ final class SearchSession: ObservableObject {
             let contextName: String
             switch context {
             case .group(let g): contextName = "group '\(g.name)'"
-            case .dictionary(let d):
-                contextName = "dict '\(d.displayTitle)'"
+            case .dictionary(let d): contextName = "dict '\(d.loggingTitle)'"
             case .none: contextName = "none"
             }
             print("🔍 Search '\(query)' in \(contextName)")

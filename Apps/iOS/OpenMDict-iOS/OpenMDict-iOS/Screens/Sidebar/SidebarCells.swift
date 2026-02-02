@@ -148,12 +148,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         }
         
         var content = UIListContentConfiguration.sidebarCell()
-        content.text =
-            if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
-                entry.displayName
-            } else {
-                dict.displayTitle
-            }
+        content.text = dict.displayTitle
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         bg.backgroundColorTransformer = nil
@@ -279,12 +274,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
         let isRelatedDictSelected = !isEditing && (stateProvider?.activeDict?.id == dict.id)
 
         var content = UIListContentConfiguration.sidebarCell()
-        content.text =
-            if let entry = DictionaryStorageService.shared.manifest.dictionaries.first(where: { $0.id == dict.id }) {
-                entry.displayName
-            } else {
-                dict.displayTitle
-            }
+        content.text = dict.displayTitle
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         bg.backgroundColorTransformer = nil
