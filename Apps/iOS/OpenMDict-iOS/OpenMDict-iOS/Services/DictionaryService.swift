@@ -170,14 +170,18 @@ final class DictionaryService: ObservableObject {
     }
     
     private func loadUserDictionaries() {
-        let importedDicts: [MDict] = storage.manifest.dictionaries.compactMap { entry in
+        let importedDicts: [MDict] = storage.manifest.dictionaries.compactMap { entry -> MDict? in
             let mdxPath = storage.mdxURL(id: entry.id).path
             guard FileManager.default.fileExists(atPath: mdxPath) else {
                 print("⚠️ Imported dictionary MDX not found: \(entry.displayName)")
                 return nil
             }
             // Use manifest's entry.id (SHA256) as the MDict id, not "0" from filename
-            return MDict(path: mdxPath, id: entry.id)
+            let dict = MDict(path: mdxPath, id: entry.id)
+            // Inject properties from manifest for displayTitle fallback chain
+            dict.userDisplayName = entry.displayName
+            dict.originalFileName = entry.originalFileName
+            return dict
         }
         
         // Track as imported
@@ -281,7 +285,7 @@ final class DictionaryService: ObservableObject {
         for dict in allDictionaries {
             do {
                 try await dict.load()
-                print("✅ Loaded: \(dict.displayTitle)")
+                print("✅ Loaded: \(dict.loggingTitle)")
             } catch {
                 print("❌ Failed to load \(dict.id): \(error)")
             }
@@ -307,6 +311,12 @@ final class DictionaryService: ObservableObject {
         let mdxPath = storage.mdxURL(id: id).path
         // Use SHA256 as id, not "0" from 0.mdx filename
         let newDict = MDict(path: mdxPath, id: id)
+        
+        // Inject properties from manifest for displayTitle fallback chain
+        if let entry = storage.manifest.dictionary(id: id) {
+            newDict.userDisplayName = entry.displayName
+            newDict.originalFileName = entry.originalFileName
+        }
         
         // 2. Track as imported
         dictionarySources[id] = .imported
@@ -337,8 +347,8 @@ final class DictionaryService: ObservableObject {
             // Debug: show raw title vs resolved title
             if let meta = newDict.metadata {
                 print("✅ Loaded imported dictionary:")
-                print("  id: \(id)")
-                print("  metadata.title (resolved): \(meta.title)")
+                print("  id: \(id.prefix(16))...")
+                print("  loggingTitle: \(newDict.loggingTitle)")
                 print("  description prefix: \(meta.description.prefix(100))...")
             }
         } catch {

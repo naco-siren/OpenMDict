@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import OpenMDictKit
 import UniformTypeIdentifiers
 
 // MARK: - Associated Files (for import)
