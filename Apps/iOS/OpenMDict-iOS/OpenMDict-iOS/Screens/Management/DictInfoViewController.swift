@@ -36,7 +36,14 @@ class DictInfoViewController: UIViewController {
     // MARK: - Callbacks
     
     var onDismiss: (() -> Void)?
+    
+    /// Callback when user selected dictionary is imported (dictId passed back)
     var onImportComplete: ((String) -> Void)?
+    
+    /// Callback when edit is saved (dictId passed back)
+    var onEditComplete: ((String) -> Void)?
+    
+    /// Callback when a selected dictionary is removed (dictId passed back)
     var onDeleteComplete: ((String) -> Void)?
     
     /// Callback to push resource editor in compact mode
@@ -697,7 +704,7 @@ class DictInfoViewController: UIViewController {
         editedDisplayName = nil
         hasUnsavedChanges = false
         
-        onDismiss?()
+        onEditComplete?(dictId)
     }
     
     private func performDelete(dictId: String) {

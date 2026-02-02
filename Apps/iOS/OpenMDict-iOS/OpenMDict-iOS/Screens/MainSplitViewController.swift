@@ -17,45 +17,38 @@ enum AppMode {
     case management  // Dictionary management and import
 }
 
+// MARK: - MainSplitViewController
+
 class MainSplitViewController: UISplitViewController {
     
-    // MARK: - Sidebar Controller (Main Navigation)
+    // MARK: - Child Controllers
+    
     private let dictionaryListVC = DictionaryListViewController()
-    
-    // MARK: - Child Controllers (Lookup Mode)
-    
     private let wordListVC = WordListViewController()
     private let detailContainer = DetailContainerViewController()
-    
-    // MARK: - Child Controllers (Management Mode)
-    
     private lazy var dictInfoVC = DictInfoViewController()
     private lazy var dictResourceEditorVC = DictResourceEditorViewController()
     
-    // MARK: - Mode State
+    // MARK: - State
     
     private(set) var currentMode: AppMode = .lookup
-    
-    // MARK: - Column Width Constants
-    
-    private enum ColumnWidth {
-        // Lookup mode: narrower supplementary for word list
-        static let lookupSupplementaryFraction: CGFloat = 0.25
-        static let lookupSupplementaryMin: CGFloat = 250
-        
-        // Management mode: wider supplementary for form UI
-        static let managementSupplementaryFraction: CGFloat = 0.35
-        static let managementSupplementaryMin: CGFloat = 320
-    }
-    
-    // MARK: - State
-
-    /// Per-scene search session
     private let searchSession = DictionaryService.shared.createSearchSession()
-
     private var initialGroupId: String = ""
     private var currentGroup: MDicts?
     private var currentDict: MDict?
+    
+    // MARK: - Constants
+    
+    private enum ColumnWidth {
+        static let lookupFraction: CGFloat = 0.25
+        static let lookupMin: CGFloat = 250
+        static let managementFraction: CGFloat = 0.35
+        static let managementMin: CGFloat = 320
+    }
+    
+    private var isCompact: Bool {
+        traitCollection.horizontalSizeClass == .compact
+    }
     
     // MARK: - Initialization
     
@@ -68,12 +61,10 @@ class MainSplitViewController: UISplitViewController {
         
         self.initialGroupId = initialGroupId
         
-        // Preload articles
         for article in initialArticles {
             detailContainer.preloadArticle(article)
         }
-
-        // Set layout mode
+        
         if let mode = ArticleLayoutMode(rawValue: initialLayoutMode) {
             detailContainer.setLayoutMode(mode)
         }
@@ -92,41 +83,38 @@ class MainSplitViewController: UISplitViewController {
         
         setupSplitView()
         setupChildControllers()
-        setupDelegates()
-        setupInitialState()
+        setupSidebarCallbacks()
+        setupManagementCallbacks()
+        applyInitialSelection()
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        // Show initial articles (from state restoration or drag) if exist
         if !detailContainer.allArticles.isEmpty {
-            print("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
+            debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
             show(.secondary)
         }
     }
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
-
+        
         let wasRegular = traitCollection.horizontalSizeClass == .regular
         let willBeCompact = newCollection.horizontalSizeClass == .compact
-
-        // Only handle regular → compact transition
-        // Compact → regular is handled automatically by split view
+        
         guard wasRegular && willBeCompact else { return }
         
         coordinator.animate { _ in
             switch self.currentMode {
             case .lookup:
                 if self.detailContainer.allArticles.isEmpty {
-                    debugLog("📱 Transitioning to compact (lookup): no articles, showing word list")
+                    debugLog("📱 Transitioning to compact (lookup): showing word list")
                     self.show(.supplementary)
                 } else {
-                    debugLog("📱 Transitioning to compact (lookup): has \(self.detailContainer.allArticles.count) articles, showing detail")
+                    debugLog("📱 Transitioning to compact (lookup): showing detail")
                     self.show(.secondary)
                 }
-
             case .management:
                 debugLog("📱 Transitioning to compact (management): showing config")
                 self.show(.supplementary)
@@ -139,113 +127,133 @@ class MainSplitViewController: UISplitViewController {
     private func setupSplitView() {
         preferredDisplayMode = .twoDisplaceSecondary
         preferredSplitBehavior = .displace
-        
         primaryBackgroundStyle = .none
         preferredPrimaryColumnWidthFraction = 0.25
         minimumPrimaryColumnWidth = 250
-        
-        // IMPORTANT: Set initial supplementary width for lookup mode
-        preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupSupplementaryFraction
-        minimumSupplementaryColumnWidth = ColumnWidth.lookupSupplementaryMin
-        
+        preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
+        minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
         navigationItem.backButtonDisplayMode = .minimal
-        
         presentsWithGesture = true
-
         view.backgroundColor = .systemGroupedBackground
     }
     
     private func setupChildControllers() {
-        // Inject search session into word list
         wordListVC.searchSession = searchSession
-        
-        // Primary: Sidebar (dictionary list) - no nav controller needed, split view handles it
         setViewController(dictionaryListVC, for: .primary)
-         
-        // Supplementary & Secondary: Set up for lookup mode (default)
-        // Don't wrap in nav controllers here - split view manages navigation
         setViewController(wordListVC, for: .supplementary)
         setViewController(detailContainer, for: .secondary)
     }
     
-    private func setupDelegates() {
+    private func setupSidebarCallbacks() {
         dictionaryListVC.onGroupSelected = { [weak self] group in
-            self?.switchToLookupModeIfNeeded()
-            self?.selectGroup(group)
+            guard let self else { return }
+            exitToLookupModeIfNeeded()
+            select(group: group)
         }
         
         dictionaryListVC.onDictionarySelected = { [weak self] dict in
-            self?.switchToLookupModeIfNeeded()
-            self?.selectDictionary(dict)
+            guard let self else { return }
+            exitToLookupModeIfNeeded()
+            select(dictionary: dict)
         }
         
         dictionaryListVC.onImportDictionarySelected = { [weak self] in
-            self?.switchToManagementMode(showImport: true)
+            self?.enterManagementMode(for: .importNew)
         }
         
         dictionaryListVC.onDictionaryInfoSelected = { [weak self] dictId in
-            self?.switchToManagementMode(showImport: false, editDictId: dictId)
+            self?.enterManagementMode(for: .edit(dictId: dictId))
         }
         
-        wordListVC.onWordSelected = { [weak self] wordItem in
-            self?.selectWord(wordItem)
+        wordListVC.onWordSelected = { [weak self] word in
+            self?.select(word: word)
         }
         
-        // Handle articles emptied (e.g., after drag to new window)
         detailContainer.onArticlesEmptied = { [weak self] in
-            // In compact mode, show supplementary column when articles become empty
-            if self?.traitCollection.horizontalSizeClass == .compact {
-                self?.show(.supplementary)
-            }
-        }
-        
-        // Management mode callbacks
-        dictInfoVC.onDismiss = { [weak self] in
-            self?.switchToLookupMode()
-        }
-        
-        dictInfoVC.onImportComplete = { [weak self] dictionaryId in
-            guard let self = self else { return }
-
-            // Refresh sidebar to show new dictionary
-            self.dictionaryListVC.reloadData()
-
-            // Select default group and load its words
-            if let defaultGroup = DictionaryService.shared.defaultGroup {
-                self.currentGroup = defaultGroup
-                self.currentDict = nil
-                self.wordListVC.loadWords(for: defaultGroup)
-                self.dictionaryListVC.setActiveGroup(defaultGroup)
-            }
-
-            // Switch to lookup mode
-            self.switchToLookupMode()
-
-            // In compact mode, navigate back to sidebar to show new dictionary
-            if self.traitCollection.horizontalSizeClass == .compact {
-                self.show(.primary)
-            }
-        }
-        
-        dictInfoVC.onDeleteComplete = { [weak self] dictionaryId in
-            DictionaryService.shared.refreshAfterDelete(dictionaryId)
-            self?.dictionaryListVC.reloadData()
-            self?.switchToLookupMode()
-        }
-        
-        // Compact mode only: show resource editor
-        dictInfoVC.onManageResources = { [weak self] dictId in
-            guard let self = self else { return }
-            // In compact mode, show secondary column (resource editor)
-            if self.traitCollection.horizontalSizeClass == .compact {
-                self.dictResourceEditorVC.showEditor(for: dictId)
-                self.show(.secondary)
-            }
+            guard let self, isCompact else { return }
+            show(.supplementary)
         }
     }
     
-    private func setupInitialState() {
-        // Use restored group or default
+    private func setupManagementCallbacks() {
+        dictInfoVC.onDismiss = { [weak self] in
+            self?.exitToLookupMode()
+        }
+        
+        dictInfoVC.onImportComplete = { [weak self] dictId in
+            guard let self else { return }
+            dictionaryListVC.reloadData()
+            
+            if isCollapsed {
+                // Compact mode: update state
+                currentMode = .lookup
+                dictionaryListVC.appMode = .lookup
+                dictionaryListVC.setNeedsUpdateAllCells()
+                dictionaryListVC.deselectImportItem()
+
+                // Select the new dictionary in sidebar
+                if let dict = DictionaryService.shared.dict(id: dictId) {
+                    currentDict = dict
+                    currentGroup = nil
+                    dictionaryListVC.setActiveDictionary(dict)
+                    wordListVC.loadWords(for: dict)
+                }
+
+                // Navigate back to sidebar, then swap columns back to lookup mode
+                show(.primary)
+                configureColumns(for: .lookup)
+                debugLog("🔍 Import complete (compact): navigated to sidebar")
+            } else {
+                // Regular mode: normal flow
+                select(dictionaryId: dictId)
+                debugLog("🔍 Import complete (regular): select new dictionary")
+            }
+        }
+        
+        dictInfoVC.onEditComplete = { [weak self] dictId in
+            guard let self else { return }
+
+            if isCollapsed {
+                // Compact mode: update state
+                currentMode = .lookup
+                dictionaryListVC.appMode = .lookup
+                dictionaryListVC.setNeedsUpdateAllCells()
+                dictionaryListVC.deselectImportItem()
+
+                // Select the edited dictionary in sidebar
+                if let dict = DictionaryService.shared.dict(id: dictId) {
+                    currentDict = dict
+                    currentGroup = nil
+                    dictionaryListVC.setActiveDictionary(dict)
+                    wordListVC.loadWords(for: dict)
+                }
+
+                // Navigate back to sidebar, then swap columns back to lookup mode
+                show(.primary)
+                configureColumns(for: .lookup)
+                debugLog("📝 Edit complete (compact): navigated to sidebar")
+            } else {
+                // Regular mode: exit to lookup and select
+                select(dictionaryId: dictId)
+                debugLog("📝 Edit complete (regular): selected dictionary")
+            }
+        }
+        
+        dictInfoVC.onDeleteComplete = { [weak self] dictId in
+            guard let self else { return }
+            DictionaryService.shared.refreshAfterDelete(dictId)
+            dictionaryListVC.reloadData()
+            exitToLookupMode()
+        }
+        
+        dictInfoVC.onManageResources = { [weak self] dictId in
+            guard let self, isCompact else { return }
+            dictResourceEditorVC.showEditor(for: dictId)
+            show(.secondary)
+        }
+    }
+    
+    private func applyInitialSelection() {
         let group: MDicts?
         if initialGroupId.isEmpty {
             group = DictionaryService.shared.defaultGroup
@@ -253,48 +261,60 @@ class MainSplitViewController: UISplitViewController {
             group = DictionaryService.shared.group(id: initialGroupId)
                 ?? DictionaryService.shared.defaultGroup
         }
-
-        guard let group = group else {
-            print("⚠️ No default group found")
+        
+        guard let group else {
+            debugLog("⚠️ No default group found")
             return
         }
+        
         currentGroup = group
         currentDict = nil
         wordListVC.loadWords(for: group)
         dictionaryListVC.setActiveGroup(group)
     }
     
-    // MARK: - Navigation
+    // MARK: - Selection
     
-    private func selectGroup(_ group: MDicts) {
+    func select(group: MDicts) {
         currentGroup = group
         currentDict = nil
         wordListVC.loadWords(for: group)
-        
+        dictionaryListVC.setActiveGroup(group)
         show(.supplementary)
     }
     
-    private func selectDictionary(_ dict: MDict) {
+    func select(dictionary dict: MDict) {
         currentGroup = nil
         currentDict = dict
         wordListVC.loadWords(for: dict)
-        
+        dictionaryListVC.setActiveDictionary(dict)
         show(.supplementary)
     }
     
-    private func selectWord(_ word: WordDisplayItem) {
-        // Try real lookup first
+    func select(dictionaryId dictId: String) {
+        guard let dict = DictionaryService.shared.dict(id: dictId) else {
+            debugLog("⚠️ Dictionary not found: \(dictId), falling back to default group")
+            if let defaultGroup = DictionaryService.shared.defaultGroup {
+                exitToLookupModeIfNeeded()
+                select(group: defaultGroup)
+            }
+            return
+        }
+        exitToLookupModeIfNeeded()
+        select(dictionary: dict)
+    }
+    
+    func select(word: WordDisplayItem) {
         let dict = DictionaryService.shared.dict(id: word.dictId)
-
+        
         var article = ArticleDisplayItem(
             word: word.word,
             dictId: word.dictId,
             dictName: word.dictName,
             contentState: .pending
         )
-
-        // If dictionary is loaded, get the content
-        if let dict = dict, let entry = dict.lookup(word.word) {
+        
+        if let dict, let entry = dict.lookup(word.word) {
             article.contentState = .loaded(html: entry.article.html, css: nil)
         }
         
@@ -303,85 +323,72 @@ class MainSplitViewController: UISplitViewController {
     
     func showArticle(_ article: ArticleDisplayItem, animated: Bool) {
         detailContainer.pushArticle(article, animated: animated)
-        
         show(.secondary)
     }
     
-    // MARK: - Mode Switching
+    // MARK: - Mode Management
     
-    /// Switch to management mode
-    /// - Parameters:
-    ///   - showImport: If true, show import mode; if false, show edit mode
-    ///   - editDictId: Dictionary ID to edit (only used when showImport is false)
-    private func switchToManagementMode(showImport: Bool, editDictId: String? = nil) {
-        // ALWAYS set wider supplementary for management UI (even if already in management mode)
-        preferredSupplementaryColumnWidthFraction = ColumnWidth.managementSupplementaryFraction
-        minimumSupplementaryColumnWidth = ColumnWidth.managementSupplementaryMin
-        
+    private enum ManagementAction {
+        case importNew
+        case edit(dictId: String)
+    }
+    
+    private func enterManagementMode(for action: ManagementAction) {
         if currentMode != .management {
             currentMode = .management
-            
             dictionaryListVC.appMode = .management
             dictionaryListVC.setNeedsUpdateAllCells()
-            
-            // Clear columns first to ensure proper replacement
-            setViewController(nil, for: .supplementary)
-            setViewController(nil, for: .secondary)
-            
-            // Set supplementary (second column): DictInfo directly (no nav controller needed)
-            setViewController(dictInfoVC, for: .supplementary)
-            
-            // Set secondary (third column): DictResourceEditor
-            setViewController(dictResourceEditorVC, for: .secondary)
-
-            print("📚 Switched to Management mode")
+            configureColumns(for: .management)
+            debugLog("📚 Entered Management mode")
         }
         
-        // Show appropriate mode
-        if showImport {
+        switch action {
+        case .importNew:
             dictInfoVC.showImportMode()
             dictResourceEditorVC.showEmptyState()
-        } else if let dictId = editDictId {
+        case .edit(let dictId):
             dictInfoVC.showEditMode(for: dictId)
             dictResourceEditorVC.showEditor(for: dictId)
         }
         
-        // Always show supplementary
         show(.supplementary)
     }
     
-    /// Switch to lookup mode (word list + detail)
-    func switchToLookupMode() {
+    private func exitToLookupModeIfNeeded() {
+        guard currentMode == .management else { return }
+        exitToLookupMode()
+    }
+    
+    private func exitToLookupMode() {
         guard currentMode != .lookup else { return }
         currentMode = .lookup
         
         dictionaryListVC.appMode = .lookup
         dictionaryListVC.setNeedsUpdateAllCells()
+        configureColumns(for: .lookup)
         
-        // Narrower supplementary for word list
-        preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupSupplementaryFraction
-        minimumSupplementaryColumnWidth = ColumnWidth.lookupSupplementaryMin
+        show(.supplementary)
+        dictionaryListVC.deselectImportItem()
         
-        // Clear columns first to ensure proper replacement
+        debugLog("🔍 Exited to Lookup mode")
+    }
+    
+    private func configureColumns(for mode: AppMode) {
         setViewController(nil, for: .supplementary)
         setViewController(nil, for: .secondary)
         
-        // Set view controllers for lookup mode
-        setViewController(wordListVC, for: .supplementary)
-        setViewController(detailContainer, for: .secondary)
-        
-        show(.supplementary)
-        
-        // Deselect import item in sidebar
-        dictionaryListVC.deselectImportItem()
-        
-        print("🔍 Switched to Lookup mode")
-    }
-    
-    /// Switch to lookup mode only if currently in management mode
-    private func switchToLookupModeIfNeeded() {
-        if currentMode == .management {
-            switchToLookupMode()
+        switch mode {
+        case .lookup:
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
+            setViewController(wordListVC, for: .supplementary)
+            setViewController(detailContainer, for: .secondary)
+            
+        case .management:
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.managementMin
+            setViewController(dictInfoVC, for: .supplementary)
+            setViewController(dictResourceEditorVC, for: .secondary)
         }
     }
     
@@ -391,7 +398,7 @@ class MainSplitViewController: UISplitViewController {
         let articles = detailContainer.allArticles
         let groupId = currentGroup?.id ?? ""
         let layoutMode = detailContainer.currentLayoutMode.rawValue
-
+        
         return ArticleDisplayItem.sceneStateActivity(
             articles: articles,
             groupId: groupId,
@@ -408,14 +415,11 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
         _ svc: UISplitViewController,
         topColumnForCollapsingToProposedTopColumn proposedTopColumn: UISplitViewController.Column
     ) -> UISplitViewController.Column {
-        return switch currentMode {
+        switch currentMode {
         case .lookup:
-            // Show detail if there are articles, otherwise show word list
-            if !detailContainer.allArticles.isEmpty { .secondary } else { .supplementary }
-
+            return detailContainer.allArticles.isEmpty ? .supplementary : .secondary
         case .management:
-            // Always show supplementary (config VC)
-            .supplementary
+            return .supplementary
         }
     }
 }
@@ -425,7 +429,6 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
 extension MainSplitViewController {
     
     func openInNewWindow(_ article: ArticleDisplayItem) {
-        // Get current scene session
         let session = view.window?.windowScene?.session
         SceneDelegate.openNewWindow(for: article, sourceSession: session)
     }

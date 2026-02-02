@@ -195,6 +195,24 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
     }
     
+    func setActiveDictionary(_ dict: MDict) {
+        activeGroupId = nil
+        activeDict = (dict.id, false)
+
+        guard isViewLoaded else { return }
+
+        // Find the group containing this dictionary and select the cell
+        for group in groups {
+            if group.items.contains(where: { $0.id == dict.id }) {
+                if let indexPath = dataSource.indexPath(for: .dictionary(id: dict.id, groupId: group.id)) {
+                    collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+                    invalidateVisibleCellConfigurations()
+                    return
+                }
+            }
+        }
+    }
+    
     private func configureDataSource() {
         
         // Default Group Cell (All Dictionaries)
