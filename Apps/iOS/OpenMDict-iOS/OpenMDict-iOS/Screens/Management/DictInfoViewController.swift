@@ -386,7 +386,7 @@ class DictInfoViewController: UIViewController {
             
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
-            title = dict?.loggingTitle
+            title = dict?.displayTitle
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             applyEditSnapshot(dictId: dictId)
@@ -458,17 +458,14 @@ class DictInfoViewController: UIViewController {
     
     private func applyEditSnapshot(dictId: String) {
         guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
-        
-        // Use cleaned description instead of raw HTML
+        let displayName = editedDisplayName ?? dict.displayTitle
         let cleanedDesc = dict.cleanedDescription ?? dict.metadata?.description ?? ""
-        let extractedTitle = dict.extractedTitle
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
         // Metadata section
         snapshot.appendSections([.metadata])
         var metadataItems: [Item] = [.metadataTitle(dict.loggingTitle)]
-        // Only show entry count if available (not nil from header-only load)
         if let entryCount = previewMetadata?.entryCount {
             metadataItems.append(.metadataEntryCount(entryCount))
         }
@@ -477,8 +474,6 @@ class DictInfoViewController: UIViewController {
         
         // Display name section
         snapshot.appendSections([.displayName])
-        // Use extracted title as default if no custom display name
-        let displayName = editedDisplayName ?? extractedTitle ?? dict.loggingTitle
         snapshot.appendItems([.displayNameField(displayName)], toSection: .displayName)
         
         // Manage Resources section (ONLY in compact mode - when split view is collapsed)
@@ -640,7 +635,7 @@ class DictInfoViewController: UIViewController {
         }
         
         // Double-check for duplicate (should already be caught by UI)
-        if DictionaryStorageService.shared.isDuplicateImport(headerSHA256: headerSHA256) {
+        if DictionaryService.shared.isDuplicateImport(headerSHA256: headerSHA256) {
             print("❌ Import blocked: duplicate detected")
             return
         }
@@ -656,15 +651,11 @@ class DictInfoViewController: UIViewController {
         
         Task {
             do {
-                let dictId = try await DictionaryStorageService.shared.importDictionary(
+                let dictId = try await DictionaryService.shared.importDictionary(
                     mdxFile: mdxFile,
                     displayName: displayName,
                     headerSHA256: headerSHA256
                 )
-
-                // Refresh DictionaryService to pick up the new dictionary
-                await DictionaryService.shared.refreshAfterImport(dictId)
-
                 print("✅ Import completed: \(dictId)")
 
                 // Reset state on main thread
@@ -693,7 +684,7 @@ class DictInfoViewController: UIViewController {
         // Save display name if changed
         if let newName = editedDisplayName {
             do {
-                try DictionaryStorageService.shared.updateDisplayName(id: dictId, newName: newName)
+                try DictionaryService.shared.updateDisplayName(dictId: dictId, newName: newName)
                 print("💾 Saved display name: \(newName)")
             } catch {
                 print("❌ Failed to save display name: \(error)")
@@ -709,8 +700,7 @@ class DictInfoViewController: UIViewController {
     
     private func performDelete(dictId: String) {
         do {
-            try DictionaryStorageService.shared.deleteDictionary(id: dictId)
-            DictionaryService.shared.refreshAfterDelete(dictId)
+            try DictionaryService.shared.deleteDictionary(dictId: dictId)
             print("🗑️ Deleted dictionary: \(dictId)")
 
             // Reset state
@@ -759,8 +749,7 @@ class DictInfoViewController: UIViewController {
         switch currentMode {
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
-            let extractedTitle = dict?.extractedTitle
-            currentName = editedDisplayName ?? extractedTitle ?? dict?.metadata?.title ?? ""
+            currentName = editedDisplayName ?? dict?.displayTitle ?? ""
         case .importing:
             let extractedTitle = previewMetadata.flatMap { MDictDescriptionParser.tryExtractTitle(from: $0.description) }
             currentName = editedDisplayName ?? extractedTitle ?? previewMetadata?.title ?? ""
@@ -886,7 +875,7 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
             let title = if let title = m.title, !title.isEmpty { title } else { "(empty)" }
             print("📋 Metadata loaded:")
             print("   Title: \(title)")
-            print("   Entries: \(m.entryCount)")
+            print("   Entries: \(m.entryCount?.description ?? "-")")
             print("   Format: \(m.format), Encoding: \(m.encoding)")
             print("   Engine: \(m.engineVersion)")
             print("   SHA256: \(m.headerSHA256?.prefix(16) ?? "nil")...")
@@ -896,7 +885,7 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         // Check for duplicate using SHA256 (SHA256 is used as directory id)
         if let sha256 = metadata?.headerSHA256 {
-            if DictionaryStorageService.shared.isDuplicateImport(headerSHA256: sha256) {
+            if DictionaryService.shared.isDuplicateImport(headerSHA256: sha256) {
                 duplicatedDictId = sha256  // SHA256 is the existing dict's id
                 print("⚠️ Duplicate detected: existing dictionary \(sha256)")
             } else {

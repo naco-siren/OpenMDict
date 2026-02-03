@@ -241,7 +241,6 @@ class MainSplitViewController: UISplitViewController {
         
         dictInfoVC.onDeleteComplete = { [weak self] dictId in
             guard let self else { return }
-            DictionaryService.shared.refreshAfterDelete(dictId)
             dictionaryListVC.reloadData()
             exitToLookupMode()
         }

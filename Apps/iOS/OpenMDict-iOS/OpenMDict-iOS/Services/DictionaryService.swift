@@ -295,10 +295,75 @@ final class DictionaryService: ObservableObject {
     }
     
     // MARK: - Import / Delete / Persist
+
+    /// Check if a dictionary with this header SHA256 is already imported
+    func isDuplicateImport(headerSHA256: String) -> Bool {
+        storage.isDuplicateImport(headerSHA256: headerSHA256)
+    }
+
+    /// Import a dictionary from MDX file
+    /// - Parameters:
+    ///   - mdxFile: Source MDX file URL
+    ///   - displayName: Display name for the dictionary
+    ///   - headerSHA256: SHA256 hash of MDX header (used as ID)
+    /// - Returns: The new dictionary's ID
+    func importDictionary(
+        mdxFile: SelectedFile,
+        displayName: String,
+        headerSHA256: String
+    ) async throws -> String {
+        // 1. Copy files to storage
+        let dictId = try await storage.importDictionary(
+            mdxFile: mdxFile,
+            displayName: displayName,
+            headerSHA256: headerSHA256
+        )
+
+        // 2. Load into memory and update groups
+        await refreshAfterImport(dictId)
+
+        return dictId
+    }
+
+    /// Delete a dictionary
+    /// - Parameter dictId: Dictionary ID to delete
+    func deleteDictionary(dictId: String) throws {
+        // 1. Remove from storage
+        try storage.deleteDictionary(id: dictId)
+
+        // 2. Remove from memory and update groups
+        refreshAfterDelete(dictId)
+    }
+    
+    /// Update display name for a dictionary
+    /// - Parameters:
+    ///   - dictId: Dictionary ID
+    ///   - newName: New display name
+    func updateDisplayName(dictId: String, newName: String) throws {
+        // 1. Update in-memory MDict instance
+        guard let dict = dict(id: dictId) else {
+            throw NSError(domain: "DictionaryService", code: 404,
+                          userInfo: [NSLocalizedDescriptionKey: "Dictionary not found: \(dictId)"])
+        }
+        dict.userDisplayName = newName
+
+        // 2. Persist to storage
+        try storage.updateDisplayName(id: dictId, newName: newName)
+    }
+    
+    /// Update default group order (e.g., after reordering in sidebar)
+    func updateDefaultOrder(_ newOrder: [String]) {
+        guard let defaultGroup = defaultGroup else { return }
+        defaultGroup.dictionaryIds = newOrder
+        defaultGroup.populate(from: allDictionaries)
+        try? persistGroups()
+    }
+    
+    // MARK: - Internal Refresh (called by methods above)
     
     /// Called after importing a new dictionary
     /// - Parameter id: The new dictionary's ID
-    func refreshAfterImport(_ id: String) async {
+    private func refreshAfterImport(_ id: String) async {
         print("🔄 refreshAfterImport: \(id.prefix(16))...")
 
         // Safety check: don't add if already exists
@@ -358,7 +423,7 @@ final class DictionaryService: ObservableObject {
     
     /// Called after deleting a dictionary
     /// - Parameter id: The deleted dictionary's ID
-    func refreshAfterDelete(_ id: String) {
+    private func refreshAfterDelete(_ id: String) {
         // 1. Remove from allDictionaries
         allDictionaries.removeAll { $0.id == id }
         dictionarySources.removeValue(forKey: id)
@@ -373,14 +438,6 @@ final class DictionaryService: ObservableObject {
         try? persistGroups()
         
         print("🗑️ Removed dictionary from service: \(id)")
-    }
-    
-    /// Update default group order (e.g., after reordering in sidebar)
-    func updateDefaultOrder(_ newOrder: [String]) {
-        guard let defaultGroup = defaultGroup else { return }
-        defaultGroup.dictionaryIds = newOrder
-        defaultGroup.populate(from: allDictionaries)
-        try? persistGroups()
     }
     
     /// Persist current group configuration to manifest

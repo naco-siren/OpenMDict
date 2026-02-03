@@ -5,6 +5,10 @@
 //  Manages dictionary file storage in Library/Dictionaries/
 //  Handles manifest.json persistence, file import/export, and directory operations.
 //
+//  ⚠️ INTERNAL SERVICE - Do not call from UI layer!
+//  UI should use DictionaryService which wraps these methods
+//  and handles in-memory state updates.
+//
 
 import Foundation
 import OpenMDictKit
