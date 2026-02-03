@@ -13,6 +13,68 @@
 import Foundation
 import OpenMDictKit
 import UniformTypeIdentifiers
+import CryptoKit
+
+// MARK: - ResourceFile (for UI display)
+
+/// Information about a resource file in storage (for UI display)
+struct ResourceFile: Identifiable, Hashable {
+    let id: String           // hash value (unique within type)
+    let type: ResourceType
+    let fileName: String     // e.g., "a1b2c3d4.mdd" (hash prefix for display)
+    let fileSize: Int64
+    let isRemovable: Bool    // false for MDX
+    
+    enum ResourceType: String, CaseIterable {
+        case mdx, mdd, css, js
+        
+        var displayName: String {
+            switch self {
+            case .mdx: return "Dictionary File"
+            case .mdd: return "Resource Files"
+            case .css: return "Custom Styles"
+            case .js: return "Custom Scripts"
+            }
+        }
+        
+        var fileExtension: String {
+            rawValue
+        }
+    }
+    
+    var fileSizeFormatted: String {
+        ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+    }
+}
+
+// MARK: - ResourceError
+
+/// Errors specific to resource operations
+enum ResourceError: LocalizedError {
+    case accessDenied(URL)
+    case duplicateFile(hash: String)
+    case notFound(hash: String)
+    case dictionaryNotFound(id: String)
+    case hashCalculationFailed(Error)
+    case copyFailed(Error)
+    
+    var errorDescription: String? {
+        switch self {
+        case .accessDenied(let url):
+            return "Cannot access file: \(url.lastPathComponent)"
+        case .duplicateFile(let hash):
+            return "This file already exists (hash: \(hash.prefix(8))...)"
+        case .notFound(let hash):
+            return "File not found: \(hash.prefix(8))..."
+        case .dictionaryNotFound(let id):
+            return "Dictionary not found: \(id.prefix(8))..."
+        case .hashCalculationFailed(let error):
+            return "Failed to calculate file hash: \(error.localizedDescription)"
+        case .copyFailed(let error):
+            return "Failed to copy file: \(error.localizedDescription)"
+        }
+    }
+}
 
 // MARK: - Associated Files (for import)
 
@@ -114,6 +176,7 @@ struct ImportFormState {
     }
     
     /// Create from existing manifest entry (for Edit mode)
+    /// Note: This uses the old index-based naming for backward compatibility during import
     static func fromManifestEntry(
         _ entry: DictionaryManifest.DictionaryEntry,
         storage: DictionaryStorageService
@@ -127,29 +190,22 @@ struct ImportFormState {
             state.mdxFile = SelectedFile(url: mdxURL, isAutoDiscovered: false)
         }
         
-        // MDD files
-        for i in 0..<entry.mdd {
-            let url = storage.mddDirectoryURL(id: entry.id).appendingPathComponent("\(i).mdd")
-            if FileManager.default.fileExists(atPath: url.path) {
-                state.mddFiles.append(SelectedFile(url: url, isAutoDiscovered: false))
-            }
-        }
+        // For resources, we now iterate directory instead of using count
+        // This supports both old index-based and new hash-based naming
+        state.mddFiles = storage.listFilesInDirectory(
+            storage.mddDirectoryURL(id: entry.id),
+            extension: "mdd"
+        ).map { SelectedFile(url: $0, isAutoDiscovered: false) }
         
-        // CSS files
-        for i in 0..<entry.css {
-            let url = storage.cssDirectoryURL(id: entry.id).appendingPathComponent("\(i).css")
-            if FileManager.default.fileExists(atPath: url.path) {
-                state.cssFiles.append(SelectedFile(url: url, isAutoDiscovered: false))
-            }
-        }
+        state.cssFiles = storage.listFilesInDirectory(
+            storage.cssDirectoryURL(id: entry.id),
+            extension: "css"
+        ).map { SelectedFile(url: $0, isAutoDiscovered: false) }
         
-        // JS files
-        for i in 0..<entry.js {
-            let url = storage.jsDirectoryURL(id: entry.id).appendingPathComponent("\(i).js")
-            if FileManager.default.fileExists(atPath: url.path) {
-                state.jsFiles.append(SelectedFile(url: url, isAutoDiscovered: false))
-            }
-        }
+        state.jsFiles = storage.listFilesInDirectory(
+            storage.jsDirectoryURL(id: entry.id),
+            extension: "js"
+        ).map { SelectedFile(url: $0, isAutoDiscovered: false) }
         
         return state
     }
@@ -309,6 +365,21 @@ final class DictionaryStorageService {
         try mutableBaseDir.setResourceValues(resourceValues)
     }
     
+    /// List files in a directory with given extension
+    func listFilesInDirectory(_ dirURL: URL, extension ext: String) -> [URL] {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: dirURL,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+        
+        return contents
+            .filter { $0.pathExtension.lowercased() == ext.lowercased() }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+    
     // MARK: - Import
     
     /// Import a dictionary with its associated files
@@ -350,7 +421,7 @@ final class DictionaryStorageService {
         // 2. Copy MDX
         try await copyFile(mdxFile, to: mdxURL(id: id))
         
-        // 3. Copy MDDs
+        // 3. Copy MDDs (using index-based naming for initial import)
         for (index, file) in mddFiles.enumerated() {
             let destURL = mddDirectoryURL(id: id).appendingPathComponent("\(index).mdd")
             try await copyFile(file, to: destURL)
@@ -380,10 +451,10 @@ final class DictionaryStorageService {
             id: id,
             displayName: displayName,
             originalFileName: mdxFile.fileName,
-            mdd: mddFiles.count,
-            css: cssFiles.count,
-            js: jsFiles.count,
-            fonts: fontFiles.count
+            mddCount: mddFiles.count,
+            cssCount: cssFiles.count,
+            jsCount: jsFiles.count,
+            fontsCount: fontFiles.count
         )
         manifest.addDictionary(entry)
         
@@ -540,5 +611,299 @@ final class DictionaryStorageService {
     /// UTType for .mdd files
     static var mddType: UTType {
         UTType("io.github.naco-siren.openmdict.mdd") ?? .data
+    }
+    
+    // MARK: - Resource Management (Hash-based)
+    
+    /// Calculate SHA256 hash of a file (for resource naming)
+    /// Uses chunked reading to handle large files efficiently
+    func calculateSHA256(of fileURL: URL) async throws -> String {
+        let handle: FileHandle
+        do {
+            handle = try FileHandle(forReadingFrom: fileURL)
+        } catch {
+            throw ResourceError.hashCalculationFailed(error)
+        }
+        defer { try? handle.close() }
+        
+        var hasher = SHA256()
+        let chunkSize = 1024 * 1024 // 1MB chunks
+        
+        while autoreleasepool(invoking: {
+            guard let chunk = try? handle.read(upToCount: chunkSize),
+                  !chunk.isEmpty else {
+                return false
+            }
+            hasher.update(data: chunk)
+            return true
+        }) {}
+        
+        let digest = hasher.finalize()
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+    
+    // MARK: - MDD Resource CRUD
+    
+    /// Add an MDD file to a dictionary (using SHA256 hash as filename)
+    /// - Returns: Hash of the added file
+    /// - Throws: ResourceError.duplicateFile if file already exists
+    func addMDDResource(dictId: String, sourceURL: URL) async throws -> String {
+        guard manifest.dictionary(id: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+        
+        let mddDir = mddDirectoryURL(id: dictId)
+        
+        // Security-scoped access
+        guard sourceURL.startAccessingSecurityScopedResource() else {
+            throw ResourceError.accessDenied(sourceURL)
+        }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+        
+        // Calculate hash
+        let hash = try await calculateSHA256(of: sourceURL)
+        
+        // Check for duplicate
+        let destURL = mddDir.appendingPathComponent("\(hash).mdd")
+        if FileManager.default.fileExists(atPath: destURL.path) {
+            throw ResourceError.duplicateFile(hash: hash)
+        }
+        
+        // Copy file
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            throw ResourceError.copyFailed(error)
+        }
+        
+        // Update manifest count
+        manifest.incrementMDDCount(id: dictId)
+        try saveManifest()
+        
+        print("➕ Added MDD resource: \(hash.prefix(8))... to \(dictId.prefix(8))...")
+        return hash
+    }
+    
+    /// Remove an MDD file by hash
+    func removeMDDResource(dictId: String, hash: String) throws {
+        guard manifest.dictionary(id: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+        
+        let mddDir = mddDirectoryURL(id: dictId)
+        let targetURL = mddDir.appendingPathComponent("\(hash).mdd")
+        
+        guard FileManager.default.fileExists(atPath: targetURL.path) else {
+            throw ResourceError.notFound(hash: hash)
+        }
+        
+        try FileManager.default.removeItem(at: targetURL)
+        
+        manifest.decrementMDDCount(id: dictId)
+        try saveManifest()
+        
+        print("➖ Removed MDD resource: \(hash.prefix(8))... from \(dictId.prefix(8))...")
+    }
+    
+    /// List all MDD files for a dictionary
+    func listMDDResources(dictId: String) -> [ResourceFile] {
+        let mddDir = mddDirectoryURL(id: dictId)
+        return listResourceFiles(in: mddDir, type: .mdd)
+    }
+    
+    // MARK: - CSS Resource CRUD
+    
+    /// Add a CSS file to a dictionary
+    func addCSSResource(dictId: String, sourceURL: URL) async throws -> String {
+        guard manifest.dictionary(id: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+        
+        let cssDir = cssDirectoryURL(id: dictId)
+        
+        guard sourceURL.startAccessingSecurityScopedResource() else {
+            throw ResourceError.accessDenied(sourceURL)
+        }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+        
+        let hash = try await calculateSHA256(of: sourceURL)
+        let destURL = cssDir.appendingPathComponent("\(hash).css")
+        
+        if FileManager.default.fileExists(atPath: destURL.path) {
+            throw ResourceError.duplicateFile(hash: hash)
+        }
+        
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            throw ResourceError.copyFailed(error)
+        }
+        
+        manifest.incrementCSSCount(id: dictId)
+        try saveManifest()
+        
+        print("➕ Added CSS resource: \(hash.prefix(8))... to \(dictId.prefix(8))...")
+        return hash
+    }
+    
+    /// Remove a CSS file by hash
+    func removeCSSResource(dictId: String, hash: String) throws {
+        guard manifest.dictionary(id: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+        
+        let cssDir = cssDirectoryURL(id: dictId)
+        let targetURL = cssDir.appendingPathComponent("\(hash).css")
+        
+        guard FileManager.default.fileExists(atPath: targetURL.path) else {
+            throw ResourceError.notFound(hash: hash)
+        }
+        
+        try FileManager.default.removeItem(at: targetURL)
+        
+        manifest.decrementCSSCount(id: dictId)
+        try saveManifest()
+        
+        print("➖ Removed CSS resource: \(hash.prefix(8))... from \(dictId.prefix(8))...")
+    }
+    
+    /// List all CSS files for a dictionary
+    func listCSSResources(dictId: String) -> [ResourceFile] {
+        let cssDir = cssDirectoryURL(id: dictId)
+        return listResourceFiles(in: cssDir, type: .css)
+    }
+    
+    // MARK: - JS Resource CRUD
+    
+    /// Add a JS file to a dictionary
+    func addJSResource(dictId: String, sourceURL: URL) async throws -> String {
+        guard manifest.dictionary(id: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+        
+        let jsDir = jsDirectoryURL(id: dictId)
+        
+        guard sourceURL.startAccessingSecurityScopedResource() else {
+            throw ResourceError.accessDenied(sourceURL)
+        }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+        
+        let hash = try await calculateSHA256(of: sourceURL)
+        let destURL = jsDir.appendingPathComponent("\(hash).js")
+        
+        if FileManager.default.fileExists(atPath: destURL.path) {
+            throw ResourceError.duplicateFile(hash: hash)
+        }
+        
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            throw ResourceError.copyFailed(error)
+        }
+        
+        manifest.incrementJSCount(id: dictId)
+        try saveManifest()
+        
+        print("➕ Added JS resource: \(hash.prefix(8))... to \(dictId.prefix(8))...")
+        return hash
+    }
+    
+    /// Remove a JS file by hash
+    func removeJSResource(dictId: String, hash: String) throws {
+        guard manifest.dictionary(id: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+        
+        let jsDir = jsDirectoryURL(id: dictId)
+        let targetURL = jsDir.appendingPathComponent("\(hash).js")
+        
+        guard FileManager.default.fileExists(atPath: targetURL.path) else {
+            throw ResourceError.notFound(hash: hash)
+        }
+        
+        try FileManager.default.removeItem(at: targetURL)
+        
+        manifest.decrementJSCount(id: dictId)
+        try saveManifest()
+        
+        print("➖ Removed JS resource: \(hash.prefix(8))... from \(dictId.prefix(8))...")
+    }
+    
+    /// List all JS files for a dictionary
+    func listJSResources(dictId: String) -> [ResourceFile] {
+        let jsDir = jsDirectoryURL(id: dictId)
+        return listResourceFiles(in: jsDir, type: .js)
+    }
+    
+    // MARK: - Resource Listing Helper
+    
+    /// List ResourceFile objects from a directory
+    private func listResourceFiles(in dirURL: URL, type: ResourceFile.ResourceType) -> [ResourceFile] {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: dirURL,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+        
+        let ext = type.fileExtension
+        
+        return contents
+            .filter { $0.pathExtension.lowercased() == ext }
+            .compactMap { url -> ResourceFile? in
+                let fullName = url.deletingPathExtension().lastPathComponent
+                let attrs = try? url.resourceValues(forKeys: [.fileSizeKey])
+                let size = Int64(attrs?.fileSize ?? 0)
+                
+                // Use first 8 chars of hash for display filename
+                let displayName = "\(fullName.prefix(8)).\(ext)"
+                
+                return ResourceFile(
+                    id: fullName,  // Full hash as ID
+                    type: type,
+                    fileName: displayName,
+                    fileSize: size,
+                    isRemovable: true
+                )
+            }
+            .sorted { $0.id < $1.id }
+    }
+    
+    // MARK: - MDX Resource (Read-only)
+    
+    /// Get MDX file info for a dictionary (read-only, not removable)
+    func getMDXResource(dictId: String) -> ResourceFile? {
+        let mdxURL = mdxURL(id: dictId)
+        
+        guard FileManager.default.fileExists(atPath: mdxURL.path) else {
+            return nil
+        }
+        
+        let attrs = try? mdxURL.resourceValues(forKeys: [.fileSizeKey])
+        let size = Int64(attrs?.fileSize ?? 0)
+        
+        return ResourceFile(
+            id: "mdx",
+            type: .mdx,
+            fileName: "0.mdx",
+            fileSize: size,
+            isRemovable: false
+        )
+    }
+    
+    /// Get all resources for a dictionary (MDX + MDD + CSS + JS)
+    func allResources(for dictId: String) -> [ResourceFile] {
+        var resources: [ResourceFile] = []
+        
+        if let mdx = getMDXResource(dictId: dictId) {
+            resources.append(mdx)
+        }
+        
+        resources.append(contentsOf: listMDDResources(dictId: dictId))
+        resources.append(contentsOf: listCSSResources(dictId: dictId))
+        resources.append(contentsOf: listJSResources(dictId: dictId))
+        
+        return resources
     }
 }
