@@ -48,36 +48,86 @@ extension DictionaryManifest {
         /// Import timestamp
         public let importedAt: Date
         
-        /// Number of MDD files (0-N)
-        public var mdd: Int
+        /// Number of MDD resource files (0-N)
+        /// Note: This is a quick-check count; actual loading iterates directory
+        public var mddCount: Int
         
         /// Number of custom CSS files (0-N)
-        public var css: Int
+        public var cssCount: Int
         
         /// Number of custom JS files (0-N)
-        public var js: Int
+        public var jsCount: Int
         
         /// Number of custom font files (0-N)
-        public var fonts: Int
+        public var fontsCount: Int
         
+        // MARK: - CodingKeys (with legacy fallback)
+        
+        private enum CodingKeys: String, CodingKey {
+            case id, displayName, originalFileName, importedAt
+            case mddCount, cssCount, jsCount, fontsCount
+            // Legacy keys for reading old manifests
+            case mdd, css, js, fonts
+        }
+                 
         public init(
             id: String,
             displayName: String,
             originalFileName: String,
             importedAt: Date = Date(),
-            mdd: Int = 0,
-            css: Int = 0,
-            js: Int = 0,
-            fonts: Int = 0
+            mddCount: Int = 0,
+            cssCount: Int = 0,
+            jsCount: Int = 0,
+            fontsCount: Int = 0
         ) {
             self.id = id
             self.displayName = displayName
             self.originalFileName = originalFileName
             self.importedAt = importedAt
-            self.mdd = mdd
-            self.css = css
-            self.js = js
-            self.fonts = fonts
+            self.mddCount = mddCount
+            self.cssCount = cssCount
+            self.jsCount = jsCount
+            self.fontsCount = fontsCount
+        }
+        
+        // MARK: - Decodable (backward compatible)
+        
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            id = try container.decode(String.self, forKey: .id)
+            displayName = try container.decode(String.self, forKey: .displayName)
+            originalFileName = try container.decode(String.self, forKey: .originalFileName)
+            importedAt = try container.decode(Date.self, forKey: .importedAt)
+
+            // Try new keys first, fallback to legacy keys
+            mddCount = try container.decodeIfPresent(Int.self, forKey: .mddCount)
+                       ?? container.decodeIfPresent(Int.self, forKey: .mdd)
+                       ?? 0
+            cssCount = try container.decodeIfPresent(Int.self, forKey: .cssCount)
+                       ?? container.decodeIfPresent(Int.self, forKey: .css)
+                       ?? 0
+            jsCount = try container.decodeIfPresent(Int.self, forKey: .jsCount)
+                       ?? container.decodeIfPresent(Int.self, forKey: .js)
+                       ?? 0
+            fontsCount = try container.decodeIfPresent(Int.self, forKey: .fontsCount)
+                         ?? container.decodeIfPresent(Int.self, forKey: .fonts)
+                         ?? 0
+        }
+
+        // MARK: - Encodable (always use new keys)
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+
+            try container.encode(id, forKey: .id)
+            try container.encode(displayName, forKey: .displayName)
+            try container.encode(originalFileName, forKey: .originalFileName)
+            try container.encode(importedAt, forKey: .importedAt)
+            try container.encode(mddCount, forKey: .mddCount)
+            try container.encode(cssCount, forKey: .cssCount)
+            try container.encode(jsCount, forKey: .jsCount)
+            try container.encode(fontsCount, forKey: .fontsCount)
         }
     }
 }
@@ -244,6 +294,64 @@ extension DictionaryManifest {
             var updated = group
             updated.modifiedAt = Date()
             groups.userGroups[index] = updated
+        }
+    }
+
+    // MARK: - Resource Count Helpers
+
+    /// Increment MDD count for a dictionary
+    public mutating func incrementMDDCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].mddCount += 1
+        }
+    }
+
+    /// Decrement MDD count for a dictionary
+    public mutating func decrementMDDCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].mddCount = max(0, dictionaries[index].mddCount - 1)
+        }
+    }
+
+    /// Increment CSS count for a dictionary
+    public mutating func incrementCSSCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].cssCount += 1
+        }
+    }
+
+    /// Decrement CSS count for a dictionary
+    public mutating func decrementCSSCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].cssCount = max(0, dictionaries[index].cssCount - 1)
+        }
+    }
+
+    /// Increment JS count for a dictionary
+    public mutating func incrementJSCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].jsCount += 1
+        }
+    }
+
+    /// Decrement JS count for a dictionary
+    public mutating func decrementJSCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].jsCount = max(0, dictionaries[index].jsCount - 1)
+        }
+    }
+
+    /// Increment fonts count for a dictionary
+    public mutating func incrementFontsCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].fontsCount += 1
+        }
+    }
+
+    /// Decrement fonts count for a dictionary
+    public mutating func decrementFontsCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].fontsCount = max(0, dictionaries[index].fontsCount - 1)
         }
     }
 }
