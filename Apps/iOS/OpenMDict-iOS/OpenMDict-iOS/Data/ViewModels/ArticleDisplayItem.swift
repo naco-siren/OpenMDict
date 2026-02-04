@@ -51,11 +51,9 @@ nonisolated struct ArticleDisplayItem: Identifiable, Hashable {
 // MARK: - Handoff Support
 
 extension ArticleDisplayItem {
-    /// Activity type for single article (drag & drop, handoff)
-    static let activityType = "io.github.naco-siren.OpenMDict.viewArticle"
     
     var userActivity: NSUserActivity {
-        let activity = NSUserActivity(activityType: Self.activityType)
+        let activity = NSUserActivity(activityType: AppIdentifiers.Activity.viewArticle)
         activity.title = word
         activity.userInfo = ["id": id, "word": word, "dictId": dictId, "dictName": dictName]
         activity.isEligibleForHandoff = true
@@ -65,7 +63,7 @@ extension ArticleDisplayItem {
     /// Create from NSUserActivity (state restoration / handoff)
     /// Content will be in pending state - needs to be loaded after dictionary is ready
     static func from(userActivity: NSUserActivity) -> ArticleDisplayItem? {
-        guard userActivity.activityType == activityType,
+        guard userActivity.activityType == AppIdentifiers.Activity.viewArticle,
               let info = userActivity.userInfo,
               let word = info["word"] as? String,
               let dictId = info["dictId"] as? String,
@@ -82,8 +80,6 @@ extension ArticleDisplayItem {
 // MARK: - Scene State Restoration
 
 extension ArticleDisplayItem {
-    /// Activity type for full scene state restoration
-    static let sceneStateActivityType = "io.github.naco-siren.OpenMDict.sceneState"
 
     /// Create scene state activity with multiple articles
     static func sceneStateActivity(
@@ -91,7 +87,7 @@ extension ArticleDisplayItem {
         groupId: String,
         layoutMode: Int
     ) -> NSUserActivity {
-        let activity = NSUserActivity(activityType: sceneStateActivityType)
+        let activity = NSUserActivity(activityType: AppIdentifiers.Activity.sceneState)
         activity.title = articles.first?.word ?? "OpenMDict"
 
         // Encode articles as array of dictionaries (only essential fields)
@@ -110,7 +106,7 @@ extension ArticleDisplayItem {
 
     /// Parse scene state from activity
     static func parseSceneState(from activity: NSUserActivity) -> (articles: [ArticleDisplayItem], groupId: String, layoutMode: Int)? {
-        guard activity.activityType == sceneStateActivityType,
+        guard activity.activityType == AppIdentifiers.Activity.sceneState,
               let info = activity.userInfo,
               let articlesData = info["articles"] as? [[String: String]] else {
             return nil

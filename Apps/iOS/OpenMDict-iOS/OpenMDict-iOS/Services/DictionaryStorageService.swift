@@ -18,7 +18,7 @@ import CryptoKit
 // MARK: - ResourceFile (for UI display)
 
 /// Information about a resource file in storage (for UI display)
-struct ResourceFile: Identifiable, Hashable {
+nonisolated struct ResourceFile: Identifiable, Hashable {
     let id: String           // hash value (unique within type)
     let type: ResourceType
     let fileName: String     // e.g., "a1b2c3d4.mdd" (hash prefix for display)
@@ -599,18 +599,6 @@ final class DictionaryStorageService {
         manifest.updateDisplayName(id: id, newName: newName)
         try saveManifest()
         print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
-    }
-    
-    // MARK: - UTTypes
-    
-    /// UTType for .mdx files
-    static var mdxType: UTType {
-        UTType("io.github.naco-siren.openmdict.mdx") ?? .data
-    }
-    
-    /// UTType for .mdd files
-    static var mddType: UTType {
-        UTType("io.github.naco-siren.openmdict.mdd") ?? .data
     }
     
     // MARK: - Resource Management (Hash-based)
