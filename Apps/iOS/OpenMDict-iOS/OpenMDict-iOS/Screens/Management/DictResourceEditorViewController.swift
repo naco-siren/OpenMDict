@@ -353,11 +353,11 @@ class DictResourceEditorViewController: UIViewController {
             case .mdx:
                 break  // Not deletable
             case .mdd:
-                try DictionaryService.shared.removeMDD(from: dictId, hash: resource.id)
+                try DictionaryService.shared.removeMDD(from: dictId, fileName: resource.fileName)
             case .css:
-                try DictionaryService.shared.removeCSS(from: dictId, hash: resource.id)
+                try DictionaryService.shared.removeCSS(from: dictId, fileName: resource.fileName)
             case .js:
-                try DictionaryService.shared.removeJS(from: dictId, hash: resource.id)
+                try DictionaryService.shared.removeJS(from: dictId, fileName: resource.fileName)
             }
             
             // Reload

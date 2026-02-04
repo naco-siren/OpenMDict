@@ -497,19 +497,19 @@ final class DictionaryService: ObservableObject {
     /// - Parameters:
     ///   - dictId: Dictionary ID
     ///   - fileURL: Source file URL (from UIDocumentPicker)
-    /// - Returns: Hash of the added file
+    /// - Returns: fileName of the added file
     func addMDD(to dictId: String, from fileURL: URL) async throws -> String {
-        let hash = try await storage.addMDDResource(dictId: dictId, sourceURL: fileURL)
+        let fileName = try await storage.addMDDResource(dictId: dictId, sourceURL: fileURL)
         // TODO: Reload MDD resources in MDict instance if needed
-        return hash
+        return fileName
     }
 
     /// Remove an MDD file from a dictionary
     /// - Parameters:
     ///   - dictId: Dictionary ID
-    ///   - hash: File hash to remove
-    func removeMDD(from dictId: String, hash: String) throws {
-        try storage.removeMDDResource(dictId: dictId, hash: hash)
+    ///   - fileName: File name to remove
+    func removeMDD(from dictId: String, fileName: String) throws {
+        try storage.removeMDDResource(dictId: dictId, fileName: fileName)
         // TODO: Reload MDD resources in MDict instance if needed
     }
 
@@ -517,35 +517,35 @@ final class DictionaryService: ObservableObject {
     /// - Parameters:
     ///   - dictId: Dictionary ID
     ///   - fileURL: Source file URL (from UIDocumentPicker)
-    /// - Returns: Hash of the added file
+    /// - Returns: fileName of the added file
     func addCSS(to dictId: String, from fileURL: URL) async throws -> String {
-        let hash = try await storage.addCSSResource(dictId: dictId, sourceURL: fileURL)
-        return hash
+        let fileName = try await storage.addCSSResource(dictId: dictId, sourceURL: fileURL)
+        return fileName
     }
 
     /// Remove a CSS file from a dictionary
     /// - Parameters:
     ///   - dictId: Dictionary ID
-    ///   - hash: File hash to remove
-    func removeCSS(from dictId: String, hash: String) throws {
-        try storage.removeCSSResource(dictId: dictId, hash: hash)
+    ///   - fileName: File name to remove
+    func removeCSS(from dictId: String, fileName: String) throws {
+        try storage.removeCSSResource(dictId: dictId, fileName: fileName)
     }
 
     /// Add a JS file to a dictionary
     /// - Parameters:
     ///   - dictId: Dictionary ID
     ///   - fileURL: Source file URL (from UIDocumentPicker)
-    /// - Returns: Hash of the added file
+    /// - Returns: fileName of the added file
     func addJS(to dictId: String, from fileURL: URL) async throws -> String {
-        let hash = try await storage.addJSResource(dictId: dictId, sourceURL: fileURL)
-        return hash
+        let fileName = try await storage.addJSResource(dictId: dictId, sourceURL: fileURL)
+        return fileName
     }
 
     /// Remove a JS file from a dictionary
     /// - Parameters:
     ///   - dictId: Dictionary ID
-    ///   - hash: File hash to remove
-    func removeJS(from dictId: String, hash: String) throws {
-        try storage.removeJSResource(dictId: dictId, hash: hash)
+    ///   - fileName: File name to remove
+    func removeJS(from dictId: String, fileName: String) throws {
+        try storage.removeJSResource(dictId: dictId, fileName: fileName)
     }
 }
