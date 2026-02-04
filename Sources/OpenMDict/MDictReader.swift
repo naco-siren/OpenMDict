@@ -111,7 +111,7 @@ public final class MDictReader: @unchecked Sendable {
     internal let parser: MDXParser
     
     /// Resource provider (MDD + external files)
-    public let resources: ResourceProvider
+    public private(set) var resources: ResourceProvider
     
     /// Dictionary metadata
     public let metadata: MDictMetadata
@@ -161,6 +161,57 @@ public final class MDictReader: @unchecked Sendable {
             hasMDD: hasMDD,
             headerSHA256: headerSHA256
         )
+    }
+    
+    /// Load a dictionary from an MDX file with explicit MDD paths
+    /// Use this when MDD files are not in the same directory as MDX
+    ///
+    /// - Parameters:
+    ///   - path: Path to the .mdx file
+    ///   - mddPaths: Explicit paths to MDD files
+    /// - Throws: MDictError if the file cannot be opened or parsed
+    public init(path: String, mddPaths: [String]) throws {
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw MDictError.fileNotFound(path)
+        }
+        
+        self.parser = try MDXParser(path: path)
+        
+        // Use explicit MDD paths instead of auto-discovery
+        let mdxURL = URL(fileURLWithPath: path)
+        let baseDirectory = mdxURL.deletingLastPathComponent().path
+        self.resources = ResourceProvider(mddPaths: mddPaths, baseDirectory: baseDirectory)
+
+        // Build metadata
+        let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
+        let hasMDD = !mddPaths.isEmpty || Self.checkMDDExists(mdxPath: path)
+        let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded)
+        let headerSHA256 = Self.computeHeaderSHA256(path: path)
+        
+        self.metadata = MDictMetadata(
+            title: title,
+            description: parser.info.description.htmlEntityDecoded,
+            entryCount: parser.entryCount,
+            format: parser.info.format,
+            encoding: parser.info.encoding,
+            engineVersion: parser.info.engineVersion,
+            creationDate: parser.info.creationDate,
+            isEncrypted: parser.info.isEncrypted,
+            isCaseSensitive: parser.info.isCaseSensitive,
+            path: path,
+            fileSize: fileSize,
+            hasMDD: hasMDD,
+            headerSHA256: headerSHA256
+        )
+    }
+    
+    /// Reload the resource provider with new MDD paths
+    /// Call this after adding/removing MDD files
+    ///
+    /// - Parameter mddPaths: New MDD paths (empty array to clear all)
+    public func reloadResources(mddPaths: [String]) {
+        let baseDirectory = (metadata.path as NSString).deletingLastPathComponent
+        self.resources = ResourceProvider(mddPaths: mddPaths, baseDirectory: baseDirectory)
     }
     
     // MARK: - Static Metadata Loading

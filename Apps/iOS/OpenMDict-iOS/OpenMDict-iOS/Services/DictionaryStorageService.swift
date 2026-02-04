@@ -231,7 +231,7 @@ struct ImportFormState {
         
         // MDX file
         let mdxURL = storage.mdxURL(id: entry.id)
-        if FileManager.default.fileExists(atPath: mdxURL.path) {
+        if let mdxURL = mdxURL, FileManager.default.fileExists(atPath: mdxURL.path) {
             state.mdxFile = SelectedFile(url: mdxURL, isAutoDiscovered: false)
         }
         
@@ -314,15 +314,14 @@ final class DictionaryStorageService {
         dictionaryDirectoryURL(id: id).appendingPathComponent("manifest.json")
     }
     
-    /// MDX file path for a dictionary (legacy: uses "0.mdx")
-    func mdxURL(id: String) -> URL {
+    /// MDX file path for a dictionary
+    func mdxURL(id: String) -> URL? {
         // Try dict manifest first (new format with original filename)
         if let dictManifest = loadDictManifest(id: id) {
             return dictionaryDirectoryURL(id: id).appendingPathComponent(dictManifest.mdx.fileName)
+        } else {
+            return nil
         }
-        
-        // Fallback to legacy format
-        return dictionaryDirectoryURL(id: id).appendingPathComponent("0.mdx")
     }
     
     /// MDX file path with original filename (new style)
@@ -732,6 +731,9 @@ final class DictionaryStorageService {
             try FileManager.default.removeItem(at: dirURL)
         }
         
+        // Invalidate cache
+        invalidateDictManifestCache(id: id)
+        
         manifest.removeDictionary(id: id)
         try saveManifest()
         
@@ -988,6 +990,21 @@ final class DictionaryStorageService {
             return listResourceFilesFromDirectory(in: mddDirectoryURL(id: dictId), type: .mdd)
         }
         return dictManifest.mdd.map { ResourceFile(entry: $0, type: .mdd) }
+    }
+    
+    /// Get MDD file URLs for a dictionary (for MDict resource loading)
+    func listMDDFiles(for dictId: String) -> [URL] {
+        let mddDir = mddDirectoryURL(id: dictId)
+        if let dictManifest = loadDictManifest(id: dictId) {
+            return dictManifest.mdd.map { mddDir.appendingPathComponent($0.fileName) }
+        }
+        // Fallback: scan directory
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: mddDir, includingPropertiesForKeys: nil
+        ) else {
+            return []
+        }
+        return contents.filter { $0.pathExtension.lowercased() == "mdd" }.sorted { $0.path < $1.path }
     }
     
     // MARK: - CSS Resource CRUD
@@ -1269,20 +1286,6 @@ final class DictionaryStorageService {
         // Try dict manifest first
         if let dictManifest = loadDictManifest(id: dictId) {
             return ResourceFile(mdxEntry: dictManifest.mdx)
-        }
-        
-        // Fallback: scan for MDX file (legacy format with 0.mdx)
-        let legacyURL = mdxURL(id: dictId)
-        if FileManager.default.fileExists(atPath: legacyURL.path) {
-            let attrs = try? legacyURL.resourceValues(forKeys: [.fileSizeKey])
-            let size = Int64(attrs?.fileSize ?? 0)
-            return ResourceFile(
-                id: "0.mdx",
-                type: .mdx,
-                fileName: "0.mdx",
-                hash: "",
-                fileSize: size
-            )
         }
         
         // Scan directory for any .mdx file

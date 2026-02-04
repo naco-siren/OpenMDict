@@ -65,6 +65,10 @@ public final class MDict: ObservableObject, Identifiable {
     /// File path to the MDX
     public nonisolated let path: String
     
+    /// Explicit MDD file paths (for imported dictionaries with non-standard structure)
+    /// When set, ResourceProvider uses these instead of auto-discovery.
+    public var mddPaths: [String]?
+    
     // MARK: - Injected Properties (set by app layer)
     
     /// User-customized display name (from manifest)
@@ -143,6 +147,15 @@ public final class MDict: ObservableObject, Identifiable {
     public nonisolated init(path: String, id: String) {
         self.path = path
         self.id = id
+        self.mddPaths = nil
+    }
+    
+    /// Create a dictionary ViewModel with explicit ID and MDD paths
+    /// Use this for imported dictionaries where MDDs are in a different directory
+    public init(path: String, id: String, mddPaths: [String]) {
+        self.path = path
+        self.id = id
+        self.mddPaths = mddPaths
     }
     
     private nonisolated static func extractId(from path: String) -> String {
@@ -163,7 +176,7 @@ public final class MDict: ObservableObject, Identifiable {
         
         do {
             // Heavy IO + extraction on background thread
-            let result = try await performFullLoad(path: path)
+            let result = try await performFullLoad(path: path, mddPaths: mddPaths)
             
             // Back on MainActor - update state
             self._reader = result.reader
@@ -198,6 +211,22 @@ public final class MDict: ObservableObject, Identifiable {
         _reader = nil
         state = .unloaded
         // Keep metadata and extracted info - they're small
+    }
+    
+    /// Reload resources with updated MDD paths
+    /// Call this after adding/removing MDD files to refresh the ResourceProvider.
+    /// Dictionary must be loaded.
+    ///
+    /// - Parameter newMddPaths: Updated MDD file paths
+    public func reloadResources(mddPaths newMddPaths: [String]) {
+        guard let reader = _reader else {
+            print("⚠️ Cannot reload resources: dictionary not loaded")
+            return
+        }
+        
+        self.mddPaths = newMddPaths
+        reader.reloadResources(mddPaths: newMddPaths)
+        print("📦 Reloaded resources for \(loggingTitle): \(newMddPaths.count) MDD files")
     }
     
     // MARK: - Lookup API
@@ -285,8 +314,13 @@ extension MDict: @MainActor Lookupable {
 /// Full load: parse MDX + extract description info
 /// Runs entirely on background thread.
 @concurrent
-private nonisolated func performFullLoad(path: String) async throws -> MDictLoadResult {
-    let reader = try MDictReader(path: path)
+private nonisolated func performFullLoad(path: String, mddPaths: [String]?) async throws -> MDictLoadResult {
+    let reader: MDictReader
+    if let mddPaths = mddPaths, !mddPaths.isEmpty {
+        reader = try MDictReader(path: path, mddPaths: mddPaths)
+    } else {
+        reader = try MDictReader(path: path)
+    }
     
     // Piggyback extraction while still on background thread
     let desc = reader.metadata.description

@@ -74,20 +74,27 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
                 }
             }
             
-            // Try Bundle.main with case-insensitive matching
-            if resourceData == nil {
+            // 3. Bundle.main fallback - ONLY for bundled dictionaries (isolation enforcement)
+            let dictSource = DictionaryService.shared.dictionarySources[dictId]
+            if resourceData == nil, dictSource == .bundled {
                 let baseName = (filename as NSString).deletingPathExtension
                 let ext = (filename as NSString).pathExtension
                 
                 // Try exact match first
                 if let bundleURL = Bundle.main.url(forResource: baseName, withExtension: ext) {
                     resourceData = try? Data(contentsOf: bundleURL)
+                    if resourceData != nil {
+                        print("📄 MDictSchemeHandler: Loaded from bundle for [\(dictId)]: \(bundleURL.lastPathComponent)")
+                    }
                 }
                 
                 // Try dictionary ID as filename (common pattern: dictId.css)
                 if resourceData == nil {
                     if let bundleURL = Bundle.main.url(forResource: dictId, withExtension: ext) {
                         resourceData = try? Data(contentsOf: bundleURL)
+                        if resourceData != nil {
+                            print("📄 MDictSchemeHandler: Loaded from bundle (by dictId) for [\(dictId)]: \(bundleURL.lastPathComponent)")
+                        }
                     }
                 }
                 
@@ -99,12 +106,15 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
                         if urlBaseName.lowercased() == baseName.lowercased() {
                             resourceData = try? Data(contentsOf: url)
                             if resourceData != nil {
-                                print("📄 MDictSchemeHandler: Loaded from bundle (case-insensitive): \(url.lastPathComponent)")
+                                print("📄 MDictSchemeHandler: Loaded from bundle (case-insensitive) for [\(dictId)]: \(url.lastPathComponent)")
                                 break
                             }
                         }
                     }
                 }
+            } else if resourceData == nil && dictSource == .imported {
+                // Log when imported dict tries to load resource but can't use bundle
+                print("🔒 MDictSchemeHandler: Bundle fallback blocked for imported dict [\(dictId)]: \(filename)")
             }
         }
         

@@ -147,6 +147,7 @@ final class DictionaryService: ObservableObject {
         }
     }
     
+    // TODO: replace hardcoded dictionaries with a better system after resource management and group management is completed!
     private func loadBundledDictionaries() {
         let names = ["SampleDictF", "SampleDictA", "SampleDictE", "SampleDictB", "SampleDictC", "SampleDictD"]
         let bundledDicts: [MDict] = names.compactMap { name in
@@ -171,16 +172,36 @@ final class DictionaryService: ObservableObject {
     
     private func loadUserDictionaries() {
         let importedDicts: [MDict] = storage.manifest.dictionaries.compactMap { entry -> MDict? in
-            let mdxPath = storage.mdxURL(id: entry.id).path
-            guard FileManager.default.fileExists(atPath: mdxPath) else {
-                print("⚠️ Imported dictionary MDX not found: \(entry.displayName)")
+            // Load dict manifest to get actual MDX filename
+            guard let dictManifest = storage.loadDictManifest(id: entry.id) else {
+                print("⚠️ Dict manifest not found for: \(entry.displayName) (id: \(entry.id))")
                 return nil
             }
-            // Use manifest's entry.id (SHA256) as the MDict id, not "0" from filename
-            let dict = MDict(path: mdxPath, id: entry.id)
+
+            // Use MDX filename from dict manifest
+            let mdxPath = storage.mdxURL(id: entry.id, fileName: dictManifest.mdx.fileName).path
+            guard FileManager.default.fileExists(atPath: mdxPath) else {
+                print("⚠️ Imported dictionary MDX not found: \(entry.displayName) at \(mdxPath)")
+
+                return nil
+            }
+            
+            // Build MDD paths from dict manifest
+            let mddDir = storage.mddDirectoryURL(id: entry.id)
+            let mddPaths: [String] = dictManifest.mdd.map { mddEntry in
+                mddDir.appendingPathComponent(mddEntry.fileName).path
+            }
+            
+            // Use manifest's entry.id (SHA256) as the MDict id
+            let dict = MDict(path: mdxPath, id: entry.id, mddPaths: mddPaths)
             // Inject properties from manifest for displayTitle fallback chain
             dict.userDisplayName = entry.displayName
             dict.originalFileName = entry.originalFileName
+            
+            if !mddPaths.isEmpty {
+                print("📦 Loaded \(entry.displayName) with \(mddPaths.count) MDD files")
+            }
+            
             return dict
         }
         
@@ -373,8 +394,10 @@ final class DictionaryService: ObservableObject {
         }
         
         // 1. Create MDict instance
-        let mdxPath = storage.mdxURL(id: id).path
-        // Use SHA256 as id, not "0" from 0.mdx filename
+        guard let mdxPath = storage.mdxURL(id: id)?.path else {
+            print("⚠️ MDX file not found! skipping")
+            return
+        }
         let newDict = MDict(path: mdxPath, id: id)
         
         // Inject properties from manifest for displayTitle fallback chain
@@ -500,7 +523,8 @@ final class DictionaryService: ObservableObject {
     /// - Returns: fileName of the added file
     func addMDD(to dictId: String, from fileURL: URL) async throws -> String {
         let fileName = try await storage.addMDDResource(dictId: dictId, sourceURL: fileURL)
-        // TODO: Reload MDD resources in MDict instance if needed
+        // Reload MDD resources in MDict instance
+        reloadMDDResources(for: dictId)
         return fileName
     }
 
@@ -510,7 +534,15 @@ final class DictionaryService: ObservableObject {
     ///   - fileName: File name to remove
     func removeMDD(from dictId: String, fileName: String) throws {
         try storage.removeMDDResource(dictId: dictId, fileName: fileName)
-        // TODO: Reload MDD resources in MDict instance if needed
+        // Reload MDD resources in MDict instance
+        reloadMDDResources(for: dictId)
+    }
+    
+    /// Reload MDD resources for a dictionary after add/remove
+    private func reloadMDDResources(for dictId: String) {
+        guard let dict = dict(id: dictId) else { return }
+        let mddPaths = storage.listMDDFiles(for: dictId).map { $0.path }
+        dict.reloadResources(mddPaths: mddPaths)
     }
 
     /// Add a CSS file to a dictionary
