@@ -33,7 +33,7 @@ public struct DictionaryManifest: Codable {
 
 extension DictionaryManifest {
     
-    /// Metadata for a user-imported dictionary
+    /// Metadata for a user-imported dictionary (stored in root manifest)
     public struct DictionaryEntry: Codable, Identifiable {
         /// SHA256 hash of MDX header (used as folder name and unique ID)
         public let id: String
@@ -41,15 +41,21 @@ extension DictionaryManifest {
         /// User-editable display name
         public var displayName: String
         
-        /// Original filename when imported (e.g., "MyDict.mdx")
+        /// Original MDX filename when imported (e.g., "MyDict.mdx")
         /// Used for duplicate detection and as display fallback
         public let originalFileName: String
         
         /// Import timestamp
         public let importedAt: Date
         
+        /// Last modification timestamp (resource added/removed)
+        public var updatedAt: Date
+        
+        /// Total size of all files in KB (for sorting: load smallest first)
+        public var totalSizeKB: Int64
+        
         /// Number of MDD resource files (0-N)
-        /// Note: This is a quick-check count; actual loading iterates directory
+        /// Note: This is a quick-check count; actual loading reads dict manifest
         public var mddCount: Int
         
         /// Number of custom CSS files (0-N)
@@ -64,7 +70,7 @@ extension DictionaryManifest {
         // MARK: - CodingKeys (with legacy fallback)
         
         private enum CodingKeys: String, CodingKey {
-            case id, displayName, originalFileName, importedAt
+            case id, displayName, originalFileName, importedAt, updatedAt, totalSizeKB
             case mddCount, cssCount, jsCount, fontsCount
             // Legacy keys for reading old manifests
             case mdd, css, js, fonts
@@ -75,6 +81,8 @@ extension DictionaryManifest {
             displayName: String,
             originalFileName: String,
             importedAt: Date = Date(),
+            updatedAt: Date = Date(),
+            totalSizeKB: Int64 = 0,
             mddCount: Int = 0,
             cssCount: Int = 0,
             jsCount: Int = 0,
@@ -84,6 +92,8 @@ extension DictionaryManifest {
             self.displayName = displayName
             self.originalFileName = originalFileName
             self.importedAt = importedAt
+            self.updatedAt = updatedAt
+            self.totalSizeKB = totalSizeKB
             self.mddCount = mddCount
             self.cssCount = cssCount
             self.jsCount = jsCount
@@ -99,6 +109,10 @@ extension DictionaryManifest {
             displayName = try container.decode(String.self, forKey: .displayName)
             originalFileName = try container.decode(String.self, forKey: .originalFileName)
             importedAt = try container.decode(Date.self, forKey: .importedAt)
+            
+            // New fields with defaults for backward compatibility
+            updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? importedAt
+            totalSizeKB = try container.decodeIfPresent(Int64.self, forKey: .totalSizeKB) ?? 0
 
             // Try new keys first, fallback to legacy keys
             mddCount = try container.decodeIfPresent(Int.self, forKey: .mddCount)
@@ -124,6 +138,8 @@ extension DictionaryManifest {
             try container.encode(displayName, forKey: .displayName)
             try container.encode(originalFileName, forKey: .originalFileName)
             try container.encode(importedAt, forKey: .importedAt)
+            try container.encode(updatedAt, forKey: .updatedAt)
+            try container.encode(totalSizeKB, forKey: .totalSizeKB)
             try container.encode(mddCount, forKey: .mddCount)
             try container.encode(cssCount, forKey: .cssCount)
             try container.encode(jsCount, forKey: .jsCount)
@@ -353,5 +369,218 @@ extension DictionaryManifest {
         if let index = dictionaries.firstIndex(where: { $0.id == id }) {
             dictionaries[index].fontsCount = max(0, dictionaries[index].fontsCount - 1)
         }
+    }
+    
+    /// Update updatedAt timestamp for a dictionary
+    public mutating func touchUpdatedAt(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].updatedAt = Date()
+        }
+    }
+    
+    /// Update totalSizeKB for a dictionary
+    public mutating func updateTotalSize(id: String, sizeKB: Int64) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].totalSizeKB = sizeKB
+        }
+    }
+}
+
+// MARK: - DictManifest (Per-dictionary detailed manifest)
+
+/// Detailed resource manifest for a single dictionary.
+/// Stored in `<dict-id>/manifest.json` within Library/Dictionaries/
+public struct DictManifest: Codable {
+    /// Dictionary ID (same as folder name, MDX header SHA256)
+    public let id: String
+    
+    /// MDX file entry (exactly one)
+    public let mdx: MDXEntry
+    
+    /// MDD resource files (0-N)
+    public var mdd: [ResourceEntry]
+    
+    /// Custom CSS files (0-N)
+    public var css: [ResourceEntry]
+    
+    /// Custom JS files (0-N)
+    public var js: [ResourceEntry]
+    
+    public init(
+        id: String,
+        mdx: MDXEntry,
+        mdd: [ResourceEntry] = [],
+        css: [ResourceEntry] = [],
+        js: [ResourceEntry] = []
+    ) {
+        self.id = id
+        self.mdx = mdx
+        self.mdd = mdd
+        self.css = css
+        self.js = js
+    }
+    
+    /// Total size of all files in bytes
+    public var totalSizeBytes: Int64 {
+        mdx.sizeBytes
+        + mdd.reduce(0) { $0 + $1.sizeBytes }
+        + css.reduce(0) { $0 + $1.sizeBytes }
+        + js.reduce(0) { $0 + $1.sizeBytes }
+    }
+    
+    /// Total size in KB (for root manifest sync)
+    public var totalSizeKB: Int64 {
+        totalSizeBytes / 1024
+    }
+}
+
+// MARK: - DictManifest Entries
+
+extension DictManifest {
+    
+    /// MDX file entry (read-only, cannot be removed)
+    public struct MDXEntry: Codable {
+        /// Original filename (e.g., "MyDict.mdx")
+        public let fileName: String
+        
+        /// File size in bytes
+        public let sizeBytes: Int64
+        
+        /// Import timestamp
+        public let importedAt: Date
+        
+        public init(fileName: String, sizeBytes: Int64, importedAt: Date = Date()) {
+            self.fileName = fileName
+            self.sizeBytes = sizeBytes
+            self.importedAt = importedAt
+        }
+    }
+    
+    /// Resource file entry (MDD/CSS/JS)
+    public struct ResourceEntry: Codable, Identifiable, Equatable {
+        /// Unique ID within type (same as fileName)
+        public var id: String { fileName }
+        
+        /// Original filename (e.g., "MyDict.mdd", "custom.css")
+        public let fileName: String
+        
+        /// SHA256 hash of file content (for duplicate detection)
+        public let hash: String
+        
+        /// File size in bytes
+        public let sizeBytes: Int64
+        
+        /// Import timestamp
+        public let importedAt: Date
+        
+        public init(fileName: String, hash: String, sizeBytes: Int64, importedAt: Date = Date()) {
+            self.fileName = fileName
+            self.hash = hash
+            self.sizeBytes = sizeBytes
+            self.importedAt = importedAt
+        }
+    }
+}
+
+// MARK: - DictManifest Query Helpers
+
+extension DictManifest {
+    
+    /// Find MDD entry by filename
+    public func mddEntry(fileName: String) -> ResourceEntry? {
+        mdd.first { $0.fileName == fileName }
+    }
+    
+    /// Find MDD entry by hash
+    public func mddEntry(hash: String) -> ResourceEntry? {
+        mdd.first { $0.hash == hash }
+    }
+    
+    /// Find CSS entry by filename
+    public func cssEntry(fileName: String) -> ResourceEntry? {
+        css.first { $0.fileName == fileName }
+    }
+    
+    /// Find CSS entry by hash
+    public func cssEntry(hash: String) -> ResourceEntry? {
+        css.first { $0.hash == hash }
+    }
+    
+    /// Find JS entry by filename
+    public func jsEntry(fileName: String) -> ResourceEntry? {
+        js.first { $0.fileName == fileName }
+    }
+    
+    /// Find JS entry by hash
+    public func jsEntry(hash: String) -> ResourceEntry? {
+        js.first { $0.hash == hash }
+    }
+    
+    /// All MDD file paths (relative to dict directory)
+    public var mddPaths: [String] {
+        mdd.map { "mdd/\($0.fileName)" }
+    }
+    
+    /// All CSS file paths (relative to dict directory)
+    public var cssPaths: [String] {
+        css.map { "css/\($0.fileName)" }
+    }
+    
+    /// All JS file paths (relative to dict directory)
+    public var jsPaths: [String] {
+        js.map { "js/\($0.fileName)" }
+    }
+}
+
+// MARK: - DictManifest Mutation Helpers
+
+extension DictManifest {
+    
+    /// Add MDD entry (returns false if hash already exists)
+    @discardableResult
+    public mutating func addMDD(_ entry: ResourceEntry) -> Bool {
+        guard mddEntry(hash: entry.hash) == nil else { return false }
+        mdd.append(entry)
+        return true
+    }
+    
+    /// Remove MDD entry by filename
+    @discardableResult
+    public mutating func removeMDD(fileName: String) -> Bool {
+        let count = mdd.count
+        mdd.removeAll { $0.fileName == fileName }
+        return mdd.count < count
+    }
+    
+    /// Add CSS entry (returns false if hash already exists)
+    @discardableResult
+    public mutating func addCSS(_ entry: ResourceEntry) -> Bool {
+        guard cssEntry(hash: entry.hash) == nil else { return false }
+        css.append(entry)
+        return true
+    }
+    
+    /// Remove CSS entry by filename
+    @discardableResult
+    public mutating func removeCSS(fileName: String) -> Bool {
+        let count = css.count
+        css.removeAll { $0.fileName == fileName }
+        return css.count < count
+    }
+    
+    /// Add JS entry (returns false if hash already exists)
+    @discardableResult
+    public mutating func addJS(_ entry: ResourceEntry) -> Bool {
+        guard jsEntry(hash: entry.hash) == nil else { return false }
+        js.append(entry)
+        return true
+    }
+    
+    /// Remove JS entry by filename
+    @discardableResult
+    public mutating func removeJS(fileName: String) -> Bool {
+        let count = js.count
+        js.removeAll { $0.fileName == fileName }
+        return js.count < count
     }
 }
