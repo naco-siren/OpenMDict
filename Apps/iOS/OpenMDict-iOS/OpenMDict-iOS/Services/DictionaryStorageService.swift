@@ -175,6 +175,16 @@ struct SelectedFile {
         )
     }
     
+    /// Create from a PendingFile (used during import)
+    /// Uses the PendingFile's already-captured bookmark data
+    init(from pendingFile: PendingFile) {
+        self.url = pendingFile.url
+        self.fileName = pendingFile.fileName
+        self.fileSize = pendingFile.fileSize
+        self.bookmarkData = pendingFile.bookmarkData
+        self.isAutoDiscovered = false
+    }
+    
     var fileSizeFormatted: String {
         ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
     }
@@ -565,8 +575,10 @@ final class DictionaryStorageService {
         
         // 2. Copy MDX (using original filename)
         let mdxDestURL = mdxURL(id: id, fileName: mdxFile.fileName)
+        print("📄 Storage: Copying MDX \(mdxFile.fileName) to \(mdxDestURL.path)")
         let (_, mdxSize) = try await copyFile(mdxFile, to: mdxDestURL)
         totalSizeBytes += mdxSize
+        print("📄 Storage: MDX copied, size=\(mdxSize)")
         
         let mdxEntry = DictManifest.MDXEntry(
             fileName: mdxFile.fileName,
@@ -575,10 +587,13 @@ final class DictionaryStorageService {
         
         // 3. Copy MDDs (using original filenames, calculate hash)
         var mddEntries: [DictManifest.ResourceEntry] = []
+        print("📄 Storage: Copying \(mddFiles.count) MDD files")
         for file in mddFiles {
             let destURL = mddDirectoryURL(id: id).appendingPathComponent(file.fileName)
+            print("📄 Storage: Copying MDD \(file.fileName) to \(destURL.path)")
             let (hash, size) = try await copyFileWithHash(file, to: destURL)
             totalSizeBytes += size
+            print("📄 Storage: MDD copied, size=\(size), hash=\(hash.prefix(8))...")
             
             mddEntries.append(DictManifest.ResourceEntry(
                 fileName: file.fileName,
@@ -589,10 +604,13 @@ final class DictionaryStorageService {
         
         // 4. Copy CSS (using original filenames, calculate hash)
         var cssEntries: [DictManifest.ResourceEntry] = []
+        print("📄 Storage: Copying \(cssFiles.count) CSS files")
         for file in cssFiles {
             let destURL = cssDirectoryURL(id: id).appendingPathComponent(file.fileName)
+            print("📄 Storage: Copying CSS \(file.fileName) to \(destURL.path)")
             let (hash, size) = try await copyFileWithHash(file, to: destURL)
             totalSizeBytes += size
+            print("📄 Storage: CSS copied, size=\(size), hash=\(hash.prefix(8))...")
             
             cssEntries.append(DictManifest.ResourceEntry(
                 fileName: file.fileName,
@@ -603,10 +621,13 @@ final class DictionaryStorageService {
         
         // 5. Copy JS (using original filenames, calculate hash)
         var jsEntries: [DictManifest.ResourceEntry] = []
+        print("📄 Storage: Copying \(jsFiles.count) JS files")
         for file in jsFiles {
             let destURL = jsDirectoryURL(id: id).appendingPathComponent(file.fileName)
+            print("📄 Storage: Copying JS \(file.fileName) to \(destURL.path)")
             let (hash, size) = try await copyFileWithHash(file, to: destURL)
             totalSizeBytes += size
+            print("📄 Storage: JS copied, size=\(size), hash=\(hash.prefix(8))...")
             
             jsEntries.append(DictManifest.ResourceEntry(
                 fileName: file.fileName,

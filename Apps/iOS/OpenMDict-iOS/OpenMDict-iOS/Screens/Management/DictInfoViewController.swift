@@ -660,10 +660,21 @@ class DictInfoViewController: UIViewController {
         // Create SelectedFile for the MDX
         let mdxFile = SelectedFile(url: url)
         
+        // Get pending resources from ImportSession
+        let session = DictionaryService.shared.importSession
+        let mddFiles = session.pendingMDDFiles.map { SelectedFile(url: $0.url) }
+        let cssFiles = session.pendingCSSFiles.map { SelectedFile(url: $0.url) }
+        let jsFiles = session.pendingJSFiles.map { SelectedFile(url: $0.url) }
+        
+        print("📦 Importing: MDX=\(mdxFile.fileName), MDD=\(mddFiles.count), CSS=\(cssFiles.count), JS=\(jsFiles.count)")
+        
         Task {
             do {
                 let dictId = try await DictionaryService.shared.importDictionary(
                     mdxFile: mdxFile,
+                    mddFiles: mddFiles,
+                    cssFiles: cssFiles,
+                    jsFiles: jsFiles,
                     displayName: displayName,
                     headerSHA256: headerSHA256
                 )
@@ -873,13 +884,23 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         selectedMDXURL = url
         
-        // Load metadata preview from selected MDX
+        // Load metadata preview from selected MDX (need security scope)
         var metadata: MDictMetadata?
-        if url.startAccessingSecurityScopedResource() {
-            metadata = MDictReader.loadMetadata(from: url.path)
-            url.stopAccessingSecurityScopedResource()
-        } else {
-            metadata = MDictReader.loadMetadata(from: url.path)
+        var fileSize: Int64 = 0
+        
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        
+        metadata = MDictReader.loadMetadata(from: url.path)
+        
+        // Get file size while we have security access
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+           let size = attrs[.size] as? Int64 {
+            fileSize = size
         }
         
         previewMetadata = metadata
@@ -894,6 +915,7 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
             print("   Format: \(m.format), Encoding: \(m.encoding)")
             print("   Engine: \(m.engineVersion)")
             print("   SHA256: \(m.headerSHA256?.prefix(16) ?? "nil")...")
+            print("   File size: \(fileSize) bytes")
             let extracted = MDictDescriptionParser.tryExtractTitle(from: m.description)
             print("   Extracted title: \(extracted ?? "(none)")")
         }
@@ -912,6 +934,11 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         currentMode = .importing
         print("📄 Selected: \(url.lastPathComponent)")
+        
+        // Update ImportSession with selected MDX
+        if let m = metadata {
+            DictionaryService.shared.importSession.setMDX(url: url, metadata: m, fileSize: fileSize)
+        }
         
         // Notify MainSplitVC to update third column (resource editor)
         // dictId = headerSHA256 (available before import)

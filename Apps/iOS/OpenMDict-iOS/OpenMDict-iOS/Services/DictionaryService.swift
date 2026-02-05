@@ -90,6 +90,12 @@ final class DictionaryService: ObservableObject {
         SearchSession()
     }
     
+    // MARK: - Import Session (App-wide)
+    
+    /// Shared import session for dictionary import workflow
+    /// App-wide because import is a global operation (unlike search which is per-scene)
+    let importSession = ImportSession()
+    
     // MARK: - Computed
     
     var defaultGroup: MDicts? {
@@ -330,18 +336,27 @@ final class DictionaryService: ObservableObject {
     /// - Returns: The new dictionary's ID
     func importDictionary(
         mdxFile: SelectedFile,
+        mddFiles: [SelectedFile] = [],
+        cssFiles: [SelectedFile] = [],
+        jsFiles: [SelectedFile] = [],
         displayName: String,
         headerSHA256: String
     ) async throws -> String {
         // 1. Copy files to storage
         let dictId = try await storage.importDictionary(
             mdxFile: mdxFile,
+            mddFiles: mddFiles,
+            cssFiles: cssFiles,
+            jsFiles: jsFiles,
             displayName: displayName,
             headerSHA256: headerSHA256
         )
 
         // 2. Load into memory and update groups
         await refreshAfterImport(dictId)
+        
+        // 3. Reset import session
+        importSession.reset()
 
         return dictId
     }
@@ -393,12 +408,25 @@ final class DictionaryService: ObservableObject {
             return
         }
         
-        // 1. Create MDict instance
+        // 1. Create MDict instance with MDD paths from dict manifest
         guard let mdxPath = storage.mdxURL(id: id)?.path else {
             print("⚠️ MDX file not found! skipping")
             return
         }
-        let newDict = MDict(path: mdxPath, id: id)
+        
+        // Build MDD paths from dict manifest (same as loadImportedDictionaries)
+        var mddPaths: [String] = []
+        if let dictManifest = storage.loadDictManifest(id: id) {
+            let mddDir = storage.mddDirectoryURL(id: id)
+            mddPaths = dictManifest.mdd.map { mddEntry in
+                mddDir.appendingPathComponent(mddEntry.fileName).path
+            }
+            if !mddPaths.isEmpty {
+                print("📦 refreshAfterImport: found \(mddPaths.count) MDD files")
+            }
+        }
+        
+        let newDict = MDict(path: mdxPath, id: id, mddPaths: mddPaths)
         
         // Inject properties from manifest for displayTitle fallback chain
         if let entry = storage.manifest.dictionary(id: id) {

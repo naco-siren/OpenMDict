@@ -8,6 +8,7 @@
 
 import UIKit
 import UniformTypeIdentifiers
+import Combine
 
 class DictResourceEditorViewController: UIViewController {
     
@@ -37,7 +38,7 @@ class DictResourceEditorViewController: UIViewController {
         var allowedUTTypes: [UTType] {
             switch self {
             case .mdx: return []  // Not editable
-            case .mdd: return [AppIdentifiers.ResourceType.mdd, .data]
+            case .mdd: return [AppIdentifiers.ResourceType.mdd]
             case .css: return [AppIdentifiers.ResourceType.css]
             case .js: return [AppIdentifiers.ResourceType.js]
             }
@@ -48,11 +49,13 @@ class DictResourceEditorViewController: UIViewController {
         case resourceFile(ResourceFile)
         case addButton(Section)
         case emptyPlaceholder(Section)
+        case pendingFile(PendingFile)  // For importing mode
     }
     
     enum Mode: Equatable {
         case empty
-        case editing(dictId: String)
+        case editing(dictId: String)    // Editing an imported dictionary
+        case importing(dictId: String)  // Importing a new dictionary (dictId = headerSHA256)
     }
     
     // MARK: - State
@@ -66,6 +69,10 @@ class DictResourceEditorViewController: UIViewController {
     }
     
     private var resources: [ResourceFile] = []
+    
+    // MARK: - Combine
+    
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI
     
@@ -217,6 +224,38 @@ class DictResourceEditorViewController: UIViewController {
             cell.accessories = []
         }
         
+        // Pending file cell (for importing mode) - uses outlined icons to indicate "not yet imported"
+        let pendingFileRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, PendingFile> {
+            cell, indexPath, file in
+            
+            var content = cell.defaultContentConfiguration()
+            content.text = file.fileName
+            content.secondaryText = ByteCountFormatter.string(fromByteCount: file.fileSize, countStyle: .file)
+            
+            // Icon based on section - use OUTLINED variants (not .fill) for pending files
+            let section = Section(rawValue: indexPath.section) ?? .mdx
+            let iconName: String
+            switch section {
+            case .mdx: iconName = "doc"              // outlined, vs "doc.fill" for stored
+            case .mdd: iconName = "archivebox"       // outlined
+            case .css: iconName = "paintbrush"       // outlined
+            case .js: iconName = "chevron.left.forwardslash.chevron.right"  // no fill variant
+            }
+            content.image = UIImage(systemName: iconName)
+            content.imageProperties.tintColor = .systemBlue  // Same blue as stored files
+            
+            cell.contentConfiguration = content
+            
+            // MDX is not removable, others are
+            if section == .mdx {
+                let lockImage = UIImageView(image: UIImage(systemName: "lock.fill"))
+                lockImage.tintColor = .tertiaryLabel
+                cell.accessories = [.customView(configuration: .init(customView: lockImage, placement: .trailing()))]
+            } else {
+                cell.accessories = []
+            }
+        }
+        
         // Header registration
         let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
@@ -244,6 +283,10 @@ class DictResourceEditorViewController: UIViewController {
                 return collectionView.dequeueConfiguredReusableCell(
                     using: emptyRegistration, for: indexPath, item: section
                 )
+            case .pendingFile(let file):
+                return collectionView.dequeueConfiguredReusableCell(
+                    using: pendingFileRegistration, for: indexPath, item: file
+                )
             }
         }
         
@@ -260,13 +303,41 @@ class DictResourceEditorViewController: UIViewController {
             emptyStateView.isHidden = false
             collectionView.isHidden = true
             resources = []
+            cancellables.removeAll()
             
         case .editing(let dictId):
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             resources = DictionaryService.shared.resources(for: dictId)
+            cancellables.removeAll()
             applySnapshot()
+            
+        case .importing:
+            emptyStateView.isHidden = true
+            collectionView.isHidden = false
+            resources = []
+            setupImportSessionSubscriptions()
+            applyImportingSnapshot()
         }
+    }
+    
+    private func setupImportSessionSubscriptions() {
+        cancellables.removeAll()
+        
+        let session = DictionaryService.shared.importSession
+        
+        // Subscribe to all pending file changes
+        Publishers.CombineLatest4(
+            session.$mdxPendingFile,
+            session.$pendingMDDFiles,
+            session.$pendingCSSFiles,
+            session.$pendingJSFiles
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _, _, _, _ in
+            self?.applyImportingSnapshot()
+        }
+        .store(in: &cancellables)
     }
     
     private func applySnapshot(animated: Bool = false) {
@@ -294,6 +365,49 @@ class DictResourceEditorViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
     
+    /// Apply snapshot for importing mode - shows pending files from ImportSession
+    private func applyImportingSnapshot(animated: Bool = false) {
+        let session = DictionaryService.shared.importSession
+        
+        print("📋 applyImportingSnapshot: mdxPendingFile=\(session.mdxPendingFile?.fileName ?? "nil"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count)")
+        
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        snapshot.appendSections(Section.allCases)
+        
+        // MDX section - show pending MDX if available
+        if let mdxFile = session.mdxPendingFile {
+            snapshot.appendItems([.pendingFile(mdxFile)], toSection: .mdx)
+        } else {
+            snapshot.appendItems([.emptyPlaceholder(.mdx)], toSection: .mdx)
+        }
+        
+        // MDD section
+        if session.pendingMDDFiles.isEmpty {
+            snapshot.appendItems([.emptyPlaceholder(.mdd)], toSection: .mdd)
+        } else {
+            snapshot.appendItems(session.pendingMDDFiles.map { .pendingFile($0) }, toSection: .mdd)
+        }
+        snapshot.appendItems([.addButton(.mdd)], toSection: .mdd)
+        
+        // CSS section
+        if session.pendingCSSFiles.isEmpty {
+            snapshot.appendItems([.emptyPlaceholder(.css)], toSection: .css)
+        } else {
+            snapshot.appendItems(session.pendingCSSFiles.map { .pendingFile($0) }, toSection: .css)
+        }
+        snapshot.appendItems([.addButton(.css)], toSection: .css)
+        
+        // JS section
+        if session.pendingJSFiles.isEmpty {
+            snapshot.appendItems([.emptyPlaceholder(.js)], toSection: .js)
+        } else {
+            snapshot.appendItems(session.pendingJSFiles.map { .pendingFile($0) }, toSection: .js)
+        }
+        snapshot.appendItems([.addButton(.js)], toSection: .js)
+        
+        dataSource.apply(snapshot, animatingDifferences: animated)
+    }
+    
     // MARK: - Swipe Actions
     
     private func trailingSwipeActions(for indexPath: IndexPath) -> UISwipeActionsConfiguration? {
@@ -314,7 +428,13 @@ class DictResourceEditorViewController: UIViewController {
     // MARK: - Actions
     
     private func handleAddButton(for section: Section) {
-        guard case .editing = mode else { return }
+        // Allow adding in both editing and importing modes
+        switch mode {
+        case .empty:
+            return
+        case .editing, .importing:
+            break
+        }
         
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: section.allowedUTTypes)
         picker.delegate = self
@@ -369,31 +489,66 @@ class DictResourceEditorViewController: UIViewController {
     }
     
     private func addResource(from url: URL, to section: Section) {
-        guard case .editing(let dictId) = mode else { return }
-        
-        Task {
-            do {
-                switch section {
-                case .mdx:
-                    break  // Not addable
-                case .mdd:
-                    _ = try await DictionaryService.shared.addMDD(to: dictId, from: url)
-                case .css:
-                    _ = try await DictionaryService.shared.addCSS(to: dictId, from: url)
-                case .js:
-                    _ = try await DictionaryService.shared.addJS(to: dictId, from: url)
-                }
-                
-                // Reload on main thread
-                await MainActor.run {
-                    reloadData()
-                }
-                
-            } catch {
-                await MainActor.run {
-                    showError(error)
+        switch mode {
+        case .empty:
+            return
+            
+        case .editing(let dictId):
+            // Editing mode: copy file to storage immediately
+            Task {
+                do {
+                    switch section {
+                    case .mdx:
+                        break  // Not addable
+                    case .mdd:
+                        _ = try await DictionaryService.shared.addMDD(to: dictId, from: url)
+                    case .css:
+                        _ = try await DictionaryService.shared.addCSS(to: dictId, from: url)
+                    case .js:
+                        _ = try await DictionaryService.shared.addJS(to: dictId, from: url)
+                    }
+                    
+                    // Reload on main thread
+                    await MainActor.run {
+                        reloadData()
+                    }
+                    
+                } catch {
+                    await MainActor.run {
+                        showError(error)
+                    }
                 }
             }
+            
+        case .importing:
+            // Importing mode: add to ImportSession (will be copied on import)
+            // Get file size while we have security access
+            var fileSize: Int64 = 0
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            print("📋 addResource: url=\(url.lastPathComponent), hasAccess=\(hasAccess)")
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+               let size = attrs[.size] as? Int64 {
+                fileSize = size
+                print("📋 addResource: fileSize=\(fileSize)")
+            } else {
+                print("⚠️ addResource: failed to get file size for \(url.path)")
+            }
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+            
+            let session = DictionaryService.shared.importSession
+            switch section {
+            case .mdx:
+                break  // Not addable (MDX is set via DictInfoVC)
+            case .mdd:
+                session.addMDD(url, fileSize: fileSize)
+            case .css:
+                session.addCSS(url, fileSize: fileSize)
+            case .js:
+                session.addJS(url, fileSize: fileSize)
+            }
+            // Note: applyImportingSnapshot() will be called automatically via Combine subscription
         }
     }
     
@@ -415,8 +570,18 @@ class DictResourceEditorViewController: UIViewController {
     }
     
     /// Show editor for a specific dictionary
+    /// Automatically determines if we're editing (imported dict) or importing (pending dict)
     func showEditor(for dictId: String) {
-        mode = .editing(dictId: dictId)
+        // Check if this dictId corresponds to an already-imported dictionary
+        if DictionaryService.shared.dict(id: dictId) != nil {
+            // Imported dictionary - use editing mode
+            print("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> editing mode")
+            mode = .editing(dictId: dictId)
+        } else {
+            // Not imported yet - use importing mode (dictId = headerSHA256 from ImportSession)
+            print("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> importing mode")
+            mode = .importing(dictId: dictId)
+        }
     }
 }
 
@@ -432,7 +597,7 @@ extension DictResourceEditorViewController: UICollectionViewDelegate {
         switch item {
         case .addButton(let section):
             handleAddButton(for: section)
-        case .resourceFile, .emptyPlaceholder:
+        case .resourceFile, .emptyPlaceholder, .pendingFile:
             break
         }
     }
