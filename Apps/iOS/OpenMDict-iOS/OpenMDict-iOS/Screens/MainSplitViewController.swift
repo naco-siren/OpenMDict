@@ -180,6 +180,20 @@ class MainSplitViewController: UISplitViewController {
             self?.exitToLookupMode()
         }
         
+        dictInfoVC.onManageResources = { [weak self] dictId in
+            guard let self, isCompact else { return }
+            dictResourceEditorVC.showEditor(for: dictId)
+            show(.secondary)
+        }
+        
+        dictInfoVC.onMDXSelected = { [weak self] dictId in
+            guard let self else { return }
+            // Update third column to show resource editor for pending import
+            // This works in both regular (columns visible) and compact (user taps Manage Resources) modes
+            dictResourceEditorVC.showEditor(for: dictId)
+            debugLog("📄 MDX selected: resource editor ready for \(dictId.prefix(8))...")
+        }
+        
         dictInfoVC.onImportComplete = { [weak self] dictId in
             guard let self else { return }
             dictionaryListVC.reloadData()
@@ -243,12 +257,6 @@ class MainSplitViewController: UISplitViewController {
             guard let self else { return }
             dictionaryListVC.reloadData()
             exitToLookupMode()
-        }
-        
-        dictInfoVC.onManageResources = { [weak self] dictId in
-            guard let self, isCompact else { return }
-            dictResourceEditorVC.showEditor(for: dictId)
-            show(.secondary)
         }
     }
     

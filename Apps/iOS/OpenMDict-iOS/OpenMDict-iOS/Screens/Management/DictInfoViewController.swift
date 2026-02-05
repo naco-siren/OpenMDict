@@ -37,20 +37,27 @@ class DictInfoViewController: UIViewController {
     
     var onDismiss: (() -> Void)?
     
+    /// Callback to push resource editor in compact mode
+    var onManageResources: ((String) -> Void)?
+    
+    // MARK: - Callbacks for importing
+    
+    /// Callback when MDX file is selected (dictId = headerSHA256, for updating resource editor)
+    var onMDXSelected: ((String) -> Void)?
+    
+    /// Callback for "View Existing Dictionary" navigation (when duplicate detected)
+    var onViewExistingDictionary: ((String) -> Void)?
+    
     /// Callback when user selected dictionary is imported (dictId passed back)
     var onImportComplete: ((String) -> Void)?
+    
+    // MARK: - Callbacks for editing
     
     /// Callback when edit is saved (dictId passed back)
     var onEditComplete: ((String) -> Void)?
     
     /// Callback when a selected dictionary is removed (dictId passed back)
     var onDeleteComplete: ((String) -> Void)?
-    
-    /// Callback to push resource editor in compact mode
-    var onManageResources: ((String) -> Void)?
-
-    /// Callback for "View Existing Dictionary" navigation (when duplicate detected)
-    var onViewExistingDictionary: ((String) -> Void)?
     
     // MARK: - State
     
@@ -445,7 +452,11 @@ class DictInfoViewController: UIViewController {
                 snapshot.appendItems([.displayNameField(editedDisplayName ?? displayName)], toSection: .displayName)
 
                 // Manage Resources - ONLY in compact mode AND NOT duplicate
-                // (resources section doesn't make sense for a duplicate that won't be imported)
+                // In regular mode, the third column shows the resource editor directly
+                if isSplitViewCollapsed {
+                    snapshot.appendSections([.resources])
+                    snapshot.appendItems([.manageResources], toSection: .resources)
+                }
             }
         } else {
             // No file selected - show file selection button
@@ -836,8 +847,12 @@ extension DictInfoViewController: UICollectionViewDelegate {
             showDisplayNameEditor()
             
         case .manageResources:
+            // Support both editing and importing modes
+            // dictId = headerSHA256 (available in both modes)
             if case .editing(let dictId) = currentMode {
                 onManageResources?(dictId)
+            } else if case .importing = currentMode, let sha256 = previewMetadata?.headerSHA256 {
+                onManageResources?(sha256)
             }
             
         case .deleteButton:
@@ -897,6 +912,12 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
         
         currentMode = .importing
         print("📄 Selected: \(url.lastPathComponent)")
+        
+        // Notify MainSplitVC to update third column (resource editor)
+        // dictId = headerSHA256 (available before import)
+        if let sha256 = metadata?.headerSHA256 {
+            onMDXSelected?(sha256)
+        }
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
