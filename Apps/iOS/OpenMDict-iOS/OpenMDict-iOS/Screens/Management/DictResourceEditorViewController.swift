@@ -62,6 +62,7 @@ class DictResourceEditorViewController: UIViewController {
     
     private var mode: Mode = .empty {
         didSet {
+            debugLog("📋 ResourceEditor: mode changed from \(oldValue) to \(mode), isViewLoaded=\(isViewLoaded)")
             if oldValue != mode && isViewLoaded {
                 reloadData()
             }
@@ -118,6 +119,7 @@ class DictResourceEditorViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        debugLog("📋 ResourceEditor: viewDidLoad, current mode=\(mode)")
         setupUI()
         setupCollectionView()
         setupDataSource()
@@ -522,10 +524,12 @@ class DictResourceEditorViewController: UIViewController {
             
         case .importing:
             // Importing mode: add to ImportSession (will be copied on import)
-            // Get file size while we have security access
-            var fileSize: Int64 = 0
+            // IMPORTANT: Create PendingFile while security scope is active to capture bookmark
             let hasAccess = url.startAccessingSecurityScopedResource()
-            print("📋 addResource: url=\(url.lastPathComponent), hasAccess=\(hasAccess)")
+            debugLog("📋 addResource: url=\(url.lastPathComponent), hasAccess=\(hasAccess)")
+            
+            // Get file size while we have access
+            var fileSize: Int64 = 0
             if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                let size = attrs[.size] as? Int64 {
                 fileSize = size
@@ -533,10 +537,8 @@ class DictResourceEditorViewController: UIViewController {
             } else {
                 print("⚠️ addResource: failed to get file size for \(url.path)")
             }
-            if hasAccess {
-                url.stopAccessingSecurityScopedResource()
-            }
             
+            // Add to session (PendingFile.init will capture bookmark while scope is active)
             let session = DictionaryService.shared.importSession
             switch section {
             case .mdx:
@@ -547,6 +549,11 @@ class DictResourceEditorViewController: UIViewController {
                 session.addCSS(url, fileSize: fileSize)
             case .js:
                 session.addJS(url, fileSize: fileSize)
+            }
+            
+            // Now safe to close security scope
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
             }
             // Note: applyImportingSnapshot() will be called automatically via Combine subscription
         }
