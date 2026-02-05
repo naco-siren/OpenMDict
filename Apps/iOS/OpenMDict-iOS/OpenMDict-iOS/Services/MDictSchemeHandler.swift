@@ -44,8 +44,11 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
             return
         }
         
-        // Load resource - try MDD first, then fall back to dictionary directory
+        // Load resource - try multiple sources in order
         var resourceData: Data?
+        let filename = String(resourcePath.dropFirst()) // Remove leading /
+        let fileExtension = (filename as NSString).pathExtension.lowercased()
+        let dictSource = DictionaryService.shared.dictionarySources[dictId]
         
         // 1. Try MDD with multiple path variations
         let pathsToTry = [
@@ -61,10 +64,9 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
             }
         }
         
-        // 2. Fall back to dictionary directory (for standalone CSS files)
+        // 2. Fall back to dictionary directory (bundled dicts, or imported dicts' MDX directory)
         if resourceData == nil, let dictPath = dict.metadata?.path {
             let dictDir = (dictPath as NSString).deletingLastPathComponent
-            let filename = String(resourcePath.dropFirst()) // Remove leading /
             let filePath = (dictDir as NSString).appendingPathComponent(filename)
             
             if FileManager.default.fileExists(atPath: filePath) {
@@ -73,49 +75,89 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
                     print("📄 MDictSchemeHandler: Loaded from directory: \(filename)")
                 }
             }
+        }
+        
+        // 3. For imported dicts: check Library/Dictionaries/{id}/css/ or js/ directory
+        if resourceData == nil, dictSource == .imported {
+            let storage = DictionaryStorageService.shared
+            var directoryURL: URL?
             
-            // 3. Bundle.main fallback - ONLY for bundled dictionaries (isolation enforcement)
-            let dictSource = DictionaryService.shared.dictionarySources[dictId]
-            if resourceData == nil, dictSource == .bundled {
-                let baseName = (filename as NSString).deletingPathExtension
-                let ext = (filename as NSString).pathExtension
-                
+            switch fileExtension {
+            case "css":
+                directoryURL = storage.cssDirectoryURL(id: dictId)
+            case "js":
+                directoryURL = storage.jsDirectoryURL(id: dictId)
+            default:
+                break
+            }
+            
+            if let dirURL = directoryURL {
                 // Try exact match first
-                if let bundleURL = Bundle.main.url(forResource: baseName, withExtension: ext) {
-                    resourceData = try? Data(contentsOf: bundleURL)
+                let exactURL = dirURL.appendingPathComponent(filename)
+                if FileManager.default.fileExists(atPath: exactURL.path) {
+                    resourceData = try? Data(contentsOf: exactURL)
                     if resourceData != nil {
-                        print("📄 MDictSchemeHandler: Loaded from bundle for [\(dictId)]: \(bundleURL.lastPathComponent)")
+                        print("📄 MDictSchemeHandler: Loaded from storage [\(fileExtension)]: \(filename)")
                     }
                 }
                 
-                // Try dictionary ID as filename (common pattern: dictId.css)
-                if resourceData == nil {
-                    if let bundleURL = Bundle.main.url(forResource: dictId, withExtension: ext) {
-                        resourceData = try? Data(contentsOf: bundleURL)
-                        if resourceData != nil {
-                            print("📄 MDictSchemeHandler: Loaded from bundle (by dictId) for [\(dictId)]: \(bundleURL.lastPathComponent)")
-                        }
-                    }
-                }
-                
-                // Try case-insensitive search through all files with this extension
+                // Try case-insensitive match
                 if resourceData == nil,
-                   let urls = Bundle.main.urls(forResourcesWithExtension: ext, subdirectory: nil) {
-                    for url in urls {
-                        let urlBaseName = (url.lastPathComponent as NSString).deletingPathExtension
-                        if urlBaseName.lowercased() == baseName.lowercased() {
-                            resourceData = try? Data(contentsOf: url)
+                   let contents = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
+                    let lowercasedFilename = filename.lowercased()
+                    for fileURL in contents {
+                        if fileURL.lastPathComponent.lowercased() == lowercasedFilename {
+                            resourceData = try? Data(contentsOf: fileURL)
                             if resourceData != nil {
-                                print("📄 MDictSchemeHandler: Loaded from bundle (case-insensitive) for [\(dictId)]: \(url.lastPathComponent)")
+                                print("📄 MDictSchemeHandler: Loaded from storage (case-insensitive) [\(fileExtension)]: \(fileURL.lastPathComponent)")
                                 break
                             }
                         }
                     }
                 }
-            } else if resourceData == nil && dictSource == .imported {
-                // Log when imported dict tries to load resource but can't use bundle
-                print("🔒 MDictSchemeHandler: Bundle fallback blocked for imported dict [\(dictId)]: \(filename)")
             }
+        }
+        
+        // 4. Bundle.main fallback - ONLY for bundled dictionaries (isolation enforcement)
+        if resourceData == nil, dictSource == .bundled {
+            let baseName = (filename as NSString).deletingPathExtension
+            let ext = (filename as NSString).pathExtension
+            
+            // Try exact match first
+            if let bundleURL = Bundle.main.url(forResource: baseName, withExtension: ext) {
+                resourceData = try? Data(contentsOf: bundleURL)
+                if resourceData != nil {
+                    print("📄 MDictSchemeHandler: Loaded from bundle for [\(dictId)]: \(bundleURL.lastPathComponent)")
+                }
+            }
+            
+            // Try dictionary ID as filename (common pattern: dictId.css)
+            if resourceData == nil {
+                if let bundleURL = Bundle.main.url(forResource: dictId, withExtension: ext) {
+                    resourceData = try? Data(contentsOf: bundleURL)
+                    if resourceData != nil {
+                        print("📄 MDictSchemeHandler: Loaded from bundle (by dictId) for [\(dictId)]: \(bundleURL.lastPathComponent)")
+                    }
+                }
+            }
+            
+            // Try case-insensitive search through all files with this extension
+            if resourceData == nil,
+               let urls = Bundle.main.urls(forResourcesWithExtension: ext, subdirectory: nil) {
+                for url in urls {
+                    let urlBaseName = (url.lastPathComponent as NSString).deletingPathExtension
+                    if urlBaseName.lowercased() == baseName.lowercased() {
+                        resourceData = try? Data(contentsOf: url)
+                        if resourceData != nil {
+                            print("📄 MDictSchemeHandler: Loaded from bundle (case-insensitive) for [\(dictId)]: \(url.lastPathComponent)")
+                            break
+                        }
+                    }
+                }
+            }
+        } else if resourceData == nil && dictSource == .imported {
+            // Log when imported dict tries to load resource but can't find it
+            print("🔒 MDictSchemeHandler: Resource not found for imported dict [\(dictId)]: \(filename)")
         }
         
         guard let data = resourceData else {
