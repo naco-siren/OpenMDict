@@ -90,11 +90,13 @@ final class DictionaryService: ObservableObject {
         SearchSession()
     }
     
-    // MARK: - Import Session (App-wide)
+    // MARK: - Sessions (App-wide)
     
     /// Shared import session for dictionary import workflow
-    /// App-wide because import is a global operation (unlike search which is per-scene)
     let importSession = ImportSession()
+    
+    /// Shared group management session for group create/edit workflow
+    let groupSession = GroupManagementSession()
     
     // MARK: - Computed
     
@@ -327,20 +329,22 @@ final class DictionaryService: ObservableObject {
         storage.isDuplicateImport(headerSHA256: headerSHA256)
     }
 
-    /// Import a dictionary from MDX file
-    /// - Parameters:
-    ///   - mdxFile: Source MDX file URL
-    ///   - displayName: Display name for the dictionary
-    ///   - headerSHA256: SHA256 hash of MDX header (used as ID)
+    /// Import a dictionary using data from the current ImportSession.
+    /// The session must have an MDX file set. Resource files (MDD/CSS/JS) are read from the session.
+    /// - Parameter displayName: Display name for the dictionary
     /// - Returns: The new dictionary's ID
-    func importDictionary(
-        mdxFile: SelectedFile,
-        mddFiles: [SelectedFile] = [],
-        cssFiles: [SelectedFile] = [],
-        jsFiles: [SelectedFile] = [],
-        displayName: String,
-        headerSHA256: String
-    ) async throws -> String {
+    func importDictionary(displayName: String) async throws -> String {
+        guard let mdxPendingFile = importSession.mdxPendingFile,
+              let headerSHA256 = importSession.mdxMetadata?.headerSHA256 else {
+            throw NSError(domain: "DictionaryService", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No MDX file selected in ImportSession"])
+        }
+        
+        let mdxFile = SelectedFile(url: mdxPendingFile.url)
+        let mddFiles = importSession.pendingMDDFiles.map { SelectedFile(url: $0.url) }
+        let cssFiles = importSession.pendingCSSFiles.map { SelectedFile(url: $0.url) }
+        let jsFiles = importSession.pendingJSFiles.map { SelectedFile(url: $0.url) }
+        
         // 1. Copy files to storage
         let dictId = try await storage.importDictionary(
             mdxFile: mdxFile,
@@ -515,13 +519,11 @@ final class DictionaryService: ObservableObject {
     
     // MARK: - Group CRUD
     
-    /// Create a new user group with a default name
-    /// - Parameter name: Display name for the group (must be unique)
-    /// - Returns: The new MDicts group instance (already added to `groups`)
-    /// - Throws: If a group with the same name already exists
+    /// Create a new user group
+    /// - Parameter name: Display name for the group (auto-deduplicated if conflict)
+    /// - Returns: The new MDicts group instance (already added to `groups` and persisted)
     @discardableResult
     func createGroup(name: String = "New Group") throws -> MDicts {
-        // Ensure unique name by appending suffix if needed
         let finalName = uniqueGroupName(from: name)
         
         let group = MDicts(
@@ -532,7 +534,6 @@ final class DictionaryService: ObservableObject {
         )
         groups.append(group)
         
-        // Persist all groups (will sync to manifest)
         try persistGroups()
         
         print("➕ Created group: \(finalName) (\(group.id.prefix(8))...)")
@@ -568,7 +569,8 @@ final class DictionaryService: ObservableObject {
     }
     
     /// Generate a unique group name by appending a suffix if needed
-    private func uniqueGroupName(from baseName: String) -> String {
+    /// Internal (not private) so GroupManagementSession can use it
+    func uniqueGroupName(from baseName: String) -> String {
         let existingNames = Set(groups.filter { !$0.isDefault }.map { $0.name })
         
         if !existingNames.contains(baseName) {

@@ -558,12 +558,9 @@ class GroupInfoViewController: UIViewController {
     
     // MARK: - Perform Actions
     
-    /// Cancel creating - delete the unsaved group
+    /// Cancel creating - just discard session state (groups was never modified)
     private func performCancelCreate() {
-        if case .creating(let groupId) = currentMode {
-            // Delete the group that was pre-created
-            try? DictionaryService.shared.deleteGroup(id: groupId)
-        }
+        DictionaryService.shared.groupSession.reset()
         
         editedName = nil
         hasUnsavedChanges = false
@@ -582,18 +579,21 @@ class GroupInfoViewController: UIViewController {
         let name = (editedName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = name.isEmpty ? "New Group" : name
         
+        // Actually create the group in data layer (append to groups + persist)
         do {
-            try DictionaryService.shared.renameGroup(id: groupId, newName: finalName)
+            let group = try DictionaryService.shared.createGroup(name: finalName)
+            
+            DictionaryService.shared.groupSession.reset()
+            
+            editedName = nil
+            hasUnsavedChanges = false
+            hasNameConflict = false
+            nameTextView = nil
+            
+            onCreateComplete?(group.id)
         } catch {
-            debugLog("⚠️ Failed to rename group: \(error)")
+            debugLog("❌ Failed to create group: \(error)")
         }
-        
-        editedName = nil
-        hasUnsavedChanges = false
-        hasNameConflict = false
-        nameTextView = nil
-        
-        onCreateComplete?(groupId)
     }
     
     private func performSaveEdit(groupId: String) {
@@ -651,13 +651,13 @@ class GroupInfoViewController: UIViewController {
     // MARK: - Public API
     
     /// Show in creating mode (new group)
-    func showCreatingMode(groupId: String) {
-        editedName = nil
+    func showCreatingMode(pendingName: String) {
+        editedName = pendingName
         hasUnsavedChanges = true
         hasNameConflict = false
         isEditingMode = true
         nameTextView = nil
-        currentMode = .creating(groupId: groupId)
+        currentMode = .creating(groupId: "pending")  // placeholder, real ID assigned on save
     }
     
     /// Show in editing mode (existing group)

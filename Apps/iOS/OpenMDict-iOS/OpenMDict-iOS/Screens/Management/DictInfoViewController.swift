@@ -1021,10 +1021,11 @@ class DictInfoViewController: UIViewController {
     }
     
     private func performImport() {
-        guard let url = selectedMDXURL,
-              let metadata = previewMetadata,
+        let session = DictionaryService.shared.importSession
+        
+        guard let metadata = session.mdxMetadata,
               let headerSHA256 = metadata.headerSHA256 else {
-            print("❌ Import failed: missing URL or metadata")
+            print("❌ Import failed: no MDX in ImportSession")
             return
         }
         
@@ -1040,16 +1041,7 @@ class DictInfoViewController: UIViewController {
             ?? metadata.title
             ?? "???" // TODO: Fall back to source filename
         
-        // Create SelectedFile for the MDX
-        let mdxFile = SelectedFile(url: url)
-        
-        // Get pending resources from ImportSession
-        let session = DictionaryService.shared.importSession
-        let mddFiles = session.pendingMDDFiles.map { SelectedFile(url: $0.url) }
-        let cssFiles = session.pendingCSSFiles.map { SelectedFile(url: $0.url) }
-        let jsFiles = session.pendingJSFiles.map { SelectedFile(url: $0.url) }
-        
-        print("📦 Importing: MDX=\(mdxFile.fileName), MDD=\(mddFiles.count), CSS=\(cssFiles.count), JS=\(jsFiles.count)")
+        print("📦 Importing: MDX=\(session.mdxPendingFile?.fileName ?? "?"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count)")
         
         // Notify start (for loading UI)
         onImportStarted?()
@@ -1057,12 +1049,7 @@ class DictInfoViewController: UIViewController {
         Task {
             do {
                 let dictId = try await DictionaryService.shared.importDictionary(
-                    mdxFile: mdxFile,
-                    mddFiles: mddFiles,
-                    cssFiles: cssFiles,
-                    jsFiles: jsFiles,
-                    displayName: displayName,
-                    headerSHA256: headerSHA256
+                    displayName: displayName
                 )
                 print("✅ Import completed: \(dictId)")
 

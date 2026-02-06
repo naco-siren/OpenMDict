@@ -465,19 +465,17 @@ class MainSplitViewController: UISplitViewController {
             dictInfoVC.showEditMode(for: dictId)
             dictResourceEditorVC.showEditor(for: dictId)
         case .editGroup(let groupId):
+            let session = DictionaryService.shared.groupSession
+            session.beginEdit(groupId: groupId)
             configureColumns(for: .managementGroup)
             groupInfoVC.showEditMode(for: groupId)
             groupDictEditorVC.showEditor(for: groupId)
         case .createGroup:
-            // Pre-create the group in data layer, then show creating mode
-            guard let newGroup = try? DictionaryService.shared.createGroup() else {
-                debugLog("❌ Failed to create group")
-                return
-            }
-            dictionaryListVC.reloadData()
+            let session = DictionaryService.shared.groupSession
+            session.beginCreate()
             configureColumns(for: .managementGroup)
-            groupInfoVC.showCreatingMode(groupId: newGroup.id)
-            groupDictEditorVC.showEditor(for: newGroup.id)
+            groupInfoVC.showCreatingMode(pendingName: session.pendingName ?? "New Group")
+            groupDictEditorVC.showEmptyState()
         }
         
         show(.supplementary)
@@ -491,6 +489,10 @@ class MainSplitViewController: UISplitViewController {
     private func exitToLookupMode() {
         guard currentMode != .lookup else { return }
         currentMode = .lookup
+        
+        // Reset any active sessions (discard unpersisted state)
+        DictionaryService.shared.importSession.reset()
+        DictionaryService.shared.groupSession.reset()
         
         dictionaryListVC.appMode = .lookup
         dictionaryListVC.setNeedsUpdateAllCells()
