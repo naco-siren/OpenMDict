@@ -442,14 +442,28 @@ class DictInfoViewController: UIViewController {
         }
         
         // MARK: Description Cell (multi-line)
-        let descriptionReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
+        // MARK: Description Cell (multi-line, HTML rendered)
+        let descriptionReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, htmlValue in
             var content = UIListContentConfiguration.subtitleCell()
             content.text = "Description"
-            content.secondaryText = value.isEmpty ? "No description" : value
-            content.secondaryTextProperties.color = value.isEmpty ? .tertiaryLabel : .secondaryLabel
-            content.secondaryTextProperties.numberOfLines = 0  // Allow multi-line
             content.image = UIImage(systemName: "text.alignleft")
             content.imageProperties.tintColor = .secondaryLabel
+            
+            if htmlValue.isEmpty {
+                content.secondaryText = "No description"
+                content.secondaryTextProperties.color = .tertiaryLabel
+            } else {
+                // Try to render HTML as attributed string
+                if let attributedString = Self.attributedString(fromHTML: htmlValue) {
+                    content.secondaryAttributedText = attributedString
+                } else {
+                    // Fallback to plain text
+                    content.secondaryText = htmlValue
+                    content.secondaryTextProperties.color = .secondaryLabel
+                }
+            }
+            
+            content.secondaryTextProperties.numberOfLines = 0  // Allow multi-line
             cell.contentConfiguration = content
             cell.accessories = []
         }
@@ -541,6 +555,46 @@ class DictInfoViewController: UIViewController {
         // Register supplementary view provider
         dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
+        }
+    }
+    
+    // MARK: - HTML Rendering
+    
+    /// Convert HTML string to NSAttributedString for display
+    /// Returns nil if conversion fails
+    private static func attributedString(fromHTML html: String) -> NSAttributedString? {
+        // Wrap in basic HTML structure with styling
+        let styledHTML = """
+        <html>
+        <head>
+        <style>
+        body {
+            font-family: -apple-system;
+            font-size: \(UIFont.preferredFont(forTextStyle: .subheadline).pointSize)px;
+            color: #8E8E93;
+        }
+        </style>
+        </head>
+        <body>\(html)</body>
+        </html>
+        """
+        
+        guard let data = styledHTML.data(using: .utf8) else { return nil }
+        
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.html,
+            .characterEncoding: String.Encoding.utf8.rawValue
+        ]
+        
+        // HTML parsing must be done on main thread
+        if Thread.isMainThread {
+            return try? NSAttributedString(data: data, options: options, documentAttributes: nil)
+        } else {
+            var result: NSAttributedString?
+            DispatchQueue.main.sync {
+                result = try? NSAttributedString(data: data, options: options, documentAttributes: nil)
+            }
+            return result
         }
     }
     
@@ -651,12 +705,12 @@ class DictInfoViewController: UIViewController {
             // SECTION: Basic Metadata
             snapshot.appendSections([.basicMetadata])
             let titleDisplay = metadata.title ?? sourceFileName
-            let cleanedDesc = MDictDescriptionParser.cleanDescription(metadata.description)
+            let descHTML = MDictDescriptionParser.cleanHTMLForDisplay(metadata.description)
             
             snapshot.appendItems([
                 .title(titleDisplay),
                 .entryCount(metadata.entryCount),
-                .description(cleanedDesc)
+                .description(descHTML)
             ], toSection: .basicMetadata)
             
             // SECTION: Advanced Metadata
@@ -720,11 +774,12 @@ class DictInfoViewController: UIViewController {
             // SECTION: Basic Metadata (only show if metadata loaded)
             if let metadata = dict.metadata {
                 snapshot.appendSections([.basicMetadata])
-                let cleanedDesc = dict.cleanedDescription ?? metadata.description
+                // Use HTML for rich display, fallback to cleaned plain text
+                let descHTML = MDictDescriptionParser.cleanHTMLForDisplay(metadata.description)
                 snapshot.appendItems([
                     .title(dict.displayTitle),
                     .entryCount(metadata.entryCount),
-                    .description(cleanedDesc)
+                    .description(descHTML)
                 ], toSection: .basicMetadata)
                 
                 // SECTION: Advanced Metadata

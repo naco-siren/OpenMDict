@@ -118,6 +118,54 @@ public enum MDictDescriptionParser {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    /// Clean HTML for display, preserving formatting tags but removing dangerous/useless ones.
+    /// Suitable for rendering with NSAttributedString.
+    ///
+    /// - Parameter html: Raw description HTML from MDX header
+    /// - Returns: Cleaned HTML with basic formatting preserved
+    public static func cleanHTMLForDisplay(_ html: String) -> String {
+        guard !html.isEmpty else { return "" }
+        
+        var text = html
+        
+        // Remove <style> blocks entirely
+        if let styleRegex = try? NSRegularExpression(
+            pattern: "<style[^>]*>.*?</style>",
+            options: [.caseInsensitive, .dotMatchesLineSeparators]
+        ) {
+            text = styleRegex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        }
+        
+        // Remove <script> blocks entirely
+        if let scriptRegex = try? NSRegularExpression(
+            pattern: "<script[^>]*>.*?</script>",
+            options: [.caseInsensitive, .dotMatchesLineSeparators]
+        ) {
+            text = scriptRegex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        }
+        
+        // Remove <link> tags (CSS imports)
+        if let linkRegex = try? NSRegularExpression(
+            pattern: "<link[^>]*>",
+            options: .caseInsensitive
+        ) {
+            text = linkRegex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        }
+        
+        // Remove <meta> tags
+        if let metaRegex = try? NSRegularExpression(
+            pattern: "<meta[^>]*>",
+            options: .caseInsensitive
+        ) {
+            text = metaRegex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        }
+        
+        // Normalize whitespace (collapse multiple spaces/newlines)
+        text = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     /// Try to extract author/creator from description.
     ///
     /// - Parameter html: Raw description HTML
