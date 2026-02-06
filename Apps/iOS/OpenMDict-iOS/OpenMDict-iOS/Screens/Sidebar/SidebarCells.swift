@@ -204,7 +204,33 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             
             bg.backgroundColor = .clear
             
-        case .metadataLoaded, .loaded:
+        case .metadataLoaded:
+            // Metadata loaded state - not yet available for lookup or management
+            
+            if shouldHighlight {
+                // Selected state - blue background + white
+                content.image = UIImage(systemName: "book.fill")
+                content.imageProperties.tintColor = .white
+                content.textProperties.color = .white
+                
+                bg.backgroundColor = .systemBlue
+            } else if isLookupMode && !isEditing && isParentActive {
+                // Parent group is active (but this dict not directly selected) - show open book with gray tint
+                content.image = UIImage(systemName: "book.fill")
+                content.imageProperties.tintColor = .secondaryLabel
+                content.textProperties.color = .secondaryLabel
+                
+                bg.backgroundColor = .clear
+            } else {
+                // Normal unselected state (including edit mode)
+                content.image = UIImage(systemName: "book.closed.fill")
+                content.imageProperties.tintColor = .secondaryLabel
+                content.textProperties.color = .secondaryLabel
+                
+                bg.backgroundColor = .clear
+            }
+            
+        case .loaded:
             // Normal loaded state
             
             if shouldHighlight {

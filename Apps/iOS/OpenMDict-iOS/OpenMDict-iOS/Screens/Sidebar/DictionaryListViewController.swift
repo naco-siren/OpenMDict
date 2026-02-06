@@ -41,6 +41,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
     /// Handle info button tap from cell
     func didTapInfoButton(forDictId dictId: String) {
+        // Guard: only allow info action for fully loaded dictionaries
+        guard let dict = DictionaryService.shared.dict(id: dictId),
+              dict.state == .loaded else {
+            print("⚠️ Info action ignored: dictionary \(dictId.prefix(8))... not fully loaded")
+            return
+        }
+        
         // Exit edit mode first
         setEditing(false, animated: true)
         // Then notify to show dictionary info
