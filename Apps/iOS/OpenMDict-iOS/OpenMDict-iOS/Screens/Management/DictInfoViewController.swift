@@ -106,6 +106,11 @@ class DictInfoViewController: UIViewController {
     /// Edited display name (tracks changes)
     private var editedDisplayName: String?
     
+    /// Cached attributed description (parsed asynchronously)
+    private var cachedAttributedDescription: NSAttributedString?
+    /// HTML that was used to generate the cached attributed description
+    private var cachedDescriptionHTML: String?
+    
     /// Existing dictionary ID if duplicate detected (nil = no duplicate)
     /// When non-nil, import is blocked and user should view the existing dictionary
     private var duplicatedDictId: String?
@@ -447,9 +452,8 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
-        // MARK: Description Cell (multi-line)
-        // MARK: Description Cell (multi-line, HTML rendered)
-        let descriptionReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, htmlValue in
+        // MARK: Description Cell (multi-line, HTML rendered asynchronously)
+        let descriptionReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, indexPath, htmlValue in
             var content = UIListContentConfiguration.subtitleCell()
             content.text = "Description"
             content.image = UIImage(systemName: "text.alignleft")
@@ -458,14 +462,33 @@ class DictInfoViewController: UIViewController {
             if htmlValue.isEmpty {
                 content.secondaryText = "No description"
                 content.secondaryTextProperties.color = .tertiaryLabel
+            } else if let cached = self?.cachedAttributedDescription,
+                      self?.cachedDescriptionHTML == htmlValue {
+                // Use cached attributed string
+                content.secondaryAttributedText = cached
             } else {
-                // Try to render HTML as attributed string
-                if let attributedString = Self.attributedString(fromHTML: htmlValue) {
-                    content.secondaryAttributedText = attributedString
-                } else {
-                    // Fallback to plain text
-                    content.secondaryText = htmlValue
-                    content.secondaryTextProperties.color = .secondaryLabel
+                // Show placeholder while parsing
+                content.secondaryText = "Loading..."
+                content.secondaryTextProperties.color = .tertiaryLabel
+                
+                // Parse HTML asynchronously and reconfigure cell
+                // Note: NSAttributedString HTML parsing MUST be on main thread (WebKit requirement)
+                // We use async to defer execution after current layout pass
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    
+                    // Double-check we still need to parse this HTML
+                    guard self.cachedDescriptionHTML != htmlValue else { return }
+                    
+                    if let attributed = Self.attributedString(fromHTML: htmlValue) {
+                        self.cachedAttributedDescription = attributed
+                        self.cachedDescriptionHTML = htmlValue
+                        
+                        // Reconfigure just this cell
+                        var snapshot = self.dataSource.snapshot()
+                        snapshot.reconfigureItems([.description(htmlValue)])
+                        self.dataSource.apply(snapshot, animatingDifferences: false)
+                    }
                 }
             }
             
@@ -1145,6 +1168,8 @@ class DictInfoViewController: UIViewController {
         duplicatedDictId = nil
         isEditingMode = true  // Import is always in editing mode
         displayNameTextView = nil
+        cachedAttributedDescription = nil  // Clear cache
+        cachedDescriptionHTML = nil
         currentMode = .empty  // Start with empty, showing file picker prompt
     }
     
@@ -1156,6 +1181,8 @@ class DictInfoViewController: UIViewController {
         duplicatedDictId = nil
         isEditingMode = false  // Start in viewing mode
         displayNameTextView = nil
+        cachedAttributedDescription = nil  // Clear cache for new dictionary
+        cachedDescriptionHTML = nil
         
         // Check if dictionary is loaded
         if let dict = DictionaryService.shared.dict(id: dictId) {
