@@ -56,6 +56,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         onDictionaryInfoSelected?(dictId)
     }
     
+    /// Handle info button tap from group cell
+    func didTapInfoButton(forGroupId groupId: String) {
+        // Exit edit mode first
+        setEditing(false, animated: true)
+        // Then notify to show group info
+        onGroupInfoSelected?(groupId)
+    }
+    
     // MARK: - Data
     
     private var groups: [MDicts] { DictionaryService.shared.groups }
@@ -79,6 +87,24 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private lazy var collectionView: UICollectionView = {
         var config = UICollectionLayoutListConfiguration(appearance: .sidebar)
         config.headerMode = .none
+        
+        // Trailing swipe: delete user groups
+        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
+            guard let self,
+                  let item = self.dataSource?.itemIdentifier(for: indexPath),
+                  case .group(let id, let isDefault) = item,
+                  !isDefault else {
+                return nil
+            }
+            
+            let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { [weak self] _, _, completion in
+                self?.confirmDeleteGroup(id: id)
+                completion(true)
+            }
+            deleteAction.image = UIImage(systemName: "trash")
+            return UISwipeActionsConfiguration(actions: [deleteAction])
+        }
+        
         let layout = UICollectionViewCompositionalLayout.list(using: config)
         
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -527,6 +553,79 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)
             print("⚙️ App Settings - TODO")
+        }
+    }
+    
+    // MARK: - Context Menu
+    
+    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        
+        switch item {
+        case .group(let id, let isDefault) where !isDefault:
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                let editAction = UIAction(
+                    title: "Edit Info",
+                    image: UIImage(systemName: "info.circle")
+                ) { _ in
+                    self?.onGroupInfoSelected?(id)
+                }
+                
+                let deleteAction = UIAction(
+                    title: "Delete Group",
+                    image: UIImage(systemName: "trash"),
+                    attributes: .destructive
+                ) { _ in
+                    self?.confirmDeleteGroup(id: id)
+                }
+                
+                return UIMenu(children: [editAction, deleteAction])
+            })
+            
+        case .dictionary(let dictId, let groupId):
+            // Context menu on dictionaries in default group: Edit Info
+            let group = DictionaryService.shared.group(id: groupId)
+            guard group?.isDefault == true else { return nil }
+            
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                let editAction = UIAction(
+                    title: "Edit Info",
+                    image: UIImage(systemName: "info.circle")
+                ) { _ in
+                    self?.onDictionaryInfoSelected?(dictId)
+                }
+                return UIMenu(children: [editAction])
+            })
+            
+        default:
+            return nil
+        }
+    }
+    
+    // MARK: - Group Deletion
+    
+    private func confirmDeleteGroup(id: String) {
+        let group = DictionaryService.shared.group(id: id)
+        let groupName = group?.name ?? "this group"
+        
+        let alert = UIAlertController(
+            title: "Delete Group",
+            message: "Delete \"\(groupName)\"? Dictionaries in this group will not be removed.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            self?.performDeleteGroup(id: id)
+        })
+        present(alert, animated: true)
+    }
+    
+    private func performDeleteGroup(id: String) {
+        do {
+            try DictionaryService.shared.deleteGroup(id: id)
+            applySnapshot(animated: true)
+        } catch {
+            print("❌ Failed to delete group: \(error)")
         }
     }
 }

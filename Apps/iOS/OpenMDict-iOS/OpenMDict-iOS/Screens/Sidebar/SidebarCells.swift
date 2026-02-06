@@ -25,6 +25,9 @@ protocol SidebarStateProvider: AnyObject {
     
     /// Called when info button is tapped on a dictionary cell
     func didTapInfoButton(forDictId dictId: String)
+    
+    /// Called when info button is tapped on a group cell
+    func didTapInfoButton(forGroupId groupId: String)
 }
 
 // MARK: - Default Group Cell (All Dictionaries)
@@ -119,11 +122,37 @@ final class UserGroupCell: UICollectionViewListCell {
             
             bg.backgroundColor = .clear
             
-            accessories = [.outlineDisclosure(options: .init(style: .cell))]
+            var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .cell))]
+            
+            // Info button in edit mode
+            if isEditing {
+                let infoButton = createInfoButton(for: group.id)
+                let infoConfig = UICellAccessory.CustomViewConfiguration(
+                    customView: infoButton,
+                    placement: .trailing(displayed: .always)
+                )
+                cellAccessories.append(.customView(configuration: infoConfig))
+            }
+            
+            accessories = cellAccessories
         }
         
         contentConfiguration = content
         backgroundConfiguration = bg
+    }
+    
+    private func createInfoButton(for groupId: String) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "info.circle"), for: .normal)
+        button.tintColor = .systemBlue
+        button.accessibilityIdentifier = groupId
+        button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
+        return button
+    }
+    
+    @objc private func infoButtonTapped(_ sender: UIButton) {
+        guard let groupId = sender.accessibilityIdentifier else { return }
+        stateProvider?.didTapInfoButton(forGroupId: groupId)
     }
 }
 
