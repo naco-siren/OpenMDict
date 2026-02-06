@@ -96,15 +96,19 @@ class DictInfoViewController: UIViewController {
     
     private nonisolated enum Section: Int, CaseIterable {
         case status           // Warnings (duplicate, mddMissing) - conditional
-        case userInteraction  // Display Name, Manage Resources
+        case manageResources  // Button to manage MDD/CSS/JS (compact mode only)
+        case displayName      // Editable display name with header
+        case selectFile       // "Select MDX File" button (import empty state)
         case basicMetadata    // Title, Entries, Description
         case advancedMetadata // Engine, Format, Encoding, flags
         case dangerZone       // Delete button (edit mode only)
         
         var title: String? {
             switch self {
-            case .status: return nil  // No header for warnings
-            case .userInteraction: return nil
+            case .status: return nil
+            case .manageResources: return nil
+            case .displayName: return "Custom Name"
+            case .selectFile: return nil
             case .basicMetadata: return "Dictionary Info"
             case .advancedMetadata: return "Technical Details"
             case .dangerZone: return nil
@@ -117,10 +121,12 @@ class DictInfoViewController: UIViewController {
         case duplicateWarning(existingId: String)
         // case mddMissingWarning  // TBD
         
-        // User Interaction
-        case selectFile
-        case displayName(current: String)
-        case manageResources
+        // Actions
+        case selectFileButton
+        case manageResourcesButton
+        
+        // Display Name (editable via text field)
+        case displayNameField(current: String)
         
         // Basic Metadata
         case title(String)
@@ -294,38 +300,45 @@ class DictInfoViewController: UIViewController {
             cell.backgroundConfiguration = bgConfig
         }
         
-        // MARK: Select File Cell
+        // MARK: Select File Button (blue background)
         let selectFileReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.cell()
             content.text = "Select MDX File"
-            content.secondaryText = "Choose a dictionary file to import"
-            content.secondaryTextProperties.color = .secondaryLabel
-            content.image = UIImage(systemName: "doc.badge.plus")
-            content.imageProperties.tintColor = .systemBlue
+            content.textProperties.color = .white
+            content.textProperties.alignment = .center
+            content.textProperties.font = .preferredFont(forTextStyle: .headline)
             cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator()]
+            cell.accessories = []
+            
+            var bgConfig = UIBackgroundConfiguration.listGroupedCell()
+            bgConfig.backgroundColor = .systemBlue
+            bgConfig.cornerRadius = 10
+            cell.backgroundConfiguration = bgConfig
         }
         
-        // MARK: Display Name Cell (editable)
-        let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
-            var content = UIListContentConfiguration.subtitleCell()
-            content.text = "Display Name"
-            content.secondaryText = value.isEmpty ? "Enter a custom name..." : value
-            content.secondaryTextProperties.color = value.isEmpty ? .placeholderText : .secondaryLabel
-            content.image = UIImage(systemName: "pencil")
-            content.imageProperties.tintColor = .systemBlue
-            cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator()]
-        }
-        
-        // MARK: Manage Resources Cell
+        // MARK: Manage Resources Button (blue background)
         let manageResourcesReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.cell()
+            content.image = UIImage(systemName: "folder.badge.gearshape")
+            content.imageProperties.tintColor = .white
             content.text = "Manage Resources"
-            content.secondaryText = "MDD, CSS, JavaScript files"
-            content.secondaryTextProperties.color = .secondaryLabel
-            content.image = UIImage(systemName: "doc.badge.gearshape")
-            content.imageProperties.tintColor = .systemBlue
+            content.textProperties.color = .white
+            content.textProperties.font = .preferredFont(forTextStyle: .headline)
+            cell.contentConfiguration = content
+            cell.accessories = [.disclosureIndicator(options: .init(tintColor: .white.withAlphaComponent(0.7)))]
+            
+            var bgConfig = UIBackgroundConfiguration.listGroupedCell()
+            bgConfig.backgroundColor = .systemBlue
+            bgConfig.cornerRadius = 10
+            cell.backgroundConfiguration = bgConfig
+        }
+        
+        // MARK: Display Name Cell (shows current name, tap to edit via alert)
+        let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
+            var content = UIListContentConfiguration.cell()
+            content.text = value.isEmpty ? "Tap to set a custom name..." : value
+            content.textProperties.color = value.isEmpty ? .placeholderText : .label
+            content.textProperties.numberOfLines = 0  // Allow multi-line display
             cell.contentConfiguration = content
             cell.accessories = [.disclosureIndicator()]
         }
@@ -421,13 +434,15 @@ class DictInfoViewController: UIViewController {
             case .duplicateWarning(let existingId):
                 return collectionView.dequeueConfiguredReusableCell(using: warningReg, for: indexPath, item: existingId)
                 
-            // User Interaction
-            case .selectFile:
+            // Actions
+            case .selectFileButton:
                 return collectionView.dequeueConfiguredReusableCell(using: selectFileReg, for: indexPath, item: ())
-            case .displayName(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: displayNameReg, for: indexPath, item: value)
-            case .manageResources:
+            case .manageResourcesButton:
                 return collectionView.dequeueConfiguredReusableCell(using: manageResourcesReg, for: indexPath, item: ())
+                
+            // Display Name
+            case .displayNameField(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: displayNameReg, for: indexPath, item: value)
                 
             // Basic Metadata
             case .title(let value):
@@ -482,7 +497,7 @@ class DictInfoViewController: UIViewController {
             
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
-            title = dict?.preferredTitle
+            title = dict?.displayTitle
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             applyEditSnapshot(dictId: dictId)
@@ -517,24 +532,19 @@ class DictInfoViewController: UIViewController {
                 snapshot.appendItems([.duplicateWarning(existingId: existingId)], toSection: .status)
             }
             
-            // SECTION: User Interaction
-            snapshot.appendSections([.userInteraction])
-            var interactionItems: [Item] = []
-            
-            // Display Name - only when NOT duplicate
+            // Only show interaction sections when NOT duplicate
             if duplicatedDictId == nil {
+                // SECTION: Manage Resources (compact mode only)
+                if isSplitViewCollapsed {
+                    snapshot.appendSections([.manageResources])
+                    snapshot.appendItems([.manageResourcesButton], toSection: .manageResources)
+                }
+                
+                // SECTION: Display Name
+                snapshot.appendSections([.displayName])
                 let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: metadata.description)
                 let displayName = editedDisplayName ?? extractedTitle ?? metadata.title ?? sourceFileName
-                interactionItems.append(.displayName(current: displayName))
-                
-                // Manage Resources - only in compact mode
-                if isSplitViewCollapsed {
-                    interactionItems.append(.manageResources)
-                }
-            }
-            
-            if !interactionItems.isEmpty {
-                snapshot.appendItems(interactionItems, toSection: .userInteraction)
+                snapshot.appendItems([.displayNameField(current: displayName)], toSection: .displayName)
             }
             
             // SECTION: Basic Metadata
@@ -559,9 +569,9 @@ class DictInfoViewController: UIViewController {
             ], toSection: .advancedMetadata)
             
         } else {
-            // No file selected - show file selection in userInteraction section
-            snapshot.appendSections([.userInteraction])
-            snapshot.appendItems([.selectFile], toSection: .userInteraction)
+            // No file selected - show file selection button
+            snapshot.appendSections([.selectFile])
+            snapshot.appendItems([.selectFileButton], toSection: .selectFile)
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
@@ -573,17 +583,15 @@ class DictInfoViewController: UIViewController {
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
-        // SECTION: User Interaction
-        snapshot.appendSections([.userInteraction])
-        var interactionItems: [Item] = [
-            .displayName(current: editedDisplayName ?? dict.preferredTitle)
-        ]
-        
-        // Manage Resources - only in compact mode
+        // SECTION: Manage Resources (compact mode only)
         if isSplitViewCollapsed {
-            interactionItems.append(.manageResources)
+            snapshot.appendSections([.manageResources])
+            snapshot.appendItems([.manageResourcesButton], toSection: .manageResources)
         }
-        snapshot.appendItems(interactionItems, toSection: .userInteraction)
+        
+        // SECTION: Display Name
+        snapshot.appendSections([.displayName])
+        snapshot.appendItems([.displayNameField(current: editedDisplayName ?? dict.preferredTitle)], toSection: .displayName)
         
         // SECTION: Basic Metadata
         snapshot.appendSections([.basicMetadata])
@@ -885,13 +893,14 @@ class DictInfoViewController: UIViewController {
             currentName = editedDisplayName ?? dict?.preferredTitle ?? ""
         case .importing:
             let extractedTitle = previewMetadata.flatMap { MDictDescriptionParser.tryExtractTitle(from: $0.description) }
-            currentName = editedDisplayName ?? extractedTitle ?? previewMetadata?.title ?? ""
+            let sourceFileName = selectedMDXURL?.deletingPathExtension().lastPathComponent
+            currentName = editedDisplayName ?? extractedTitle ?? previewMetadata?.title ?? sourceFileName ?? ""
         case .empty:
-            return  // Can't edit in empty mode
+            return
         }
         
         let alert = UIAlertController(
-            title: "Display Name",
+            title: "Custom Name",
             message: "Enter a custom display name for this dictionary",
             preferredStyle: .alert
         )
@@ -953,24 +962,26 @@ extension DictInfoViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         
         switch item {
-        // User Interaction - tappable
-        case .selectFile:
+        // Actions - tappable
+        case .selectFileButton:
             showDocumentPicker()
             
-        case .duplicateWarning(let existingId):
-            onViewExistingDictionary?(existingId)
-            
-        case .displayName:
-            guard duplicatedDictId == nil else { return }
-            showDisplayNameEditor()
-            
-        case .manageResources:
+        case .manageResourcesButton:
             if case .editing(let dictId) = currentMode {
                 onManageResources?(dictId)
             } else if case .importing = currentMode, let sha256 = previewMetadata?.headerSHA256 {
                 onManageResources?(sha256)
             }
             
+        // Status - tappable
+        case .duplicateWarning(let existingId):
+            onViewExistingDictionary?(existingId)
+            
+        // Display Name - tap to edit via alert
+        case .displayNameField:
+            showDisplayNameEditor()
+            
+        // Danger Zone
         case .deleteButton:
             showDeleteConfirmation()
             
