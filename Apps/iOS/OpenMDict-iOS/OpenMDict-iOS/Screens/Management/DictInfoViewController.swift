@@ -94,23 +94,49 @@ class DictInfoViewController: UIViewController {
     
     // MARK: - UI
     
-    private enum Section: Int, CaseIterable {
-        case duplicateWarning   // Import mode: duplicate detected warning (at very top)
-        case fileSelection      // Import mode: "Select MDX File" button
-        case metadata           // Title, description (from MDX header)
-        case displayName        // Editable display name
-        case resources          // "Manage Resources" (compact mode only)
-        case actions            // Delete button (edit mode only)
+    private nonisolated enum Section: Int, CaseIterable {
+        case status           // Warnings (duplicate, mddMissing) - conditional
+        case userInteraction  // Display Name, Manage Resources
+        case basicMetadata    // Title, Entries, Description
+        case advancedMetadata // Engine, Format, Encoding, flags
+        case dangerZone       // Delete button (edit mode only)
+        
+        var title: String? {
+            switch self {
+            case .status: return nil  // No header for warnings
+            case .userInteraction: return nil
+            case .basicMetadata: return "Dictionary Info"
+            case .advancedMetadata: return "Technical Details"
+            case .dangerZone: return nil
+            }
+        }
     }
     
     private nonisolated enum Item: Hashable {
-        case selectFile
+        // Status
         case duplicateWarning(existingId: String)
-        case metadataTitle(String)
-        case metadataEntryCount(Int)
-        case metadataDescription(String)
-        case displayNameField(String)
+        // case mddMissingWarning  // TBD
+        
+        // User Interaction
+        case selectFile
+        case displayName(current: String)
         case manageResources
+        
+        // Basic Metadata
+        case title(String)
+        case entryCount(Int?)
+        case description(String)
+        // case creationDate(String)  // TBD
+        // case importedDate(Date)    // TBD, editing only
+        
+        // Advanced Metadata
+        case engineVersion(String)
+        case format(String)
+        case encoding(String)
+        case isEncrypted(Bool)
+        case isCaseSensitive(Bool)
+        
+        // Danger Zone
         case deleteButton
     }
     
@@ -118,7 +144,7 @@ class DictInfoViewController: UIViewController {
     
     private lazy var collectionView: UICollectionView = {
         var config = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
-        config.headerMode = .none
+        config.headerMode = .supplementary
         let layout = UICollectionViewCompositionalLayout.list(using: config)
         
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -251,87 +277,122 @@ class DictInfoViewController: UIViewController {
     // MARK: - Data Source
     
     private func configureDataSource() {
-        // Select File Cell
+        // MARK: Warning Cell (orange background)
+        let warningReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, existingId in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = "Dictionary Already Imported"
+            content.textProperties.color = .systemOrange
+            content.secondaryText = "Tap to view the existing dictionary"
+            content.secondaryTextProperties.color = .secondaryLabel
+            content.image = UIImage(systemName: "exclamationmark.triangle.fill")
+            content.imageProperties.tintColor = .systemOrange
+            cell.contentConfiguration = content
+            cell.accessories = [.disclosureIndicator()]
+            
+            var bgConfig = UIBackgroundConfiguration.listGroupedCell()
+            bgConfig.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.1)
+            cell.backgroundConfiguration = bgConfig
+        }
+        
+        // MARK: Select File Cell
         let selectFileReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.subtitleCell()
             content.text = "Select MDX File"
+            content.secondaryText = "Choose a dictionary file to import"
+            content.secondaryTextProperties.color = .secondaryLabel
             content.image = UIImage(systemName: "doc.badge.plus")
             content.imageProperties.tintColor = .systemBlue
             cell.contentConfiguration = content
             cell.accessories = [.disclosureIndicator()]
         }
         
-        // Duplicate Warning Cell
-        let duplicateWarningReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, existingId in
+        // MARK: Display Name Cell (editable)
+        let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
             var content = UIListContentConfiguration.subtitleCell()
-            content.text = "Dictionary Already Imported"
-            content.textProperties.color = .systemOrange
-            content.secondaryText = "This dictionary has already been imported. Tap to view the existing one."
-            content.secondaryTextProperties.color = .secondaryLabel
-            content.secondaryTextProperties.numberOfLines = 0
-            content.image = UIImage(systemName: "exclamationmark.triangle.fill")
-            content.imageProperties.tintColor = .systemOrange
+            content.text = "Display Name"
+            content.secondaryText = value.isEmpty ? "Enter a custom name..." : value
+            content.secondaryTextProperties.color = value.isEmpty ? .placeholderText : .secondaryLabel
+            content.image = UIImage(systemName: "pencil")
+            content.imageProperties.tintColor = .systemBlue
             cell.contentConfiguration = content
             cell.accessories = [.disclosureIndicator()]
-
-            // Orange background tint
-            var bgConfig = UIBackgroundConfiguration.listGroupedCell()
-            bgConfig.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.1)
-            cell.backgroundConfiguration = bgConfig
         }
         
-        // Metadata Cell (read-only)
-        let metadataReg = UICollectionView.CellRegistration<UICollectionViewListCell, (String, String)> { cell, indexPath, tuple in
-            let (label, value) = tuple
-            var content = UIListContentConfiguration.valueCell()
-            content.text = label
-            content.secondaryText = value.isEmpty ? "—" : value
-            content.secondaryTextProperties.color = value.isEmpty ? .tertiaryLabel : .label
-            content.secondaryTextProperties.numberOfLines = 0
+        // MARK: Manage Resources Cell
+        let manageResourcesReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = "Manage Resources"
+            content.secondaryText = "MDD, CSS, JavaScript files"
+            content.secondaryTextProperties.color = .secondaryLabel
+            content.image = UIImage(systemName: "doc.badge.gearshape")
+            content.imageProperties.tintColor = .systemBlue
+            cell.contentConfiguration = content
+            cell.accessories = [.disclosureIndicator()]
+        }
+        
+        // MARK: Info Cell (icon + title + value)
+        let infoReg = UICollectionView.CellRegistration<UICollectionViewListCell, (icon: String, title: String, value: String)> {
+            cell, indexPath, data in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = data.title
+            content.secondaryText = data.value.isEmpty ? "—" : data.value
+            content.secondaryTextProperties.color = data.value.isEmpty ? .tertiaryLabel : .secondaryLabel
+            content.image = UIImage(systemName: data.icon)
+            content.imageProperties.tintColor = .secondaryLabel
             cell.contentConfiguration = content
             cell.accessories = []
         }
         
-        // Entry Count Cell (read-only, handles nil)
+        // MARK: Entry Count Cell (formatted number)
         let entryCountReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int?> { cell, indexPath, count in
-            var content = UIListContentConfiguration.valueCell()
+            var content = UIListContentConfiguration.subtitleCell()
             content.text = "Entries"
             if let count = count {
                 let formatter = NumberFormatter()
                 formatter.numberStyle = .decimal
                 content.secondaryText = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
-                content.secondaryTextProperties.color = .label
+                content.secondaryTextProperties.color = .secondaryLabel
             } else {
                 content.secondaryText = "Unknown"
                 content.secondaryTextProperties.color = .tertiaryLabel
             }
+            content.image = UIImage(systemName: "list.number")
+            content.imageProperties.tintColor = .secondaryLabel
             cell.contentConfiguration = content
             cell.accessories = []
         }
         
-        // Display Name Cell (editable)
-        let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
-            var content = UIListContentConfiguration.valueCell()
-            content.text = "Display Name"
-            content.secondaryText = value.isEmpty ? "Enter name..." : value
-            content.secondaryTextProperties.color = value.isEmpty ? .placeholderText : .label
+        // MARK: Description Cell (multi-line)
+        let descriptionReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = "Description"
+            content.secondaryText = value.isEmpty ? "No description" : value
+            content.secondaryTextProperties.color = value.isEmpty ? .tertiaryLabel : .secondaryLabel
+            content.secondaryTextProperties.numberOfLines = 0  // Allow multi-line
+            content.image = UIImage(systemName: "text.alignleft")
+            content.imageProperties.tintColor = .secondaryLabel
             cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator()]
+            cell.accessories = []
         }
         
-        // Manage Resources Cell (compact mode only)
-        let manageResourcesReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
-            var content = UIListContentConfiguration.cell()
-            content.text = "Manage Resources"
-            content.image = UIImage(systemName: "doc.badge.gearshape")
-            content.imageProperties.tintColor = .systemBlue
-            content.secondaryText = "CSS, fonts, and more"
-            content.secondaryTextProperties.color = .secondaryLabel
+        // MARK: Boolean Switch Cell (non-interactive display)
+        let booleanReg = UICollectionView.CellRegistration<UICollectionViewListCell, (icon: String, title: String, value: Bool)> {
+            cell, indexPath, data in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = data.title
+            content.image = UIImage(systemName: data.icon)
+            content.imageProperties.tintColor = .secondaryLabel
             cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator()]
+            
+            // Non-interactive switch to display boolean value
+            let toggle = UISwitch()
+            toggle.isOn = data.value
+            toggle.isUserInteractionEnabled = false
+            toggle.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+            cell.accessories = [.customView(configuration: .init(customView: toggle, placement: .trailing()))]
         }
         
-        // Delete Button Cell
+        // MARK: Delete Button Cell
         let deleteReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
             var content = UIListContentConfiguration.cell()
             content.text = "Delete Dictionary"
@@ -341,34 +402,62 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
+        // MARK: Header Registration
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
+            elementKind: UICollectionView.elementKindSectionHeader
+        ) { [weak self] headerView, elementKind, indexPath in
+            guard let section = self?.dataSource.sectionIdentifier(for: indexPath.section) else { return }
+            var content = headerView.defaultContentConfiguration()
+            content.text = section.title
+            headerView.contentConfiguration = content
+        }
+        
+        // MARK: Data Source Provider
         dataSource = UICollectionViewDiffableDataSource<Section, Item>(collectionView: collectionView) {
             collectionView, indexPath, item in
             
             switch item {
+            // Status
+            case .duplicateWarning(let existingId):
+                return collectionView.dequeueConfiguredReusableCell(using: warningReg, for: indexPath, item: existingId)
+                
+            // User Interaction
             case .selectFile:
                 return collectionView.dequeueConfiguredReusableCell(using: selectFileReg, for: indexPath, item: ())
-                
-            case .duplicateWarning(let existingId):
-                return collectionView.dequeueConfiguredReusableCell(using: duplicateWarningReg, for: indexPath, item: existingId)
-                
-            case .metadataTitle(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: metadataReg, for: indexPath, item: ("Title", value))
-                
-            case .metadataEntryCount(let count):
-                return collectionView.dequeueConfiguredReusableCell(using: entryCountReg, for: indexPath, item: count)
-                         
-            case .metadataDescription(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: metadataReg, for: indexPath, item: ("Description", value))
-                
-            case .displayNameField(let value):
+            case .displayName(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: displayNameReg, for: indexPath, item: value)
-                
             case .manageResources:
                 return collectionView.dequeueConfiguredReusableCell(using: manageResourcesReg, for: indexPath, item: ())
                 
+            // Basic Metadata
+            case .title(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("book", "Title", value))
+            case .entryCount(let count):
+                return collectionView.dequeueConfiguredReusableCell(using: entryCountReg, for: indexPath, item: count)
+            case .description(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: descriptionReg, for: indexPath, item: value)
+                
+            // Advanced Metadata
+            case .engineVersion(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("gearshape", "Engine Version", value))
+            case .format(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("doc.text", "Format", value))
+            case .encoding(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("textformat", "Encoding", value))
+            case .isEncrypted(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("lock.shield", "Encrypted", value))
+            case .isCaseSensitive(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("textformat.abc", "Case Sensitive", value))
+                
+            // Danger Zone
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
             }
+        }
+        
+        // Register supplementary view provider
+        dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
+            collectionView.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
         }
     }
     
@@ -419,87 +508,109 @@ class DictInfoViewController: UIViewController {
     private func applyImportSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
-        // If no file selected yet, show file selection button
-        // Otherwise show metadata preview (file info is in metadata title)
         if let metadata = previewMetadata,
            let sourceFileName = selectedMDXURL?.deletingPathExtension().lastPathComponent {
-            // Duplicate warning at very top (if detected)
+            
+            // SECTION: Status (warnings)
             if let existingId = duplicatedDictId {
-                snapshot.appendSections([.duplicateWarning])
-                snapshot.appendItems([.duplicateWarning(existingId: existingId)], toSection: .duplicateWarning)
+                snapshot.appendSections([.status])
+                snapshot.appendItems([.duplicateWarning(existingId: existingId)], toSection: .status)
             }
-
-            // Metadata section (always visible)
-            let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: metadata.description)
+            
+            // SECTION: User Interaction
+            snapshot.appendSections([.userInteraction])
+            var interactionItems: [Item] = []
+            
+            // Display Name - only when NOT duplicate
+            if duplicatedDictId == nil {
+                let extractedTitle = MDictDescriptionParser.tryExtractTitle(from: metadata.description)
+                let displayName = editedDisplayName ?? extractedTitle ?? metadata.title ?? sourceFileName
+                interactionItems.append(.displayName(current: displayName))
+                
+                // Manage Resources - only in compact mode
+                if isSplitViewCollapsed {
+                    interactionItems.append(.manageResources)
+                }
+            }
+            
+            if !interactionItems.isEmpty {
+                snapshot.appendItems(interactionItems, toSection: .userInteraction)
+            }
+            
+            // SECTION: Basic Metadata
+            snapshot.appendSections([.basicMetadata])
             let titleDisplay = metadata.title ?? sourceFileName
             let cleanedDesc = MDictDescriptionParser.cleanDescription(metadata.description)
             
-            snapshot.appendSections([.metadata])
-            var metadataItems: [Item] = [.metadataTitle(titleDisplay)]
-            // Only show entry count if available (not nil from header-only load)
-            if let entryCount = metadata.entryCount {
-                metadataItems.append(.metadataEntryCount(entryCount))
-            }
-            metadataItems.append(.metadataDescription(cleanedDesc))
-            snapshot.appendItems(metadataItems, toSection: .metadata)
+            snapshot.appendItems([
+                .title(titleDisplay),
+                .entryCount(metadata.entryCount),
+                .description(cleanedDesc)
+            ], toSection: .basicMetadata)
             
-            // Display Name section - ONLY when NOT duplicate
-            // When duplicate, user should view existing instead of editing this one
-            if duplicatedDictId == nil {
-                snapshot.appendSections([.displayName])
-                // TODO: Fall back to source filename
-                let displayName = editedDisplayName ?? extractedTitle ?? metadata.title ?? sourceFileName
-                snapshot.appendItems([.displayNameField(editedDisplayName ?? displayName)], toSection: .displayName)
-
-                // Manage Resources - ONLY in compact mode AND NOT duplicate
-                // In regular mode, the third column shows the resource editor directly
-                if isSplitViewCollapsed {
-                    snapshot.appendSections([.resources])
-                    snapshot.appendItems([.manageResources], toSection: .resources)
-                }
-            }
+            // SECTION: Advanced Metadata
+            snapshot.appendSections([.advancedMetadata])
+            snapshot.appendItems([
+                .engineVersion(metadata.engineVersion),
+                .format(metadata.format),
+                .encoding(metadata.encoding),
+                .isEncrypted(metadata.isEncrypted),
+                .isCaseSensitive(metadata.isCaseSensitive)
+            ], toSection: .advancedMetadata)
+            
         } else {
-            // No file selected - show file selection button
-            snapshot.appendSections([.fileSelection])
-            snapshot.appendItems([.selectFile], toSection: .fileSelection)
+            // No file selected - show file selection in userInteraction section
+            snapshot.appendSections([.userInteraction])
+            snapshot.appendItems([.selectFile], toSection: .userInteraction)
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
     }
     
     private func applyEditSnapshot(dictId: String) {
-        guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
-        let displayName = editedDisplayName ?? dict.displayTitle
-        let cleanedDesc = dict.cleanedDescription ?? dict.metadata?.description ?? ""
+        guard let dict = DictionaryService.shared.dict(id: dictId),
+              let metadata = dict.metadata else { return }
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
-        // Metadata section
-        snapshot.appendSections([.metadata])
-        var metadataItems: [Item] = [.metadataTitle(dict.loggingTitle)]
-        if let entryCount = previewMetadata?.entryCount {
-            metadataItems.append(.metadataEntryCount(entryCount))
+        // SECTION: User Interaction
+        snapshot.appendSections([.userInteraction])
+        var interactionItems: [Item] = [
+            .displayName(current: editedDisplayName ?? dict.displayTitle)
+        ]
+        
+        // Manage Resources - only in compact mode
+        if isSplitViewCollapsed {
+            interactionItems.append(.manageResources)
         }
-        metadataItems.append(.metadataDescription(cleanedDesc))
-        snapshot.appendItems(metadataItems, toSection: .metadata)
+        snapshot.appendItems(interactionItems, toSection: .userInteraction)
         
-        // Display name section
-        snapshot.appendSections([.displayName])
-        snapshot.appendItems([.displayNameField(displayName)], toSection: .displayName)
+        // SECTION: Basic Metadata
+        snapshot.appendSections([.basicMetadata])
+        let cleanedDesc = dict.cleanedDescription ?? metadata.description
         
-        // Manage Resources section (ONLY in compact mode - when split view is collapsed)
-        // In regular mode (columns side-by-side), the third column shows the resource editor
-        let isCollapsed = isSplitViewCollapsed
-        debugLog("📋 applyEditSnapshot: isSplitViewCollapsed=\(isCollapsed), showManageResources=\(isCollapsed)")
-        if isCollapsed {
-            snapshot.appendSections([.resources])
-            snapshot.appendItems([.manageResources], toSection: .resources)
+        snapshot.appendItems([
+            .title(dict.loggingTitle),
+            .entryCount(metadata.entryCount),
+            .description(cleanedDesc)
+        ], toSection: .basicMetadata)
+        
+        // SECTION: Advanced Metadata
+        snapshot.appendSections([.advancedMetadata])
+        snapshot.appendItems([
+            .engineVersion(metadata.engineVersion),
+            .format(metadata.format),
+            .encoding(metadata.encoding),
+            .isEncrypted(metadata.isEncrypted),
+            .isCaseSensitive(metadata.isCaseSensitive)
+        ], toSection: .advancedMetadata)
+        
+        // SECTION: Danger Zone (only for user-imported, not bundled)
+        let source = DictionaryService.shared.dictionarySources[dictId]
+        if source == .imported {
+            snapshot.appendSections([.dangerZone])
+            snapshot.appendItems([.deleteButton], toSection: .dangerZone)
         }
-        
-        // Delete section
-        // TODO: Only show for user-imported dictionaries, not bundled ones
-        snapshot.appendSections([.actions])
-        snapshot.appendItems([.deleteButton], toSection: .actions)
         
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -842,24 +953,18 @@ extension DictInfoViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         
         switch item {
+        // User Interaction - tappable
         case .selectFile:
             showDocumentPicker()
             
         case .duplicateWarning(let existingId):
-            // Navigate to existing dictionary
-            // This calls the callback which MainSplitVC will handle
-            if let onViewExisting = onViewExistingDictionary {
-                onViewExisting(existingId)
-            }
+            onViewExistingDictionary?(existingId)
             
-        case .displayNameField:
-            // Don't allow when duplicate detected
+        case .displayName:
             guard duplicatedDictId == nil else { return }
             showDisplayNameEditor()
             
         case .manageResources:
-            // Support both editing and importing modes
-            // dictId = headerSHA256 (available in both modes)
             if case .editing(let dictId) = currentMode {
                 onManageResources?(dictId)
             } else if case .importing = currentMode, let sha256 = previewMetadata?.headerSHA256 {
@@ -869,7 +974,10 @@ extension DictInfoViewController: UICollectionViewDelegate {
         case .deleteButton:
             showDeleteConfirmation()
             
-        default:
+        // Metadata items - not tappable
+        case .title, .entryCount, .description,
+             .engineVersion, .format, .encoding,
+             .isEncrypted, .isCaseSensitive:
             break
         }
     }
