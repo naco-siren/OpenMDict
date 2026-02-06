@@ -15,6 +15,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     case group(id: String, isDefault: Bool)
     case dictionary(id: String, groupId: String)
     case importDictionary  // Child of All Dictionaries, visible only in Edit mode
+    case addGroup          // Child of My Groups, visible in Edit mode or when no user groups
     case settings
     
     var itemId: String {
@@ -23,6 +24,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
         case .group(let id, _): return "group:\(id)"
         case .dictionary(let id, let gid): return "dict:\(gid):\(id)"
         case .importDictionary: return "action:import"
+        case .addGroup: return "action:addGroup"
         case .settings: return "action:settings"
         }
     }

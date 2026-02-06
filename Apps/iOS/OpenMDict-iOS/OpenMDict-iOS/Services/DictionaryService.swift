@@ -513,6 +513,108 @@ final class DictionaryService: ObservableObject {
         try storage.saveManifest()
     }
     
+    // MARK: - Group CRUD
+    
+    /// Create a new user group with a default name
+    /// - Parameter name: Display name for the group
+    /// - Returns: The new MDicts group instance (already added to `groups`)
+    @discardableResult
+    func createGroup(name: String = "New Group") throws -> MDicts {
+        let group = MDicts(
+            id: UUID().uuidString,
+            name: name,
+            isDefault: false,
+            dictionaryIds: []
+        )
+        groups.append(group)
+        
+        // Persist all groups (will sync to manifest)
+        try persistGroups()
+        
+        print("➕ Created group: \(name) (\(group.id.prefix(8))...)")
+        return group
+    }
+    
+    /// Rename a user group
+    func renameGroup(id: String, newName: String) throws {
+        guard let group = groups.first(where: { $0.id == id && !$0.isDefault }) else {
+            print("⚠️ User group not found: \(id)")
+            return
+        }
+        group.name = newName
+        
+        try persistGroups()
+        print("✏️ Renamed group \(id.prefix(8))... to: \(newName)")
+    }
+    
+    /// Delete a user group (does NOT delete dictionaries)
+    func deleteGroup(id: String) throws {
+        groups.removeAll { $0.id == id && !$0.isDefault }
+        
+        // Persist all groups (will sync to manifest, removing the deleted group)
+        try persistGroups()
+        
+        print("🗑️ Deleted group: \(id.prefix(8))...")
+    }
+    
+    /// Reorder user groups
+    func reorderUserGroups(newOrder: [String]) throws {
+        let defaultGroup = groups.filter { $0.isDefault }
+        let reordered = newOrder.compactMap { id in
+            groups.first { $0.id == id && !$0.isDefault }
+        }
+        groups = defaultGroup + reordered
+        
+        try persistGroups()
+        print("🔄 Reordered \(reordered.count) user groups")
+    }
+    
+    /// Add a dictionary to a user group
+    func addDictionaryToGroup(groupId: String, dictId: String) throws {
+        guard let group = groups.first(where: { $0.id == groupId && !$0.isDefault }) else {
+            print("⚠️ User group not found: \(groupId)")
+            return
+        }
+        guard !group.dictionaryIds.contains(dictId) else {
+            print("⚠️ Dictionary \(dictId.prefix(8))... already in group")
+            return
+        }
+        
+        group.dictionaryIds.append(dictId)
+        group.populate(from: allDictionaries)
+        
+        try persistGroups()
+        print("➕ Added dict \(dictId.prefix(8))... to group \(groupId.prefix(8))...")
+    }
+    
+    /// Remove a dictionary from a user group (does NOT delete dictionary)
+    func removeDictionaryFromGroup(groupId: String, dictId: String) throws {
+        guard let group = groups.first(where: { $0.id == groupId && !$0.isDefault }) else {
+            print("⚠️ User group not found: \(groupId)")
+            return
+        }
+        
+        group.dictionaryIds.removeAll { $0 == dictId }
+        group.populate(from: allDictionaries)
+        
+        try persistGroups()
+        print("➖ Removed dict \(dictId.prefix(8))... from group \(groupId.prefix(8))...")
+    }
+    
+    /// Reorder dictionaries within a user group
+    func reorderDictionariesInGroup(groupId: String, newOrder: [String]) throws {
+        guard let group = groups.first(where: { $0.id == groupId && !$0.isDefault }) else {
+            print("⚠️ User group not found: \(groupId)")
+            return
+        }
+        
+        group.dictionaryIds = newOrder
+        group.populate(from: allDictionaries)
+        
+        try persistGroups()
+        print("🔄 Reordered \(newOrder.count) dicts in group \(groupId.prefix(8))...")
+    }
+    
     // MARK: - Lookup API (for article display)
     
     /// Lookup in a group (returns AsyncStream for progressive results)

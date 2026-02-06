@@ -165,7 +165,15 @@ class MainSplitViewController: UISplitViewController {
         }
         
         dictionaryListVC.onDictionaryInfoSelected = { [weak self] dictId in
-            self?.enterManagementMode(for: .edit(dictId: dictId))
+            self?.enterManagementMode(for: .editDict(dictId: dictId))
+        }
+        
+        dictionaryListVC.onGroupInfoSelected = { [weak self] groupId in
+            self?.enterManagementMode(for: .editGroup(groupId: groupId))
+        }
+        
+        dictionaryListVC.onAddGroupSelected = { [weak self] in
+            self?.enterManagementMode(for: .createGroup)
         }
         
         wordListVC.onWordSelected = { [weak self] word in
@@ -360,7 +368,9 @@ class MainSplitViewController: UISplitViewController {
     
     private enum ManagementAction {
         case importNew
-        case edit(dictId: String)
+        case editDict(dictId: String)
+        case editGroup(groupId: String)
+        case createGroup
     }
     
     private func enterManagementMode(for action: ManagementAction) {
@@ -376,9 +386,15 @@ class MainSplitViewController: UISplitViewController {
         case .importNew:
             dictInfoVC.showImportMode()
             dictResourceEditorVC.showEmptyState()
-        case .edit(let dictId):
+        case .editDict(let dictId):
             dictInfoVC.showEditMode(for: dictId)
             dictResourceEditorVC.showEditor(for: dictId)
+        case .editGroup(let groupId):
+            // TODO: Phase 2 - GroupInfoVC + GroupDictionaryEditorVC
+            debugLog("📂 Edit group: \(groupId.prefix(8))... (not yet implemented)")
+        case .createGroup:
+            // TODO: Phase 2 - Create group → GroupInfoVC in creating mode
+            debugLog("📂 Create group (not yet implemented)")
         }
         
         show(.supplementary)

@@ -418,14 +418,17 @@ final class ManagementActionCell: UICollectionViewListCell {
         
         // Import Dictionary is only visible in edit mode, but other management
         // actions (Settings, etc.) should be disabled during edit mode
-        let isDisabled = isEditing && item != .importDictionary
+        let isDisabled = isEditing && item != .importDictionary && item != .addGroup
         
         var content = UIListContentConfiguration.sidebarCell()
         
         switch item {
         case .importDictionary:
             content.text = "Import Dictionary"
-            content.image = UIImage(systemName: "plus.rectangle.on.folder")
+            content.image = UIImage(systemName: "plus.circle.fill")
+        case .addGroup:
+            content.text = "Add New Group"
+            content.image = UIImage(systemName: "folder.badge.plus")
         case .settings:
             content.text = "App Settings"
             content.image = UIImage(systemName: "gearshape")

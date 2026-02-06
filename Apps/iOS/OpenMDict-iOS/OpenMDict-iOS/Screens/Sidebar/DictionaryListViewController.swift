@@ -24,6 +24,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onDictionarySelected: ((MDict) -> Void)?
     var onImportDictionarySelected: (() -> Void)?
     var onDictionaryInfoSelected: ((String) -> Void)?  // dictId
+    var onGroupInfoSelected: ((String) -> Void)?       // groupId
+    var onAddGroupSelected: (() -> Void)?
     
     // MARK: - SidebarStateProvider
     
@@ -303,7 +305,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .importDictionary, .settings:
+            case .importDictionary, .addGroup, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -351,6 +353,10 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             let children = group.items.map { SidebarItem.dictionary(id: $0.id, groupId: group.id) }
             userSnapshot.append(children, to: groupItem)
             userSnapshot.expand([groupItem])
+        }
+        // "Add new group" - visible in edit mode or when no user groups exist
+        if isEditing || userGroups.isEmpty {
+            userSnapshot.append([.addGroup], to: userHeader)
         }
         userSnapshot.expand([userHeader])
         dataSource.apply(userSnapshot, to: .userGroups, animatingDifferences: animated)
@@ -435,6 +441,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Import Dictionary is only visible in edit mode and should be selectable
             return true
             
+        case .addGroup:
+            // Add new group is visible in edit mode or when no user groups, always selectable
+            return true
+            
         case .settings:
             // Management actions (except importDictionary) are disabled in edit mode
             return !isEditing
@@ -493,6 +503,26 @@ extension DictionaryListViewController: UICollectionViewDelegate {
 
             // Notify delegate to switch to management mode
             onImportDictionarySelected?()
+            
+        case .addGroup:
+            // Exit edit mode first
+            setEditing(false, animated: true)
+            
+            // Clear active state
+            activeGroupId = nil
+            activeDict = nil
+            
+            // Deselect all other items except this one
+            for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                if selectedIndexPath != indexPath {
+                    collectionView.deselectItem(at: selectedIndexPath, animated: true)
+                }
+            }
+            
+            invalidateVisibleCellConfigurations()
+            
+            // Notify delegate to create and manage new group
+            onAddGroupSelected?()
             
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)
