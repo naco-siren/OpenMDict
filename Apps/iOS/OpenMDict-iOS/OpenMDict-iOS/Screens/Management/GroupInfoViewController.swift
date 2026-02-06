@@ -69,9 +69,12 @@ class GroupInfoViewController: UIViewController {
     
     /// Tracks if user has made changes that need saving
     private var hasUnsavedChanges: Bool = false {
-        didSet {
-            doneButton.isEnabled = hasUnsavedChanges
-        }
+        didSet { updateDoneButtonState() }
+    }
+    
+    /// Whether the current name conflicts with an existing group
+    private var hasNameConflict: Bool = false {
+        didSet { updateDoneButtonState() }
     }
     
     /// Edited display name (tracks changes)
@@ -144,6 +147,10 @@ class GroupInfoViewController: UIViewController {
     
     /// Reference to the name text view (for reading edited value)
     private weak var nameTextView: UITextView?
+    
+    private func updateDoneButtonState() {
+        doneButton.isEnabled = hasUnsavedChanges && !hasNameConflict
+    }
     
     /// Check if split view is collapsed (compact mode)
     private var isSplitViewCollapsed: Bool {
@@ -271,13 +278,32 @@ class GroupInfoViewController: UIViewController {
             cell.accessories = []
         }
         
-        // MARK: Header
+        // MARK: Header (with error state support for displayName section)
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] headerView, elementKind, indexPath in
-            guard let section = self?.dataSource.sectionIdentifier(for: indexPath.section) else { return }
+            guard let self,
+                  let section = self.dataSource.sectionIdentifier(for: indexPath.section) else { return }
             var content = headerView.defaultContentConfiguration()
-            content.text = section.title
+            
+            if section == .displayName {
+//                if self.hasNameConflict {
+//                    content.image = .init(systemName: "exclamationmark.triangle")
+//                    content.image = .init(systemName: "exclamationmark.triangle")
+//                    content.text = "This name is already taken"
+//                    content.textProperties.color = .systemRed
+//                } else {
+                    content.image = .init(systemName: "pencil")
+                    content.imageProperties.tintColor = .tintColor
+                    content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+                    content.text = section.title
+                    content.textProperties.color = .tintColor
+//                }
+                
+            } else {
+                content.text = section.title
+            }
+            
             headerView.contentConfiguration = content
         }
         
@@ -480,6 +506,7 @@ class GroupInfoViewController: UIViewController {
     private func exitEditingMode() {
         editedName = nil
         hasUnsavedChanges = false
+        hasNameConflict = false
         isEditingMode = false
         nameTextView = nil
     }
@@ -540,6 +567,7 @@ class GroupInfoViewController: UIViewController {
         
         editedName = nil
         hasUnsavedChanges = false
+        hasNameConflict = false
         nameTextView = nil
         currentMode = nil
         
@@ -562,6 +590,7 @@ class GroupInfoViewController: UIViewController {
         
         editedName = nil
         hasUnsavedChanges = false
+        hasNameConflict = false
         nameTextView = nil
         
         onCreateComplete?(groupId)
@@ -581,6 +610,7 @@ class GroupInfoViewController: UIViewController {
         
         editedName = nil
         hasUnsavedChanges = false
+        hasNameConflict = false
         isEditingMode = false
         nameTextView = nil
         
@@ -624,6 +654,7 @@ class GroupInfoViewController: UIViewController {
     func showCreatingMode(groupId: String) {
         editedName = nil
         hasUnsavedChanges = true
+        hasNameConflict = false
         isEditingMode = true
         nameTextView = nil
         currentMode = .creating(groupId: groupId)
@@ -633,6 +664,7 @@ class GroupInfoViewController: UIViewController {
     func showEditMode(for groupId: String) {
         editedName = nil
         hasUnsavedChanges = false
+        hasNameConflict = false
         isEditingMode = false
         nameTextView = nil
         currentMode = .editing(groupId: groupId)
@@ -673,7 +705,58 @@ extension GroupInfoViewController: UITextViewDelegate {
         editedName = textView.text
         hasUnsavedChanges = true
         
+        // Inline name conflict validation
+        validateNameConflict()
+        
         // Animate cell height change
         collectionView.collectionViewLayout.invalidateLayout()
+    }
+}
+
+// MARK: - Name Validation
+
+private extension GroupInfoViewController {
+    
+    func validateNameConflict() {
+        let trimmed = (editedName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentGroupId: String? = switch currentMode {
+        case .creating(let id): id
+        case .editing(let id): id
+        case .none: nil
+        }
+        
+        // Check if any OTHER user group has this exact name
+        let conflict = !trimmed.isEmpty && DictionaryService.shared.groups
+            .filter { !$0.isDefault && $0.id != currentGroupId }
+            .contains { $0.name == trimmed }
+        
+        if conflict != hasNameConflict {
+            hasNameConflict = conflict
+            
+            // Reconfigure the displayName section header
+            if let sectionIndex = dataSource.snapshot().indexOfSection(.displayName) {
+                let headerIndexPath = IndexPath(item: 0, section: sectionIndex)
+                if let headerView = collectionView.supplementaryView(
+                    forElementKind: UICollectionView.elementKindSectionHeader,
+                    at: headerIndexPath
+                ) as? UICollectionViewListCell {
+                    var content = headerView.defaultContentConfiguration()
+                    if conflict {
+                        content.image = .init(systemName: "exclamationmark.triangle")
+                        content.imageProperties.tintColor = .systemRed
+                        content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+                        content.text = "This name is already taken"
+                        content.textProperties.color = .systemRed
+                    } else {
+                        content.image = .init(systemName: "pencil")
+                        content.imageProperties.tintColor = .tintColor
+                        content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+                        content.text = Section.displayName.title
+                        content.textProperties.color = .tintColor
+                    }
+                    headerView.contentConfiguration = content
+                }
+            }
+        }
     }
 }

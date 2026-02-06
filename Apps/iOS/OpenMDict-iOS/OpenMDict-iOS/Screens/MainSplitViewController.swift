@@ -29,7 +29,7 @@ class MainSplitViewController: UISplitViewController {
     private lazy var dictInfoVC = DictInfoViewController()
     private lazy var dictResourceEditorVC = DictResourceEditorViewController()
     private lazy var groupInfoVC = GroupInfoViewController()
-    // private lazy var groupDictEditorVC = GroupDictionaryEditorViewController()  // Phase 3
+    private lazy var groupDictEditorVC = GroupDictionaryEditorViewController()
     
     // MARK: - State
     
@@ -302,8 +302,8 @@ class MainSplitViewController: UISplitViewController {
         
         groupInfoVC.onManageDictionaries = { [weak self] groupId in
             guard let self, isCompact else { return }
-            // TODO: Phase 3 - push GroupDictionaryEditorVC
-            debugLog("📂 Manage dictionaries for group: \(groupId.prefix(8))... (not yet implemented)")
+            groupDictEditorVC.showEditor(for: groupId)
+            show(.secondary)
         }
         
         groupInfoVC.onCreateComplete = { [weak self] groupId in
@@ -467,7 +467,7 @@ class MainSplitViewController: UISplitViewController {
         case .editGroup(let groupId):
             configureColumns(for: .managementGroup)
             groupInfoVC.showEditMode(for: groupId)
-            // TODO: Phase 3 - groupDictEditorVC.showEditor(for: groupId)
+            groupDictEditorVC.showEditor(for: groupId)
         case .createGroup:
             // Pre-create the group in data layer, then show creating mode
             guard let newGroup = try? DictionaryService.shared.createGroup() else {
@@ -477,7 +477,7 @@ class MainSplitViewController: UISplitViewController {
             dictionaryListVC.reloadData()
             configureColumns(for: .managementGroup)
             groupInfoVC.showCreatingMode(groupId: newGroup.id)
-            // TODO: Phase 3 - groupDictEditorVC.showEditor(for: newGroup.id)
+            groupDictEditorVC.showEditor(for: newGroup.id)
         }
         
         show(.supplementary)
@@ -529,7 +529,7 @@ class MainSplitViewController: UISplitViewController {
             preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin
             setViewController(groupInfoVC, for: .supplementary)
-            // TODO: Phase 3 - setViewController(groupDictEditorVC, for: .secondary)
+            setViewController(groupDictEditorVC, for: .secondary)
         }
     }
     

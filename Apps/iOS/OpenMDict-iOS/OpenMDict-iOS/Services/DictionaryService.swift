@@ -516,13 +516,17 @@ final class DictionaryService: ObservableObject {
     // MARK: - Group CRUD
     
     /// Create a new user group with a default name
-    /// - Parameter name: Display name for the group
+    /// - Parameter name: Display name for the group (must be unique)
     /// - Returns: The new MDicts group instance (already added to `groups`)
+    /// - Throws: If a group with the same name already exists
     @discardableResult
     func createGroup(name: String = "New Group") throws -> MDicts {
+        // Ensure unique name by appending suffix if needed
+        let finalName = uniqueGroupName(from: name)
+        
         let group = MDicts(
             id: UUID().uuidString,
-            name: name,
+            name: finalName,
             isDefault: false,
             dictionaryIds: []
         )
@@ -531,20 +535,52 @@ final class DictionaryService: ObservableObject {
         // Persist all groups (will sync to manifest)
         try persistGroups()
         
-        print("➕ Created group: \(name) (\(group.id.prefix(8))...)")
+        print("➕ Created group: \(finalName) (\(group.id.prefix(8))...)")
         return group
     }
     
     /// Rename a user group
+    /// - Throws: `GroupNameConflictError` if another group already has this name
     func renameGroup(id: String, newName: String) throws {
         guard let group = groups.first(where: { $0.id == id && !$0.isDefault }) else {
             print("⚠️ User group not found: \(id)")
             return
         }
-        group.name = newName
+        
+        // Check for name conflict (excluding self)
+        let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if groups.contains(where: { $0.id != id && !$0.isDefault && $0.name == trimmedName }) {
+            throw GroupNameConflictError(name: trimmedName)
+        }
+        
+        group.name = trimmedName
         
         try persistGroups()
-        print("✏️ Renamed group \(id.prefix(8))... to: \(newName)")
+        print("✏️ Renamed group \(id.prefix(8))... to: \(trimmedName)")
+    }
+    
+    /// Error thrown when a group name already exists
+    struct GroupNameConflictError: LocalizedError {
+        let name: String
+        var errorDescription: String? {
+            "A group named \"\(name)\" already exists."
+        }
+    }
+    
+    /// Generate a unique group name by appending a suffix if needed
+    private func uniqueGroupName(from baseName: String) -> String {
+        let existingNames = Set(groups.filter { !$0.isDefault }.map { $0.name })
+        
+        if !existingNames.contains(baseName) {
+            return baseName
+        }
+        
+        // Append " 2", " 3", etc.
+        var counter = 2
+        while existingNames.contains("\(baseName) \(counter)") {
+            counter += 1
+        }
+        return "\(baseName) \(counter)"
     }
     
     /// Delete a user group (does NOT delete dictionaries)
