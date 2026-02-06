@@ -482,7 +482,7 @@ class DictInfoViewController: UIViewController {
             
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
-            title = dict?.displayTitle
+            title = dict?.preferredTitle
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             applyEditSnapshot(dictId: dictId)
@@ -576,7 +576,7 @@ class DictInfoViewController: UIViewController {
         // SECTION: User Interaction
         snapshot.appendSections([.userInteraction])
         var interactionItems: [Item] = [
-            .displayName(current: editedDisplayName ?? dict.displayTitle)
+            .displayName(current: editedDisplayName ?? dict.preferredTitle)
         ]
         
         // Manage Resources - only in compact mode
@@ -590,7 +590,7 @@ class DictInfoViewController: UIViewController {
         let cleanedDesc = dict.cleanedDescription ?? metadata.description
         
         snapshot.appendItems([
-            .title(dict.loggingTitle),
+            .title(dict.displayTitle),
             .entryCount(metadata.entryCount),
             .description(cleanedDesc)
         ], toSection: .basicMetadata)
@@ -882,7 +882,7 @@ class DictInfoViewController: UIViewController {
         switch currentMode {
         case .editing(let dictId):
             let dict = DictionaryService.shared.dict(id: dictId)
-            currentName = editedDisplayName ?? dict?.displayTitle ?? ""
+            currentName = editedDisplayName ?? dict?.preferredTitle ?? ""
         case .importing:
             let extractedTitle = previewMetadata.flatMap { MDictDescriptionParser.tryExtractTitle(from: $0.description) }
             currentName = editedDisplayName ?? extractedTitle ?? previewMetadata?.title ?? ""

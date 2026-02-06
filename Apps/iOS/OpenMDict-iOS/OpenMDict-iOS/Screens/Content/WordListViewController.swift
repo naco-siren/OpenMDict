@@ -145,7 +145,7 @@ class WordListViewController: UIViewController {
             titleText = group.name
         case .dictionary(let dict):
             iconName = "book.fill"
-            titleText = dict.displayTitle
+            titleText = dict.preferredTitle
         case .none:
             title = nil
             navigationItem.title = nil

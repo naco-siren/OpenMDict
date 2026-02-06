@@ -65,6 +65,10 @@ public final class MDict: ObservableObject, Identifiable {
     /// File path to the MDX
     public nonisolated let path: String
     
+    /// Original filename extracted from path (e.g., "MyDict.mdx" → "MyDict")
+    /// Computed once at init since path is constant.
+    public nonisolated let originalFileName: String
+    
     /// Explicit MDD file paths (for imported dictionaries with non-standard structure)
     /// When set, ResourceProvider uses these instead of auto-discovery.
     public var mddPaths: [String]?
@@ -74,10 +78,6 @@ public final class MDict: ObservableObject, Identifiable {
     /// User-customized display name (from manifest)
     /// Set by DictionaryService after creating MDict instance.
     public var userDisplayName: String?
-    
-    /// Original filename when imported (e.g., "MyDict.mdx")
-    /// Used as fallback when title is empty. Set by DictionaryService.
-    public var originalFileName: String?
     
     // MARK: - Published State
     
@@ -106,19 +106,25 @@ public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Display Titles (computed, but cheap - just property access)
     
-    /// Best available title for UI display
-    /// Priority: userDisplayName > extractedTitle > metadata.title > originalFileName (no ext) > id
-    public var displayTitle: String {
+    /// Best available title for UI display (most customized)
+    /// Priority: userDisplayName > extractedTitle > metadata.title > originalFileName > id
+    public var preferredTitle: String {
         if let name = userDisplayName, !name.isEmpty { return name }
         if let extracted = extractedTitle { return extracted }
         if let title = metadata?.title { return title }
-        if let original = originalFileName {
-            return (original as NSString).deletingPathExtension
-        }
+        return originalFileName.isEmpty ? id : originalFileName
+    }
+    
+    /// Default title for UI display (balanced: stable but human-readable)
+    /// Priority: metadata.title > originalFileName > extractedTitle > id
+    public var displayTitle: String {
+        if let title = metadata?.title { return title }
+        if !originalFileName.isEmpty { return originalFileName }
+        if let extracted = extractedTitle { return extracted }
         return id
     }
     
-    /// Title for logging (stable, not affected by extraction or user preference)
+    /// Title for logging (both stable and unique, not affected by extraction or user preference)
     /// Priority: metadata.title > id
     public var loggingTitle: String {
         metadata?.title ?? id
@@ -139,6 +145,7 @@ public final class MDict: ObservableObject, Identifiable {
     public nonisolated init(path: String) {
         self.path = path
         self.id = Self.extractId(from: path)
+        self.originalFileName = Self.extractOriginalFileName(from: path)
     }
     
     /// Create a dictionary ViewModel with explicit ID
@@ -147,20 +154,26 @@ public final class MDict: ObservableObject, Identifiable {
     public nonisolated init(path: String, id: String) {
         self.path = path
         self.id = id
+        self.originalFileName = Self.extractOriginalFileName(from: path)
         self.mddPaths = nil
     }
     
     /// Create a dictionary ViewModel with explicit ID and MDD paths
     /// Use this for imported dictionaries where MDDs are in a different directory
-    public init(path: String, id: String, mddPaths: [String]) {
+    public nonisolated init(path: String, id: String, mddPaths: [String]) {
         self.path = path
         self.id = id
+        self.originalFileName = Self.extractOriginalFileName(from: path)
         self.mddPaths = mddPaths
     }
     
     private nonisolated static func extractId(from path: String) -> String {
         let filename = (path as NSString).lastPathComponent
         return (filename as NSString).deletingPathExtension
+    }
+    
+    private nonisolated static func extractOriginalFileName(from path: String) -> String {
+        (path as NSString).lastPathComponent.replacingOccurrences(of: ".mdx", with: "", options: .caseInsensitive)
     }
     
     // MARK: - Lifecycle

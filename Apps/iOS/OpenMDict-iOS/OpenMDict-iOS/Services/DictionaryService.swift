@@ -200,9 +200,8 @@ final class DictionaryService: ObservableObject {
             
             // Use manifest's entry.id (SHA256) as the MDict id
             let dict = MDict(path: mdxPath, id: entry.id, mddPaths: mddPaths)
-            // Inject properties from manifest for displayTitle fallback chain
+            // Inject user display name from manifest
             dict.userDisplayName = entry.displayName
-            dict.originalFileName = entry.originalFileName
             
             if !mddPaths.isEmpty {
                 print("📦 Loaded \(entry.displayName) with \(mddPaths.count) MDD files")
@@ -428,10 +427,9 @@ final class DictionaryService: ObservableObject {
         
         let newDict = MDict(path: mdxPath, id: id, mddPaths: mddPaths)
         
-        // Inject properties from manifest for displayTitle fallback chain
+        // Inject user display name from manifest
         if let entry = storage.manifest.dictionary(id: id) {
             newDict.userDisplayName = entry.displayName
-            newDict.originalFileName = entry.originalFileName
         }
         
         // 2. Track as imported

@@ -165,7 +165,7 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             }
         
         var content = UIListContentConfiguration.sidebarCell()
-        content.text = dict.displayTitle
+        content.text = dict.preferredTitle
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         bg.backgroundColorTransformer = nil
@@ -293,7 +293,7 @@ final class UserGroupDictCell: UICollectionViewListCell {
         let isRelatedDictSelected = isLookupMode && !isEditing && (stateProvider?.activeDict?.id == dict.id)
 
         var content = UIListContentConfiguration.sidebarCell()
-        content.text = dict.displayTitle
+        content.text = dict.preferredTitle
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         bg.backgroundColorTransformer = nil
