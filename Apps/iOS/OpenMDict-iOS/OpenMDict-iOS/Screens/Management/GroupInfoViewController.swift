@@ -21,8 +21,8 @@ import OpenMDictKit
 // MARK: - Mode
 
 enum GroupConfigMode: Equatable {
-    case creating(groupId: String)        // New group, always editing
-    case editing(groupId: String)         // Existing group, view/edit toggle
+    case creating(groupId: String)        // New group, always actively editing
+    case managing(groupId: String)        // Existing group, view/edit toggle
 }
 
 // MARK: - View Controller
@@ -80,13 +80,34 @@ class GroupInfoViewController: UIViewController {
     /// Edited display name (tracks changes)
     private var editedName: String?
     
+    /// Computed header style for the displayName section.
+    /// Encodes current mode + editing state + conflict into the Section enum
+    /// so diffable data source naturally diffs and reconfigures the header.
+    private var displayNameHeaderStyle: Section.HeaderStyle {
+        guard let mode = currentMode else { return .plain }
+        let isActivelyEditing: Bool = switch mode {
+        case .creating: true
+        case .managing: isEditingMode
+        }
+        guard isActivelyEditing else { return .plain }
+        return hasNameConflict ? .conflict : .active
+    }
+    
     // MARK: - UI
     
-    private nonisolated enum Section: Int, CaseIterable {
+    private nonisolated enum Section: Hashable {
         case manageDictionaries  // Button (compact mode only)
-        case displayName         // Editable group name
+        case displayName(HeaderStyle)  // Group name with contextual header
         case stats               // Dictionary count, created/modified dates
         case dangerZone          // Delete button (editing mode only)
+        
+        /// Header style for displayName section, encoded so diffable data source
+        /// naturally detects changes and reconfigures the supplementary view.
+        enum HeaderStyle: Hashable {
+            case plain      // viewing mode: default gray header
+            case active     // editing: pencil icon + tintColor
+            case conflict   // editing + name conflict: warning icon + red
+        }
         
         var title: String? {
             switch self {
@@ -278,7 +299,7 @@ class GroupInfoViewController: UIViewController {
             cell.accessories = []
         }
         
-        // MARK: Header (with error state support for displayName section)
+        // MARK: Header (style driven by Section.displayName associated value)
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] headerView, elementKind, indexPath in
@@ -286,21 +307,25 @@ class GroupInfoViewController: UIViewController {
                   let section = self.dataSource.sectionIdentifier(for: indexPath.section) else { return }
             var content = headerView.defaultContentConfiguration()
             
-            if section == .displayName {
-//                if self.hasNameConflict {
-//                    content.image = .init(systemName: "exclamationmark.triangle")
-//                    content.image = .init(systemName: "exclamationmark.triangle")
-//                    content.text = "This name is already taken"
-//                    content.textProperties.color = .systemRed
-//                } else {
+            switch section {
+            case .displayName(let style):
+                content.text = section.title
+                switch style {
+                case .plain:
+                    break  // default gray header
+                case .active:
                     content.image = .init(systemName: "pencil")
                     content.imageProperties.tintColor = .tintColor
                     content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-                    content.text = section.title
                     content.textProperties.color = .tintColor
-//                }
-                
-            } else {
+                case .conflict:
+                    content.image = .init(systemName: "exclamationmark.triangle")
+                    content.imageProperties.tintColor = .systemRed
+                    content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+                    content.text = "This name is already taken"
+                    content.textProperties.color = .systemRed
+                }
+            default:
                 content.text = section.title
             }
             
@@ -352,7 +377,7 @@ class GroupInfoViewController: UIViewController {
             isEditingMode = true
             hasUnsavedChanges = true  // New group always has "changes" to save
             
-        case .editing(let groupId):
+        case .managing(let groupId):
             let group = DictionaryService.shared.group(id: groupId)
             title = group?.name ?? "Group"
             if !isEditingMode {
@@ -373,7 +398,7 @@ class GroupInfoViewController: UIViewController {
             navigationItem.leftBarButtonItem = cancelButton
             navigationItem.rightBarButtonItem = doneButton
             
-        case .editing:
+        case .managing:
             if isEditingMode {
                 // Editing mode: Cancel / Done
                 navigationItem.leftBarButtonItem = cancelButton
@@ -392,8 +417,8 @@ class GroupInfoViewController: UIViewController {
         switch mode {
         case .creating(let groupId):
             applyCreatingSnapshot(groupId: groupId)
-        case .editing(let groupId):
-            applyEditSnapshot(groupId: groupId)
+        case .managing(let groupId):
+            applyManagingSnapshot(groupId: groupId)
         }
     }
     
@@ -410,8 +435,9 @@ class GroupInfoViewController: UIViewController {
         }
         
         // SECTION: Name (always editable in creating mode)
-        snapshot.appendSections([.displayName])
-        snapshot.appendItems([.nameField(current: name)], toSection: .displayName)
+        let nameSection = Section.displayName(displayNameHeaderStyle)
+        snapshot.appendSections([nameSection])
+        snapshot.appendItems([.nameField(current: name)], toSection: nameSection)
         
         // SECTION: Stats
         snapshot.appendSections([.stats])
@@ -421,19 +447,20 @@ class GroupInfoViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: true)
     }
     
-    private func applyEditSnapshot(groupId: String) {
+    private func applyManagingSnapshot(groupId: String) {
         guard let group = DictionaryService.shared.group(id: groupId) else {
-            debugLog("⚠️ applyEditSnapshot: group not found for \(groupId.prefix(8))...")
+            debugLog("⚠️ applyManagingSnapshot: group not found for \(groupId.prefix(8))...")
             return
         }
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         let name = editedName ?? group.name
+        let nameSection = Section.displayName(displayNameHeaderStyle)
         
         if isEditingMode {
             // EDITING MODE: editable name + delete
-            snapshot.appendSections([.displayName])
-            snapshot.appendItems([.nameField(current: name)], toSection: .displayName)
+            snapshot.appendSections([nameSection])
+            snapshot.appendItems([.nameField(current: name)], toSection: nameSection)
             
             snapshot.appendSections([.dangerZone])
             snapshot.appendItems([.deleteButton], toSection: .dangerZone)
@@ -447,8 +474,8 @@ class GroupInfoViewController: UIViewController {
                 snapshot.appendItems([.manageDictionariesButton], toSection: .manageDictionaries)
             }
             
-            snapshot.appendSections([.displayName])
-            snapshot.appendItems([.nameLabel(current: name)], toSection: .displayName)
+            snapshot.appendSections([nameSection])
+            snapshot.appendItems([.nameLabel(current: name)], toSection: nameSection)
             
             snapshot.appendSections([.stats])
             let count = group.dictionaryIds.count
@@ -478,7 +505,7 @@ class GroupInfoViewController: UIViewController {
                 performCancelCreate()
             }
             
-        case .editing:
+        case .managing:
             if hasUnsavedChanges {
                 showAbandonEditingAlert()
             } else {
@@ -498,7 +525,7 @@ class GroupInfoViewController: UIViewController {
         switch mode {
         case .creating(let groupId):
             performSaveCreate(groupId: groupId)
-        case .editing(let groupId):
+        case .managing(let groupId):
             performSaveEdit(groupId: groupId)
         }
     }
@@ -540,7 +567,7 @@ class GroupInfoViewController: UIViewController {
     }
     
     private func showDeleteConfirmation() {
-        guard case .editing(let groupId) = currentMode else { return }
+        guard case .managing(let groupId) = currentMode else { return }
         let group = DictionaryService.shared.group(id: groupId)
         let groupName = group?.name ?? "this group"
         
@@ -661,13 +688,13 @@ class GroupInfoViewController: UIViewController {
     }
     
     /// Show in editing mode (existing group)
-    func showEditMode(for groupId: String) {
+    func showManagingMode(for groupId: String) {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
         isEditingMode = false
         nameTextView = nil
-        currentMode = .editing(groupId: groupId)
+        currentMode = .managing(groupId: groupId)
     }
 }
 
@@ -684,7 +711,7 @@ extension GroupInfoViewController: UICollectionViewDelegate {
         case .manageDictionariesButton:
             guard let mode = currentMode else { return }
             switch mode {
-            case .creating(let groupId), .editing(let groupId):
+            case .creating(let groupId), .managing(let groupId):
                 onManageDictionaries?(groupId)
             }
             
@@ -721,7 +748,7 @@ private extension GroupInfoViewController {
         let trimmed = (editedName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let currentGroupId: String? = switch currentMode {
         case .creating(let id): id
-        case .editing(let id): id
+        case .managing(let id): id
         case .none: nil
         }
         
@@ -732,31 +759,45 @@ private extension GroupInfoViewController {
         
         if conflict != hasNameConflict {
             hasNameConflict = conflict
-            
-            // Reconfigure the displayName section header
-            if let sectionIndex = dataSource.snapshot().indexOfSection(.displayName) {
-                let headerIndexPath = IndexPath(item: 0, section: sectionIndex)
-                if let headerView = collectionView.supplementaryView(
-                    forElementKind: UICollectionView.elementKindSectionHeader,
-                    at: headerIndexPath
-                ) as? UICollectionViewListCell {
-                    var content = headerView.defaultContentConfiguration()
-                    if conflict {
-                        content.image = .init(systemName: "exclamationmark.triangle")
-                        content.imageProperties.tintColor = .systemRed
-                        content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-                        content.text = "This name is already taken"
-                        content.textProperties.color = .systemRed
-                    } else {
-                        content.image = .init(systemName: "pencil")
-                        content.imageProperties.tintColor = .tintColor
-                        content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-                        content.text = Section.displayName.title
-                        content.textProperties.color = .tintColor
-                    }
-                    headerView.contentConfiguration = content
-                }
-            }
+            // Patch header directly to avoid snapshot rebuild (which kills first responder)
+            patchDisplayNameHeader()
         }
+    }
+    
+    /// Directly update the visible displayName header without re-applying the snapshot.
+    /// Used during text editing to preserve first responder.
+    private func patchDisplayNameHeader() {
+        let style = displayNameHeaderStyle
+        let snapshot = dataSource.snapshot()
+        // Find the displayName section regardless of its current HeaderStyle
+        guard let sectionIndex = snapshot.sectionIdentifiers.firstIndex(where: {
+            if case .displayName = $0 { return true }
+            return false
+        }) else { return }
+        
+        let headerIndexPath = IndexPath(item: 0, section: sectionIndex)
+        guard let headerView = collectionView.supplementaryView(
+            forElementKind: UICollectionView.elementKindSectionHeader,
+            at: headerIndexPath
+        ) as? UICollectionViewListCell else { return }
+        
+        var content = headerView.defaultContentConfiguration()
+        content.text = Section.displayName(style).title
+        switch style {
+        case .plain:
+            break
+        case .active:
+            content.image = .init(systemName: "pencil")
+            content.imageProperties.tintColor = .tintColor
+            content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+            content.textProperties.color = .tintColor
+        case .conflict:
+            content.image = .init(systemName: "exclamationmark.triangle")
+            content.imageProperties.tintColor = .systemRed
+            content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+            content.text = "This name is already taken"
+            content.textProperties.color = .systemRed
+        }
+        headerView.contentConfiguration = content
     }
 }
