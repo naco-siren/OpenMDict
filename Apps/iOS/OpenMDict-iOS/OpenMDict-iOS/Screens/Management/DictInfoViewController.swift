@@ -154,7 +154,8 @@ class DictInfoViewController: UIViewController {
         
         // Basic Metadata
         case title(String)
-        case entryCount(Int?)
+        /// Entry count: -1 = unknown/missing, 0 = parse error, >0 = actual count
+        case entryCount(Int)
         case description(String)
         // case creationDate(String)  // TBD
         // case importedDate(Date)    // TBD, editing only
@@ -434,15 +435,17 @@ class DictInfoViewController: UIViewController {
         }
         
         // MARK: Entry Count Cell (formatted number)
-        let entryCountReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int?> { cell, indexPath, count in
+        /// Entry count cell: -1 = unknown, 0 = error, >0 = actual count
+        let entryCountReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, indexPath, count in
             var content = UIListContentConfiguration.subtitleCell()
             content.text = "Entries"
-            if let count = count {
+            if count > 0 {
                 let formatter = NumberFormatter()
                 formatter.numberStyle = .decimal
                 content.secondaryText = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
                 content.secondaryTextProperties.color = .secondaryLabel
             } else {
+                // -1 = unknown, 0 = error
                 content.secondaryText = "Unknown"
                 content.secondaryTextProperties.color = .tertiaryLabel
             }
@@ -738,7 +741,7 @@ class DictInfoViewController: UIViewController {
             
             snapshot.appendItems([
                 .title(titleDisplay),
-                .entryCount(metadata.entryCount),
+                .entryCount(metadata.entryCount ?? -1),
                 .description(descHTML)
             ], toSection: .basicMetadata)
             
@@ -807,7 +810,7 @@ class DictInfoViewController: UIViewController {
                 let descHTML = MDictDescriptionParser.cleanHTMLForDisplay(metadata.description)
                 snapshot.appendItems([
                     .title(dict.displayTitle),
-                    .entryCount(metadata.entryCount),
+                    .entryCount(metadata.entryCount ?? -1),
                     .description(descHTML)
                 ], toSection: .basicMetadata)
                 
