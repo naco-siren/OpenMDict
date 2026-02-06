@@ -37,6 +37,9 @@ class MainSplitViewController: UISplitViewController {
     private var currentGroup: MDicts?
     private var currentDict: MDict?
     
+    /// Loading modal for long-running operations
+    private weak var loadingVC: LoadingViewController?
+    
     // MARK: - Constants
     
     private enum ColumnWidth {
@@ -209,32 +212,39 @@ class MainSplitViewController: UISplitViewController {
         
         dictInfoVC.onImportComplete = { [weak self] dictId in
             guard let self else { return }
-            dictionaryListVC.reloadData()
             
-            if isCollapsed {
-                // Compact mode: update state
-                currentMode = .lookup
-                dictionaryListVC.appMode = .lookup
-                dictionaryListVC.setNeedsUpdateAllCells()
-                dictionaryListVC.deselectImportItem()
+            // Hide loading modal first
+            hideLoadingModal(loadingVC) { [weak self] in
+                guard let self else { return }
+                
+                dictionaryListVC.reloadData()
+                
+                if isCollapsed {
+                    // Compact mode: update state
+                    currentMode = .lookup
+                    dictionaryListVC.appMode = .lookup
+                    dictionaryListVC.setNeedsUpdateAllCells()
+                    dictionaryListVC.deselectImportItem()
 
-                // Select the new dictionary in sidebar
-                if let dict = DictionaryService.shared.dict(id: dictId) {
-                    currentDict = dict
-                    currentGroup = nil
-                    dictionaryListVC.setActiveDictionary(dict)
-                    wordListVC.loadWords(for: dict)
+                    // Select the new dictionary in sidebar
+                    if let dict = DictionaryService.shared.dict(id: dictId) {
+                        currentDict = dict
+                        currentGroup = nil
+                        dictionaryListVC.setActiveDictionary(dict)
+                        wordListVC.loadWords(for: dict)
+                    }
+
+                    // Navigate back to sidebar, then swap columns back to lookup mode
+                    show(.primary)
+                    configureColumns(for: .lookup)
+                    debugLog("🔍 Import complete (compact): navigated to sidebar")
+                } else {
+                    // Regular mode: normal flow
+                    select(dictionaryId: dictId)
+                    debugLog("🔍 Import complete (regular): select new dictionary")
                 }
-
-                // Navigate back to sidebar, then swap columns back to lookup mode
-                show(.primary)
-                configureColumns(for: .lookup)
-                debugLog("🔍 Import complete (compact): navigated to sidebar")
-            } else {
-                // Regular mode: normal flow
-                select(dictionaryId: dictId)
-                debugLog("🔍 Import complete (regular): select new dictionary")
             }
+            loadingVC = nil
         }
         
         dictInfoVC.onEditComplete = { [weak self] dictId in

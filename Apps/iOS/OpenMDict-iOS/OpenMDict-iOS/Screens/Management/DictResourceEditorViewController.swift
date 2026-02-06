@@ -497,6 +497,10 @@ class DictResourceEditorViewController: UIViewController {
             
         case .editing(let dictId):
             // Editing mode: copy file to storage immediately
+            // Show loading modal on the presenting view controller
+            let presentingVC = view.window?.rootViewController
+            let loadingVC = presentingVC?.showLoadingModal(message: "Adding resource...")
+            
             Task {
                 do {
                     switch section {
@@ -512,11 +516,13 @@ class DictResourceEditorViewController: UIViewController {
                     
                     // Reload on main thread
                     await MainActor.run {
+                        presentingVC?.hideLoadingModal(loadingVC)
                         reloadData()
                     }
                     
                 } catch {
                     await MainActor.run {
+                        presentingVC?.hideLoadingModal(loadingVC)
                         showError(error)
                     }
                 }
