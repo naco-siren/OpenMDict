@@ -69,6 +69,18 @@ class DictInfoViewController: UIViewController {
         }
     }
     
+    /// Whether the user is in editing mode (vs viewing mode)
+    /// - Import mode: always true (user is setting up new dictionary)
+    /// - Edit mode: toggleable via Edit/Done buttons
+    private var isEditingMode: Bool = false {
+        didSet {
+            if isViewLoaded {
+                updateNavigationBar()
+                applyCurrentSnapshot()
+            }
+        }
+    }
+    
     /// Tracks if user has made changes that need saving
     private var hasUnsavedChanges: Bool = false {
         didSet {
@@ -125,8 +137,9 @@ class DictInfoViewController: UIViewController {
         case selectFileButton
         case manageResourcesButton
         
-        // Display Name (editable via text field)
-        case displayNameField(current: String)
+        // Display Name
+        case displayNameLabel(current: String)  // Viewing mode: read-only label
+        case displayNameField(current: String)  // Editing mode: UITextField
         
         // Basic Metadata
         case title(String)
@@ -203,7 +216,16 @@ class DictInfoViewController: UIViewController {
     
     // MARK: - Navigation Items
     
-    /// System Done button (enabled only when hasUnsavedChanges)
+    /// Edit button (viewing mode → editing mode)
+    private lazy var editButton: UIBarButtonItem = {
+        UIBarButtonItem(
+            barButtonSystemItem: .edit,
+            target: self,
+            action: #selector(editTapped)
+        )
+    }()
+    
+    /// Done button (save changes)
     private lazy var doneButton: UIBarButtonItem = {
         let button = UIBarButtonItem(
             barButtonSystemItem: .done,
@@ -213,6 +235,18 @@ class DictInfoViewController: UIViewController {
         button.isEnabled = false
         return button
     }()
+    
+    /// Cancel button (discard changes, exit editing mode)
+    private lazy var cancelButton: UIBarButtonItem = {
+        UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: self,
+            action: #selector(cancelTapped)
+        )
+    }()
+    
+    /// Reference to the display name text field (for reading edited value)
+    private weak var displayNameTextField: UITextField?
     
     /// Check if split view is collapsed (compact mode)
     /// More reliable than checking own traitCollection, which may be incorrect
@@ -333,14 +367,45 @@ class DictInfoViewController: UIViewController {
             cell.backgroundConfiguration = bgConfig
         }
         
-        // MARK: Display Name Cell (shows current name, tap to edit via alert)
-        let displayNameReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
+        // MARK: Display Name Label (viewing mode - read-only)
+        let displayNameLabelReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
             var content = UIListContentConfiguration.cell()
-            content.text = value.isEmpty ? "Tap to set a custom name..." : value
-            content.textProperties.color = value.isEmpty ? .placeholderText : .label
+            content.text = value.isEmpty ? "No custom name" : value
+            content.textProperties.color = value.isEmpty ? .tertiaryLabel : .label
             content.textProperties.numberOfLines = 0  // Allow multi-line display
             cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator()]
+            cell.accessories = []
+        }
+        
+        // MARK: Display Name Field (editing mode - UITextField)
+        let displayNameFieldReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, indexPath, value in
+            // Remove any existing subviews
+            cell.contentView.subviews.forEach { $0.removeFromSuperview() }
+            cell.contentConfiguration = nil
+            
+            // Create text field
+            let textField = UITextField()
+            textField.text = value
+            textField.placeholder = "Enter a custom name..."
+            textField.font = .preferredFont(forTextStyle: .body)
+            textField.clearButtonMode = .whileEditing
+            textField.returnKeyType = .done
+            textField.delegate = self
+            textField.addTarget(self, action: #selector(self?.displayNameTextFieldDidChange(_:)), for: .editingChanged)
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            
+            // Store reference
+            self?.displayNameTextField = textField
+            
+            cell.contentView.addSubview(textField)
+            NSLayoutConstraint.activate([
+                textField.leadingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.leadingAnchor),
+                textField.trailingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.trailingAnchor),
+                textField.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 12),
+                textField.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -12),
+            ])
+            
+            cell.accessories = []
         }
         
         // MARK: Info Cell (icon + title + value)
@@ -441,8 +506,10 @@ class DictInfoViewController: UIViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: manageResourcesReg, for: indexPath, item: ())
                 
             // Display Name
+            case .displayNameLabel(let value):
+                return collectionView.dequeueConfiguredReusableCell(using: displayNameLabelReg, for: indexPath, item: value)
             case .displayNameField(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: displayNameReg, for: indexPath, item: value)
+                return collectionView.dequeueConfiguredReusableCell(using: displayNameFieldReg, for: indexPath, item: value)
                 
             // Basic Metadata
             case .title(let value):
@@ -487,12 +554,14 @@ class DictInfoViewController: UIViewController {
             emptyStateView.isHidden = false
             collectionView.isHidden = true
             hasUnsavedChanges = false
+            isEditingMode = false
             
         case .importing:
             title = "Import Dictionary"
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             hasUnsavedChanges = true  // File selected = has changes to import
+            isEditingMode = true  // Import mode is always editing
             applyImportSnapshot()
             
         case .editing(let dictId):
@@ -500,7 +569,38 @@ class DictInfoViewController: UIViewController {
             title = dict?.displayTitle
             emptyStateView.isHidden = true
             collectionView.isHidden = false
+            // Start in viewing mode for existing dictionaries
+            if !isEditingMode {
+                hasUnsavedChanges = false
+            }
             applyEditSnapshot(dictId: dictId)
+        }
+        
+        updateNavigationBar()
+    }
+    
+    private func updateNavigationBar() {
+        switch currentMode {
+        case .empty:
+            // Empty state: Cancel on left (via onDismiss)
+            navigationItem.leftBarButtonItem = cancelButton
+            navigationItem.rightBarButtonItem = nil
+            
+        case .importing:
+            // Import mode: always editing, Cancel/Done
+            navigationItem.leftBarButtonItem = cancelButton
+            navigationItem.rightBarButtonItem = doneButton
+            
+        case .editing:
+            if isEditingMode {
+                // Editing mode: Cancel/Done
+                navigationItem.leftBarButtonItem = cancelButton
+                navigationItem.rightBarButtonItem = doneButton
+            } else {
+                // Viewing mode: (system back) / Edit
+                navigationItem.leftBarButtonItem = nil
+                navigationItem.rightBarButtonItem = editButton
+            }
         }
     }
     
@@ -582,42 +682,72 @@ class DictInfoViewController: UIViewController {
               let metadata = dict.metadata else { return }
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        let displayName = editedDisplayName ?? dict.preferredTitle
         
-        // SECTION: Manage Resources (compact mode only)
-        if isSplitViewCollapsed {
-            snapshot.appendSections([.manageResources])
-            snapshot.appendItems([.manageResourcesButton], toSection: .manageResources)
-        }
-        
-        // SECTION: Display Name
-        snapshot.appendSections([.displayName])
-        snapshot.appendItems([.displayNameField(current: editedDisplayName ?? dict.preferredTitle)], toSection: .displayName)
-        
-        // SECTION: Basic Metadata
-        snapshot.appendSections([.basicMetadata])
-        let cleanedDesc = dict.cleanedDescription ?? metadata.description
-        
-        snapshot.appendItems([
-            .title(dict.displayTitle),
-            .entryCount(metadata.entryCount),
-            .description(cleanedDesc)
-        ], toSection: .basicMetadata)
-        
-        // SECTION: Advanced Metadata
-        snapshot.appendSections([.advancedMetadata])
-        snapshot.appendItems([
-            .engineVersion(metadata.engineVersion),
-            .format(metadata.format),
-            .encoding(metadata.encoding),
-            .isEncrypted(metadata.isEncrypted),
-            .isCaseSensitive(metadata.isCaseSensitive)
-        ], toSection: .advancedMetadata)
-        
-        // SECTION: Danger Zone (only for user-imported, not bundled)
-        let source = DictionaryService.shared.dictionarySources[dictId]
-        if source == .imported {
-            snapshot.appendSections([.dangerZone])
-            snapshot.appendItems([.deleteButton], toSection: .dangerZone)
+        if isEditingMode {
+            // EDITING MODE: Show editable field and delete button
+            
+            // SECTION: Display Name (editable)
+            snapshot.appendSections([.displayName])
+            snapshot.appendItems([.displayNameField(current: displayName)], toSection: .displayName)
+            
+            // SECTION: Basic Metadata
+            snapshot.appendSections([.basicMetadata])
+            let cleanedDesc = dict.cleanedDescription ?? metadata.description
+            snapshot.appendItems([
+                .title(dict.displayTitle),
+                .entryCount(metadata.entryCount),
+                .description(cleanedDesc)
+            ], toSection: .basicMetadata)
+            
+            // SECTION: Advanced Metadata
+            snapshot.appendSections([.advancedMetadata])
+            snapshot.appendItems([
+                .engineVersion(metadata.engineVersion),
+                .format(metadata.format),
+                .encoding(metadata.encoding),
+                .isEncrypted(metadata.isEncrypted),
+                .isCaseSensitive(metadata.isCaseSensitive)
+            ], toSection: .advancedMetadata)
+            
+            // SECTION: Danger Zone (only for user-imported, not bundled)
+            let source = DictionaryService.shared.dictionarySources[dictId]
+            if source == .imported {
+                snapshot.appendSections([.dangerZone])
+                snapshot.appendItems([.deleteButton], toSection: .dangerZone)
+            }
+            
+        } else {
+            // VIEWING MODE: Show read-only label and manage resources
+            
+            // SECTION: Manage Resources (compact mode only, viewing mode only)
+            if isSplitViewCollapsed {
+                snapshot.appendSections([.manageResources])
+                snapshot.appendItems([.manageResourcesButton], toSection: .manageResources)
+            }
+            
+            // SECTION: Display Name (read-only)
+            snapshot.appendSections([.displayName])
+            snapshot.appendItems([.displayNameLabel(current: displayName)], toSection: .displayName)
+            
+            // SECTION: Basic Metadata
+            snapshot.appendSections([.basicMetadata])
+            let cleanedDesc = dict.cleanedDescription ?? metadata.description
+            snapshot.appendItems([
+                .title(dict.displayTitle),
+                .entryCount(metadata.entryCount),
+                .description(cleanedDesc)
+            ], toSection: .basicMetadata)
+            
+            // SECTION: Advanced Metadata
+            snapshot.appendSections([.advancedMetadata])
+            snapshot.appendItems([
+                .engineVersion(metadata.engineVersion),
+                .format(metadata.format),
+                .encoding(metadata.encoding),
+                .isEncrypted(metadata.isEncrypted),
+                .isCaseSensitive(metadata.isCaseSensitive)
+            ], toSection: .advancedMetadata)
         }
         
         dataSource.apply(snapshot, animatingDifferences: false)
@@ -634,7 +764,41 @@ class DictInfoViewController: UIViewController {
         }
     }
     
+    @objc private func editTapped() {
+        // Enter editing mode
+        isEditingMode = true
+    }
+    
+    @objc private func cancelTapped() {
+        switch currentMode {
+        case .empty:
+            // Cancel from empty state - just dismiss
+            performDismiss()
+            
+        case .importing:
+            // Cancel import - discard and dismiss
+            if hasUnsavedChanges {
+                showAbandonChangesAlert()
+            } else {
+                performDismiss()
+            }
+            
+        case .editing:
+            // Cancel editing - discard changes and return to viewing mode
+            if hasUnsavedChanges {
+                showAbandonEditingAlert()
+            } else {
+                exitEditingMode()
+            }
+        }
+    }
+    
     @objc private func doneTapped() {
+        // Sync text field value before saving
+        if let text = displayNameTextField?.text {
+            editedDisplayName = text
+        }
+        
         switch currentMode {
         case .empty:
             break  // Should not happen - Done is disabled
@@ -645,6 +809,30 @@ class DictInfoViewController: UIViewController {
         case .editing:
             showConfirmSaveAlert()
         }
+    }
+    
+    /// Exit editing mode without saving (discard changes)
+    private func exitEditingMode() {
+        editedDisplayName = nil
+        hasUnsavedChanges = false
+        isEditingMode = false
+        displayNameTextField = nil
+    }
+    
+    /// Show alert to confirm discarding edits (not the whole import)
+    private func showAbandonEditingAlert() {
+        let alert = UIAlertController(
+            title: "Discard Changes?",
+            message: "You have unsaved changes. Are you sure you want to discard them?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+            self?.exitEditingMode()
+        })
+        
+        present(alert, animated: true)
     }
     
     /// Actually perform the dismiss action
@@ -884,44 +1072,6 @@ class DictInfoViewController: UIViewController {
         present(picker, animated: true)
     }
     
-    private func showDisplayNameEditor() {
-        // Get current name based on mode
-        let currentName: String
-        switch currentMode {
-        case .editing(let dictId):
-            let dict = DictionaryService.shared.dict(id: dictId)
-            currentName = editedDisplayName ?? dict?.preferredTitle ?? ""
-        case .importing:
-            let extractedTitle = previewMetadata.flatMap { MDictDescriptionParser.tryExtractTitle(from: $0.description) }
-            let sourceFileName = selectedMDXURL?.deletingPathExtension().lastPathComponent
-            currentName = editedDisplayName ?? extractedTitle ?? previewMetadata?.title ?? sourceFileName ?? ""
-        case .empty:
-            return
-        }
-        
-        let alert = UIAlertController(
-            title: "Custom Name",
-            message: "Enter a custom display name for this dictionary",
-            preferredStyle: .alert
-        )
-        
-        alert.addTextField { textField in
-            textField.text = currentName
-            textField.placeholder = "Display name"
-            textField.clearButtonMode = .whileEditing
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
-            guard let newName = alert.textFields?.first?.text else { return }
-            self?.editedDisplayName = newName
-            self?.hasUnsavedChanges = true
-            self?.applyCurrentSnapshot()
-        })
-        
-        present(alert, animated: true)
-    }
-    
     // MARK: - Public API
     
     func showEmptyState() {
@@ -939,6 +1089,8 @@ class DictInfoViewController: UIViewController {
         editedDisplayName = nil
         hasUnsavedChanges = false
         duplicatedDictId = nil
+        isEditingMode = true  // Import is always in editing mode
+        displayNameTextField = nil
         currentMode = .empty  // Start with empty, showing file picker prompt
     }
     
@@ -948,6 +1100,8 @@ class DictInfoViewController: UIViewController {
         editedDisplayName = nil
         hasUnsavedChanges = false
         duplicatedDictId = nil
+        isEditingMode = false  // Start in viewing mode
+        displayNameTextField = nil
         currentMode = .editing(dictId: dictId)
     }
 }
@@ -977,9 +1131,13 @@ extension DictInfoViewController: UICollectionViewDelegate {
         case .duplicateWarning(let existingId):
             onViewExistingDictionary?(existingId)
             
-        // Display Name - tap to edit via alert
+        // Display Name
+        case .displayNameLabel:
+            // Viewing mode: tap does nothing (use Edit button)
+            break
         case .displayNameField:
-            showDisplayNameEditor()
+            // Editing mode: text field handles input, tap to focus
+            displayNameTextField?.becomeFirstResponder()
             
         // Danger Zone
         case .deleteButton:
@@ -991,6 +1149,21 @@ extension DictInfoViewController: UICollectionViewDelegate {
              .isEncrypted, .isCaseSensitive:
             break
         }
+    }
+}
+
+// MARK: - UITextFieldDelegate
+
+extension DictInfoViewController: UITextFieldDelegate {
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+    
+    @objc func displayNameTextFieldDidChange(_ textField: UITextField) {
+        editedDisplayName = textField.text
+        hasUnsavedChanges = true
     }
 }
 
