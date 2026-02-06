@@ -194,6 +194,19 @@ class MainSplitViewController: UISplitViewController {
             debugLog("📄 MDX selected: resource editor ready for \(dictId.prefix(8))...")
         }
         
+        dictInfoVC.onImportStarted = { [weak self] in
+            guard let self else { return }
+            loadingVC = showLoadingModal(message: "Importing dictionary...")
+            debugLog("📦 Import started: showing loading modal")
+        }
+        
+        dictInfoVC.onImportFailed = { [weak self] error in
+            guard let self else { return }
+            hideLoadingModal(loadingVC)
+            loadingVC = nil
+            debugLog("❌ Import failed: hiding loading modal")
+        }
+        
         dictInfoVC.onImportComplete = { [weak self] dictId in
             guard let self else { return }
             dictionaryListVC.reloadData()

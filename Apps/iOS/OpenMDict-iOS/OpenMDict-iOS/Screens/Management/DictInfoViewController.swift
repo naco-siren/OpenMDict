@@ -48,8 +48,14 @@ class DictInfoViewController: UIViewController {
     /// Callback for "View Existing Dictionary" navigation (when duplicate detected)
     var onViewExistingDictionary: ((String) -> Void)?
     
+    /// Callback when import starts (for showing loading UI)
+    var onImportStarted: (() -> Void)?
+    
     /// Callback when user selected dictionary is imported (dictId passed back)
     var onImportComplete: ((String) -> Void)?
+    
+    /// Callback when import fails (for hiding loading UI)
+    var onImportFailed: ((Error) -> Void)?
     
     // MARK: - Callbacks for editing
     
@@ -1019,6 +1025,9 @@ class DictInfoViewController: UIViewController {
         
         print("📦 Importing: MDX=\(mdxFile.fileName), MDD=\(mddFiles.count), CSS=\(cssFiles.count), JS=\(jsFiles.count)")
         
+        // Notify start (for loading UI)
+        onImportStarted?()
+        
         Task {
             do {
                 let dictId = try await DictionaryService.shared.importDictionary(
@@ -1045,6 +1054,7 @@ class DictInfoViewController: UIViewController {
             } catch {
                 print("❌ Import failed: \(error)")
                 await MainActor.run {
+                    onImportFailed?(error)
                     showImportError(error)
                 }
             }
