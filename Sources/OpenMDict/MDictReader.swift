@@ -59,9 +59,6 @@ public struct MDictMetadata: Sendable {
     /// File size in bytes
     public let fileSize: Int64
     
-    /// Whether associated MDD files exist
-    public let hasMDD: Bool
-    
     /// SHA256 hash of the MDX header bytes.
     /// Used as the dictionary's unique identifier for storage and duplicate detection.
     /// Note: This is specifically SHA256, not MD5 or any other hash algorithm.
@@ -139,7 +136,6 @@ public final class MDictReader: @unchecked Sendable {
 
         // Build metadata
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
-        let hasMDD = Self.checkMDDExists(mdxPath: path)
         let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded)
         
         // Compute SHA256 of header for duplicate detection
@@ -158,7 +154,6 @@ public final class MDictReader: @unchecked Sendable {
             isCaseSensitive: parser.info.isCaseSensitive,
             path: path,
             fileSize: fileSize,
-            hasMDD: hasMDD,
             headerSHA256: headerSHA256
         )
     }
@@ -184,7 +179,6 @@ public final class MDictReader: @unchecked Sendable {
 
         // Build metadata
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
-        let hasMDD = !mddPaths.isEmpty || Self.checkMDDExists(mdxPath: path)
         let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded)
         let headerSHA256 = Self.computeHeaderSHA256(path: path)
         
@@ -200,7 +194,6 @@ public final class MDictReader: @unchecked Sendable {
             isCaseSensitive: parser.info.isCaseSensitive,
             path: path,
             fileSize: fileSize,
-            hasMDD: hasMDD,
             headerSHA256: headerSHA256
         )
     }
@@ -228,7 +221,6 @@ public final class MDictReader: @unchecked Sendable {
         
         let info = result.info
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
-        let hasMDD = checkMDDExists(mdxPath: path)
         let title = resolveTitle(info.title.htmlEntityDecoded)
         
         // Compute SHA256 hash of header bytes for duplicate detection
@@ -247,7 +239,6 @@ public final class MDictReader: @unchecked Sendable {
             isCaseSensitive: info.isCaseSensitive,
             path: path,
             fileSize: fileSize,
-            hasMDD: hasMDD,
             headerSHA256: headerSHA256
         )
     }
@@ -286,12 +277,6 @@ public final class MDictReader: @unchecked Sendable {
         }
         
         return rawTitle
-    }
-    
-    private static func checkMDDExists(mdxPath: String) -> Bool {
-        let basePath = (mdxPath as NSString).deletingPathExtension
-        let mddPath = basePath + ".mdd"
-        return FileManager.default.fileExists(atPath: mddPath)
     }
     
     // MARK: - Lookup API
