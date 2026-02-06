@@ -28,6 +28,8 @@ class MainSplitViewController: UISplitViewController {
     private let detailContainer = DetailContainerViewController()
     private lazy var dictInfoVC = DictInfoViewController()
     private lazy var dictResourceEditorVC = DictResourceEditorViewController()
+    private lazy var groupInfoVC = GroupInfoViewController()
+    // private lazy var groupDictEditorVC = GroupDictionaryEditorViewController()  // Phase 3
     
     // MARK: - State
     
@@ -289,6 +291,78 @@ class MainSplitViewController: UISplitViewController {
             dictionaryListVC.reloadData()
             exitToLookupMode()
         }
+        
+        // MARK: Group Management Callbacks
+        
+        groupInfoVC.onDismiss = { [weak self] in
+            guard let self else { return }
+            dictionaryListVC.reloadData()
+            exitToLookupMode()
+        }
+        
+        groupInfoVC.onManageDictionaries = { [weak self] groupId in
+            guard let self, isCompact else { return }
+            // TODO: Phase 3 - push GroupDictionaryEditorVC
+            debugLog("📂 Manage dictionaries for group: \(groupId.prefix(8))... (not yet implemented)")
+        }
+        
+        groupInfoVC.onCreateComplete = { [weak self] groupId in
+            guard let self else { return }
+            dictionaryListVC.reloadData()
+            
+            if isCollapsed {
+                currentMode = .lookup
+                dictionaryListVC.appMode = .lookup
+                dictionaryListVC.setNeedsUpdateAllCells()
+                
+                // Select the new group
+                if let group = DictionaryService.shared.group(id: groupId) {
+                    select(group: group)
+                }
+                
+                show(.primary)
+                configureColumns(for: .lookup)
+                debugLog("📂 Create group complete (compact)")
+            } else {
+                // Regular: select the new group
+                if let group = DictionaryService.shared.group(id: groupId) {
+                    exitToLookupModeIfNeeded()
+                    select(group: group)
+                }
+                debugLog("📂 Create group complete (regular)")
+            }
+        }
+        
+        groupInfoVC.onEditComplete = { [weak self] groupId in
+            guard let self else { return }
+            dictionaryListVC.reloadData()
+            
+            if isCollapsed {
+                currentMode = .lookup
+                dictionaryListVC.appMode = .lookup
+                dictionaryListVC.setNeedsUpdateAllCells()
+                
+                if let group = DictionaryService.shared.group(id: groupId) {
+                    select(group: group)
+                }
+                
+                show(.primary)
+                configureColumns(for: .lookup)
+                debugLog("📝 Edit group complete (compact)")
+            } else {
+                if let group = DictionaryService.shared.group(id: groupId) {
+                    exitToLookupModeIfNeeded()
+                    select(group: group)
+                }
+                debugLog("📝 Edit group complete (regular)")
+            }
+        }
+        
+        groupInfoVC.onDeleteComplete = { [weak self] groupId in
+            guard let self else { return }
+            dictionaryListVC.reloadData()
+            exitToLookupMode()
+        }
     }
     
     private func applyInitialSelection() {
@@ -378,23 +452,32 @@ class MainSplitViewController: UISplitViewController {
             currentMode = .management
             dictionaryListVC.appMode = .management
             dictionaryListVC.setNeedsUpdateAllCells()
-            configureColumns(for: .management)
             debugLog("📚 Entered Management mode")
         }
         
         switch action {
         case .importNew:
+            configureColumns(for: .managementDict)
             dictInfoVC.showImportMode()
             dictResourceEditorVC.showEmptyState()
         case .editDict(let dictId):
+            configureColumns(for: .managementDict)
             dictInfoVC.showEditMode(for: dictId)
             dictResourceEditorVC.showEditor(for: dictId)
         case .editGroup(let groupId):
-            // TODO: Phase 2 - GroupInfoVC + GroupDictionaryEditorVC
-            debugLog("📂 Edit group: \(groupId.prefix(8))... (not yet implemented)")
+            configureColumns(for: .managementGroup)
+            groupInfoVC.showEditMode(for: groupId)
+            // TODO: Phase 3 - groupDictEditorVC.showEditor(for: groupId)
         case .createGroup:
-            // TODO: Phase 2 - Create group → GroupInfoVC in creating mode
-            debugLog("📂 Create group (not yet implemented)")
+            // Pre-create the group in data layer, then show creating mode
+            guard let newGroup = try? DictionaryService.shared.createGroup() else {
+                debugLog("❌ Failed to create group")
+                return
+            }
+            dictionaryListVC.reloadData()
+            configureColumns(for: .managementGroup)
+            groupInfoVC.showCreatingMode(groupId: newGroup.id)
+            // TODO: Phase 3 - groupDictEditorVC.showEditor(for: newGroup.id)
         }
         
         show(.supplementary)
@@ -419,22 +502,34 @@ class MainSplitViewController: UISplitViewController {
         debugLog("🔍 Exited to Lookup mode")
     }
     
-    private func configureColumns(for mode: AppMode) {
+    private enum ColumnTarget {
+        case lookup
+        case managementDict
+        case managementGroup
+    }
+    
+    private func configureColumns(for target: ColumnTarget) {
         setViewController(nil, for: .supplementary)
         setViewController(nil, for: .secondary)
         
-        switch mode {
+        switch target {
         case .lookup:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
             minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
             setViewController(wordListVC, for: .supplementary)
             setViewController(detailContainer, for: .secondary)
             
-        case .management:
+        case .managementDict:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin
             setViewController(dictInfoVC, for: .supplementary)
             setViewController(dictResourceEditorVC, for: .secondary)
+            
+        case .managementGroup:
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.managementMin
+            setViewController(groupInfoVC, for: .supplementary)
+            // TODO: Phase 3 - setViewController(groupDictEditorVC, for: .secondary)
         }
     }
     
