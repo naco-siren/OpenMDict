@@ -40,8 +40,8 @@ class GroupInfoViewController: UIViewController {
     /// Callback when a new group is created and saved
     var onCreateComplete: ((String) -> Void)?
     
-    /// Callback when edit is saved
-    var onEditComplete: ((String) -> Void)?
+    /// Callback when group metadata changed (e.g. rename) — refreshes sidebar without exiting management
+    var onGroupChanged: ((String) -> Void)?
     
     /// Callback when group is deleted
     var onDeleteComplete: ((String) -> Void)?
@@ -729,7 +729,7 @@ class GroupInfoViewController: UIViewController {
         isEditingMode = false
         nameTextView = nil
         
-        onEditComplete?(groupId)
+        onGroupChanged?(groupId)
     }
     
     private func performDelete(groupId: String) {

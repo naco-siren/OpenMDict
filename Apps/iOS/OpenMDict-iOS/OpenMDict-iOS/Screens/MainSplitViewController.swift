@@ -332,29 +332,10 @@ class MainSplitViewController: UISplitViewController {
             }
         }
         
-        groupInfoVC.onEditComplete = { [weak self] groupId in
+        groupInfoVC.onGroupChanged = { [weak self] groupId in
             guard let self else { return }
             dictionaryListVC.reloadData()
-            
-            if isCollapsed {
-                currentMode = .lookup
-                dictionaryListVC.appMode = .lookup
-                dictionaryListVC.setNeedsUpdateAllCells()
-                
-                if let group = DictionaryService.shared.group(id: groupId) {
-                    select(group: group)
-                }
-                
-                show(.primary)
-                configureColumns(for: .lookup)
-                debugLog("📝 Edit group complete (compact)")
-            } else {
-                if let group = DictionaryService.shared.group(id: groupId) {
-                    exitToLookupModeIfNeeded()
-                    select(group: group)
-                }
-                debugLog("📝 Edit group complete (regular)")
-            }
+            debugLog("📝 Group changed: sidebar refreshed")
         }
         
         groupInfoVC.onDeleteComplete = { [weak self] groupId in
