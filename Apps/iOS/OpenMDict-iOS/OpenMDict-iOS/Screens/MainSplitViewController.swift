@@ -505,7 +505,12 @@ class MainSplitViewController: UISplitViewController {
         case managementGroup
     }
     
+    private var currentColumnTarget: ColumnTarget = .lookup
+    
     private func configureColumns(for target: ColumnTarget) {
+        guard target != currentColumnTarget else { return }
+        currentColumnTarget = target
+        
         setViewController(nil, for: .supplementary)
         setViewController(nil, for: .secondary)
         
