@@ -494,6 +494,10 @@ class MainSplitViewController: UISplitViewController {
         DictionaryService.shared.importSession.reset()
         DictionaryService.shared.groupSession.reset()
         
+        // Reset management VCs to empty state
+        groupInfoVC.resetToEmptyState()
+        groupDictEditorVC.showEmptyState()
+        
         dictionaryListVC.appMode = .lookup
         dictionaryListVC.setNeedsUpdateAllCells()
         configureColumns(for: .lookup)

@@ -360,16 +360,19 @@ class GroupDictionaryEditorViewController: UIViewController {
     
     func showEmptyState() {
         mode = .empty
+        if isViewLoaded { reloadData() }
     }
     
     /// Show editor for an existing group (managing mode — immediate persist)
     func showEditor(for groupId: String) {
         mode = .managing(groupId: groupId)
+        if isViewLoaded { reloadData() }
     }
     
     /// Show editor for a new group (creating mode — writes to session only)
     func showCreatingEditor() {
         mode = .creating
+        if isViewLoaded { reloadData() }
     }
 }
 

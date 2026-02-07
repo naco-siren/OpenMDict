@@ -353,6 +353,8 @@ final class UserGroupDictCell: UICollectionViewListCell {
         var bg = UIBackgroundConfiguration.listSidebarCell()
         bg.backgroundColorTransformer = nil
         
+        var cellAccessories: [UICellAccessory] = []
+        
         // Handle loading states first
         switch loadState {
         case .unloaded, .loading:
@@ -370,17 +372,13 @@ final class UserGroupDictCell: UICollectionViewListCell {
                     }(),
                     placement: .trailing()
                 )
-                accessories = [.customView(configuration: spinnerConfig)]
-            } else {
-                accessories = []
+                cellAccessories.append(.customView(configuration: spinnerConfig))
             }
             
         case .error:
             content.image = UIImage(systemName: "exclamationmark.triangle")
             content.textProperties.color = .systemRed
             content.imageProperties.tintColor = .systemRed
-
-            accessories = []
             
         case .metadataLoaded, .loaded:
             // Normal loaded state
@@ -398,9 +396,15 @@ final class UserGroupDictCell: UICollectionViewListCell {
             } else {
                 content.image = UIImage(systemName: "book.closed")
             }
-            accessories = []
         }
         
+        // Add reorder handle in edit mode
+        // TODO: Sidebar drag/drop deferred — needs UICollectionViewDragDelegate
+        // if isEditing {
+        //     cellAccessories.append(.reorder(displayed: .whenEditing))
+        // }
+        
+        accessories = cellAccessories
         contentConfiguration = content
         backgroundConfiguration = bg
     }

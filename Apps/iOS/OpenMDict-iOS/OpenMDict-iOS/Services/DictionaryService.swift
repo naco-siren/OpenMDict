@@ -595,16 +595,17 @@ final class DictionaryService: ObservableObject {
         print("🗑️ Deleted group: \(id.prefix(8))...")
     }
     
-    /// Reorder user groups
+    /// Reorder user groups (default group is excluded from reordering).
+    /// `newOrder` contains user group IDs in the desired order.
     func reorderUserGroups(newOrder: [String]) throws {
-        let defaultGroup = groups.filter { $0.isDefault }
-        let reordered = newOrder.compactMap { id in
-            groups.first { $0.id == id && !$0.isDefault }
-        }
-        groups = defaultGroup + reordered
+        let defaultGroups = groups.filter { $0.isDefault }
+        let reordered = newOrder.compactMap { id in groups.first { $0.id == id } }
+        
+        // Default group(s) first, then reordered user groups
+        groups = defaultGroups + reordered
         
         try persistGroups()
-        print("🔄 Reordered \(reordered.count) user groups")
+        print("🔄 Reordered \(newOrder.count) user groups")
     }
     
     /// Add a dictionary to a user group
@@ -641,8 +642,8 @@ final class DictionaryService: ObservableObject {
     
     /// Reorder dictionaries within a user group
     func reorderDictionariesInGroup(groupId: String, newOrder: [String]) throws {
-        guard let group = groups.first(where: { $0.id == groupId && !$0.isDefault }) else {
-            print("⚠️ User group not found: \(groupId)")
+        guard let group = groups.first(where: { $0.id == groupId }) else {
+            print("⚠️ Group not found: \(groupId)")
             return
         }
         

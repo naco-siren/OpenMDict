@@ -731,6 +731,17 @@ class GroupInfoViewController: UIViewController {
         
         currentMode = .managing(groupId: groupId)
     }
+    
+    /// Reset to idle state (no group selected). Called when exiting management mode.
+    func resetToEmptyState() {
+        dictCountCancellable = nil
+        editedName = nil
+        hasUnsavedChanges = false
+        hasNameConflict = false
+        isEditingMode = false
+        nameTextView = nil
+        currentMode = nil
+    }
 }
 
 // MARK: - UICollectionViewDelegate
