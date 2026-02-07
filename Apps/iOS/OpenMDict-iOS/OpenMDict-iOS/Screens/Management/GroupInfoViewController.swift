@@ -82,6 +82,12 @@ class GroupInfoViewController: UIViewController {
         didSet { updateDoneButtonState() }
     }
     
+    /// True when creating a group with zero dictionaries selected.
+    /// Only gates the Done button in creating mode.
+    private var hasNoDictionaries: Bool = true {
+        didSet { updateDoneButtonState() }
+    }
+    
     /// Edited display name (tracks changes)
     private var editedName: String?
     
@@ -113,9 +119,8 @@ class GroupInfoViewController: UIViewController {
     // MARK: - UI
     
     private nonisolated enum Section: Hashable {
-        case manageDictionaries  // Button (compact mode only)
         case displayName(HeaderStyle)  // Group name with contextual header
-        case stats               // Dictionary count, created/modified dates
+        case stats               // Contained items, created/modified dates
         case dangerZone          // Delete button (editing mode only)
         
         /// Header style for displayName section, encoded so diffable data source
@@ -129,7 +134,6 @@ class GroupInfoViewController: UIViewController {
         
         var title: String? {
             switch self {
-            case .manageDictionaries: return nil
             case .displayName: return "Custom Name"
             case .stats: return "Group Info"
             case .dangerZone: return nil
@@ -138,15 +142,12 @@ class GroupInfoViewController: UIViewController {
     }
     
     private nonisolated enum Item: Hashable {
-        // Actions
-        case manageDictionariesButton
-        
         // Display Name
         case nameLabel(current: String)    // Viewing mode: read-only
         case nameField(current: String)    // Editing mode: text view
         
         // Stats
-        case dictionaryCount(Int)
+        case containedItems(Int)           // Dict count (tappable in compact)
         case createdDate(String)
         case modifiedDate(String)
         
@@ -188,7 +189,11 @@ class GroupInfoViewController: UIViewController {
     private weak var nameTextView: UITextView?
     
     private func updateDoneButtonState() {
-        doneButton.isEnabled = hasUnsavedChanges && !hasNameConflict && !hasEmptyName
+        var canSave = hasUnsavedChanges && !hasNameConflict && !hasEmptyName
+        if case .creating = currentMode {
+            canSave = canSave && !hasNoDictionaries
+        }
+        doneButton.isEnabled = canSave
     }
     
     /// Check if split view is collapsed (compact mode)
@@ -238,21 +243,59 @@ class GroupInfoViewController: UIViewController {
     // MARK: - Data Source
     
     private func configureDataSource() {
-        // MARK: Manage Dictionaries Button
-        let manageDictsReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
-            var content = UIListContentConfiguration.cell()
-            content.image = UIImage(systemName: "books.vertical")
-            content.imageProperties.tintColor = .white
-            content.text = "Manage Dictionaries"
-            content.textProperties.color = .white
-            content.textProperties.font = .preferredFont(forTextStyle: .headline)
-            cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator(options: .init(tintColor: .white.withAlphaComponent(0.7)))]
+        // MARK: Contained Items Cell (dual mode: info in regular, button in compact)
+        let containedItemsReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> {
+            [weak self] cell, indexPath, count in
+            guard let self else { return }
             
-            var bgConfig = UIBackgroundConfiguration.listGroupedCell()
-            bgConfig.backgroundColor = .systemBlue
-            bgConfig.cornerRadius = 10
-            cell.backgroundConfiguration = bgConfig
+            let isCollapsed = self.isSplitViewCollapsed
+            let isEmpty = count == 0
+            let countStr = count == 1 ? "1 dictionary" : "\(count) dictionaries"
+            
+            if isCollapsed {
+                // COMPACT: button-like appearance with disclosure chevron
+                var content = UIListContentConfiguration.subtitleCell()
+                content.text = "Contained Items"
+                content.textProperties.font = .preferredFont(forTextStyle: .headline)
+                content.textProperties.color = .white
+                
+                if isEmpty {
+                    content.image = UIImage(systemName: "exclamationmark.triangle")
+                    content.secondaryText = "Tap to add dictionaries"
+                } else {
+                    content.image = UIImage(systemName: "books.vertical")
+                    content.secondaryText = countStr
+                }
+                content.imageProperties.tintColor = .white
+                content.secondaryTextProperties.color = .white.withAlphaComponent(0.8)
+                cell.contentConfiguration = content
+                
+                cell.accessories = [.disclosureIndicator(options: .init(tintColor: .white.withAlphaComponent(0.7)))]
+                
+                var bg = UIBackgroundConfiguration.listGroupedCell()
+                bg.backgroundColor = isEmpty ? .systemOrange : .systemBlue
+                bg.cornerRadius = 10
+                cell.backgroundConfiguration = bg
+            } else {
+                // REGULAR: info-style cell
+                var content = UIListContentConfiguration.subtitleCell()
+                content.text = "Contained Items"
+                
+                if isEmpty {
+                    content.image = UIImage(systemName: "exclamationmark.triangle")
+                    content.imageProperties.tintColor = .systemOrange
+                    content.secondaryText = "Add at least one dictionary"
+                    content.secondaryTextProperties.color = .systemOrange
+                } else {
+                    content.image = UIImage(systemName: "books.vertical")
+                    content.imageProperties.tintColor = .secondaryLabel
+                    content.secondaryText = countStr
+                    content.secondaryTextProperties.color = .secondaryLabel
+                }
+                cell.contentConfiguration = content
+                cell.accessories = []
+                cell.backgroundConfiguration = .listGroupedCell()
+            }
         }
         
         // MARK: Name Label (viewing mode)
@@ -361,17 +404,13 @@ class GroupInfoViewController: UIViewController {
             collectionView, indexPath, item in
             
             switch item {
-            case .manageDictionariesButton:
-                return collectionView.dequeueConfiguredReusableCell(using: manageDictsReg, for: indexPath, item: ())
-                
             case .nameLabel(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: nameLabelReg, for: indexPath, item: value)
             case .nameField(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: nameFieldReg, for: indexPath, item: value)
                 
-            case .dictionaryCount(let count):
-                let countStr = count == 1 ? "1 dictionary" : "\(count) dictionaries"
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("books.vertical", "Dictionaries", countStr))
+            case .containedItems(let count):
+                return collectionView.dequeueConfiguredReusableCell(using: containedItemsReg, for: indexPath, item: count)
             case .createdDate(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("calendar", "Created", value))
             case .modifiedDate(let value):
@@ -452,21 +491,15 @@ class GroupInfoViewController: UIViewController {
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
-        // SECTION: Manage Dictionaries (compact only)
-        if isSplitViewCollapsed {
-            snapshot.appendSections([.manageDictionaries])
-            snapshot.appendItems([.manageDictionariesButton], toSection: .manageDictionaries)
-        }
-        
         // SECTION: Name (always editable in creating mode)
         let nameSection = Section.displayName(displayNameHeaderStyle)
         snapshot.appendSections([nameSection])
         snapshot.appendItems([.nameField(current: name)], toSection: nameSection)
         
-        // SECTION: Stats
+        // SECTION: Stats (containedItems is tappable in compact mode)
         snapshot.appendSections([.stats])
         let count = DictionaryService.shared.groupSession.pendingDictionaryIds.count
-        snapshot.appendItems([.dictionaryCount(count)], toSection: .stats)
+        snapshot.appendItems([.containedItems(count)], toSection: .stats)
         
         dataSource.apply(snapshot, animatingDifferences: true)
     }
@@ -490,20 +523,14 @@ class GroupInfoViewController: UIViewController {
             snapshot.appendItems([.deleteButton], toSection: .dangerZone)
             
         } else {
-            // VIEWING MODE: read-only name, manage dicts button, stats
-            
-            // Manage Dictionaries (compact only)
-            if isSplitViewCollapsed {
-                snapshot.appendSections([.manageDictionaries])
-                snapshot.appendItems([.manageDictionariesButton], toSection: .manageDictionaries)
-            }
+            // VIEWING MODE: read-only name + stats (containedItems tappable in compact)
             
             snapshot.appendSections([nameSection])
             snapshot.appendItems([.nameLabel(current: name)], toSection: nameSection)
             
             snapshot.appendSections([.stats])
             let count = group.dictionaryIds.count
-            var statsItems: [Item] = [.dictionaryCount(count)]
+            var statsItems: [Item] = [.containedItems(count)]
             
             let fmt = Self.dateFormatter
             if let created = group.createdAt {
@@ -567,6 +594,7 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = false
         hasNameConflict = false
         hasEmptyName = false
+        hasNoDictionaries = true
         isEditingMode = false
         nameTextView = nil
     }
@@ -627,6 +655,7 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = false
         hasNameConflict = false
         hasEmptyName = false
+        hasNoDictionaries = true
         nameTextView = nil
         currentMode = nil
         
@@ -661,6 +690,7 @@ class GroupInfoViewController: UIViewController {
             hasUnsavedChanges = false
             hasNameConflict = false
             hasEmptyName = false
+            hasNoDictionaries = true
             nameTextView = nil
             
             onCreateComplete?(group.id)
@@ -685,6 +715,7 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = false
         hasNameConflict = false
         hasEmptyName = false
+        hasNoDictionaries = true
         isEditingMode = false
         nameTextView = nil
         
@@ -730,15 +761,18 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = true
         hasNameConflict = false
         hasEmptyName = false
+        hasNoDictionaries = DictionaryService.shared.groupSession.pendingDictionaryIds.isEmpty
         isEditingMode = true
         nameTextView = nil
         
-        // Subscribe to session's pending dict changes for stats update
+        // Subscribe to session's pending dict changes for stats + Done button
         dictCountCancellable = DictionaryService.shared.groupSession.$pendingDictionaryIds
             .dropFirst()
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.applyCurrentSnapshot()
+            .sink { [weak self] ids in
+                guard let self else { return }
+                self.hasNoDictionaries = ids.isEmpty
+                self.applyCurrentSnapshot()
             }
         
         currentMode = .creating(groupId: "pending")  // placeholder, real ID assigned on save
@@ -750,6 +784,7 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = false
         hasNameConflict = false
         hasEmptyName = false
+        hasNoDictionaries = true
         isEditingMode = false
         nameTextView = nil
         
@@ -773,6 +808,7 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = false
         hasNameConflict = false
         hasEmptyName = false
+        hasNoDictionaries = true
         isEditingMode = false
         nameTextView = nil
         currentMode = nil
@@ -789,7 +825,9 @@ extension GroupInfoViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         
         switch item {
-        case .manageDictionariesButton:
+        case .containedItems:
+            // In compact mode, this cell acts as navigation to the dictionary editor
+            guard isSplitViewCollapsed else { return }
             guard let mode = currentMode else { return }
             switch mode {
             case .creating(let groupId), .managing(let groupId):
