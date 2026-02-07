@@ -586,11 +586,33 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         switch item {
         case .group(let id, let isDefault) where !isDefault:
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                guard let self else { return UIMenu(children: []) }
+                
                 let editAction = UIAction(
                     title: "Edit Info",
                     image: UIImage(systemName: "info.circle")
                 ) { _ in
-                    self?.onGroupInfoSelected?(id)
+                    self.onGroupInfoSelected?(id)
+                }
+                
+                // Move Up / Move Down
+                let userGroups = self.groups.filter { !$0.isDefault }
+                let currentIndex = userGroups.firstIndex(where: { $0.id == id })
+                
+                let moveUpAction = UIAction(
+                    title: "Move Up",
+                    image: UIImage(systemName: "arrow.up"),
+                    attributes: currentIndex == 0 || currentIndex == nil ? .disabled : []
+                ) { _ in
+                    self.moveGroup(id: id, direction: .up)
+                }
+                
+                let moveDownAction = UIAction(
+                    title: "Move Down",
+                    image: UIImage(systemName: "arrow.down"),
+                    attributes: currentIndex == (userGroups.count - 1) || currentIndex == nil ? .disabled : []
+                ) { _ in
+                    self.moveGroup(id: id, direction: .down)
                 }
                 
                 let deleteAction = UIAction(
@@ -598,10 +620,11 @@ extension DictionaryListViewController: UICollectionViewDelegate {
                     image: UIImage(systemName: "trash"),
                     attributes: .destructive
                 ) { _ in
-                    self?.confirmDeleteGroup(id: id)
+                    self.confirmDeleteGroup(id: id)
                 }
                 
-                return UIMenu(children: [editAction, deleteAction])
+                let moveMenu = UIMenu(title: "", options: .displayInline, children: [moveUpAction, moveDownAction])
+                return UIMenu(children: [editAction, moveMenu, deleteAction])
             })
             
         case .group(let id, let isDefault) where isDefault:
@@ -632,6 +655,31 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             
         default:
             return nil
+        }
+    }
+    
+    // MARK: - Group Reorder
+    
+    private enum MoveDirection { case up, down }
+    
+    private func moveGroup(id: String, direction: MoveDirection) {
+        var userGroupIds = groups.filter { !$0.isDefault }.map { $0.id }
+        guard let index = userGroupIds.firstIndex(of: id) else { return }
+        
+        let targetIndex: Int
+        switch direction {
+        case .up:   targetIndex = index - 1
+        case .down: targetIndex = index + 1
+        }
+        guard userGroupIds.indices.contains(targetIndex) else { return }
+        
+        userGroupIds.swapAt(index, targetIndex)
+        
+        do {
+            try DictionaryService.shared.reorderUserGroups(newOrder: userGroupIds)
+            applySnapshot(animated: true)
+        } catch {
+            print("❌ Failed to reorder groups: \(error)")
         }
     }
     
