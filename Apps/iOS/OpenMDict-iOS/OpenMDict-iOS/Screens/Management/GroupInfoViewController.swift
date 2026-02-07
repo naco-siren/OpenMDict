@@ -78,6 +78,10 @@ class GroupInfoViewController: UIViewController {
         didSet { updateDoneButtonState() }
     }
     
+    private var hasEmptyName: Bool = false {
+        didSet { updateDoneButtonState() }
+    }
+    
     /// Edited display name (tracks changes)
     private var editedName: String?
     
@@ -102,6 +106,7 @@ class GroupInfoViewController: UIViewController {
         case .managing: isEditingMode
         }
         guard isActivelyEditing else { return .plain }
+        if hasEmptyName { return .empty }
         return hasNameConflict ? .conflict : .active
     }
     
@@ -118,6 +123,7 @@ class GroupInfoViewController: UIViewController {
         enum HeaderStyle: Hashable {
             case plain      // viewing mode: default gray header
             case active     // editing: pencil icon + tintColor
+            case empty      // editing + name empty: warning icon + red
             case conflict   // editing + name conflict: warning icon + red
         }
         
@@ -182,7 +188,7 @@ class GroupInfoViewController: UIViewController {
     private weak var nameTextView: UITextView?
     
     private func updateDoneButtonState() {
-        doneButton.isEnabled = hasUnsavedChanges && !hasNameConflict
+        doneButton.isEnabled = hasUnsavedChanges && !hasNameConflict && !hasEmptyName
     }
     
     /// Check if split view is collapsed (compact mode)
@@ -330,6 +336,12 @@ class GroupInfoViewController: UIViewController {
                     content.imageProperties.tintColor = .tintColor
                     content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
                     content.textProperties.color = .tintColor
+                case .empty:
+                    content.image = .init(systemName: "exclamationmark.triangle")
+                    content.imageProperties.tintColor = .systemRed
+                    content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+                    content.text = "Custom name cannot be empty"
+                    content.textProperties.color = .systemRed
                 case .conflict:
                     content.image = .init(systemName: "exclamationmark.triangle")
                     content.imageProperties.tintColor = .systemRed
@@ -554,6 +566,7 @@ class GroupInfoViewController: UIViewController {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
+        hasEmptyName = false
         isEditingMode = false
         nameTextView = nil
     }
@@ -613,6 +626,7 @@ class GroupInfoViewController: UIViewController {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
+        hasEmptyName = false
         nameTextView = nil
         currentMode = nil
         
@@ -646,6 +660,7 @@ class GroupInfoViewController: UIViewController {
             editedName = nil
             hasUnsavedChanges = false
             hasNameConflict = false
+            hasEmptyName = false
             nameTextView = nil
             
             onCreateComplete?(group.id)
@@ -669,6 +684,7 @@ class GroupInfoViewController: UIViewController {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
+        hasEmptyName = false
         isEditingMode = false
         nameTextView = nil
         
@@ -713,6 +729,7 @@ class GroupInfoViewController: UIViewController {
         editedName = pendingName
         hasUnsavedChanges = true
         hasNameConflict = false
+        hasEmptyName = false
         isEditingMode = true
         nameTextView = nil
         
@@ -732,6 +749,7 @@ class GroupInfoViewController: UIViewController {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
+        hasEmptyName = false
         isEditingMode = false
         nameTextView = nil
         
@@ -754,6 +772,7 @@ class GroupInfoViewController: UIViewController {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
+        hasEmptyName = false
         isEditingMode = false
         nameTextView = nil
         currentMode = nil
@@ -814,6 +833,13 @@ private extension GroupInfoViewController {
         case .none: nil
         }
         
+        // Check empty
+        let empty = trimmed.isEmpty
+        if empty != hasEmptyName {
+            hasEmptyName = empty
+            patchDisplayNameHeader()
+        }
+        
         // Check if any OTHER user group has this exact name
         let conflict = !trimmed.isEmpty && DictionaryService.shared.groups
             .filter { !$0.isDefault && $0.id != currentGroupId }
@@ -853,6 +879,12 @@ private extension GroupInfoViewController {
             content.imageProperties.tintColor = .tintColor
             content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
             content.textProperties.color = .tintColor
+        case .empty:
+            content.image = .init(systemName: "exclamationmark.triangle")
+            content.imageProperties.tintColor = .systemRed
+            content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
+            content.text = "Custom name cannot be empty"
+            content.textProperties.color = .systemRed
         case .conflict:
             content.image = .init(systemName: "exclamationmark.triangle")
             content.imageProperties.tintColor = .systemRed
