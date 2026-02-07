@@ -605,12 +605,21 @@ class GroupInfoViewController: UIViewController {
     private func performSaveCreate(groupId: String) {
         let name = (editedName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = name.isEmpty ? "New Group" : name
+        let session = DictionaryService.shared.groupSession
+        let pendingDicts = session.pendingDictionaryIds
         
-        // Actually create the group in data layer (append to groups + persist)
+        // Create the group and set its dictionaries in one go
         do {
             let group = try DictionaryService.shared.createGroup(name: finalName)
             
-            DictionaryService.shared.groupSession.reset()
+            if !pendingDicts.isEmpty {
+                try DictionaryService.shared.reorderDictionariesInGroup(
+                    groupId: group.id,
+                    newOrder: pendingDicts
+                )
+            }
+            
+            session.reset()
             
             editedName = nil
             hasUnsavedChanges = false

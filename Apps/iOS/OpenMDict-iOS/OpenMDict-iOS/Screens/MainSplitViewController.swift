@@ -466,7 +466,7 @@ class MainSplitViewController: UISplitViewController {
             dictResourceEditorVC.showEditor(for: dictId)
         case .editGroup(let groupId):
             let session = DictionaryService.shared.groupSession
-            session.beginEdit(groupId: groupId)
+            session.beginManaging(groupId: groupId)
             configureColumns(for: .managementGroup)
             groupInfoVC.showManagingMode(for: groupId)
             groupDictEditorVC.showEditor(for: groupId)
@@ -475,7 +475,7 @@ class MainSplitViewController: UISplitViewController {
             session.beginCreate()
             configureColumns(for: .managementGroup)
             groupInfoVC.showCreatingMode(pendingName: session.pendingName ?? "New Group")
-            groupDictEditorVC.showEmptyState()
+            groupDictEditorVC.showCreatingEditor()
         }
         
         show(.supplementary)

@@ -3,11 +3,14 @@
 //  OpenMDict-iOS
 //
 //  Third column in Group Management mode - add/remove dictionaries from a group.
-//  Symmetric to DictResourceEditorViewController but for dictionary references.
+//
+//  Dual behavior:
+//  - Creating mode: reads/writes GroupManagementSession.pendingDictionaryIds (in-memory only)
+//  - Managing mode: calls DictionaryService add/remove directly (immediate persist)
 //
 //  Layout:
-//  - Section "In This Group": dictionaries currently in the group (swipe to remove)
-//  - Section "Available": dictionaries not in the group (tap to add)
+//  - Section "In This Group": dictionaries currently in the group (tap ⊖ to remove)
+//  - Section "Available": dictionaries not in the group (tap ⊕ to add)
 //
 
 import UIKit
@@ -35,19 +38,24 @@ class GroupDictionaryEditorViewController: UIViewController {
         case emptyAvailable      // "All dictionaries added" placeholder
     }
     
-    private enum Mode: Equatable {
+    enum Mode: Equatable {
         case empty
-        case editing(groupId: String)
+        case creating              // New group — reads/writes session.pendingDictionaryIds
+        case managing(groupId: String)  // Existing group — immediate persist via service
     }
     
     // MARK: - State
     
-    private var mode: Mode = .empty {
+    private(set) var mode: Mode = .empty {
         didSet {
             if oldValue != mode && isViewLoaded {
                 reloadData()
             }
         }
+    }
+    
+    private var session: GroupManagementSession {
+        DictionaryService.shared.groupSession
     }
     
     // MARK: - UI
@@ -118,9 +126,6 @@ class GroupDictionaryEditorViewController: UIViewController {
     private func setupCollectionView() {
         var config = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
         config.headerMode = .supplementary
-        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            self?.trailingSwipeActions(for: indexPath)
-        }
         
         let layout = UICollectionViewCompositionalLayout.list(using: config)
         
@@ -149,21 +154,25 @@ class GroupDictionaryEditorViewController: UIViewController {
             content.text = dict?.preferredTitle ?? dictId.prefix(8).description
             
             if inGroup {
-                // In group: filled book icon, checkmark
                 content.image = UIImage(systemName: "book.closed.fill")
                 content.imageProperties.tintColor = .systemBlue
-                cell.accessories = [.checkmark()]
+                
+                // ⊖ remove button (red minus circle)
+                let minusImage = UIImageView(image: UIImage(systemName: "minus.circle.fill"))
+                minusImage.tintColor = .systemRed
+                cell.accessories = [
+                    .customView(configuration: .init(customView: minusImage, placement: .leading()))
+                ]
             } else {
-                // Available: outlined book icon, plus indicator
                 content.image = UIImage(systemName: "book.closed")
                 content.imageProperties.tintColor = .secondaryLabel
                 
+                // ⊕ add button (green plus circle)
                 let plusImage = UIImageView(image: UIImage(systemName: "plus.circle.fill"))
                 plusImage.tintColor = .systemGreen
-                let accessory = UICellAccessory.customView(
-                    configuration: .init(customView: plusImage, placement: .trailing())
-                )
-                cell.accessories = [accessory]
+                cell.accessories = [
+                    .customView(configuration: .init(customView: plusImage, placement: .leading()))
+                ]
             }
             
             // Show load state
@@ -228,7 +237,7 @@ class GroupDictionaryEditorViewController: UIViewController {
             emptyStateView.isHidden = false
             collectionView.isHidden = true
             
-        case .editing:
+        case .creating, .managing:
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             applySnapshot()
@@ -236,17 +245,26 @@ class GroupDictionaryEditorViewController: UIViewController {
     }
     
     private func applySnapshot(animated: Bool = true) {
-        guard case .editing(let groupId) = mode,
-              let group = DictionaryService.shared.group(id: groupId) else { return }
+        let inGroupIds: [String]
         
+        switch mode {
+        case .empty:
+            return
+        case .creating:
+            inGroupIds = session.pendingDictionaryIds
+        case .managing(let groupId):
+            guard let group = DictionaryService.shared.group(id: groupId) else { return }
+            inGroupIds = group.dictionaryIds
+        }
+        
+        let inGroupSet = Set(inGroupIds)
         let allDicts = DictionaryService.shared.allDictionaries
-        let inGroupIds = Set(group.dictionaryIds)
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases)
         
-        // In group section
-        let inGroupItems = group.dictionaryIds.map { Item.dict(id: $0, inGroup: true) }
+        // In group section (ordered)
+        let inGroupItems = inGroupIds.map { Item.dict(id: $0, inGroup: true) }
         if inGroupItems.isEmpty {
             snapshot.appendItems([.emptyInGroup], toSection: .inGroup)
         } else {
@@ -255,7 +273,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         
         // Available section - all dicts NOT in this group
         let availableItems = allDicts
-            .filter { !inGroupIds.contains($0.id) }
+            .filter { !inGroupSet.contains($0.id) }
             .map { Item.dict(id: $0.id, inGroup: false) }
         if availableItems.isEmpty {
             snapshot.appendItems([.emptyAvailable], toSection: .available)
@@ -266,45 +284,39 @@ class GroupDictionaryEditorViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
     
-    // MARK: - Swipe Actions
-    
-    private func trailingSwipeActions(for indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        guard let item = dataSource.itemIdentifier(for: indexPath),
-              case .dict(let dictId, let inGroup) = item,
-              inGroup else {
-            return nil
-        }
-        
-        let removeAction = UIContextualAction(style: .destructive, title: "Remove") { [weak self] _, _, completion in
-            self?.removeDictionary(dictId)
-            completion(true)
-        }
-        removeAction.image = UIImage(systemName: "minus.circle.fill")
-        
-        return UISwipeActionsConfiguration(actions: [removeAction])
-    }
-    
     // MARK: - Actions
     
     private func addDictionary(_ dictId: String) {
-        guard case .editing(let groupId) = mode else { return }
-        
-        do {
-            try DictionaryService.shared.addDictionaryToGroup(groupId: groupId, dictId: dictId)
+        switch mode {
+        case .creating:
+            session.pendingDictionaryIds.append(dictId)
             applySnapshot()
-        } catch {
-            debugLog("❌ Failed to add dict to group: \(error)")
+        case .managing(let groupId):
+            do {
+                try DictionaryService.shared.addDictionaryToGroup(groupId: groupId, dictId: dictId)
+                applySnapshot()
+            } catch {
+                debugLog("❌ Failed to add dict to group: \(error)")
+            }
+        case .empty:
+            break
         }
     }
     
     private func removeDictionary(_ dictId: String) {
-        guard case .editing(let groupId) = mode else { return }
-        
-        do {
-            try DictionaryService.shared.removeDictionaryFromGroup(groupId: groupId, dictId: dictId)
+        switch mode {
+        case .creating:
+            session.pendingDictionaryIds.removeAll { $0 == dictId }
             applySnapshot()
-        } catch {
-            debugLog("❌ Failed to remove dict from group: \(error)")
+        case .managing(let groupId):
+            do {
+                try DictionaryService.shared.removeDictionaryFromGroup(groupId: groupId, dictId: dictId)
+                applySnapshot()
+            } catch {
+                debugLog("❌ Failed to remove dict from group: \(error)")
+            }
+        case .empty:
+            break
         }
     }
     
@@ -314,8 +326,14 @@ class GroupDictionaryEditorViewController: UIViewController {
         mode = .empty
     }
     
+    /// Show editor for an existing group (managing mode — immediate persist)
     func showEditor(for groupId: String) {
-        mode = .editing(groupId: groupId)
+        mode = .managing(groupId: groupId)
+    }
+    
+    /// Show editor for a new group (creating mode — writes to session only)
+    func showCreatingEditor() {
+        mode = .creating
     }
 }
 
@@ -331,10 +349,8 @@ extension GroupDictionaryEditorViewController: UICollectionViewDelegate {
         switch item {
         case .dict(let dictId, let inGroup):
             if inGroup {
-                // Tap on in-group dict → remove
                 removeDictionary(dictId)
             } else {
-                // Tap on available dict → add
                 addDictionary(dictId)
             }
         case .emptyInGroup, .emptyAvailable:

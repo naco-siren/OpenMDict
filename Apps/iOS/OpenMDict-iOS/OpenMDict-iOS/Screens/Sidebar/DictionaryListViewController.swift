@@ -75,6 +75,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private var groupsChangeCancellable: AnyCancellable?
     /// Subscriptions to individual MDict.$state (re-created when list changes)
     private var dictStateCancellables = Set<AnyCancellable>()
+    /// Subscriptions to each MDicts.$items (re-created when groups change)
+    private var groupItemsCancellables = Set<AnyCancellable>()
     
     private enum Section: Int, CaseIterable {
         case defaultGroup
@@ -178,16 +180,20 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 self?.handleDictionaryListChanged()
             }
 
-        // 2. Subscribe to group changes
+        // 2. Subscribe to group changes (groups added/removed/reordered)
         groupsChangeCancellable = DictionaryService.shared.$groups
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                self?.subscribeToAllGroupItems()
                 self?.applySnapshot(animated: true)
             }
 
         // 3. Subscribe to each dictionary's load state
         subscribeToAllDictionaryStates()
+        
+        // 4. Subscribe to each group's items (dictionaries added/removed within a group)
+        subscribeToAllGroupItems()
     }
 
     /// Handle dictionary list changes (import/delete)
@@ -213,6 +219,22 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                     self?.invalidateVisibleCellConfigurations()
                 }
                 .store(in: &dictStateCancellables)
+        }
+    }
+    
+    /// Subscribe to each group's $items changes (dictionaries added/removed within a group)
+    /// Re-created when the groups array itself changes
+    private func subscribeToAllGroupItems() {
+        groupItemsCancellables.removeAll()
+        
+        for group in DictionaryService.shared.groups {
+            group.$items
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.applySnapshot(animated: true)
+                }
+                .store(in: &groupItemsCancellables)
         }
     }
     

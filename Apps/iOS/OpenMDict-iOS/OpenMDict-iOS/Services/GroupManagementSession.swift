@@ -2,31 +2,40 @@
 //  GroupManagementSession.swift
 //  OpenMDict-iOS
 //
-//  Tracks whether a group create/edit workflow is in progress.
-//  Symmetric to ImportSession — holds temporary state that has NOT
-//  been persisted yet.
+//  Tracks group create/manage workflow state.
 //
 //  Key invariant: this session never mutates DictionaryService.groups.
-//  On Done → caller uses DictionaryService.createGroup() / renameGroup() to persist.
-//  On Cancel/abandon → caller invokes reset() which is a no-op on data layer.
+//  It holds temporary state (pending name, pending dictionary selections)
+//  until the caller explicitly persists.
+//
+//  Creating: pendingDictionaryIds starts empty, user adds dicts in EditorVC,
+//            GroupInfoVC Done → createGroup + setGroupDictionaries
+//  Managing: pendingDictionaryIds snapshots from group.dictionaryIds on begin,
+//            EditorVC modifications go directly to DictionaryService (immediate persist)
 //
 
 import Foundation
 import Combine
+import OpenMDictKit
 
 @MainActor
 final class GroupManagementSession: ObservableObject {
     
     enum Mode: Equatable {
-        /// Creating a new group. The group does NOT exist in DictionaryService yet.
+        /// Creating a new group. Not yet in DictionaryService.
         case creating(pendingName: String)
-        /// Editing an existing (already persisted) group.
-        case editing(groupId: String)
+        /// Managing an existing (persisted) group.
+        case managing(groupId: String)
     }
     
     // MARK: - State
     
     @Published private(set) var mode: Mode?
+    
+    /// Dictionary IDs selected for this group.
+    /// - Creating: in-memory only, persisted on group creation
+    /// - Managing: snapshotted on begin, but EditorVC writes directly to service
+    @Published var pendingDictionaryIds: [String] = []
     
     // MARK: - Computed
     
@@ -37,9 +46,14 @@ final class GroupManagementSession: ObservableObject {
         return false
     }
     
+    var isManaging: Bool {
+        if case .managing = mode { return true }
+        return false
+    }
+    
     var groupId: String? {
         switch mode {
-        case .editing(let id): return id
+        case .managing(let id): return id
         default: return nil
         }
     }
@@ -53,28 +67,33 @@ final class GroupManagementSession: ObservableObject {
     
     // MARK: - Begin
     
-    /// Begin a group creation workflow.
-    /// Generates a unique default name but does NOT create the group in data layer.
+    /// Begin creating a new group.
+    /// Generates a unique default name. pendingDictionaryIds starts empty.
     func beginCreate() {
         let name = DictionaryService.shared.uniqueGroupName(from: "New Group")
+        pendingDictionaryIds = []
         mode = .creating(pendingName: name)
         print("📂 GroupSession: beginCreate → pending name \"\(name)\"")
     }
     
-    /// Begin editing an existing (already persisted) group.
-    func beginEdit(groupId: String) {
-        mode = .editing(groupId: groupId)
-        print("📂 GroupSession: beginEdit → \(groupId.prefix(8))...")
+    /// Begin managing an existing (persisted) group.
+    /// Snapshots the group's current dictionaryIds into pendingDictionaryIds.
+    func beginManaging(groupId: String) {
+        let group = DictionaryService.shared.group(id: groupId)
+        pendingDictionaryIds = group?.dictionaryIds ?? []
+        mode = .managing(groupId: groupId)
+        print("📂 GroupSession: beginManaging → \(groupId.prefix(8))... (\(pendingDictionaryIds.count) dicts)")
     }
     
     // MARK: - Reset
     
-    /// Discard the session. No data layer cleanup needed since nothing was persisted.
+    /// Discard the session. No data layer cleanup needed.
     /// Safe to call multiple times (idempotent).
     func reset() {
         if mode != nil {
             print("📂 GroupSession: reset")
         }
+        pendingDictionaryIds = []
         mode = nil
     }
 }
