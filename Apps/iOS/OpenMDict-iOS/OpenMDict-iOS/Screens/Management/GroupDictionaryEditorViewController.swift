@@ -133,6 +133,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .systemGroupedBackground
         collectionView.delegate = self
+        collectionView.dragInteractionEnabled = true
         
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -157,11 +158,12 @@ class GroupDictionaryEditorViewController: UIViewController {
                 content.image = UIImage(systemName: "book.closed.fill")
                 content.imageProperties.tintColor = .systemBlue
                 
-                // ⊖ remove button (red minus circle)
+                // ⊖ remove button (red minus circle) + reorder handle
                 let minusImage = UIImageView(image: UIImage(systemName: "minus.circle.fill"))
                 minusImage.tintColor = .systemRed
                 cell.accessories = [
-                    .customView(configuration: .init(customView: minusImage, placement: .leading()))
+                    .customView(configuration: .init(customView: minusImage, placement: .leading())),
+                    .reorder(displayed: .always),
                 ]
             } else {
                 content.image = UIImage(systemName: "book.closed")
@@ -227,6 +229,16 @@ class GroupDictionaryEditorViewController: UIViewController {
         dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
         }
+        
+        // MARK: Reordering (inGroup section only)
+        dataSource.reorderingHandlers.canReorderItem = { item in
+            if case .dict(_, inGroup: true) = item { return true }
+            return false
+        }
+        
+        dataSource.reorderingHandlers.didReorder = { [weak self] transaction in
+            self?.commitReorder(transaction)
+        }
     }
     
     // MARK: - Data
@@ -285,6 +297,30 @@ class GroupDictionaryEditorViewController: UIViewController {
     }
     
     // MARK: - Actions
+    
+    /// Persist the new order after a drag-and-drop reorder in the inGroup section.
+    private func commitReorder(_ transaction: NSDiffableDataSourceTransaction<Section, Item>) {
+        // Extract the new order of dict IDs from the post-reorder snapshot
+        let newOrder = transaction.finalSnapshot.itemIdentifiers(inSection: .inGroup).compactMap { item -> String? in
+            if case .dict(let id, inGroup: true) = item { return id }
+            return nil
+        }
+        
+        guard !newOrder.isEmpty else { return }
+        
+        switch mode {
+        case .creating:
+            session.pendingDictionaryIds = newOrder
+        case .managing(let groupId):
+            do {
+                try DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
+            } catch {
+                debugLog("❌ Failed to reorder dicts: \(error)")
+            }
+        case .empty:
+            break
+        }
+    }
     
     private func addDictionary(_ dictId: String) {
         switch mode {
