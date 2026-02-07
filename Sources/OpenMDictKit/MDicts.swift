@@ -56,6 +56,12 @@ public final class MDicts: ObservableObject, Identifiable {
     /// Ordered list of dictionary IDs (determines lookup priority)
     public var dictionaryIds: [String]
     
+    /// Creation timestamp (nil for default group)
+    public var createdAt: Date?
+    
+    /// Last modification timestamp (nil for default group)
+    public var modifiedAt: Date?
+    
     // MARK: - Runtime Properties (not persisted)
     
     /// Actual MDict instances, populated by DictionaryService
@@ -64,11 +70,14 @@ public final class MDicts: ObservableObject, Identifiable {
     // MARK: - Initialization
     
     /// Create a group with metadata (items populated later)
-    public init(id: String, name: String, isDefault: Bool = false, dictionaryIds: [String] = []) {
+    public init(id: String, name: String, isDefault: Bool = false, dictionaryIds: [String] = [],
+                createdAt: Date? = nil, modifiedAt: Date? = nil) {
         self.id = id
         self.name = name
         self.isDefault = isDefault
         self.dictionaryIds = dictionaryIds
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
     }
     
     /// Create from MDict array directly (for ad-hoc usage)

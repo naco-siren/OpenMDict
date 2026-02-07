@@ -251,7 +251,9 @@ final class DictionaryService: ObservableObject {
                 id: userGroup.id,
                 name: userGroup.name,
                 isDefault: false,
-                dictionaryIds: resolveOrderToActualIds(userGroup.dictionaryIds)
+                dictionaryIds: resolveOrderToActualIds(userGroup.dictionaryIds),
+                createdAt: userGroup.createdAt,
+                modifiedAt: userGroup.modifiedAt
             )
             group.populate(from: allDictionaries)
             groups.append(group)
@@ -507,8 +509,8 @@ final class DictionaryService: ObservableObject {
                 DictionaryManifest.UserGroup(
                     id: group.id,
                     name: group.name,
-                    createdAt: Date(), // TODO: track original creation date
-                    modifiedAt: Date(),
+                    createdAt: group.createdAt ?? Date(),
+                    modifiedAt: group.modifiedAt ?? Date(),
                     dictionaryIds: actualIdsToPersistedOrder(group.dictionaryIds)
                 )
             }
@@ -526,11 +528,14 @@ final class DictionaryService: ObservableObject {
     func createGroup(name: String = "New Group") throws -> MDicts {
         let finalName = uniqueGroupName(from: name)
         
+        let now = Date()
         let group = MDicts(
             id: UUID().uuidString,
             name: finalName,
             isDefault: false,
-            dictionaryIds: []
+            dictionaryIds: [],
+            createdAt: now,
+            modifiedAt: now
         )
         groups.append(group)
         
@@ -555,6 +560,7 @@ final class DictionaryService: ObservableObject {
         }
         
         group.name = trimmedName
+        group.modifiedAt = Date()
         
         try persistGroups()
         print("✏️ Renamed group \(id.prefix(8))... to: \(trimmedName)")
@@ -621,6 +627,7 @@ final class DictionaryService: ObservableObject {
         
         group.dictionaryIds.append(dictId)
         group.populate(from: allDictionaries)
+        group.modifiedAt = Date()
         
         try persistGroups()
         print("➕ Added dict \(dictId.prefix(8))... to group \(groupId.prefix(8))...")
@@ -635,6 +642,7 @@ final class DictionaryService: ObservableObject {
         
         group.dictionaryIds.removeAll { $0 == dictId }
         group.populate(from: allDictionaries)
+        group.modifiedAt = Date()
         
         try persistGroups()
         print("➖ Removed dict \(dictId.prefix(8))... from group \(groupId.prefix(8))...")
@@ -649,6 +657,7 @@ final class DictionaryService: ObservableObject {
         
         group.dictionaryIds = newOrder
         group.populate(from: allDictionaries)
+        group.modifiedAt = Date()
         
         try persistGroups()
         print("🔄 Reordered \(newOrder.count) dicts in group \(groupId.prefix(8))...")

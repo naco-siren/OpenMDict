@@ -84,6 +84,14 @@ class GroupInfoViewController: UIViewController {
     /// Subscription for dictionary count changes (from session or group.$items)
     private var dictCountCancellable: AnyCancellable?
     
+    /// Date formatter for created/modified dates
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+    
     /// Computed header style for the displayName section.
     /// Encodes current mode + editing state + conflict into the Section enum
     /// so diffable data source naturally diffs and reconfigures the header.
@@ -483,9 +491,17 @@ class GroupInfoViewController: UIViewController {
             
             snapshot.appendSections([.stats])
             let count = group.dictionaryIds.count
-            snapshot.appendItems([
-                .dictionaryCount(count),
-            ], toSection: .stats)
+            var statsItems: [Item] = [.dictionaryCount(count)]
+            
+            let fmt = Self.dateFormatter
+            if let created = group.createdAt {
+                statsItems.append(.createdDate(fmt.string(from: created)))
+            }
+            if let modified = group.modifiedAt {
+                statsItems.append(.modifiedDate(fmt.string(from: modified)))
+            }
+            
+            snapshot.appendItems(statsItems, toSection: .stats)
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
