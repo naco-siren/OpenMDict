@@ -47,8 +47,8 @@ class MainSplitViewController: UISplitViewController {
     private enum ColumnWidth {
         static let lookupFraction: CGFloat = 0.25
         static let lookupMin: CGFloat = 250
-        static let managementFraction: CGFloat = 0.35
-        static let managementMin: CGFloat = 320
+        static let managementFraction: CGFloat = 0.40
+        static let managementMin: CGFloat = 400
     }
     
     // MARK: - Initialization
@@ -129,8 +129,8 @@ class MainSplitViewController: UISplitViewController {
         preferredDisplayMode = .twoDisplaceSecondary
         preferredSplitBehavior = .displace
         primaryBackgroundStyle = .none
-        preferredPrimaryColumnWidthFraction = 0.25
-        minimumPrimaryColumnWidth = 250
+        preferredPrimaryColumnWidthFraction = 0.35
+        minimumPrimaryColumnWidth = 300
         preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
         minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
         navigationItem.backButtonDisplayMode = .minimal
