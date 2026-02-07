@@ -68,7 +68,7 @@ final class DefaultGroupCell: UICollectionViewListCell {
         } else {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .medium)
             content.textProperties.color = .label
-            content.imageProperties.tintColor = .systemBlue
+            content.imageProperties.tintColor = isEditing ? .label : .systemBlue
             
             bg.backgroundColor = .clear
             
@@ -123,14 +123,14 @@ final class UserGroupCell: UICollectionViewListCell {
         // Check if this group is the active one (for icon state)
         let isLookupMode = stateProvider?.appMode == .lookup
         let isEditing = stateProvider?.isEditingMode ?? false
-        let isGroupActive = stateProvider?.activeGroupId == group.id
+        // let isGroupActive = stateProvider?.activeGroupId == group.id
         
         // Only show selection highlight when NOT in edit mode
         let isSelected = isLookupMode && !isEditing && (state.isSelected || state.isHighlighted)
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
-        content.image = UIImage(systemName: isGroupActive ? "books.vertical.fill" : "books.vertical")
+        content.image = UIImage(systemName: isSelected ? "books.vertical.fill" : "books.vertical")
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         
@@ -145,7 +145,7 @@ final class UserGroupCell: UICollectionViewListCell {
         } else {
             content.textProperties.font = .systemFont(ofSize: 18, weight: .regular)
             content.textProperties.color = .label
-            content.imageProperties.tintColor = .systemBlue
+            content.imageProperties.tintColor = isEditing ? .label : .systemBlue
             
             bg.backgroundColor = .clear
             
@@ -299,14 +299,14 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             } else if isLookupMode && !isEditing && isParentActive {
                 // Parent group is active (but this dict not directly selected) - show open book with blue tint
                 content.image = UIImage(systemName: "book.fill")
-                content.imageProperties.tintColor = .systemBlue
+                content.imageProperties.tintColor = isEditing ? .label : .systemBlue
                 content.textProperties.color = .label
                 
                 bg.backgroundColor = .clear
             } else {
                 // Normal unselected state (including edit mode)
                 content.image = UIImage(systemName: "book.closed.fill")
-                content.imageProperties.tintColor = .systemBlue
+                content.imageProperties.tintColor = isEditing ? .label : .systemBlue
                 content.textProperties.color = .label
                 
                 bg.backgroundColor = .clear
@@ -407,29 +407,44 @@ final class UserGroupDictCell: UICollectionViewListCell {
             content.textProperties.color = .systemRed
             content.imageProperties.tintColor = .systemRed
             
-        case .metadataLoaded, .loaded:
-            // Normal loaded state
-            if isLookupMode && !isEditing && isParentActive {
+        case .metadataLoaded:
+            // Metadata loaded state - not yet available for lookup or management
+            if isSelected || isRelatedDictSelected {
                 content.image = UIImage(systemName: "book")
-                content.imageProperties.tintColor = .systemBlue
+                content.imageProperties.tintColor = .secondaryLabel
+                content.textProperties.color = .secondaryLabel
+                
+                bg.backgroundColor = .tertiarySystemFill
+                
+            } else if isLookupMode && !isEditing && isParentActive {
+                content.image = UIImage(systemName: "book")
+                content.imageProperties.tintColor = .secondaryLabel
+                content.textProperties.color = .secondaryLabel
 
-            } else if isSelected || isRelatedDictSelected {
+            } else {
+                content.image = UIImage(systemName: "book.closed")
+                content.imageProperties.tintColor = .secondaryLabel
+                content.textProperties.color = .secondaryLabel
+            }
+            
+        case .loaded:
+            // Normal loaded state
+            if isSelected || isRelatedDictSelected {
                 content.image = UIImage(systemName: "book")
                 content.imageProperties.tintColor = .systemBlue
                 content.textProperties.color = .systemBlue
                 
                 bg.backgroundColor = .tertiarySystemFill
                 
+            } else if isLookupMode && !isEditing && isParentActive {
+                content.image = UIImage(systemName: "book")
+                content.imageProperties.tintColor = .systemBlue
+
             } else {
                 content.image = UIImage(systemName: "book.closed")
+                content.imageProperties.tintColor = isEditing ? .label : .systemBlue
             }
         }
-        
-        // Add reorder handle in edit mode
-        // TODO: Sidebar drag/drop deferred — needs UICollectionViewDragDelegate
-        // if isEditing {
-        //     cellAccessories.append(.reorder(displayed: .whenEditing))
-        // }
         
         accessories = cellAccessories
         contentConfiguration = content
