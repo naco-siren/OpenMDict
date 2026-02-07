@@ -939,7 +939,18 @@ extension GroupInfoViewController: UICollectionViewDelegate {
 
 // MARK: - UITextViewDelegate
 
+private let maxNameLength = 50
+
 extension GroupInfoViewController: UITextViewDelegate {
+    
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        // Block newlines (including pasted text with newlines)
+        if text.rangeOfCharacter(from: .newlines) != nil { return false }
+        // Enforce character limit
+        let current = textView.text ?? ""
+        let updated = (current as NSString).replacingCharacters(in: range, with: text)
+        return updated.count <= maxNameLength
+    }
     
     func textViewDidChange(_ textView: UITextView) {
         editedName = textView.text

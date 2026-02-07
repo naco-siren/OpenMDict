@@ -1235,7 +1235,18 @@ extension DictInfoViewController: UICollectionViewDelegate {
 
 // MARK: - UITextViewDelegate
 
+private let maxDisplayNameLength = 50
+
 extension DictInfoViewController: UITextViewDelegate {
+    
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        // Block newlines (including pasted text with newlines)
+        if text.rangeOfCharacter(from: .newlines) != nil { return false }
+        // Enforce character limit
+        let current = textView.text ?? ""
+        let updated = (current as NSString).replacingCharacters(in: range, with: text)
+        return updated.count <= maxDisplayNameLength
+    }
     
     func textViewDidChange(_ textView: UITextView) {
         editedDisplayName = textView.text
