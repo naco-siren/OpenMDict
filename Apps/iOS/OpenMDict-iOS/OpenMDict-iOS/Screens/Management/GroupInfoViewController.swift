@@ -119,9 +119,10 @@ class GroupInfoViewController: UIViewController {
     // MARK: - UI
     
     private nonisolated enum Section: Hashable {
-        case displayName(HeaderStyle)  // Group name with contextual header
-        case stats               // Contained items, created/modified dates
-        case dangerZone          // Delete button (editing mode only)
+        case displayName(HeaderStyle)       // Group name with contextual header
+        case containedItems(compact: Bool)  // Dict count cell (encodes collapsed state for reconfiguration)
+        case stats                          // Created/modified dates
+        case dangerZone                     // Delete button (editing mode only)
         
         /// Header style for displayName section, encoded so diffable data source
         /// naturally detects changes and reconfigures the supplementary view.
@@ -135,6 +136,7 @@ class GroupInfoViewController: UIViewController {
         var title: String? {
             switch self {
             case .displayName: return "Custom Name"
+            case .containedItems: return "Contained Items"
             case .stats: return "Group Info"
             case .dangerZone: return nil
             }
@@ -146,8 +148,10 @@ class GroupInfoViewController: UIViewController {
         case nameLabel(current: String)    // Viewing mode: read-only
         case nameField(current: String)    // Editing mode: text view
         
-        // Stats
+        // Contained Items
         case containedItems(Int)           // Dict count (tappable in compact)
+        
+        // Stats
         case createdDate(String)
         case modifiedDate(String)
         
@@ -253,21 +257,19 @@ class GroupInfoViewController: UIViewController {
             let countStr = count == 1 ? "1 dictionary" : "\(count) dictionaries"
             
             if isCollapsed {
-                // COMPACT: button-like appearance with disclosure chevron
-                var content = UIListContentConfiguration.subtitleCell()
-                content.text = "Contained Items"
+                // COMPACT: button-like cell with disclosure chevron
+                var content = UIListContentConfiguration.cell()
                 content.textProperties.font = .preferredFont(forTextStyle: .headline)
                 content.textProperties.color = .white
                 
                 if isEmpty {
                     content.image = UIImage(systemName: "exclamationmark.triangle")
-                    content.secondaryText = "Tap to add dictionaries"
+                    content.text = "Tap to add dictionaries"
                 } else {
                     content.image = UIImage(systemName: "books.vertical")
-                    content.secondaryText = countStr
+                    content.text = countStr
                 }
                 content.imageProperties.tintColor = .white
-                content.secondaryTextProperties.color = .white.withAlphaComponent(0.8)
                 cell.contentConfiguration = content
                 
                 cell.accessories = [.disclosureIndicator(options: .init(tintColor: .white.withAlphaComponent(0.7)))]
@@ -278,19 +280,18 @@ class GroupInfoViewController: UIViewController {
                 cell.backgroundConfiguration = bg
             } else {
                 // REGULAR: info-style cell
-                var content = UIListContentConfiguration.subtitleCell()
-                content.text = "Contained Items"
+                var content = UIListContentConfiguration.cell()
                 
                 if isEmpty {
                     content.image = UIImage(systemName: "exclamationmark.triangle")
                     content.imageProperties.tintColor = .systemOrange
-                    content.secondaryText = "Add at least one dictionary"
-                    content.secondaryTextProperties.color = .systemOrange
+                    content.text = "Add at least one dictionary"
+                    content.textProperties.color = .systemOrange
                 } else {
                     content.image = UIImage(systemName: "books.vertical")
                     content.imageProperties.tintColor = .secondaryLabel
-                    content.secondaryText = countStr
-                    content.secondaryTextProperties.color = .secondaryLabel
+                    content.text = countStr
+                    content.textProperties.color = .secondaryLabel
                 }
                 cell.contentConfiguration = content
                 cell.accessories = []
@@ -488,6 +489,7 @@ class GroupInfoViewController: UIViewController {
     private func applyCreatingSnapshot(groupId: String) {
         let group = DictionaryService.shared.group(id: groupId)
         let name = editedName ?? group?.name ?? "New Group"
+        let isCollapsed = isSplitViewCollapsed
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
@@ -496,10 +498,11 @@ class GroupInfoViewController: UIViewController {
         snapshot.appendSections([nameSection])
         snapshot.appendItems([.nameField(current: name)], toSection: nameSection)
         
-        // SECTION: Stats (containedItems is tappable in compact mode)
-        snapshot.appendSections([.stats])
+        // SECTION: Contained Items (compact state encoded → section rebuilds on layout change)
+        let itemsSection = Section.containedItems(compact: isCollapsed)
+        snapshot.appendSections([itemsSection])
         let count = DictionaryService.shared.groupSession.pendingDictionaryIds.count
-        snapshot.appendItems([.containedItems(count)], toSection: .stats)
+        snapshot.appendItems([.containedItems(count)], toSection: itemsSection)
         
         dataSource.apply(snapshot, animatingDifferences: true)
     }
@@ -523,24 +526,31 @@ class GroupInfoViewController: UIViewController {
             snapshot.appendItems([.deleteButton], toSection: .dangerZone)
             
         } else {
-            // VIEWING MODE: read-only name + stats (containedItems tappable in compact)
+            // VIEWING MODE: read-only name + contained items + stats
+            let isCollapsed = isSplitViewCollapsed
             
             snapshot.appendSections([nameSection])
             snapshot.appendItems([.nameLabel(current: name)], toSection: nameSection)
             
-            snapshot.appendSections([.stats])
+            // Contained Items (own section, tappable in compact)
+            let itemsSection = Section.containedItems(compact: isCollapsed)
+            snapshot.appendSections([itemsSection])
             let count = group.dictionaryIds.count
-            var statsItems: [Item] = [.containedItems(count)]
+            snapshot.appendItems([.containedItems(count)], toSection: itemsSection)
             
+            // Stats (dates only)
             let fmt = Self.dateFormatter
+            var statsItems: [Item] = []
             if let created = group.createdAt {
                 statsItems.append(.createdDate(fmt.string(from: created)))
             }
             if let modified = group.modifiedAt {
                 statsItems.append(.modifiedDate(fmt.string(from: modified)))
             }
-            
-            snapshot.appendItems(statsItems, toSection: .stats)
+            if !statsItems.isEmpty {
+                snapshot.appendSections([.stats])
+                snapshot.appendItems(statsItems, toSection: .stats)
+            }
         }
         
         dataSource.apply(snapshot, animatingDifferences: true)
