@@ -16,6 +16,7 @@
 //
 
 import UIKit
+import Combine
 import OpenMDictKit
 
 // MARK: - Mode
@@ -80,6 +81,9 @@ class GroupInfoViewController: UIViewController {
     /// Edited display name (tracks changes)
     private var editedName: String?
     
+    /// Subscription for dictionary count changes (from session or group.$items)
+    private var dictCountCancellable: AnyCancellable?
+    
     /// Computed header style for the displayName section.
     /// Encodes current mode + editing state + conflict into the Section enum
     /// so diffable data source naturally diffs and reconfigures the header.
@@ -112,8 +116,8 @@ class GroupInfoViewController: UIViewController {
         var title: String? {
             switch self {
             case .manageDictionaries: return nil
-            case .displayName: return "Group Name"
-            case .stats: return "Info"
+            case .displayName: return "Custom Name"
+            case .stats: return "Group Info"
             case .dangerZone: return nil
             }
         }
@@ -441,7 +445,7 @@ class GroupInfoViewController: UIViewController {
         
         // SECTION: Stats
         snapshot.appendSections([.stats])
-        let count = group?.dictionaryIds.count ?? 0
+        let count = DictionaryService.shared.groupSession.pendingDictionaryIds.count
         snapshot.appendItems([.dictionaryCount(count)], toSection: .stats)
         
         dataSource.apply(snapshot, animatingDifferences: true)
@@ -589,6 +593,7 @@ class GroupInfoViewController: UIViewController {
     private func performCancelCreate() {
         DictionaryService.shared.groupSession.reset()
         
+        dictCountCancellable = nil
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
@@ -621,6 +626,7 @@ class GroupInfoViewController: UIViewController {
             
             session.reset()
             
+            dictCountCancellable = nil
             editedName = nil
             hasUnsavedChanges = false
             hasNameConflict = false
@@ -693,16 +699,36 @@ class GroupInfoViewController: UIViewController {
         hasNameConflict = false
         isEditingMode = true
         nameTextView = nil
+        
+        // Subscribe to session's pending dict changes for stats update
+        dictCountCancellable = DictionaryService.shared.groupSession.$pendingDictionaryIds
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.applyCurrentSnapshot()
+            }
+        
         currentMode = .creating(groupId: "pending")  // placeholder, real ID assigned on save
     }
     
-    /// Show in editing mode (existing group)
+    /// Show in managing mode (existing group)
     func showManagingMode(for groupId: String) {
         editedName = nil
         hasUnsavedChanges = false
         hasNameConflict = false
         isEditingMode = false
         nameTextView = nil
+        
+        // Subscribe to group's $items for stats update
+        if let group = DictionaryService.shared.group(id: groupId) {
+            dictCountCancellable = group.$items
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.applyCurrentSnapshot()
+                }
+        }
+        
         currentMode = .managing(groupId: groupId)
     }
 }
