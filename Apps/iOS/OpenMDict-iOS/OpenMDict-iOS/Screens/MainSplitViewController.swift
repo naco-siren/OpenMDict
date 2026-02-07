@@ -51,10 +51,6 @@ class MainSplitViewController: UISplitViewController {
         static let managementMin: CGFloat = 320
     }
     
-    private var isCompact: Bool {
-        traitCollection.horizontalSizeClass == .compact
-    }
-    
     // MARK: - Initialization
     
     init(
@@ -183,7 +179,7 @@ class MainSplitViewController: UISplitViewController {
         }
         
         detailContainer.onArticlesEmptied = { [weak self] in
-            guard let self, isCompact else { return }
+            guard let self, isCollapsed else { return }
             show(.supplementary)
         }
     }
@@ -194,7 +190,7 @@ class MainSplitViewController: UISplitViewController {
         }
         
         dictInfoVC.onManageResources = { [weak self] dictId in
-            guard let self, isCompact else { return }
+            guard let self, isCollapsed else { return }
             dictResourceEditorVC.showEditor(for: dictId)
             show(.secondary)
         }
@@ -301,8 +297,11 @@ class MainSplitViewController: UISplitViewController {
         }
         
         groupInfoVC.onManageDictionaries = { [weak self] groupId in
-            guard let self, isCompact else { return }
-            groupDictEditorVC.showEditor(for: groupId)
+            guard let self, isCollapsed else { return }
+            // EditorVC was already configured by enterManagementMode
+            // (showCreatingEditor for .createGroup, showEditor for .editGroup).
+            // Don't call showEditor here — it would overwrite creating mode
+            // with .managing(groupId: "pending").
             show(.secondary)
         }
         
@@ -500,9 +499,20 @@ class MainSplitViewController: UISplitViewController {
         
         dictionaryListVC.appMode = .lookup
         dictionaryListVC.setNeedsUpdateAllCells()
-        configureColumns(for: .lookup)
         
-        show(.supplementary)
+        if isCollapsed {
+            // Compact mode: pop to sidebar FIRST, then reconfigure columns.
+            // Doing it the other way (configureColumns first) corrupts the internal
+            // navigation stack because setViewController(nil) detaches the currently-
+            // visible VC without popping it.
+            show(.primary)
+            configureColumns(for: .lookup)
+        } else {
+            // Regular mode: reconfigure columns (side-by-side), show word list
+            configureColumns(for: .lookup)
+            show(.supplementary)
+        }
+        
         dictionaryListVC.deselectImportItem()
         
         debugLog("🔍 Exited to Lookup mode")
