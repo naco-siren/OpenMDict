@@ -32,7 +32,6 @@ extension WordDisplayItem {
     /// Create items from MDict search results (MainActor required for MDict access)
     @MainActor
     static func from(words: [String], dict: MDict) -> [WordDisplayItem] {
-        let name = dict.metadata?.title ?? dict.id
-        return words.map { WordDisplayItem(word: $0, dictId: dict.id, dictName: name) }
+        return words.map { WordDisplayItem(word: $0, dictId: dict.id, dictName: dict.preferredTitle) }
     }
 }

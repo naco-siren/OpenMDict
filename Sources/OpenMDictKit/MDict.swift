@@ -311,7 +311,7 @@ extension MDict: @MainActor Lookupable {
                       let self = self else { return [] }
                 
                 let keys = self.search(prefix: prefix, limit: limit)
-                let dictName = self.displayTitle
+                let dictName = self.preferredTitle
                 
                 return keys.map { key in
                     WordSearchResult(word: key, dictId: dictId, dictName: dictName)
