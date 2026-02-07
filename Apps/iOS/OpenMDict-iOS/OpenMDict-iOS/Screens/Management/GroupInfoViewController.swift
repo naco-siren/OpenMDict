@@ -129,7 +129,7 @@ class GroupInfoViewController: UIViewController {
     // MARK: - UI
     
     private nonisolated enum Section: Hashable {
-        case displayName(HeaderStyle)       // Group name with contextual header
+        case displayName(HeaderStyle, isDefault: Bool)  // Group name with contextual header
         case containedItems(compact: Bool)  // Dict count cell (encodes collapsed state for reconfiguration)
         case stats                          // Created/modified dates
         case dangerZone                     // Delete button (editing mode only)
@@ -145,7 +145,7 @@ class GroupInfoViewController: UIViewController {
         
         var title: String? {
             switch self {
-            case .displayName: return "Custom Name"  // overridden for viewingDefault in header registration
+            case .displayName(_, let isDefault): return isDefault ? "Group Name" : "Custom Name"
             case .containedItems: return "Contained Items"
             case .stats: return "Group Info"
             case .dangerZone: return nil
@@ -397,10 +397,8 @@ class GroupInfoViewController: UIViewController {
             var content = headerView.defaultContentConfiguration()
             
             switch section {
-            case .displayName(let style):
-                // Use "Group Name" for default group, "Custom Name" for user groups
-                let headerText = self.isViewingDefaultMode ? "Group Name" : "Custom Name"
-                content.text = headerText
+            case .displayName(let style, _):
+                content.text = section.title
                 switch style {
                 case .plain:
                     break  // default gray header
@@ -536,7 +534,7 @@ class GroupInfoViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         
         // SECTION: Name (always editable in creating mode)
-        let nameSection = Section.displayName(displayNameHeaderStyle)
+        let nameSection = Section.displayName(displayNameHeaderStyle, isDefault: false)
         snapshot.appendSections([nameSection])
         snapshot.appendItems([.nameField(current: name)], toSection: nameSection)
         
@@ -557,7 +555,7 @@ class GroupInfoViewController: UIViewController {
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         let name = editedName ?? group.name
-        let nameSection = Section.displayName(displayNameHeaderStyle)
+        let nameSection = Section.displayName(displayNameHeaderStyle, isDefault: false)
         
         if isEditingMode {
             // EDITING MODE: editable name + delete
@@ -605,7 +603,7 @@ class GroupInfoViewController: UIViewController {
         }
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-        let nameSection = Section.displayName(.plain)
+        let nameSection = Section.displayName(.plain, isDefault: true)
         let isCollapsed = isSplitViewCollapsed
         
         // SECTION: Name (read-only)
@@ -1005,7 +1003,7 @@ private extension GroupInfoViewController {
         ) as? UICollectionViewListCell else { return }
         
         var content = headerView.defaultContentConfiguration()
-        content.text = Section.displayName(style).title
+        content.text = Section.displayName(style, isDefault: false).title
         switch style {
         case .plain:
             break
