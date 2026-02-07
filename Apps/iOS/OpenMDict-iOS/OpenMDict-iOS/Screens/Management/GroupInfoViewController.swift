@@ -7,8 +7,9 @@
 //
 //  Modes:
 //  - Creating: New group with editable name, no delete
-//  - Editing (viewing): Read-only name, stats, "Manage Dictionaries" (compact)
-//  - Editing (editing): Editable name, delete button
+//  - Managing (viewing): Read-only name, stats, "Manage Dictionaries" (compact)
+//  - Managing (editing): Editable name, delete button
+//  - ViewingDefault: Read-only view for "All Dictionaries" — no edit, no delete
 //
 //  Navigation:
 //  - Regular mode: Cancel/Done/Edit buttons
@@ -24,6 +25,7 @@ import OpenMDictKit
 enum GroupConfigMode: Equatable {
     case creating(groupId: String)        // New group, always actively editing
     case managing(groupId: String)        // Existing group, view/edit toggle
+    case viewingDefault(groupId: String)  // Default group, read-only
 }
 
 // MARK: - View Controller
@@ -58,7 +60,8 @@ class GroupInfoViewController: UIViewController {
     
     /// Whether the user is in editing mode (vs viewing mode)
     /// - Creating mode: always true
-    /// - Editing mode: toggleable via Edit/Done buttons
+    /// - Managing mode: toggleable via Edit/Done buttons
+    /// - ViewingDefault: always false
     private var isEditingMode: Bool = false {
         didSet {
             if isViewLoaded {
@@ -110,10 +113,17 @@ class GroupInfoViewController: UIViewController {
         let isActivelyEditing: Bool = switch mode {
         case .creating: true
         case .managing: isEditingMode
+        case .viewingDefault: false
         }
         guard isActivelyEditing else { return .plain }
         if hasEmptyName { return .empty }
         return hasNameConflict ? .conflict : .active
+    }
+    
+    /// Whether current mode is viewingDefault
+    private var isViewingDefaultMode: Bool {
+        if case .viewingDefault = currentMode { return true }
+        return false
     }
     
     // MARK: - UI
@@ -135,7 +145,7 @@ class GroupInfoViewController: UIViewController {
         
         var title: String? {
             switch self {
-            case .displayName: return "Custom Name"
+            case .displayName: return "Custom Name"  // overridden for viewingDefault in header registration
             case .containedItems: return "Contained Items"
             case .stats: return "Group Info"
             case .dangerZone: return nil
@@ -253,11 +263,12 @@ class GroupInfoViewController: UIViewController {
             guard let self else { return }
             
             let isCollapsed = self.isSplitViewCollapsed
+            let isDefault = self.isViewingDefaultMode
             let isEmpty = count == 0
             let countStr = count == 1 ? "1 dictionary" : "\(count) dictionaries"
             
-            if isCollapsed {
-                // COMPACT: button-like cell with disclosure chevron
+            if isCollapsed && !isDefault {
+                // COMPACT (user groups): button-like cell with disclosure chevron
                 var content = UIListContentConfiguration.cell()
                 content.textProperties.font = .preferredFont(forTextStyle: .headline)
                 content.textProperties.color = .white
@@ -278,11 +289,27 @@ class GroupInfoViewController: UIViewController {
                 bg.backgroundColor = isEmpty ? .systemOrange : .systemBlue
                 bg.cornerRadius = 10
                 cell.backgroundConfiguration = bg
+            } else if isCollapsed && isDefault {
+                // COMPACT (default group): button-like cell to navigate to reorder editor
+                var content = UIListContentConfiguration.cell()
+                content.textProperties.font = .preferredFont(forTextStyle: .headline)
+                content.textProperties.color = .white
+                content.image = UIImage(systemName: "arrow.up.arrow.down")
+                content.text = "Reorder Dictionaries"
+                content.imageProperties.tintColor = .white
+                cell.contentConfiguration = content
+                
+                cell.accessories = [.disclosureIndicator(options: .init(tintColor: .white.withAlphaComponent(0.7)))]
+                
+                var bg = UIBackgroundConfiguration.listGroupedCell()
+                bg.backgroundColor = .systemBlue
+                bg.cornerRadius = 10
+                cell.backgroundConfiguration = bg
             } else {
-                // REGULAR: info-style cell
+                // REGULAR: info-style cell (not tappable)
                 var content = UIListContentConfiguration.cell()
                 
-                if isEmpty {
+                if isEmpty && !isDefault {
                     content.image = UIImage(systemName: "exclamationmark.triangle")
                     content.imageProperties.tintColor = .systemOrange
                     content.text = "Add at least one dictionary"
@@ -371,7 +398,9 @@ class GroupInfoViewController: UIViewController {
             
             switch section {
             case .displayName(let style):
-                content.text = section.title
+                // Use "Group Name" for default group, "Custom Name" for user groups
+                let headerText = self.isViewingDefaultMode ? "Group Name" : "Custom Name"
+                content.text = headerText
                 switch style {
                 case .plain:
                     break  // default gray header
@@ -447,6 +476,12 @@ class GroupInfoViewController: UIViewController {
             if !isEditingMode {
                 hasUnsavedChanges = false
             }
+            
+        case .viewingDefault(let groupId):
+            let group = DictionaryService.shared.group(id: groupId)
+            title = group?.name ?? "All Dictionaries"
+            isEditingMode = false
+            hasUnsavedChanges = false
         }
         
         updateNavigationBar()
@@ -472,6 +507,11 @@ class GroupInfoViewController: UIViewController {
                 navigationItem.leftBarButtonItem = nil
                 navigationItem.rightBarButtonItem = editButton
             }
+            
+        case .viewingDefault:
+            // Read-only: no edit buttons
+            navigationItem.leftBarButtonItem = nil
+            navigationItem.rightBarButtonItem = nil
         }
     }
     
@@ -483,6 +523,8 @@ class GroupInfoViewController: UIViewController {
             applyCreatingSnapshot(groupId: groupId)
         case .managing(let groupId):
             applyManagingSnapshot(groupId: groupId)
+        case .viewingDefault(let groupId):
+            applyViewingDefaultSnapshot(groupId: groupId)
         }
     }
     
@@ -556,9 +598,35 @@ class GroupInfoViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: true)
     }
     
+    private func applyViewingDefaultSnapshot(groupId: String) {
+        guard let group = DictionaryService.shared.group(id: groupId) else {
+            debugLog("⚠️ applyViewingDefaultSnapshot: group not found for \(groupId.prefix(8))...")
+            return
+        }
+        
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        let nameSection = Section.displayName(.plain)
+        let isCollapsed = isSplitViewCollapsed
+        
+        // SECTION: Name (read-only)
+        snapshot.appendSections([nameSection])
+        snapshot.appendItems([.nameLabel(current: group.name)], toSection: nameSection)
+        
+        // SECTION: Contained Items (tappable in compact for reorder navigation)
+        let itemsSection = Section.containedItems(compact: isCollapsed)
+        snapshot.appendSections([itemsSection])
+        let count = group.dictionaryIds.count
+        snapshot.appendItems([.containedItems(count)], toSection: itemsSection)
+        
+        // No stats, no danger zone
+        
+        dataSource.apply(snapshot, animatingDifferences: true)
+    }
+    
     // MARK: - Navigation Actions
     
     @objc private func editTapped() {
+        guard case .managing = currentMode else { return }
         isEditingMode = true
     }
     
@@ -567,7 +635,6 @@ class GroupInfoViewController: UIViewController {
         
         switch mode {
         case .creating:
-            // Cancel creating - delete the group and dismiss
             if hasUnsavedChanges {
                 showAbandonCreateAlert()
             } else {
@@ -580,6 +647,9 @@ class GroupInfoViewController: UIViewController {
             } else {
                 exitEditingMode()
             }
+            
+        case .viewingDefault:
+            break  // No cancel in read-only mode
         }
     }
     
@@ -596,6 +666,8 @@ class GroupInfoViewController: UIViewController {
             performSaveCreate(groupId: groupId)
         case .managing(let groupId):
             performSaveEdit(groupId: groupId)
+        case .viewingDefault:
+            break  // No done in read-only mode
         }
     }
     
@@ -811,6 +883,20 @@ class GroupInfoViewController: UIViewController {
         currentMode = .managing(groupId: groupId)
     }
     
+    /// Show in read-only mode for the default group
+    func showViewingDefaultMode(for groupId: String) {
+        editedName = nil
+        hasUnsavedChanges = false
+        hasNameConflict = false
+        hasEmptyName = false
+        hasNoDictionaries = false
+        isEditingMode = false
+        nameTextView = nil
+        dictCountCancellable = nil
+        
+        currentMode = .viewingDefault(groupId: groupId)
+    }
+    
     /// Reset to idle state (no group selected). Called when exiting management mode.
     func resetToEmptyState() {
         dictCountCancellable = nil
@@ -840,7 +926,7 @@ extension GroupInfoViewController: UICollectionViewDelegate {
             guard isSplitViewCollapsed else { return }
             guard let mode = currentMode else { return }
             switch mode {
-            case .creating(let groupId), .managing(let groupId):
+            case .creating(let groupId), .managing(let groupId), .viewingDefault(let groupId):
                 onManageDictionaries?(groupId)
             }
             
@@ -878,6 +964,7 @@ private extension GroupInfoViewController {
         let currentGroupId: String? = switch currentMode {
         case .creating(let id): id
         case .managing(let id): id
+        case .viewingDefault: nil
         case .none: nil
         }
         

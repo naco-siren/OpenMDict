@@ -167,7 +167,12 @@ class MainSplitViewController: UISplitViewController {
         }
         
         dictionaryListVC.onGroupInfoSelected = { [weak self] groupId in
-            self?.enterManagementMode(for: .editGroup(groupId: groupId))
+            let group = DictionaryService.shared.group(id: groupId)
+            if group?.isDefault == true {
+                self?.enterManagementMode(for: .viewDefaultGroup(groupId: groupId))
+            } else {
+                self?.enterManagementMode(for: .editGroup(groupId: groupId))
+            }
         }
         
         dictionaryListVC.onAddGroupSelected = { [weak self] in
@@ -425,6 +430,7 @@ class MainSplitViewController: UISplitViewController {
         case editDict(dictId: String)
         case editGroup(groupId: String)
         case createGroup
+        case viewDefaultGroup(groupId: String)
     }
     
     private func enterManagementMode(for action: ManagementAction) {
@@ -456,6 +462,10 @@ class MainSplitViewController: UISplitViewController {
             configureColumns(for: .managementGroup)
             groupInfoVC.showCreatingMode(pendingName: session.pendingName ?? "New Group")
             groupDictEditorVC.showCreatingEditor()
+        case .viewDefaultGroup(let groupId):
+            configureColumns(for: .managementGroup)
+            groupInfoVC.showViewingDefaultMode(for: groupId)
+            groupDictEditorVC.showReorderEditor(for: groupId)
         }
         
         show(.supplementary)

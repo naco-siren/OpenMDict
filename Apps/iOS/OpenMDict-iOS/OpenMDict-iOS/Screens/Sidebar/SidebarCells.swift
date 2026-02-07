@@ -35,6 +35,7 @@ protocol SidebarStateProvider: AnyObject {
 /// Cell for the "All Dictionaries" group.
 /// - Always shows filled icon (books.vertical.fill)
 /// - Blue background + white text when selected (only in lookup mode, not editing)
+/// - Edit mode: info button for viewing group info
 final class DefaultGroupCell: UICollectionViewListCell {
     
     var group: MDicts?
@@ -71,11 +72,37 @@ final class DefaultGroupCell: UICollectionViewListCell {
             
             bg.backgroundColor = .clear
             
-            accessories = [.outlineDisclosure(options: .init(style: .cell))]
+            var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .cell))]
+            
+            // Info button in edit mode
+            if isEditing {
+                let infoButton = createInfoButton(for: group.id)
+                let infoConfig = UICellAccessory.CustomViewConfiguration(
+                    customView: infoButton,
+                    placement: .trailing(displayed: .always)
+                )
+                cellAccessories.append(.customView(configuration: infoConfig))
+            }
+            
+            accessories = cellAccessories
         }
         
         contentConfiguration = content
         backgroundConfiguration = bg
+    }
+    
+    private func createInfoButton(for groupId: String) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "info.circle"), for: .normal)
+        button.tintColor = .systemBlue
+        button.accessibilityIdentifier = groupId
+        button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
+        return button
+    }
+    
+    @objc private func infoButtonTapped(_ sender: UIButton) {
+        guard let groupId = sender.accessibilityIdentifier else { return }
+        stateProvider?.didTapInfoButton(forGroupId: groupId)
     }
 }
 

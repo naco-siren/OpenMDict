@@ -604,6 +604,17 @@ extension DictionaryListViewController: UICollectionViewDelegate {
                 return UIMenu(children: [editAction, deleteAction])
             })
             
+        case .group(let id, let isDefault) where isDefault:
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                let viewAction = UIAction(
+                    title: "View Info",
+                    image: UIImage(systemName: "info.circle")
+                ) { _ in
+                    self?.onGroupInfoSelected?(id)
+                }
+                return UIMenu(children: [viewAction])
+            })
+            
         case .dictionary(let dictId, let groupId):
             // Context menu on dictionaries in default group: Edit Info
             let group = DictionaryService.shared.group(id: groupId)
