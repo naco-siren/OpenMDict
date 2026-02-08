@@ -131,7 +131,8 @@ class ArticleCell: UICollectionViewCell {
         headerView.addSubview(titleStack)
         
         // Trailing toolbar
-        let toolbarStack = UIStackView(arrangedSubviews: [findButton, newWindowButton, closeButton])
+        var subViews = if #available(iOS 16, *) { [findButton, newWindowButton, closeButton] } else { [newWindowButton, closeButton] }
+        let toolbarStack = UIStackView(arrangedSubviews: subViews)
         toolbarStack.axis = .horizontal
         toolbarStack.spacing = 0
         toolbarStack.translatesAutoresizingMaskIntoConstraints = false

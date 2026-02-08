@@ -429,9 +429,6 @@ class DetailContainerViewController: UIViewController {
         if #available(iOS 16, *) {
             navigationItem.style = .browser
             
-            // TODO: research whether & should this API can be used
-            // navigationItem.titleMenuProvider =
-            
             navigationItem.leadingItemGroups = [
                 .fixedGroup(
                     representativeItem: .init(

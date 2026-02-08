@@ -564,33 +564,30 @@ extension ArticlesViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 
+        var actions: [UIAction] = []
+        actions.append(.init(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
+            print("🔖 Bookmark: \(article.word)")
+            // TODO: Implement bookmark persistence
+        })
+        if #available(iOS 16, *) {
+            actions.append(.init(title: "Find in Page", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+                self?.pendingFindIndexPath = indexPath
+            })
+        }
+        actions.append(.init(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
+            let session = self.view.window?.windowScene?.session
+            SceneDelegate.openNewWindow(for: article, sourceSession: session)
+        })
+        actions.append(.init(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
+            if let self = self {
+                self.delegate?.articlesViewController(self, didCloseArticle: article)
+            }
+        })
+        
         return UIContextMenuConfiguration(
             identifier: indexPath as NSCopying,
-            previewProvider: {
-                return ArticlePreviewViewController(article: article)
-            },
-            actionProvider: { [weak self] _ in
-                guard let self = self else { return nil }
-                return UIMenu(children: [
-                    UIAction(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
-                        print("🔖 Bookmark: \(article.word)")
-                        // TODO: Implement bookmark persistence
-                    },
-                    UIAction(title: "Find in Page", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
-                        guard #available(iOS 16.0, *) else { return }
-                        self?.pendingFindIndexPath = indexPath
-                    },
-                    UIAction(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
-                        let session = self.view.window?.windowScene?.session
-                        SceneDelegate.openNewWindow(for: article, sourceSession: session)
-                    },
-                    UIAction(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
-                        if let self = self {
-                            self.delegate?.articlesViewController(self, didCloseArticle: article)
-                        }
-                    },
-                ])
-            }
+            previewProvider: { ArticlePreviewViewController(article: article) },
+            actionProvider: { _ in UIMenu(children: actions) }
         )
     }
     
