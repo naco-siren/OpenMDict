@@ -122,6 +122,11 @@ final class DictionaryService: ObservableObject {
         dictionarySources[dictId] == .imported
     }
     
+    /// Get the import date for a dictionary (from manifest)
+    func importedDate(_ dictId: String) -> Date? {
+        storage.manifest.dictionaries.first(where: { $0.id == dictId })?.importedAt
+    }
+    
     /// Get all bundled dictionary IDs
     var bundledDictionaryIds: [String] {
         dictionarySources.filter { $0.value == .bundled }.map { $0.key }

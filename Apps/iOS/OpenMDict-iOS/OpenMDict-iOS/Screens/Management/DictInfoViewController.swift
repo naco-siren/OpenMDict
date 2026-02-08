@@ -122,8 +122,9 @@ class DictInfoViewController: UIViewController {
         case manageResources  // Button to manage MDD/CSS/JS (compact mode only)
         case displayName      // Editable display name with header
         case selectFile       // "Select MDX File" button (import empty state)
-        case basicMetadata    // Title, Entries, Description
+        case basicMetadata    // Title, Date Created, Date Imported, Entries
         case advancedMetadata // Engine, Format, Encoding, flags
+        case description      // Description (standalone, bottom of page)
         case dangerZone       // Delete button (edit mode only)
         
         var title: String? {
@@ -132,8 +133,9 @@ class DictInfoViewController: UIViewController {
             case .manageResources: return nil
             case .displayName: return "Custom Name"
             case .selectFile: return nil
-            case .basicMetadata: return "Dictionary Info"
+            case .basicMetadata: return "Basic Info"
             case .advancedMetadata: return "Technical Details"
+            case .description: return "Description"
             case .dangerZone: return nil
             }
         }
@@ -155,10 +157,9 @@ class DictInfoViewController: UIViewController {
         // Basic Metadata
         case title(String)
         /// Entry count: -1 = unknown/missing, 0 = parse error, >0 = actual count
+        case date(title: String, icon: String, date: Date)
         case entryCount(Int)
         case description(String)
-        // case creationDate(String)  // TBD
-        // case importedDate(Date)    // TBD, editing only
         
         // Advanced Metadata
         case engineVersion(String)
@@ -421,10 +422,10 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
-        // MARK: Info Cell (icon + title + value)
+        // MARK: Info Cell (horizontal key-value: icon + title on left, value on right)
         let infoReg = UICollectionView.CellRegistration<UICollectionViewListCell, (icon: String, title: String, value: String)> {
             cell, indexPath, data in
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.valueCell()
             content.text = data.title
             content.secondaryText = data.value.isEmpty ? "—" : data.value
             content.secondaryTextProperties.color = data.value.isEmpty ? .tertiaryLabel : .secondaryLabel
@@ -434,33 +435,44 @@ class DictInfoViewController: UIViewController {
             cell.accessories = []
         }
         
-        // MARK: Entry Count Cell (formatted number)
-        /// Entry count cell: -1 = unknown, 0 = error, >0 = actual count
+        // MARK: Entry Count Cell (formatted number, horizontal)
+        /// Only shown when count > 0 (snapshots skip this cell otherwise)
         let entryCountReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, indexPath, count in
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.valueCell()
             content.text = "Entries"
-            if count > 0 {
-                let formatter = NumberFormatter()
-                formatter.numberStyle = .decimal
-                content.secondaryText = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
-                content.secondaryTextProperties.color = .secondaryLabel
-            } else {
-                // -1 = unknown, 0 = error
-                content.secondaryText = "Unknown"
-                content.secondaryTextProperties.color = .tertiaryLabel
-            }
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            content.secondaryText = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+            content.secondaryTextProperties.color = .secondaryLabel
             content.image = UIImage(systemName: "list.number")
             content.imageProperties.tintColor = .secondaryLabel
             cell.contentConfiguration = content
             cell.accessories = []
         }
         
-        // MARK: Description Cell (multi-line, HTML rendered asynchronously)
+        // MARK: Date Cell (formatted date, horizontal)
+        let dateFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateStyle = .medium
+            f.timeStyle = .none
+            return f
+        }()
+        let dateReg = UICollectionView.CellRegistration<UICollectionViewListCell, (title: String, icon: String, date: Date)> {
+            cell, indexPath, data in
+            var content = UIListContentConfiguration.valueCell()
+            content.text = data.title
+            content.secondaryText = dateFormatter.string(from: data.date)
+            content.secondaryTextProperties.color = .secondaryLabel
+            content.image = UIImage(systemName: data.icon)
+            content.imageProperties.tintColor = .secondaryLabel
+            cell.contentConfiguration = content
+            cell.accessories = []
+        }
+        
+        // MARK: Description Cell (multi-line, HTML rendered asynchronously, no icon)
         let descriptionReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, indexPath, htmlValue in
             var content = UIListContentConfiguration.subtitleCell()
-            content.text = "Description"
-            content.image = UIImage(systemName: "text.alignleft")
-            content.imageProperties.tintColor = .secondaryLabel
+            content.text = nil  // No title - standalone section header serves as label
             
             if htmlValue.isEmpty {
                 content.secondaryText = "No description"
@@ -561,6 +573,8 @@ class DictInfoViewController: UIViewController {
             // Basic Metadata
             case .title(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("book", "Title", value))
+            case .date(let title, let icon, let date):
+                return collectionView.dequeueConfiguredReusableCell(using: dateReg, for: indexPath, item: (title, icon, date))
             case .entryCount(let count):
                 return collectionView.dequeueConfiguredReusableCell(using: entryCountReg, for: indexPath, item: count)
             case .description(let value):
@@ -591,6 +605,23 @@ class DictInfoViewController: UIViewController {
     }
     
     // MARK: - HTML Rendering
+    
+    /// Parse MDX header creation date string (e.g. "2018-1-1", "2015-03-20") into Date
+    private static func parseCreationDate(_ string: String) -> Date? {
+        let trimmed = string.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        // Try common formats from MDX headers
+        for format in ["yyyy-MM-dd", "yyyy-M-d", "yyyy/MM/dd", "yyyy/M/d"] {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+        return nil
+    }
     
     /// Convert HTML string to NSAttributedString for display
     /// Returns nil if conversion fails
@@ -739,11 +770,17 @@ class DictInfoViewController: UIViewController {
             let titleDisplay = metadata.title ?? sourceFileName
             let descHTML = MDictDescriptionParser.cleanHTMLForDisplay(metadata.description)
             
-            snapshot.appendItems([
-                .title(titleDisplay),
-                .entryCount(metadata.entryCount ?? -1),
-                .description(descHTML)
-            ], toSection: .basicMetadata)
+            var basicItems: [Item] = [.title(titleDisplay)]
+            
+            if let date = Self.parseCreationDate(metadata.creationDate) {
+                basicItems.append(.date(title: "Date Created", icon: "calendar", date: date))
+            }
+            
+            if let count = metadata.entryCount, count > 0 {
+                basicItems.append(.entryCount(count))
+            }
+            
+            snapshot.appendItems(basicItems, toSection: .basicMetadata)
             
             // SECTION: Advanced Metadata
             snapshot.appendSections([.advancedMetadata])
@@ -754,6 +791,12 @@ class DictInfoViewController: UIViewController {
                 .isEncrypted(metadata.isEncrypted),
                 .isCaseSensitive(metadata.isCaseSensitive)
             ], toSection: .advancedMetadata)
+            
+            // SECTION: Description (standalone, bottom)
+            if !descHTML.isEmpty {
+                snapshot.appendSections([.description])
+                snapshot.appendItems([.description(descHTML)], toSection: .description)
+            }
             
         } else {
             // No file selected - show file selection button
@@ -806,13 +849,24 @@ class DictInfoViewController: UIViewController {
             // SECTION: Basic Metadata (only show if metadata loaded)
             if let metadata = dict.metadata {
                 snapshot.appendSections([.basicMetadata])
-                // Use HTML for rich display, fallback to cleaned plain text
                 let descHTML = MDictDescriptionParser.cleanHTMLForDisplay(metadata.description)
-                snapshot.appendItems([
-                    .title(dict.displayTitle),
-                    .entryCount(metadata.entryCount ?? -1),
-                    .description(descHTML)
-                ], toSection: .basicMetadata)
+                
+                var basicItems: [Item] = [.title(dict.displayTitle)]
+                
+                if let date = Self.parseCreationDate(metadata.creationDate) {
+                    basicItems.append(.date(title: "Date Created", icon: "calendar", date: date))
+                }
+                
+                // Date Imported (from manifest, only for existing dictionaries)
+                if let importedDate = DictionaryService.shared.importedDate(dictId) {
+                    basicItems.append(.date(title: "Date Imported", icon: "square.and.arrow.down", date: importedDate))
+                }
+                
+                if let count = metadata.entryCount, count > 0 {
+                    basicItems.append(.entryCount(count))
+                }
+                
+                snapshot.appendItems(basicItems, toSection: .basicMetadata)
                 
                 // SECTION: Advanced Metadata
                 snapshot.appendSections([.advancedMetadata])
@@ -823,6 +877,12 @@ class DictInfoViewController: UIViewController {
                     .isEncrypted(metadata.isEncrypted),
                     .isCaseSensitive(metadata.isCaseSensitive)
                 ], toSection: .advancedMetadata)
+                
+                // SECTION: Description (standalone, bottom)
+                if !descHTML.isEmpty {
+                    snapshot.appendSections([.description])
+                    snapshot.appendItems([.description(descHTML)], toSection: .description)
+                }
             }
         }
         
@@ -1225,7 +1285,7 @@ extension DictInfoViewController: UICollectionViewDelegate {
             showDeleteConfirmation()
             
         // Metadata items - not tappable
-        case .title, .entryCount, .description,
+        case .title, .date, .entryCount, .description,
              .engineVersion, .format, .encoding,
              .isEncrypted, .isCaseSensitive:
             break
