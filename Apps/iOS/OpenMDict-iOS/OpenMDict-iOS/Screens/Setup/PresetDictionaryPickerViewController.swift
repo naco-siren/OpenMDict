@@ -44,6 +44,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
     private struct LanguageGroup {
         let langCode: String
         let langName: String
+        let targetLangCode: String
         let targetLangName: String
         let flag: String
         let presets: [PresetDictionary]
@@ -61,13 +62,30 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     // MARK: - UI
 
+    private let titleIconView: UIImageView = {
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+        let image = UIImage(systemName: "checklist", withConfiguration: config)
+        let iv = UIImageView(image: image)
+        iv.tintColor = .label
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 22, weight: .bold)
-        label.textAlignment = .center
         label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+    private let titleStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
     }()
 
     private let subtitleLabel: UILabel = {
@@ -118,6 +136,10 @@ final class PresetDictionaryPickerViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
 
+        // Assemble title stack (icon + label)
+        titleStack.addArrangedSubview(titleIconView)
+        titleStack.addArrangedSubview(titleLabel)
+
         if mode == .firstInstall {
             titleLabel.text = "Choose Dictionaries"
             subtitleLabel.text = "Select dictionaries to install. You can change this later."
@@ -162,12 +184,17 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         languageGroups = grouped.map { langCode, presets in
             let sorted = presets.sorted { a, b in
+                // 1. Lower tier first
                 if (a.tier ?? 99) != (b.tier ?? 99) { return (a.tier ?? 99) < (b.tier ?? 99) }
+                // 2. Bundle assets before ODR within same tier
+                if a.isBundleAsset != b.isBundleAsset { return a.isBundleAsset }
+                // 3. Alphabetical
                 return a.displayName < b.displayName
             }
             return LanguageGroup(
                 langCode: langCode,
                 langName: sorted[0].sourceLangName,
+                targetLangCode: sorted[0].targetLang,
                 targetLangName: sorted[0].targetLangName,
                 flag: sorted[0].flag,
                 presets: sorted
@@ -240,10 +267,10 @@ final class PresetDictionaryPickerViewController: UIViewController {
         // Use section provider so we can set contentInsetsReference per-section.
         // List sections don't inherit this from the layout configuration.
         let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment in
-            var section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
+            let section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
             section.contentInsetsReference = .readableContent
-            section.contentInsets.leading = 0
-            section.contentInsets.trailing = 0
+            section.contentInsets.leading = 12
+            section.contentInsets.trailing = 12
             return section
         }
 
@@ -256,8 +283,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
     }
 
     private func setupBottomBar() {
-        // Title header
-        view.addSubview(titleLabel)
+        // Title header (icon + label stack)
+        view.addSubview(titleStack)
         view.addSubview(subtitleLabel)
         view.addSubview(bottomSeparator)
         view.addSubview(continueButton)
@@ -265,14 +292,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Title header above the list
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            // Title header above the list (centered, aligned with readableContentGuide)
+            titleStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            titleStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
 
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
-            subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            subtitleLabel.topAnchor.constraint(equalTo: titleStack.bottomAnchor, constant: 6),
+            subtitleLabel.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
+            subtitleLabel.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
 
             // Separator
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -315,7 +343,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
             else { return }
 
             var content = headerView.defaultContentConfiguration()
-            content.text = "\(group.flag) \(group.langName) → \(group.targetLangName)"
+            let targetFlag = Self.flagEmoji(for: group.targetLangCode)
+            content.text = "\(group.flag) \(group.langName) → \(group.targetLangName) \(targetFlag)"
             headerView.contentConfiguration = content
         }
 
@@ -360,17 +389,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
         var accessories: [UICellAccessory] = []
 
         if isLocked {
-            // Lock icon (leading) — pre-checked and cannot be unchecked
+            // Checkmark icon (leading) — pre-checked and cannot be unchecked
             let lockImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
             lockImage.tintColor = .systemGray
             accessories.append(.customView(configuration: .init(
                 customView: lockImage, placement: .leading(displayed: .always)
-            )))
-
-            // "Included" badge (trailing)
-            let badge = makeBadgeLabel("Included", color: .systemGreen)
-            accessories.append(.customView(configuration: .init(
-                customView: badge, placement: .trailing(displayed: .always)
             )))
 
         } else if isImported && mode == .management {
@@ -412,7 +435,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private func updateContinueButton() {
         let count = selectedIds.count
-        let title = count > 0 ? "Continue (\(count) selected)" : "Continue"
+        let title = count > 0 ? "Confirm Selection (\(count))" : "Confirm Selection"
         continueButton.configuration?.title = title
         continueButton.isEnabled = count > 0
     }
@@ -440,6 +463,27 @@ final class PresetDictionaryPickerViewController: UIViewController {
         label.font = .preferredFont(forTextStyle: .caption1)
         label.textColor = color
         return label
+    }
+
+    /// Map a language code to its flag emoji
+    private static func flagEmoji(for langCode: String) -> String {
+        switch langCode {
+        case "EN": return "🇬🇧"
+        case "ZH": return "🇨🇳"
+        case "JA": return "🇯🇵"
+        case "KO": return "🇰🇷"
+        case "ES": return "🇪🇸"
+        case "FR": return "🇫🇷"
+        case "DE": return "🇩🇪"
+        case "IT": return "🇮🇹"
+        case "PT": return "🇵🇹"
+        case "RU": return "🇷🇺"
+        case "AR": return "🇸🇦"
+        case "TR": return "🇹🇷"
+        case "EL": return "🇬🇷"
+        case "LA": return "🏛️"
+        default:   return ""
+        }
     }
 
     private static func formatNumber(_ n: Int) -> String {

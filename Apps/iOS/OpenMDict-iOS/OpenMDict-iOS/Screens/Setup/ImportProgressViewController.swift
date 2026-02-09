@@ -53,6 +53,33 @@ final class ImportProgressViewController: UIViewController {
 
     // MARK: - UI
 
+    private let titleIconView: UIImageView = {
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+        let image = UIImage(systemName: "arrow.down.circle.fill", withConfiguration: config)
+        let iv = UIImageView(image: image)
+        iv.tintColor = .label
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Setting Up Dictionaries"
+        label.font = .systemFont(ofSize: 22, weight: .bold)
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private let titleStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
 
@@ -90,7 +117,10 @@ final class ImportProgressViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
-        title = "Setting Up Dictionaries"
+
+        // Assemble title stack (icon + label)
+        titleStack.addArrangedSubview(titleIconView)
+        titleStack.addArrangedSubview(titleLabel)
 
         setupCollectionView()
         setupBottomBar()
@@ -240,10 +270,10 @@ final class ImportProgressViewController: UIViewController {
 
         // Use section provider to set contentInsetsReference per-section.
         let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment in
-            var section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
+            let section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
             section.contentInsetsReference = .readableContent
-            section.contentInsets.leading = 0
-            section.contentInsets.trailing = 0
+            section.contentInsets.leading = 12
+            section.contentInsets.trailing = 12
             return section
         }
 
@@ -256,11 +286,18 @@ final class ImportProgressViewController: UIViewController {
     }
 
     private func setupBottomBar() {
+        view.addSubview(titleStack)
         view.addSubview(bottomSeparator)
         view.addSubview(statusLabel)
         view.addSubview(doneButton)
 
         NSLayoutConstraint.activate([
+            // Title header (centered, aligned with readableContentGuide)
+            titleStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            titleStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
+
             // Separator
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -278,8 +315,8 @@ final class ImportProgressViewController: UIViewController {
             doneButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             doneButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
 
-            // Collection view
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            // Collection view (below title header, above separator)
+            collectionView.topAnchor.constraint(equalTo: titleStack.bottomAnchor, constant: 8),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
