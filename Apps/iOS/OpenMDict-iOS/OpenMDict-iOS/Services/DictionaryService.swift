@@ -131,10 +131,23 @@ final class DictionaryService: ObservableObject {
 
     /// Called after SetupViewController finishes importing preset dictionaries.
     /// Re-loads the manifest and all dictionaries from scratch.
-    func reloadAfterSetup() {
+    /// Awaits full loading so dictionaries are ready for search immediately.
+    func reloadAfterSetup() async {
         allDictionaries = []
         groups = []
-        setup()
+
+        // 1. Load manifest (dictionary metadata + group config)
+        storage.loadManifest()
+
+        // 2. Load dictionaries from Library/Dictionaries/
+        loadUserDictionaries()
+
+        // 3. Setup groups from manifest (or create defaults)
+        setupGroups()
+
+        // 4. Await full loading (metadata + readers) so search works immediately
+        await loadAllMetadata()
+        await loadAllDictionaries()
     }
     
     private func loadUserDictionaries() {

@@ -6,18 +6,39 @@
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-    
+
     var window: UIWindow?
-    
+
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        
+
+        // Block new windows during first-install onboarding.
+        // If manifest.json doesn't exist, the primary scene runs the setup flow.
+        // Any additional scene opened during that time is immediately destroyed.
+        let manifestURL = DictionaryStorageService.shared.manifestURL
+        let isFirstInstall = !FileManager.default.fileExists(atPath: manifestURL.path)
+        let hasOtherScene = UIApplication.shared.connectedScenes
+            .contains { $0.activationState != .unattached && $0 !== scene }
+
+        if isFirstInstall && hasOtherScene {
+            // Destroy this scene session on the next run loop tick
+            // (can't destroy during willConnectTo: itself)
+            DispatchQueue.main.async {
+                UIApplication.shared.requestSceneSessionDestruction(
+                    session, options: nil, errorHandler: { error in
+                        print("⚠️ Failed to destroy duplicate scene during setup: \(error)")
+                    }
+                )
+            }
+            return
+        }
+
         let window = UIWindow(windowScene: windowScene)
-        
+
         // Parse restoration state
         var initialArticles: [ArticleDisplayItem] = []
         var initialGroupId: String = ""
@@ -36,7 +57,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 sourceSessionId = activity.userInfo?["sourceSessionId"] as? String
             }
         }
-        
+
         // Create main interface
         let splitVC = MainSplitViewController(
             initialArticles: initialArticles,
@@ -44,18 +65,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             initialLayoutMode: initialLayoutMode
         )
         window.rootViewController = splitVC
-        
+
         self.window = window
         window.makeKeyAndVisible()
-        
+
         // Set window title (shown in App Switcher)
-        // Set window title
         if let firstArticle = initialArticles.first {
             windowScene.title = firstArticle.word
         } else {
             windowScene.title = "OpenMDict"
         }
-        
+
         // Notify source window if this was a drag & drop
         if let sourceSessionId = sourceSessionId, let articleId = initialArticles.first?.id {
             NotificationCenter.default.post(
@@ -68,14 +88,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             )
         }
     }
-    
+
     func stateRestorationActivity(for scene: UIScene) -> NSUserActivity? {
         guard let splitVC = window?.rootViewController as? MainSplitViewController else {
             return nil
         }
         return splitVC.currentStateActivity()
     }
-    
+
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         guard let splitVC = window?.rootViewController as? MainSplitViewController,
               let article = ArticleDisplayItem.from(userActivity: userActivity) else {
@@ -83,7 +103,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
         splitVC.showArticle(article, animated: true)
     }
-    
+
     func sceneDidEnterBackground(_ scene: UIScene) {
         // Proactively save state when entering background.
         // This ensures state is captured even during rapid app switcher operations,
@@ -91,7 +111,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let splitVC = window?.rootViewController as? MainSplitViewController else { return }
         scene.userActivity = splitVC.currentStateActivity()
     }
-    
+
     func sceneDidDisconnect(_ scene: UIScene) {
         // Scene released by system. Resources cleaned up automatically.
     }
@@ -100,7 +120,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 // MARK: - Multi-Window Helper
 
 extension SceneDelegate {
-    
+
     /// Request opening a new window for the specified article
     static func openNewWindow(for article: ArticleDisplayItem, sourceSession: UISceneSession? = nil) {
         let activity = article.userActivity
@@ -109,7 +129,7 @@ extension SceneDelegate {
         if let sessionId = sourceSession?.persistentIdentifier {
             activity.userInfo?["sourceSessionId"] = sessionId
         }
-        
+
         UIApplication.shared.requestSceneSessionActivation(
             nil,
             userActivity: activity,

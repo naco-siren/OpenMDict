@@ -38,9 +38,12 @@ class MainSplitViewController: UISplitViewController {
     private var initialGroupId: String = ""
     private var currentGroup: MDicts?
     private var currentDict: MDict?
-    
+
     /// Loading modal for long-running operations
     private weak var loadingVC: LoadingViewController?
+
+    /// Prevents presenting setup multiple times (e.g., on multi-window restore)
+    private var hasAttemptedSetup = false
     
     // MARK: - Constants
     
@@ -91,7 +94,10 @@ class MainSplitViewController: UISplitViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+
+        // Check for first-install setup (before article restoration)
+        presentSetupIfNeeded()
+
         if !detailContainer.allArticles.isEmpty {
             debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
             show(.secondary)
@@ -370,8 +376,42 @@ class MainSplitViewController: UISplitViewController {
         dictionaryListVC.setActiveGroup(group)
     }
     
+    // MARK: - Setup Flow
+
+    /// Present the first-install onboarding flow if manifest.json doesn't exist.
+    /// Uses file existence (not array emptiness) so that users who delete all
+    /// dictionaries don't see the setup flow again.
+    private func presentSetupIfNeeded() {
+        guard !hasAttemptedSetup else { return }
+        hasAttemptedSetup = true
+
+        let manifestURL = DictionaryStorageService.shared.manifestURL
+        guard !FileManager.default.fileExists(atPath: manifestURL.path) else {
+            debugLog("📱 Setup not needed: manifest.json exists")
+            return
+        }
+
+        debugLog("📱 First install detected: presenting Setup")
+
+        let setupVC = SetupViewController(mode: .firstInstall)
+        setupVC.modalPresentationStyle = .fullScreen
+        setupVC.isModalInPresentation = true
+
+        setupVC.onComplete = { [weak self] in
+            guard let self else { return }
+            // Reset search context first so the Combine pipeline's
+            // removeDuplicates() sees a change when we set the new group
+            // (old group and new group share the same id "all").
+            searchSession.setContext(.none)
+            applyInitialSelection()
+            debugLog("📱 Setup complete: dictionaries loaded")
+        }
+
+        present(setupVC, animated: true)
+    }
+
     // MARK: - Selection
-    
+
     func select(group: MDicts) {
         currentGroup = group
         currentDict = nil
