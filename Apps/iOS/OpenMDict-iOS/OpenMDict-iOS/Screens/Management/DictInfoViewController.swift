@@ -825,13 +825,9 @@ class DictInfoViewController: UIViewController {
             snapshot.appendSections([.displayName])
             snapshot.appendItems([.displayNameField(current: displayName)], toSection: .displayName)
             
-            // SECTION: Danger Zone (only for user-imported, not bundled)
-            let source = DictionaryService.shared.dictionarySources[dictId]
-            debugLog("📋 applyEditSnapshot: dictId=\(dictId.prefix(8))..., source=\(source.debugDescription)")
-            if source == .imported {
-                snapshot.appendSections([.dangerZone])
-                snapshot.appendItems([.deleteButton], toSection: .dangerZone)
-            }
+            // SECTION: Danger Zone (all dictionaries are deletable)
+            snapshot.appendSections([.dangerZone])
+            snapshot.appendItems([.deleteButton], toSection: .dangerZone)
             
         } else {
             // VIEWING MODE: Show read-only label, manage resources, and all metadata

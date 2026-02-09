@@ -57,9 +57,7 @@ public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Identity
     
-    /// Unique identifier
-    /// - For bundled: derived from filename (e.g., "MyDict")
-    /// - For imported: SHA256 hash of MDX header
+    /// Unique identifier (SHA256 hash of MDX header)
     public nonisolated let id: String
     
     /// File path to the MDX

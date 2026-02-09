@@ -487,6 +487,11 @@ final class DictionaryStorageService {
     func updateUserGroups(_ groups: [DictionaryManifest.UserGroup]) {
         manifest.groups.userGroups = groups
     }
+
+    /// Add a dictionary entry to the root manifest (used by PresetDictionaryService)
+    func addDictionaryEntry(_ entry: DictionaryManifest.DictionaryEntry) {
+        manifest.addDictionary(entry)
+    }
     
     // MARK: - Directory Management
     
@@ -738,14 +743,8 @@ final class DictionaryStorageService {
     
     // MARK: - Delete
     
-    /// Delete a user-imported dictionary
+    /// Delete a dictionary from Library/Dictionaries/
     func deleteDictionary(id: String) throws {
-        // Don't allow deleting bundled dictionaries
-        guard !DictionaryManifest.isBundledId(id) else {
-            print("⚠️ Cannot delete bundled dictionary: \(id)")
-            return
-        }
-        
         let dirURL = dictionaryDirectoryURL(id: id)
         
         if FileManager.default.fileExists(atPath: dirURL.path) {

@@ -17,14 +17,6 @@ import Foundation
 import Combine
 import OpenMDictKit
 
-// MARK: - Dictionary Source
-
-/// Indicates where a dictionary comes from
-enum DictionarySource {
-    case bundled    // From app bundle (read-only)
-    case imported   // User imported (in Library/Dictionaries/)
-}
-
 // MARK: - Search Context
 
 /// Current search context - group or single dictionary
@@ -71,12 +63,9 @@ final class DictionaryService: ObservableObject {
     
     // MARK: - State
     
-    /// All dictionary instances (bundled + imported)
+    /// All loaded dictionary instances
     @Published private(set) var allDictionaries: [MDict] = []
-    
-    /// Track which dictionaries are bundled vs imported
-    private(set) var dictionarySources: [String: DictionarySource] = [:]
-    
+
     /// All groups (including default + user-defined)
     @Published private(set) var groups: [MDicts] = []
     
@@ -112,75 +101,40 @@ final class DictionaryService: ObservableObject {
         allDictionaries.first { $0.id == id }
     }
     
-    /// Check if a dictionary is bundled (read-only)
-    func isBundled(_ dictId: String) -> Bool {
-        dictionarySources[dictId] == .bundled
-    }
-    
-    /// Check if a dictionary is imported (can be deleted)
-    func isImported(_ dictId: String) -> Bool {
-        dictionarySources[dictId] == .imported
-    }
-    
     /// Get the import date for a dictionary (from manifest)
     func importedDate(_ dictId: String) -> Date? {
         storage.manifest.dictionaries.first(where: { $0.id == dictId })?.importedAt
     }
     
-    /// Get all bundled dictionary IDs
-    var bundledDictionaryIds: [String] {
-        dictionarySources.filter { $0.value == .bundled }.map { $0.key }
-    }
-    
-    /// Get all imported dictionary IDs
-    var importedDictionaryIds: [String] {
-        dictionarySources.filter { $0.value == .imported }.map { $0.key }
-    }
-    
     // MARK: - Setup
     
-    /// Call from AppDelegate on launch
+    /// Call from AppDelegate on launch.
+    /// Loads Library manifest → user dictionaries → groups → background loading.
+    /// If manifest doesn't exist (fresh install), dictionaries will be empty until
+    /// SetupViewController imports preset dictionaries and calls `reloadAfterSetup()`.
     func setup() {
-        // 1. Load manifest (user dictionary metadata + group config)
+        // 1. Load manifest (dictionary metadata + group config)
         storage.loadManifest()
-        
-        // 2. Load bundled dictionaries
-        loadBundledDictionaries()
-        
-        // 3. Load user-imported dictionaries
+
+        // 2. Load dictionaries from Library/Dictionaries/
         loadUserDictionaries()
-        
-        // 4. Setup groups from manifest (or create defaults)
+
+        // 3. Setup groups from manifest (or create defaults)
         setupGroups()
-        
-        // 5. Background loading
+
+        // 4. Background loading
         Task {
             await loadAllMetadata()
             await loadAllDictionaries()
         }
     }
-    
-    // TODO: replace hardcoded dictionaries with a better system after resource management and group management is completed!
-    private func loadBundledDictionaries() {
-        let names = ["SampleDictF", "SampleDictA", "SampleDictE", "SampleDictB", "SampleDictC", "SampleDictD"]
-        let bundledDicts: [MDict] = names.compactMap { name in
-            guard let url = Bundle.main.url(
-                forResource: name,
-                withExtension: "mdx"
-            ) else {
-                print("⚠️ Dictionary not found in bundle: \(name).mdx")
-                return nil
-            }
-            return MDict(path: url.path)
-        }
-        
-        // Track as bundled
-        for dict in bundledDicts {
-            dictionarySources[dict.id] = .bundled
-        }
-        
-        allDictionaries.append(contentsOf: bundledDicts)
-        print("📚 Found \(bundledDicts.count) bundled dictionaries")
+
+    /// Called after SetupViewController finishes importing preset dictionaries.
+    /// Re-loads the manifest and all dictionaries from scratch.
+    func reloadAfterSetup() {
+        allDictionaries = []
+        groups = []
+        setup()
     }
     
     private func loadUserDictionaries() {
@@ -217,81 +171,56 @@ final class DictionaryService: ObservableObject {
             return dict
         }
         
-        // Track as imported
-        for dict in importedDicts {
-            dictionarySources[dict.id] = .imported
-        }
-        
         allDictionaries.append(contentsOf: importedDicts)
-        print("📚 Found \(importedDicts.count) user dictionaries")
+        print("📚 Found \(importedDicts.count) dictionaries in Library")
     }
     
     private func setupGroups() {
         let manifest = storage.manifest
-        
+
         // Create default group with all dictionaries
         // Use persisted order if available, otherwise all in current order
         let defaultOrder: [String]
         if !manifest.groups.defaultOrder.isEmpty {
             defaultOrder = manifest.groups.defaultOrder
         } else {
-            // First time: bundled first (with bundled: prefix), then imported
-            defaultOrder = bundledDictionaryIds.map { DictionaryManifest.bundledId(for: $0) }
-                         + importedDictionaryIds
+            // First time: use order from manifest dictionaries array
+            defaultOrder = allDictionaries.map { $0.id }
         }
-        
+
+        // Filter to only IDs that exist in allDictionaries
+        let validOrder = defaultOrder.filter { id in
+            allDictionaries.contains { $0.id == id }
+        }
+
         let allGroup = MDicts(
             id: "all",
             name: "All Dictionaries",
             isDefault: true,
-            dictionaryIds: resolveOrderToActualIds(defaultOrder)
+            dictionaryIds: validOrder
         )
         allGroup.populate(from: allDictionaries)
-        
+
         groups = [allGroup]
-        
+
         // Restore user groups from manifest
         for userGroup in manifest.groups.userGroups {
+            let validGroupOrder = userGroup.dictionaryIds.filter { id in
+                allDictionaries.contains { $0.id == id }
+            }
             let group = MDicts(
                 id: userGroup.id,
                 name: userGroup.name,
                 isDefault: false,
-                dictionaryIds: resolveOrderToActualIds(userGroup.dictionaryIds),
+                dictionaryIds: validGroupOrder,
                 createdAt: userGroup.createdAt,
                 modifiedAt: userGroup.modifiedAt
             )
             group.populate(from: allDictionaries)
             groups.append(group)
         }
-        
+
         print("📂 Setup \(groups.count) groups")
-    }
-    
-    /// Convert persisted IDs (with bundled: prefix) to actual MDict IDs
-    private func resolveOrderToActualIds(_ persistedIds: [String]) -> [String] {
-        persistedIds.compactMap { id in
-            if DictionaryManifest.isBundledId(id) {
-                // bundled:Thesaurus → Thesaurus (the actual MDict.id)
-                return DictionaryManifest.bundledFilename(from: id)
-            } else {
-                // UUID for imported dictionary
-                return id
-            }
-        }.filter { id in
-            // Only include IDs that exist in allDictionaries
-            allDictionaries.contains { $0.id == id }
-        }
-    }
-    
-    /// Convert actual MDict IDs to persisted format (with bundled: prefix)
-    private func actualIdsToPersistedOrder(_ actualIds: [String]) -> [String] {
-        actualIds.map { id in
-            if isBundled(id) {
-                return DictionaryManifest.bundledId(for: id)
-            } else {
-                return id
-            }
-        }
     }
     
     // MARK: - Loading
@@ -443,8 +372,7 @@ final class DictionaryService: ObservableObject {
             newDict.userDisplayName = entry.displayName
         }
         
-        // 2. Track as imported
-        dictionarySources[id] = .imported
+        // 2. Add to dictionary list
         allDictionaries.append(newDict)
         print("📚 allDictionaries count: \(allDictionaries.count)")
         
@@ -486,7 +414,6 @@ final class DictionaryService: ObservableObject {
     private func refreshAfterDelete(_ id: String) {
         // 1. Remove from allDictionaries
         allDictionaries.removeAll { $0.id == id }
-        dictionarySources.removeValue(forKey: id)
         
         // 2. Remove from all groups
         for group in groups {
@@ -502,11 +429,11 @@ final class DictionaryService: ObservableObject {
     
     /// Persist current group configuration to manifest
     func persistGroups() throws {
-        // Update default order
+        // Update default order (IDs are SHA256 hashes, no prefix conversion needed)
         if let defaultGroup = defaultGroup {
-            storage.updateDefaultOrder(actualIdsToPersistedOrder(defaultGroup.dictionaryIds))
+            storage.updateDefaultOrder(defaultGroup.dictionaryIds)
         }
-        
+
         // Update user groups
         let userGroupsData = groups
             .filter { !$0.isDefault }
@@ -516,11 +443,11 @@ final class DictionaryService: ObservableObject {
                     name: group.name,
                     createdAt: group.createdAt ?? Date(),
                     modifiedAt: group.modifiedAt ?? Date(),
-                    dictionaryIds: actualIdsToPersistedOrder(group.dictionaryIds)
+                    dictionaryIds: group.dictionaryIds
                 )
             }
         storage.updateUserGroups(userGroupsData)
-        
+
         try storage.saveManifest()
     }
     

@@ -155,7 +155,7 @@ extension DictionaryManifest {
     /// Configuration for dictionary groups
     public struct GroupsConfig: Codable {
         /// Ordered list of dictionary IDs for the default "All Dictionaries" group
-        /// Format: "bundled:{filename}" for bundled, SHA256 hash for imported
+        /// Format: SHA256 hash string
         public var defaultOrder: [String] = []
         
         /// User-created groups
@@ -200,30 +200,6 @@ extension DictionaryManifest {
             self.modifiedAt = modifiedAt
             self.dictionaryIds = dictionaryIds
         }
-    }
-}
-
-// MARK: - Dictionary ID Helpers
-
-extension DictionaryManifest {
-    
-    /// Prefix for bundled dictionary IDs
-    public static let bundledPrefix = "bundled:"
-    
-    /// Create ID for a bundled dictionary
-    public static func bundledId(for filename: String) -> String {
-        "\(bundledPrefix)\(filename)"
-    }
-    
-    /// Check if an ID refers to a bundled dictionary
-    public static func isBundledId(_ id: String) -> Bool {
-        id.hasPrefix(bundledPrefix)
-    }
-    
-    /// Extract filename from a bundled dictionary ID
-    public static func bundledFilename(from id: String) -> String? {
-        guard isBundledId(id) else { return nil }
-        return String(id.dropFirst(bundledPrefix.count))
     }
 }
 

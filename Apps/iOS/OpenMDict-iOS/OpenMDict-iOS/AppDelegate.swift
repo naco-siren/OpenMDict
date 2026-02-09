@@ -12,7 +12,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // Initialize dictionary service (loads bundled dictionaries)
+        // Initialize dictionary service (loads Library dictionaries)
         DictionaryService.shared.setup()
         return true
     }

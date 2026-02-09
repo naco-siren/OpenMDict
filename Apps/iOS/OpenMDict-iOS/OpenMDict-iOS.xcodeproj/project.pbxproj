@@ -7,32 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F835C4682F39975A00A22FB5 /* CEDICT-ZH-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C4672F39975A00A22FB5 /* CEDICT-ZH-EN.mdx */; };
+		F835C46A2F39977600A22FB5 /* WordNet-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C4692F39977600A22FB5 /* WordNet-EN.mdx */; };
+		F835C46C2F3997D000A22FB5 /* JMdict-JA-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */; };
+		F835C46E2F399C2200A22FB5 /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */; };
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
-		F8E12DB22F1D73FC00D8E524 /* SampleDictE.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DB12F1D73FC00D8E524 /* SampleDictE.mdx */; };
-		F8E12DB32F1D73FC00D8E524 /* SampleDictF.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DB02F1D73FC00D8E524 /* SampleDictF.mdx */; };
-		F8E12DB42F1D73FC00D8E524 /* SampleDictA.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DAF2F1D73FC00D8E524 /* SampleDictA.mdx */; };
-		F8E12DB82F1DF37500D8E524 /* SampleDictB.mdd in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DB52F1DF37500D8E524 /* SampleDictB.mdd */; };
-		F8E12DB92F1DF37500D8E524 /* SampleDictB.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DB62F1DF37500D8E524 /* SampleDictB.mdx */; };
-		F8E12DC52F1E002300D8E524 /* SampleDictC.mdd in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DC12F1E002300D8E524 /* SampleDictC.mdd */; };
-		F8E12DC72F1E002300D8E524 /* SampleDictC.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DC22F1E002300D8E524 /* SampleDictC.mdx */; };
-		F8E12DD02F1E09AD00D8E524 /* SampleDictD.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DCD2F1E09AD00D8E524 /* SampleDictD.mdx */; };
-		F8E12DD12F1E09AD00D8E524 /* SampleDictD.css in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DCA2F1E09AD00D8E524 /* SampleDictD.css */; };
-		F8E12DD22F1E09AD00D8E524 /* SampleDictD.mdd in Resources */ = {isa = PBXBuildFile; fileRef = F8E12DCC2F1E09AD00D8E524 /* SampleDictD.mdd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenMDict-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F8E12DAF2F1D73FC00D8E524 /* SampleDictA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = SampleDictA.mdx; path = "/path/to/open-mdict/dicts/SampleDictA.mdx"; sourceTree = "<absolute>"; };
-		F8E12DB02F1D73FC00D8E524 /* SampleDictF.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = SampleDictF.mdx; path = "/path/to/open-mdict/dicts/SampleDictF.mdx"; sourceTree = "<absolute>"; };
-		F8E12DB12F1D73FC00D8E524 /* SampleDictE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = SampleDictE.mdx; path = "/path/to/open-mdict/dicts/SampleDictE.mdx"; sourceTree = "<absolute>"; };
-		F8E12DB52F1DF37500D8E524 /* SampleDictB.mdd */ = {isa = PBXFileReference; lastKnownFileType = file; path = SampleDictB.mdd; sourceTree = "<group>"; };
-		F8E12DB62F1DF37500D8E524 /* SampleDictB.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = SampleDictB.mdx; sourceTree = "<group>"; };
-		F8E12DC12F1E002300D8E524 /* SampleDictC.mdd */ = {isa = PBXFileReference; lastKnownFileType = file; path = SampleDictC.mdd; sourceTree = "<group>"; };
-		F8E12DC22F1E002300D8E524 /* SampleDictC.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = SampleDictC.mdx; sourceTree = "<group>"; };
-		F8E12DCA2F1E09AD00D8E524 /* SampleDictD.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = SampleDictD.css; sourceTree = "<group>"; };
-		F8E12DCC2F1E09AD00D8E524 /* SampleDictD.mdd */ = {isa = PBXFileReference; lastKnownFileType = file; path = SampleDictD.mdd; sourceTree = "<group>"; };
-		F8E12DCD2F1E09AD00D8E524 /* SampleDictD.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = SampleDictD.mdx; sourceTree = "<group>"; };
+		F835C4672F39975A00A22FB5 /* CEDICT-ZH-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CEDICT-ZH-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx"; sourceTree = "<absolute>"; };
+		F835C4692F39977600A22FB5 /* WordNet-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WordNet-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WordNet-EN/WordNet-EN.mdx"; sourceTree = "<absolute>"; };
+		F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "JMdict-JA-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/JMdict-JA-EN/JMdict-JA-EN.mdx"; sourceTree = "<absolute>"; };
+		F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "preset-dictionaries.json"; path = "/path/to/open-mdict/bundled-dicts/preset-dictionaries.json"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -97,6 +85,7 @@
 		F8E12DAD2F1D73D100D8E524 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */,
 				F8E12DAE2F1D73D800D8E524 /* Dictionaries */,
 			);
 			path = Resources;
@@ -105,46 +94,12 @@
 		F8E12DAE2F1D73D800D8E524 /* Dictionaries */ = {
 			isa = PBXGroup;
 			children = (
-				F8E12DB02F1D73FC00D8E524 /* SampleDictF.mdx */,
-				F8E12DAF2F1D73FC00D8E524 /* SampleDictA.mdx */,
-				F8E12DB12F1D73FC00D8E524 /* SampleDictE.mdx */,
-				F8E12DB72F1DF37500D8E524 /* SampleDictB */,
-				F8E12DC42F1E002300D8E524 /* SampleDictC */,
-				F8E12DCE2F1E09AD00D8E524 /* SampleDictD */,
+				F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */,
+				F835C4692F39977600A22FB5 /* WordNet-EN.mdx */,
+				F835C4672F39975A00A22FB5 /* CEDICT-ZH-EN.mdx */,
 			);
 			path = Dictionaries;
 			sourceTree = "<group>";
-		};
-		F8E12DB72F1DF37500D8E524 /* SampleDictB */ = {
-			isa = PBXGroup;
-			children = (
-				F8E12DB52F1DF37500D8E524 /* SampleDictB.mdd */,
-				F8E12DB62F1DF37500D8E524 /* SampleDictB.mdx */,
-			);
-			name = SampleDictB;
-			path = "/path/to/open-mdict/dicts/SampleDictB";
-			sourceTree = "<absolute>";
-		};
-		F8E12DC42F1E002300D8E524 /* SampleDictC */ = {
-			isa = PBXGroup;
-			children = (
-				F8E12DC12F1E002300D8E524 /* SampleDictC.mdd */,
-				F8E12DC22F1E002300D8E524 /* SampleDictC.mdx */,
-			);
-			name = SampleDictC;
-			path = "/path/to/open-mdict/dicts/SampleDictC";
-			sourceTree = "<absolute>";
-		};
-		F8E12DCE2F1E09AD00D8E524 /* SampleDictD */ = {
-			isa = PBXGroup;
-			children = (
-				F8E12DCA2F1E09AD00D8E524 /* SampleDictD.css */,
-				F8E12DCC2F1E09AD00D8E524 /* SampleDictD.mdd */,
-				F8E12DCD2F1E09AD00D8E524 /* SampleDictD.mdx */,
-			);
-			name = SampleDictD;
-			path = "/path/to/open-mdict/dicts/SampleDictD";
-			sourceTree = "<absolute>";
 		};
 /* End PBXGroup section */
 
@@ -215,16 +170,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F8E12DB82F1DF37500D8E524 /* SampleDictB.mdd in Resources */,
-				F8E12DB92F1DF37500D8E524 /* SampleDictB.mdx in Resources */,
-				F8E12DD02F1E09AD00D8E524 /* SampleDictD.mdx in Resources */,
-				F8E12DD12F1E09AD00D8E524 /* SampleDictD.css in Resources */,
-				F8E12DD22F1E09AD00D8E524 /* SampleDictD.mdd in Resources */,
-				F8E12DB22F1D73FC00D8E524 /* SampleDictE.mdx in Resources */,
-				F8E12DC52F1E002300D8E524 /* SampleDictC.mdd in Resources */,
-				F8E12DC72F1E002300D8E524 /* SampleDictC.mdx in Resources */,
-				F8E12DB32F1D73FC00D8E524 /* SampleDictF.mdx in Resources */,
-				F8E12DB42F1D73FC00D8E524 /* SampleDictA.mdx in Resources */,
+				F835C46C2F3997D000A22FB5 /* JMdict-JA-EN.mdx in Resources */,
+				F835C4682F39975A00A22FB5 /* CEDICT-ZH-EN.mdx in Resources */,
+				F835C46E2F399C2200A22FB5 /* preset-dictionaries.json in Resources */,
+				F835C46A2F39977600A22FB5 /* WordNet-EN.mdx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
