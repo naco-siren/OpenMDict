@@ -394,7 +394,13 @@ class MainSplitViewController: UISplitViewController {
         debugLog("📱 First install detected: presenting Setup")
 
         let setupVC = SetupViewController(mode: .firstInstall)
-        setupVC.modalPresentationStyle = .fullScreen
+        // iPad (regular): formSheet card; iPhone (compact): fullScreen
+        if traitCollection.horizontalSizeClass == .regular {
+            setupVC.modalPresentationStyle = .formSheet
+            setupVC.preferredContentSize = CGSize(width: 540, height: 620)
+        } else {
+            setupVC.modalPresentationStyle = .fullScreen
+        }
         setupVC.isModalInPresentation = true
 
         setupVC.onComplete = { [weak self] in

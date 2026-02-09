@@ -44,6 +44,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
     private struct LanguageGroup {
         let langCode: String
         let langName: String
+        let targetLangName: String
         let flag: String
         let presets: [PresetDictionary]
     }
@@ -59,6 +60,25 @@ final class PresetDictionaryPickerViewController: UIViewController {
     }
 
     // MARK: - UI
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 22, weight: .bold)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let subtitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
 
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<PickerSection, PickerItem>!
@@ -98,7 +118,13 @@ final class PresetDictionaryPickerViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
 
-        title = mode == .firstInstall ? "Choose Dictionaries" : "Add Preset Dictionaries"
+        if mode == .firstInstall {
+            titleLabel.text = "Choose Dictionaries"
+            subtitleLabel.text = "Select dictionaries to install. You can change this later."
+        } else {
+            titleLabel.text = "Add Preset Dictionaries"
+            subtitleLabel.text = "Select dictionaries to add to your library."
+        }
 
         if mode == .management {
             navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -142,6 +168,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
             return LanguageGroup(
                 langCode: langCode,
                 langName: sorted[0].sourceLangName,
+                targetLangName: sorted[0].targetLangName,
                 flag: sorted[0].flag,
                 presets: sorted
             )
@@ -207,9 +234,18 @@ final class PresetDictionaryPickerViewController: UIViewController {
     // MARK: - Collection View Setup
 
     private func setupCollectionView() {
-        var config = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
-        config.headerMode = .supplementary
-        let layout = UICollectionViewCompositionalLayout.list(using: config)
+        var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
+        listConfig.headerMode = .supplementary
+
+        // Use section provider so we can set contentInsetsReference per-section.
+        // List sections don't inherit this from the layout configuration.
+        let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment in
+            var section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
+            section.contentInsetsReference = .readableContent
+            section.contentInsets.leading = 0
+            section.contentInsets.trailing = 0
+            return section
+        }
 
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -220,26 +256,38 @@ final class PresetDictionaryPickerViewController: UIViewController {
     }
 
     private func setupBottomBar() {
+        // Title header
+        view.addSubview(titleLabel)
+        view.addSubview(subtitleLabel)
         view.addSubview(bottomSeparator)
         view.addSubview(continueButton)
 
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
+            // Title header above the list
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
             // Separator
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
             bottomSeparator.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
 
-            // Button
-            continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 40),
-            continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+            // Button (constrained to readableContentGuide for iPad)
+            continueButton.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
+            continueButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             continueButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
 
-            // Collection view
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            // Collection view (below header, above separator)
+            collectionView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 8),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
@@ -267,7 +315,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
             else { return }
 
             var content = headerView.defaultContentConfiguration()
-            content.text = "\(group.flag) \(group.langName)"
+            content.text = "\(group.flag) \(group.langName) → \(group.targetLangName)"
             headerView.contentConfiguration = content
         }
 

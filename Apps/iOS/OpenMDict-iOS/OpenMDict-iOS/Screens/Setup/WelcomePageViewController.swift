@@ -3,8 +3,9 @@
 //  OpenMDict-iOS
 //
 //  Step 1 of the first-install onboarding flow.
-//  Explains what the app is, highlights differentiating features,
-//  and provides a "Get Started" button to proceed to dictionary selection.
+//  Apple TV-style two-zone layout:
+//    - Upper zone (white): title + scrollable feature rows
+//    - Lower zone (gray):  app icon + resource hint + "Get Started" CTA
 //
 
 import UIKit
@@ -15,7 +16,45 @@ final class WelcomePageViewController: UIViewController {
 
     var onGetStarted: (() -> Void)?
 
-    // MARK: - UI Elements
+    // MARK: - Feature Data
+
+    private struct Feature {
+        let symbolName: String
+        let title: String
+        let body: String
+    }
+
+    private let features: [Feature] = [
+        Feature(
+            symbolName: "rectangle.split.3x1",
+            title: "Three Article Layouts",
+            body: "View multiple definitions from different dictionaries at once."
+        ),
+        Feature(
+            symbolName: "macwindow.on.rectangle",
+            title: "Multi-Window on iPadOS",
+            body: "Native three-column layout with full multi-window support."
+        ),
+        Feature(
+            symbolName: "infinity",
+            title: "No Limits, Free Forever",
+            body: "Import unlimited dictionaries and create unlimited groups."
+        ),
+        Feature(
+            symbolName: "gift",
+            title: "Preset Dictionaries Included",
+            body: "We include some open-source dictionaries. For richer content, import your own .mdx files."
+        ),
+    ]
+
+    // MARK: - Upper Zone (white)
+
+    private let upperContainer: UIView = {
+        let v = UIView()
+        v.backgroundColor = .systemBackground
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
 
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
@@ -28,24 +67,14 @@ final class WelcomePageViewController: UIViewController {
         let stack = UIStackView()
         stack.axis = .vertical
         stack.alignment = .center
-        stack.spacing = 16
+        stack.spacing = 24
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
 
-    private let iconImageView: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 64, weight: .medium)
-        let image = UIImage(systemName: "book.closed.fill", withConfiguration: config)
-        let iv = UIImageView(image: image)
-        iv.tintColor = .systemBlue
-        iv.contentMode = .scaleAspectFit
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Welcome to OpenMDict"
+        label.text = "Welcome to\nOpenMDict"
         label.font = .systemFont(ofSize: 34, weight: .bold)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -53,22 +82,39 @@ final class WelcomePageViewController: UIViewController {
         return label
     }()
 
-    private let subtitleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "A free, open-source MDict (MDX) dictionary reader"
-        label.font = .preferredFont(forTextStyle: .title3)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.adjustsFontForContentSizeCategory = true
-        return label
+    // MARK: - Lower Zone (gray footer)
+
+    private let footerContainer: UIView = {
+        let v = UIView()
+        v.backgroundColor = .secondarySystemBackground
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
     }()
 
-    private let hintLabel: UILabel = {
+    private let footerStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private let footerIconView: UIImageView = {
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
+        let image = UIImage(systemName: "book.closed.fill", withConfiguration: config)
+        let iv = UIImageView(image: image)
+        iv.tintColor = .secondaryLabel
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let footerLabel: UILabel = {
         let label = UILabel()
-        label.text = "For user-contributed content and format specifications, search for open-source dictionary communities online."
-        label.font = .preferredFont(forTextStyle: .footnote)
-        label.textColor = .tertiaryLabel
+        label.text = "OpenMDict is an MDict (MDX) format dictionary reader. For user-contributed dictionaries and format specifications, search for open-source dictionary communities online."
+        label.font = .preferredFont(forTextStyle: .caption1)
+        label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
@@ -85,32 +131,6 @@ final class WelcomePageViewController: UIViewController {
         return button
     }()
 
-    // MARK: - Feature Data
-
-    private struct Feature {
-        let symbolName: String
-        let text: String
-    }
-
-    private let features: [Feature] = [
-        Feature(
-            symbolName: "rectangle.split.3x1",
-            text: "Three article layout modes — view multiple definitions from different dictionaries at once."
-        ),
-        Feature(
-            symbolName: "macwindow.on.rectangle",
-            text: "Multi-window support and native three-column layout on iPadOS."
-        ),
-        Feature(
-            symbolName: "infinity",
-            text: "No limits on imported dictionaries or user-created groups — everything is free, forever."
-        ),
-        Feature(
-            symbolName: "gift",
-            text: "We include some open-source dictionaries. For richer content, import your own .mdx files."
-        ),
-    ]
-
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -123,26 +143,42 @@ final class WelcomePageViewController: UIViewController {
     // MARK: - Layout
 
     private func setupLayout() {
-        view.addSubview(scrollView)
-        view.addSubview(getStartedButton)
-        scrollView.addSubview(contentStack)
+        view.addSubview(upperContainer)
+        view.addSubview(footerContainer)
 
-        // ScrollView fills the view, leaving room for the button at the bottom.
-        // Priority 999 on vertical chain to tolerate zero-height during child VC containment.
-        let svTop = scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
-        svTop.priority = .init(999)
-        let svBottom = scrollView.bottomAnchor.constraint(equalTo: getStartedButton.topAnchor, constant: -16)
-        svBottom.priority = .init(999)
+        // Two-zone split: upper takes remaining space, footer is intrinsic height
+        let upperBottom = upperContainer.bottomAnchor.constraint(equalTo: footerContainer.topAnchor)
+        upperBottom.priority = .init(999)
         NSLayoutConstraint.activate([
-            svTop, svBottom,
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            upperContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            upperContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            upperContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            upperBottom,
+
+            footerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            footerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            footerContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
-        // Content stack: centered within scroll view, max width for readability
-        // Use priority 999 on margin/sizing constraints to avoid conflicts when
-        // the container has zero width during child VC containment transitions.
-        let maxWidth: CGFloat = 500
+        setupUpperZone()
+        setupFooterZone()
+    }
+
+    private func setupUpperZone() {
+        upperContainer.addSubview(scrollView)
+        scrollView.addSubview(contentStack)
+
+        let svTop = scrollView.topAnchor.constraint(equalTo: upperContainer.safeAreaLayoutGuide.topAnchor)
+        svTop.priority = .init(999)
+        NSLayoutConstraint.activate([
+            svTop,
+            scrollView.leadingAnchor.constraint(equalTo: upperContainer.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: upperContainer.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: upperContainer.bottomAnchor),
+        ])
+
+        // Content stack: centered, max width for readability
+        let maxWidth: CGFloat = 420
         let centerX = contentStack.centerXAnchor.constraint(equalTo: scrollView.centerXAnchor)
         centerX.priority = .init(999)
         let leading = contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: scrollView.leadingAnchor, constant: 32)
@@ -150,86 +186,109 @@ final class WelcomePageViewController: UIViewController {
         let trailing = contentStack.trailingAnchor.constraint(lessThanOrEqualTo: scrollView.trailingAnchor, constant: -32)
         trailing.priority = .init(999)
         NSLayoutConstraint.activate([
-            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 40),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
+            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 32),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -16),
             centerX, leading, trailing,
             contentStack.widthAnchor.constraint(lessThanOrEqualToConstant: maxWidth),
         ])
 
-        // Icon (priority 999 to avoid conflict with zero-width container)
-        contentStack.addArrangedSubview(iconImageView)
-        let iconWidth = iconImageView.widthAnchor.constraint(equalToConstant: 80)
-        iconWidth.priority = .init(999)
-        let iconHeight = iconImageView.heightAnchor.constraint(equalToConstant: 80)
-        iconHeight.priority = .init(999)
-        NSLayoutConstraint.activate([iconHeight, iconWidth])
-
         // Title
         contentStack.addArrangedSubview(titleLabel)
-        contentStack.setCustomSpacing(8, after: titleLabel)
-
-        // Subtitle
-        contentStack.addArrangedSubview(subtitleLabel)
-        contentStack.setCustomSpacing(32, after: subtitleLabel)
+        contentStack.setCustomSpacing(28, after: titleLabel)
 
         // Feature rows
         let featuresStack = UIStackView()
         featuresStack.axis = .vertical
-        featuresStack.spacing = 20
+        featuresStack.spacing = 24
         featuresStack.alignment = .leading
         featuresStack.translatesAutoresizingMaskIntoConstraints = false
 
         for feature in features {
-            let row = makeFeatureRow(symbolName: feature.symbolName, text: feature.text)
+            let row = makeFeatureRow(symbolName: feature.symbolName, title: feature.title, body: feature.body)
             featuresStack.addArrangedSubview(row)
         }
 
         contentStack.addArrangedSubview(featuresStack)
         featuresStack.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
-        contentStack.setCustomSpacing(24, after: featuresStack)
-
-        // Hint
-        contentStack.addArrangedSubview(hintLabel)
-
-        // Get Started button pinned at bottom (priority 999 for zero-size tolerance)
-        let btnLeading = getStartedButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 40)
-        btnLeading.priority = .init(999)
-        let btnTrailing = getStartedButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40)
-        btnTrailing.priority = .init(999)
-        let btnBottom = getStartedButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
-        btnBottom.priority = .init(999)
-        let btnHeight = getStartedButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50)
-        btnHeight.priority = .init(999)
-        NSLayoutConstraint.activate([btnLeading, btnTrailing, btnBottom, btnHeight])
     }
 
-    private func makeFeatureRow(symbolName: String, text: String) -> UIView {
+    private func setupFooterZone() {
+        footerContainer.addSubview(footerStack)
+        footerContainer.addSubview(getStartedButton)
+
+        // Use fixed padding (not readableContentGuide) because formSheet is
+        // already appropriately sized — readableContentGuide would over-narrow.
+        let padding: CGFloat = 32
+        let footerStackTop = footerStack.topAnchor.constraint(equalTo: footerContainer.topAnchor, constant: 20)
+        footerStackTop.priority = .init(999)
+        let btnBottom = getStartedButton.bottomAnchor.constraint(equalTo: footerContainer.safeAreaLayoutGuide.bottomAnchor, constant: -16)
+        btnBottom.priority = .init(999)
+        let btnLeading = getStartedButton.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: padding)
+        btnLeading.priority = .init(999)
+        let btnTrailing = getStartedButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -padding)
+        btnTrailing.priority = .init(999)
+
+        NSLayoutConstraint.activate([
+            footerStackTop,
+            footerStack.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: padding),
+            footerStack.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -padding),
+            footerStack.bottomAnchor.constraint(equalTo: getStartedButton.topAnchor, constant: -16),
+
+            btnLeading, btnTrailing, btnBottom,
+            getStartedButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
+        ])
+
+        // Footer icon
+        footerStack.addArrangedSubview(footerIconView)
+        NSLayoutConstraint.activate([
+            footerIconView.widthAnchor.constraint(equalToConstant: 24),
+            footerIconView.heightAnchor.constraint(equalToConstant: 24),
+        ])
+
+        // Footer text
+        footerStack.addArrangedSubview(footerLabel)
+    }
+
+    private func makeFeatureRow(symbolName: String, title: String, body: String) -> UIView {
         let hStack = UIStackView()
         hStack.axis = .horizontal
         hStack.alignment = .top
         hStack.spacing = 16
 
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .medium)
+            .applying(UIImage.SymbolConfiguration(paletteColors: [.systemBlue]))
         let image = UIImage(systemName: symbolName, withConfiguration: config)
         let imageView = UIImageView(image: image)
-        imageView.tintColor = .systemBlue
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        let imgW = imageView.widthAnchor.constraint(equalToConstant: 32)
-        imgW.priority = .init(999)
-        let imgH = imageView.heightAnchor.constraint(equalToConstant: 32)
-        imgH.priority = .init(999)
-        NSLayoutConstraint.activate([imgW, imgH])
+        NSLayoutConstraint.activate([
+            imageView.widthAnchor.constraint(equalToConstant: 36),
+            imageView.heightAnchor.constraint(equalToConstant: 36),
+        ])
 
-        let label = UILabel()
-        label.text = text
-        label.font = .preferredFont(forTextStyle: .body)
-        label.textColor = .label
-        label.numberOfLines = 0
-        label.adjustsFontForContentSizeCategory = true
+        let textStack = UIStackView()
+        textStack.axis = .vertical
+        textStack.spacing = 2
+
+        let titleLbl = UILabel()
+        titleLbl.text = title
+        titleLbl.font = .preferredFont(forTextStyle: .headline)
+        titleLbl.textColor = .label
+        titleLbl.numberOfLines = 0
+        titleLbl.adjustsFontForContentSizeCategory = true
+
+        let bodyLbl = UILabel()
+        bodyLbl.text = body
+        bodyLbl.font = .preferredFont(forTextStyle: .subheadline)
+        bodyLbl.textColor = .secondaryLabel
+        bodyLbl.numberOfLines = 0
+        bodyLbl.adjustsFontForContentSizeCategory = true
+
+        textStack.addArrangedSubview(titleLbl)
+        textStack.addArrangedSubview(bodyLbl)
 
         hStack.addArrangedSubview(imageView)
-        hStack.addArrangedSubview(label)
+        hStack.addArrangedSubview(textStack)
 
         return hStack
     }

@@ -235,9 +235,17 @@ final class ImportProgressViewController: UIViewController {
     // MARK: - Collection View Setup
 
     private func setupCollectionView() {
-        var config = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
-        config.headerMode = .none
-        let layout = UICollectionViewCompositionalLayout.list(using: config)
+        var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
+        listConfig.headerMode = .none
+
+        // Use section provider to set contentInsetsReference per-section.
+        let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment in
+            var section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
+            section.contentInsetsReference = .readableContent
+            section.contentInsets.leading = 0
+            section.contentInsets.trailing = 0
+            return section
+        }
 
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -259,14 +267,14 @@ final class ImportProgressViewController: UIViewController {
             bottomSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
             bottomSeparator.bottomAnchor.constraint(equalTo: statusLabel.topAnchor, constant: -12),
 
-            // Status label
-            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            // Status label (constrained to readableContentGuide for iPad)
+            statusLabel.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
+            statusLabel.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             statusLabel.bottomAnchor.constraint(equalTo: doneButton.topAnchor, constant: -12),
 
-            // Done button
-            doneButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 40),
-            doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+            // Done button (constrained to readableContentGuide for iPad)
+            doneButton.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
+            doneButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             doneButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             doneButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
 
