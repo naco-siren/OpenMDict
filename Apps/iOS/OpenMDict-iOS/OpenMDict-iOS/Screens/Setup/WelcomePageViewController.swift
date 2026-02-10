@@ -26,24 +26,24 @@ final class WelcomePageViewController: UIViewController {
 
     private let features: [Feature] = [
         Feature(
-            symbolName: "rectangle.split.3x1",
-            title: "Three Article Layouts",
-            body: "View multiple definitions from different dictionaries at once."
+            symbolName: "text.and.command.macwindow",
+            title: "Three Article Layouts on iPadOS",
+            body: "View multiple definitions from different dictionaries in Columns, Grid or List, all at once."
         ),
         Feature(
             symbolName: "macwindow.on.rectangle",
             title: "Multi-Window on iPadOS",
-            body: "Native three-column layout with full multi-window support."
+            body: "Enjoy desktop-class productivity on iPadOS with multi-window and full keyboard support."
         ),
         Feature(
             symbolName: "infinity",
             title: "No Limits, Free Forever",
-            body: "Import unlimited dictionaries and create unlimited groups."
+            body: "Import unlimited dictionaries and create unlimited groups, without any subscriptions or paid memberships."
         ),
         Feature(
             symbolName: "gift",
             title: "Preset Dictionaries Included",
-            body: "We include some open-source dictionaries. For richer content, import your own .mdx files."
+            body: "We\u{2019}ve got you covered with a curated selection of open-source dictionaries, ready to use with minimum setup."
         ),
     ]
 
@@ -100,19 +100,9 @@ final class WelcomePageViewController: UIViewController {
         return stack
     }()
 
-    private let footerIconView: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        let image = UIImage(systemName: "book.closed.fill", withConfiguration: config)
-        let iv = UIImageView(image: image)
-        iv.tintColor = .secondaryLabel
-        iv.contentMode = .scaleAspectFit
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
     private let footerLabel: UILabel = {
         let label = UILabel()
-        label.text = "OpenMDict is an MDict (MDX) format dictionary reader. For user-contributed dictionaries and format specifications, search for open-source dictionary communities online."
+        label.text = "OpenMDict is an MDict (MDX) format dictionary reader. For richer content, you can import your own .mdx files \u{2014} refer to the thriving MDict ecosystem and its communities for resources and format specifications."
         label.font = .preferredFont(forTextStyle: .caption1)
         label.textColor = .secondaryLabel
         label.textAlignment = .center
@@ -243,14 +233,6 @@ final class WelcomePageViewController: UIViewController {
             btnLeading, btnTrailing, btnBottom,
             getStartedButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
         ])
-
-        // Footer icon
-        footerStack.addArrangedSubview(footerIconView)
-        let iconWidth = footerIconView.widthAnchor.constraint(equalToConstant: 24)
-        iconWidth.priority = .init(999)
-        let iconHeight = footerIconView.heightAnchor.constraint(equalToConstant: 24)
-        iconHeight.priority = .init(999)
-        NSLayoutConstraint.activate([iconWidth, iconHeight])
 
         // Footer text
         footerStack.addArrangedSubview(footerLabel)

@@ -59,6 +59,13 @@ final class SetupViewController: UIViewController {
         return PresetDictionaryPickerViewController(mode: pickerMode)
     }()
 
+    /// Wraps pickerVC in a UINavigationController for native nav bar support
+    private lazy var pickerNavVC: UINavigationController = {
+        let nav = UINavigationController(rootViewController: pickerVC)
+        nav.navigationBar.prefersLargeTitles = false
+        return nav
+    }()
+
     private lazy var progressVC = ImportProgressViewController()
 
     // MARK: - Container
@@ -171,7 +178,7 @@ final class SetupViewController: UIViewController {
     private func viewController(for step: Step) -> UIViewController {
         switch step {
         case .welcome:  return welcomeVC
-        case .picker:   return pickerVC
+        case .picker:   return pickerNavVC
         case .progress: return progressVC
         }
     }

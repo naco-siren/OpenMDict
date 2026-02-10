@@ -53,31 +53,15 @@ final class ImportProgressViewController: UIViewController {
 
     // MARK: - UI
 
-    private let titleIconView: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
-        let image = UIImage(systemName: "arrow.down.circle.fill", withConfiguration: config)
-        let iv = UIImageView(image: image)
-        iv.tintColor = .label
-        iv.contentMode = .scaleAspectFit
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "Setting Up Dictionaries"
-        label.font = .systemFont(ofSize: 22, weight: .bold)
+        // Match UINavigationBar standard title style
+        label.font = .systemFont(ofSize: 17, weight: .semibold)
+        label.textAlignment = .center
         label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
         return label
-    }()
-
-    private let titleStack: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
     }()
 
     private var collectionView: UICollectionView!
@@ -118,12 +102,8 @@ final class ImportProgressViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
 
-        // Assemble title stack (icon + label)
-        titleStack.addArrangedSubview(titleIconView)
-        titleStack.addArrangedSubview(titleLabel)
-
         setupCollectionView()
-        setupBottomBar()
+        setupLayout()
         configureDataSource()
 
         doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
@@ -299,18 +279,24 @@ final class ImportProgressViewController: UIViewController {
         view.addSubview(collectionView)
     }
 
-    private func setupBottomBar() {
-        view.addSubview(titleStack)
+    private func setupLayout() {
+        view.addSubview(titleLabel)
         view.addSubview(bottomSeparator)
         view.addSubview(statusLabel)
         view.addSubview(doneButton)
 
         NSLayoutConstraint.activate([
-            // Title header (centered, aligned with readableContentGuide)
-            titleStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            titleStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
-            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
+            // Title label (centered, matching nav bar position)
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
+
+            // Collection view (below title, above separator)
+            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
 
             // Separator
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -328,12 +314,6 @@ final class ImportProgressViewController: UIViewController {
             doneButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             doneButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             doneButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
-
-            // Collection view (below title header, above separator)
-            collectionView.topAnchor.constraint(equalTo: titleStack.bottomAnchor, constant: 8),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
         ])
     }
 
@@ -388,24 +368,22 @@ final class ImportProgressViewController: UIViewController {
         case .completed:
             content.secondaryText = preset.sizeFormatted
             content.secondaryTextProperties.color = .secondaryLabel
-            let checkImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
+            let checkImage = UIImageView(image: UIImage(systemName: "checkmark.diamond.fill"))
             checkImage.tintColor = .systemGreen
             accessories.append(.customView(configuration: .init(
                 customView: checkImage, placement: .trailing(displayed: .always)
             )))
 
         case .failed(let message):
-            content.secondaryText = message
+            // Error icon prefix in subtitle via NSAttributedString
+            let attachment = NSTextAttachment()
+            attachment.image = UIImage(systemName: "xmark.circle.fill")?.withTintColor(.systemRed, renderingMode: .alwaysOriginal)
+            let attrStr = NSMutableAttributedString(attachment: attachment)
+            attrStr.append(NSAttributedString(string: " \(message)"))
+            content.secondaryAttributedText = attrStr
             content.secondaryTextProperties.color = .systemRed
 
-            // Error icon
-            let errorImage = UIImageView(image: UIImage(systemName: "xmark.circle.fill"))
-            errorImage.tintColor = .systemRed
-            accessories.append(.customView(configuration: .init(
-                customView: errorImage, placement: .trailing(displayed: .always)
-            )))
-
-            // Retry icon (placed after error icon)
+            // Retry icon (trailing action)
             let retryImage = UIImageView(image: UIImage(systemName: "arrow.clockwise.circle"))
             retryImage.tintColor = .systemBlue
             accessories.append(.customView(configuration: .init(

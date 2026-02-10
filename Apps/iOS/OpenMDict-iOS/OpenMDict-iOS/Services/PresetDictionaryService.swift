@@ -17,18 +17,33 @@ import Foundation
 import CryptoKit
 import OpenMDictKit
 
+// MARK: - Direction Model
+
+/// A single lookup direction: headword language → definition language(s).
+/// Example: `{src: "ES", dest: ["EN"]}` means Spanish headwords with English definitions.
+struct Direction: Codable, Equatable {
+    let src: String
+    let dest: [String]
+}
+
 // MARK: - PresetDictionary Model
 
-/// A dictionary entry from preset-dictionaries.json
+/// A dictionary entry from preset-dictionaries.json (v3 schema).
+/// All preset dictionaries are modeled as unidirectional: one headword language (`direction.src`)
+/// with one or more definition languages (`direction.dest`).
+/// Bidirectional dictionaries (e.g., FreeDict) are split into separate entries.
 struct PresetDictionary: Codable, Identifiable {
     let id: String
     let filename: String
     let displayName: String
     let description: String
-    let sourceLang: String
-    let targetLang: String
-    let sourceLangName: String
-    let targetLangName: String
+
+    /// Lookup direction: headword language → definition language(s).
+    /// - Monolingual:    `{src: "EN", dest: ["EN"]}`
+    /// - Unidirectional: `{src: "ES", dest: ["EN"]}`
+    /// - Bilingual:      `{src: "EN", dest: ["EN", "ZH"]}` (future)
+    let direction: Direction
+
     let entries: Int
     let sizeBytes: Int64
     let license: String
@@ -39,6 +54,9 @@ struct PresetDictionary: Codable, Identifiable {
     /// 0 = core (bundled or top-priority ODR), 1 = secondary, 2 = alternative/comparison, etc.
     /// nil = unlisted/hidden.
     let tier: Int?
+
+    /// Flag emoji for the source (headword) language, for display purposes.
+    /// Stored explicitly because language codes ≠ country codes (e.g., LA → 🏛️, AR → 🇸🇦).
     let flag: String
 
     /// Where the .mdx file is stored before import
@@ -48,6 +66,23 @@ struct PresetDictionary: Codable, Identifiable {
         /// Apple CDN via On-Demand Resources
         case odr
     }
+
+    // MARK: - Computed: Language Analysis
+
+    /// Set of all language codes this dictionary covers (src ∪ dest)
+    var languages: Set<String> {
+        var langs = Set<String>()
+        langs.insert(direction.src)
+        langs.formUnion(direction.dest)
+        return langs
+    }
+
+    /// Whether this dictionary is monolingual (src == dest, e.g. EN → EN)
+    var isMonolingual: Bool {
+        direction.dest.count == 1 && direction.dest[0] == direction.src
+    }
+
+    // MARK: - Computed: Basic Properties
 
     /// Whether this dictionary is stored in the app bundle (not ODR)
     var isBundleAsset: Bool {
@@ -59,28 +94,58 @@ struct PresetDictionary: Codable, Identifiable {
         ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file)
     }
 
+    // MARK: - Language Display Helpers
+
+    /// Get a localized language name for an ISO 639-1 code using the device locale.
+    /// Falls back to the code itself if localization is unavailable.
+    static func localizedLanguageName(_ code: String) -> String {
+        Locale.current.localizedString(forLanguageCode: code.lowercased())?.localizedCapitalized ?? code
+    }
+
+    /// Flag emoji for a given language code.
+    /// Language codes are not country codes, so a manual mapping is required.
+    static func flagEmoji(for code: String) -> String {
+        switch code {
+        case "EN": return "🇬🇧"
+        case "ZH": return "🇨🇳"
+        case "JA": return "🇯🇵"
+        case "KO": return "🇰🇷"
+        case "ES": return "🇪🇸"
+        case "FR": return "🇫🇷"
+        case "DE": return "🇩🇪"
+        case "IT": return "🇮🇹"
+        case "PT": return "🇧🇷"
+        case "RU": return "🇷🇺"
+        case "AR": return "🇸🇦"
+        case "TR": return "🇹🇷"
+        case "EL": return "🇬🇷"
+        case "LA": return "🏛️"
+        default:   return "🏳️"
+        }
+    }
+
+    // MARK: - Language Pair Display
+
     /// Flexible language pair display string.
     /// - Parameters:
     ///   - abbreviated: `true` → "JA → EN", `false` → "Japanese → English"
     ///   - withEmoji: `true` → prepend/append flag emoji
     /// - Returns: Formatted language pair string
     func languagePair(abbreviated: Bool = true, withEmoji: Bool = false) -> String {
-        let src = abbreviated ? sourceLang : sourceLangName
-        let tgt = abbreviated ? targetLang : targetLangName
-
         // Monolingual dictionaries (e.g., WordNet EN → EN)
-        if sourceLang == targetLang {
-            return withEmoji ? "\(flag) \(src)" : src
+        if isMonolingual {
+            let name = abbreviated ? direction.src : Self.localizedLanguageName(direction.src)
+            return withEmoji ? "\(flag) \(name)" : name
         }
 
-        let arrow = "\u{2192}"  // →
-        let pair = "\(src) \(arrow) \(tgt)"
+        let srcName = abbreviated ? direction.src : Self.localizedLanguageName(direction.src)
+        let destNames = direction.dest.map { abbreviated ? $0 : Self.localizedLanguageName($0) }
+        let pair = "\(srcName) \u{2192} \(destNames.joined(separator: ", "))"
 
         guard withEmoji else { return pair }
 
-        // Target is always EN for now; use a sensible default flag
-        let targetFlag = targetLang == "EN" ? "🇬🇧" : ""
-        return "\(flag) \(pair) \(targetFlag)".trimmingCharacters(in: .whitespaces)
+        let destFlags = direction.dest.map { Self.flagEmoji(for: $0) }.joined(separator: " ")
+        return "\(flag) \(pair) \(destFlags)".trimmingCharacters(in: .whitespaces)
     }
 }
 
@@ -249,9 +314,9 @@ final class PresetDictionaryService {
         catalog.filter { $0.tier == tier }
     }
 
-    /// Get preset dictionaries matching a source language code
-    func presets(sourceLang: String) -> [PresetDictionary] {
-        catalog.filter { $0.sourceLang == sourceLang }
+    /// Get preset dictionaries with a given headword (source) language
+    func presets(src: String) -> [PresetDictionary] {
+        catalog.filter { $0.direction.src == src }
     }
 
     // MARK: - Import from Bundle

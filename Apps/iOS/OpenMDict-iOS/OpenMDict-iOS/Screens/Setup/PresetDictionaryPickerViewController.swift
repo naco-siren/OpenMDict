@@ -38,15 +38,12 @@ final class PresetDictionaryPickerViewController: UIViewController {
     /// Selected preset IDs
     private var selectedIds: Set<String> = []
 
-    /// Catalog grouped by source language, sorted for display
+    /// Catalog grouped by direction.src, sorted for display
     private var languageGroups: [LanguageGroup] = []
 
     private struct LanguageGroup {
-        let langCode: String
-        let langName: String
-        let targetLangCode: String
-        let targetLangName: String
-        let flag: String
+        let langCode: String       // direction.src code (e.g. "DE")
+        let flag: String           // source language flag emoji
         let presets: [PresetDictionary]
     }
 
@@ -61,32 +58,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
     }
 
     // MARK: - UI
-
-    private let titleIconView: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
-        let image = UIImage(systemName: "checklist", withConfiguration: config)
-        let iv = UIImageView(image: image)
-        iv.tintColor = .label
-        iv.contentMode = .scaleAspectFit
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 22, weight: .bold)
-        label.numberOfLines = 0
-        return label
-    }()
-
-    private let titleStack: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
@@ -136,33 +107,41 @@ final class PresetDictionaryPickerViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
 
-        // Assemble title stack (icon + label)
-        titleStack.addArrangedSubview(titleIconView)
-        titleStack.addArrangedSubview(titleLabel)
-
+        // Navigation bar title
         if mode == .firstInstall {
-            titleLabel.text = "Choose Dictionaries"
+            title = "Choose Dictionaries"
             subtitleLabel.text = "Select dictionaries to install. You can change this later."
         } else {
-            titleLabel.text = "Add Preset Dictionaries"
+            title = "Add Preset Dictionaries"
             subtitleLabel.text = "Select dictionaries to add to your library."
         }
 
+        // Navigation bar items
+        // Left: close button (management mode only — firstInstall is non-dismissible)
         if mode == .management {
             navigationItem.leftBarButtonItem = UIBarButtonItem(
-                barButtonSystemItem: .cancel,
+                barButtonSystemItem: .close,
                 target: self,
                 action: #selector(cancelTapped)
             )
         }
 
+        // Right: Select All / Deselect All
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Select All",
+            style: .plain,
+            target: self,
+            action: #selector(selectAllTapped)
+        )
+
         loadCatalogData()
         computePreSelection()
         setupCollectionView()
-        setupBottomBar()
+        setupLayout()
         configureDataSource()
         applySnapshot()
         updateContinueButton()
+        updateSelectAllButton()
     }
 
     // MARK: - Catalog Data
@@ -176,9 +155,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
         }
         service.refreshImportStatus()
 
-        // Group visible presets (tier != nil) by sourceLang
+        // Group visible presets (tier != nil) by direction.src
         let visible = service.catalog.filter { $0.tier != nil }
-        let grouped = Dictionary(grouping: visible) { $0.sourceLang }
+        let grouped = Dictionary(grouping: visible) { $0.direction.src }
 
         let preferredLangs = Self.preferredLanguageCodes()
 
@@ -191,11 +170,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
                 // 3. Alphabetical
                 return a.displayName < b.displayName
             }
+
             return LanguageGroup(
                 langCode: langCode,
-                langName: sorted[0].sourceLangName,
-                targetLangCode: sorted[0].targetLang,
-                targetLangName: sorted[0].targetLangName,
                 flag: sorted[0].flag,
                 presets: sorted
             )
@@ -206,7 +183,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
             if aPreferred != bPreferred { return aPreferred }
             if a.langCode == "EN" { return true }
             if b.langCode == "EN" { return false }
-            return a.langName < b.langName
+            let aName = PresetDictionary.localizedLanguageName(a.langCode)
+            let bName = PresetDictionary.localizedLanguageName(b.langCode)
+            return aName < bName
         }
     }
 
@@ -229,17 +208,17 @@ final class PresetDictionaryPickerViewController: UIViewController {
                     continue
                 }
 
-                // Pre-select tier 0 for preferred languages
-                if preset.tier == 0 && preferredLangs.contains(preset.sourceLang) {
+                // Pre-select tier 0 if src or any dest language matches user's preferred languages
+                if preset.tier == 0 && !preset.languages.isDisjoint(with: preferredLangs) {
                     selectedIds.insert(preset.id)
                 }
             }
         }
 
-        // EN tier 0 always pre-selected on first install
+        // EN src tier 0 always pre-selected on first install
         if mode == .firstInstall {
             for preset in PresetDictionaryService.shared.catalog
-                where preset.sourceLang == "EN" && preset.tier == 0 {
+                where preset.direction.src == "EN" && preset.tier == 0 {
                 selectedIds.insert(preset.id)
             }
         }
@@ -282,9 +261,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
         view.addSubview(collectionView)
     }
 
-    private func setupBottomBar() {
-        // Title header (icon + label stack)
-        view.addSubview(titleStack)
+    private func setupLayout() {
         view.addSubview(subtitleLabel)
         view.addSubview(bottomSeparator)
         view.addSubview(continueButton)
@@ -292,15 +269,16 @@ final class PresetDictionaryPickerViewController: UIViewController {
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Title header above the list (centered, aligned with readableContentGuide)
-            titleStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            titleStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
-            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleStack.bottomAnchor, constant: 6),
+            // Subtitle below the navigation bar
+            subtitleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             subtitleLabel.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
             subtitleLabel.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
+
+            // Collection view (below subtitle, above separator)
+            collectionView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 8),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
 
             // Separator
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -308,17 +286,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
             bottomSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
             bottomSeparator.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
 
-            // Button (constrained to readableContentGuide for iPad)
+            // Continue button (constrained to readableContentGuide for iPad)
             continueButton.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
             continueButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             continueButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
-
-            // Collection view (below header, above separator)
-            collectionView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 8),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
         ])
     }
 
@@ -343,8 +315,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
             else { return }
 
             var content = headerView.defaultContentConfiguration()
-            let targetFlag = Self.flagEmoji(for: group.targetLangCode)
-            content.text = "\(group.flag) \(group.langName) → \(group.targetLangName) \(targetFlag)"
+            content.text = Self.sectionHeaderText(for: group)
             headerView.contentConfiguration = content
         }
 
@@ -371,10 +342,14 @@ final class PresetDictionaryPickerViewController: UIViewController {
         var content = UIListContentConfiguration.subtitleCell()
         content.text = "\(preset.flag) \(preset.displayName)"
 
-        let langPair = preset.languagePair(abbreviated: true)
         let entriesStr = Self.formatNumber(preset.entries)
         let size = preset.sizeFormatted
-        content.secondaryText = "\(langPair) \u{00B7} \(entriesStr) entries \u{00B7} \(size)"
+        let defLangs = preset.direction.dest.map { code in
+            let f = PresetDictionary.flagEmoji(for: code)
+            let name = PresetDictionary.localizedLanguageName(code)
+            return "\(f) \(name)"
+        }.joined(separator: ", ")
+        content.secondaryText = "\(defLangs) \u{00B7} \(entriesStr) entries \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
         // Dim tier 2+ alternatives OR already-imported items in management mode
@@ -391,20 +366,21 @@ final class PresetDictionaryPickerViewController: UIViewController {
         // Accessories
         var accessories: [UICellAccessory] = []
 
-        if isLocked {
+        if isImported && mode == .management {
+            // Already imported — no leading checkbox (ambiguous in this context).
+            // Diamond checkmark as trailing status indicator (distinct from circle checkboxes).
+            let checkImage = UIImageView(image: UIImage(systemName: "checkmark.diamond.fill"))
+            checkImage.tintColor = .systemGreen
+            accessories.append(.customView(configuration: .init(
+                customView: checkImage, placement: .trailing(displayed: .always)
+            )))
+
+        } else if isLocked {
             // Checkmark icon (leading) — pre-checked and cannot be unchecked
             let lockImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
             lockImage.tintColor = .systemGray
             accessories.append(.customView(configuration: .init(
                 customView: lockImage, placement: .leading(displayed: .always)
-            )))
-
-        } else if isImported && mode == .management {
-            // Green checkmark (leading) — already imported, cell is non-interactive
-            let checkImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-            checkImage.tintColor = .systemGreen
-            accessories.append(.customView(configuration: .init(
-                customView: checkImage, placement: .leading(displayed: .always)
             )))
 
         } else {
@@ -455,39 +431,56 @@ final class PresetDictionaryPickerViewController: UIViewController {
         onCancel?()
     }
 
+    @objc private func selectAllTapped() {
+        let selectableIds = allSelectableIds()
+        let allSelected = !selectableIds.isEmpty && selectableIds.isSubset(of: selectedIds)
+
+        if allSelected {
+            selectedIds.subtract(selectableIds)
+        } else {
+            selectedIds.formUnion(selectableIds)
+        }
+
+        // Reconfigure all visible cells
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
+
+        updateContinueButton()
+        updateSelectAllButton()
+    }
+
+    // MARK: - Select All State
+
+    private func allSelectableIds() -> Set<String> {
+        let service = PresetDictionaryService.shared
+        var ids = Set<String>()
+        for group in languageGroups {
+            for preset in group.presets {
+                if mode == .firstInstall && preset.isBundleAsset { continue }
+                if mode == .management && service.isImported(preset.id) { continue }
+                ids.insert(preset.id)
+            }
+        }
+        return ids
+    }
+
+    private func updateSelectAllButton() {
+        let selectableIds = allSelectableIds()
+        let allSelected = !selectableIds.isEmpty && selectableIds.isSubset(of: selectedIds)
+        navigationItem.rightBarButtonItem?.title = allSelected ? "Deselect All" : "Select All"
+    }
+
     // MARK: - Helpers
 
     private func findPreset(id: String) -> PresetDictionary? {
         PresetDictionaryService.shared.catalog.first { $0.id == id }
     }
 
-    private func makeBadgeLabel(_ text: String, color: UIColor) -> UILabel {
-        let label = UILabel()
-        label.text = text
-        label.font = .preferredFont(forTextStyle: .caption1)
-        label.textColor = color
-        return label
-    }
-
-    /// Map a language code to its flag emoji
-    private static func flagEmoji(for langCode: String) -> String {
-        switch langCode {
-        case "EN": return "🇬🇧"
-        case "ZH": return "🇨🇳"
-        case "JA": return "🇯🇵"
-        case "KO": return "🇰🇷"
-        case "ES": return "🇪🇸"
-        case "FR": return "🇫🇷"
-        case "DE": return "🇩🇪"
-        case "IT": return "🇮🇹"
-        case "PT": return "🇵🇹"
-        case "RU": return "🇷🇺"
-        case "AR": return "🇸🇦"
-        case "TR": return "🇹🇷"
-        case "EL": return "🇬🇷"
-        case "LA": return "🏛️"
-        default:   return ""
-        }
+    /// Build section header text: just "🇬🇧 English" (localized via Locale API)
+    private static func sectionHeaderText(for group: LanguageGroup) -> String {
+        let langName = PresetDictionary.localizedLanguageName(group.langCode)
+        return "\(group.flag) \(langName)"
     }
 
     private static func formatNumber(_ n: Int) -> String {
@@ -527,6 +520,7 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
         dataSource.apply(snapshot, animatingDifferences: false)
 
         updateContinueButton()
+        updateSelectAllButton()
     }
 
     func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
