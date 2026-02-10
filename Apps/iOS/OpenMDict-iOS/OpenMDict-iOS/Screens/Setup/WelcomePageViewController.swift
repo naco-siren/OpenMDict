@@ -74,7 +74,7 @@ final class WelcomePageViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Welcome to\nOpenMDict"
+        label.text = "Welcome to OpenMDict"
         label.font = .systemFont(ofSize: 34, weight: .bold)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -228,10 +228,16 @@ final class WelcomePageViewController: UIViewController {
         let btnTrailing = getStartedButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -padding)
         btnTrailing.priority = .init(999)
 
+        // Lower priority on horizontal constraints to tolerate zero-width
+        // during child VC containment transitions (UIView-Encapsulated-Layout-Width == 0)
+        let fsLeading = footerStack.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: padding)
+        fsLeading.priority = .init(999)
+        let fsTrailing = footerStack.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -padding)
+        fsTrailing.priority = .init(999)
+
         NSLayoutConstraint.activate([
             footerStackTop,
-            footerStack.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: padding),
-            footerStack.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -padding),
+            fsLeading, fsTrailing,
             footerStack.bottomAnchor.constraint(equalTo: getStartedButton.topAnchor, constant: -16),
 
             btnLeading, btnTrailing, btnBottom,
@@ -240,10 +246,11 @@ final class WelcomePageViewController: UIViewController {
 
         // Footer icon
         footerStack.addArrangedSubview(footerIconView)
-        NSLayoutConstraint.activate([
-            footerIconView.widthAnchor.constraint(equalToConstant: 24),
-            footerIconView.heightAnchor.constraint(equalToConstant: 24),
-        ])
+        let iconWidth = footerIconView.widthAnchor.constraint(equalToConstant: 24)
+        iconWidth.priority = .init(999)
+        let iconHeight = footerIconView.heightAnchor.constraint(equalToConstant: 24)
+        iconHeight.priority = .init(999)
+        NSLayoutConstraint.activate([iconWidth, iconHeight])
 
         // Footer text
         footerStack.addArrangedSubview(footerLabel)

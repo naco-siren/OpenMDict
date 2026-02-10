@@ -184,6 +184,10 @@ class MainSplitViewController: UISplitViewController {
         dictionaryListVC.onAddGroupSelected = { [weak self] in
             self?.enterManagementMode(for: .createGroup)
         }
+
+        dictionaryListVC.onManagePresetsSelected = { [weak self] in
+            self?.presentPresetManager()
+        }
         
         wordListVC.onWordSelected = { [weak self] word in
             self?.select(word: word)
@@ -411,6 +415,33 @@ class MainSplitViewController: UISplitViewController {
             searchSession.setContext(.none)
             applyInitialSelection()
             debugLog("📱 Setup complete: dictionaries loaded")
+        }
+
+        present(setupVC, animated: true)
+    }
+
+    // MARK: - Preset Dictionary Management
+
+    /// Present the preset dictionary management flow as a modal.
+    /// Reuses SetupViewController in .management mode (picker → progress).
+    private func presentPresetManager() {
+        let setupVC = SetupViewController(mode: .management)
+
+        if traitCollection.horizontalSizeClass == .regular {
+            setupVC.modalPresentationStyle = .formSheet
+            setupVC.preferredContentSize = CGSize(width: 540, height: 620)
+        } else {
+            setupVC.modalPresentationStyle = .pageSheet
+        }
+
+        setupVC.onComplete = { [weak self] in
+            guard let self else { return }
+            // Refresh sidebar to show newly imported dictionaries
+            dictionaryListVC.reloadData()
+            // Reload search context so newly imported dicts appear in word list
+            searchSession.setContext(.none)
+            applyInitialSelection()
+            debugLog("📚 Preset management complete: dictionaries refreshed")
         }
 
         present(setupVC, animated: true)

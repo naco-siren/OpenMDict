@@ -349,9 +349,10 @@ final class DictionaryService: ObservableObject {
     
     // MARK: - Internal Refresh (called by methods above)
     
-    /// Called after importing a new dictionary
-    /// - Parameter id: The new dictionary's ID
-    private func refreshAfterImport(_ id: String) async {
+    /// Load a newly imported dictionary into memory and add it to groups.
+    /// Called after importing a new dictionary (either from ImportSession or PresetDictionaryService).
+    /// - Parameter id: The new dictionary's ID (SHA256 hash)
+    func refreshAfterImport(_ id: String) async {
         print("🔄 refreshAfterImport: \(id.prefix(16))...")
 
         // Safety check: don't add if already exists

@@ -377,8 +377,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
         content.secondaryText = "\(langPair) \u{00B7} \(entriesStr) entries \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
-        // Dim tier 2+ alternatives
-        if let tier = preset.tier, tier >= 2 {
+        // Dim tier 2+ alternatives OR already-imported items in management mode
+        if (isImported && mode == .management) {
+            content.textProperties.color = .secondaryLabel
+            content.secondaryTextProperties.color = .tertiaryLabel
+        } else if let tier = preset.tier, tier >= 2 {
             content.textProperties.color = .secondaryLabel
             content.secondaryTextProperties.color = .tertiaryLabel
         }
@@ -397,10 +400,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
             )))
 
         } else if isImported && mode == .management {
-            // "Imported" badge (trailing) — already in Library
-            let badge = makeBadgeLabel("Imported", color: .secondaryLabel)
+            // Green checkmark (leading) — already imported, cell is non-interactive
+            let checkImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
+            checkImage.tintColor = .systemGreen
             accessories.append(.customView(configuration: .init(
-                customView: badge, placement: .trailing(displayed: .always)
+                customView: checkImage, placement: .leading(displayed: .always)
             )))
 
         } else {
@@ -435,7 +439,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private func updateContinueButton() {
         let count = selectedIds.count
-        let title = count > 0 ? "Confirm Selection (\(count))" : "Confirm Selection"
+        let title = count > 0 ? "Confirm Selection (\(count) items)" : "Confirm Selection"
         continueButton.configuration?.title = title
         continueButton.isEnabled = count > 0
     }

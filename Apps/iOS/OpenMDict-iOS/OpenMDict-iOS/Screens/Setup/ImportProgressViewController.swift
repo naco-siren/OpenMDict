@@ -197,6 +197,10 @@ final class ImportProgressViewController: UIViewController {
                     }
                 }
                 importStates[preset.id] = .completed
+                // Piggyback loading into RAM
+                Task {
+                    await DictionaryService.shared.refreshAfterImport(dictId)
+                }
                 print("✅ Retry succeeded: \(preset.displayName) → \(dictId.prefix(16))...")
             } catch {
                 importStates[preset.id] = .failed(message: error.localizedDescription)
@@ -214,8 +218,18 @@ final class ImportProgressViewController: UIViewController {
     private func handleResult(_ result: PresetImportResult) {
         if result.isSuccess {
             importStates[result.presetId] = .completed
+
+            // Piggyback: immediately start loading this dictionary into RAM
+            // while other imports continue. By the time user taps "Done",
+            // all successfully imported dicts are already loaded and searchable.
+            if let dictId = result.libraryId {
+                Task {
+                    await DictionaryService.shared.refreshAfterImport(dictId)
+                    print("📖 Piggybacked load complete: \(dictId.prefix(16))...")
+                }
+            }
         } else {
-            let message = result.error?.localizedDescription ?? "Unknown error"
+            let message = result.errorMessage ?? "Unknown error"
             importStates[result.presetId] = .failed(message: message)
         }
         reconfigureItem(result.presetId)

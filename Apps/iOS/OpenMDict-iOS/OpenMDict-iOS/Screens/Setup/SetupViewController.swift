@@ -179,13 +179,11 @@ final class SetupViewController: UIViewController {
     // MARK: - Completion
 
     private func completeSetup() {
-        // Reload DictionaryService from disk (PresetDictionaryService only wrote to Storage)
-        // Must await full loading so dictionaries are ready for search immediately after dismiss.
-        Task {
-            await DictionaryService.shared.reloadAfterSetup()
-            dismiss(animated: true) { [weak self] in
-                self?.onComplete?()
-            }
+        // Dictionaries are already loaded into DictionaryService.shared by the
+        // piggybacked refreshAfterImport() calls in ImportProgressViewController.
+        // Just dismiss and let the caller refresh its UI.
+        dismiss(animated: true) { [weak self] in
+            self?.onComplete?()
         }
     }
 }

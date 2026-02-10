@@ -26,6 +26,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onDictionaryInfoSelected: ((String) -> Void)?  // dictId
     var onGroupInfoSelected: ((String) -> Void)?       // groupId
     var onAddGroupSelected: (() -> Void)?
+    var onManagePresetsSelected: (() -> Void)?
     
     // MARK: - SidebarStateProvider
     
@@ -353,7 +354,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .importDictionary, .addGroup, .settings:
+            case .importDictionary, .addGroup, .managePresets, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -413,7 +414,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let mgmtHeader = SidebarItem.header("Management", isBold: false)
         mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.settings], to: mgmtHeader)
+        mgmtSnapshot.append([.managePresets, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
         dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
     }
@@ -493,6 +494,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Add new group is visible in edit mode or when no user groups, always selectable
             return true
             
+        case .managePresets:
+            // Management actions are disabled in edit mode
+            return !isEditing
+
         case .settings:
             // Management actions (except importDictionary) are disabled in edit mode
             return !isEditing
@@ -572,6 +577,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Notify delegate to create and manage new group
             onAddGroupSelected?()
             
+        case .managePresets:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onManagePresetsSelected?()
+
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)
             print("⚙️ App Settings - TODO")

@@ -504,6 +504,9 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .addGroup:
             content.text = "Add New Group"
             content.image = UIImage(systemName: "folder.badge.plus")
+        case .managePresets:
+            content.text = "Preset Dictionaries"
+            content.image = UIImage(systemName: "books.vertical")
         case .settings:
             content.text = "App Settings"
             content.image = UIImage(systemName: "gearshape")

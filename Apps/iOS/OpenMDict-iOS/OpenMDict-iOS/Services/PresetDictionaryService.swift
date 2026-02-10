@@ -152,10 +152,10 @@ enum PresetImportError: LocalizedError {
 // MARK: - Import Result
 
 /// Result of a single preset dictionary import
-struct PresetImportResult {
+struct PresetImportResult: Sendable {
     let presetId: String
     let libraryId: String?  // SHA256 hash (nil if failed)
-    let error: Error?
+    let errorMessage: String?
 
     var isSuccess: Bool { libraryId != nil }
 }
@@ -349,35 +349,38 @@ final class PresetDictionaryService {
 
     // MARK: - Batch Import
 
-    /// Import multiple preset dictionaries.
-    /// Bundle assets are imported first (fast), then ODR downloads.
+    /// Import multiple preset dictionaries with maximum concurrency.
+    ///
+    /// All imports (bundle + ODR) run concurrently. Bundle assets are instant
+    /// disk copies; ODR assets download from Apple CDN in parallel.
+    /// Each completed import immediately triggers `onComplete` so the caller
+    /// can piggyback dictionary loading into RAM while other imports continue.
     ///
     /// - Parameters:
     ///   - presets: List of preset dictionaries to import
     ///   - onProgress: Progress callback (presetId, progress 0.0–1.0)
-    ///   - onComplete: Called when each individual import finishes
-    /// - Returns: Array of import results
+    ///   - onComplete: Called when each individual import finishes (may be called concurrently)
+    /// - Returns: Array of import results (order matches completion order, not input order)
     func importBatch(
         _ presets: [PresetDictionary],
         onProgress: @escaping @Sendable (String, Double) -> Void,
-        onComplete: @escaping (PresetImportResult) -> Void
+        onComplete: @escaping @Sendable (PresetImportResult) -> Void
     ) async -> [PresetImportResult] {
+
         var results: [PresetImportResult] = []
 
-        // Sort: bundle assets first (instant), then ODR (requires download)
-        let sorted = presets.sorted { a, b in
-            if a.isBundleAsset && !b.isBundleAsset { return true }
-            if !a.isBundleAsset && b.isBundleAsset { return false }
-            return a.sizeBytes < b.sizeBytes // smaller first within same source
-        }
+        // Launch all imports concurrently as independent Tasks.
+        // Each Task runs on @MainActor (inheriting from this @MainActor class).
+        // Suspension points (SHA256, ODR download) allow true concurrency.
+        var tasks: [(PresetDictionary, Task<PresetImportResult, Never>)] = []
 
-        for preset in sorted {
+        for preset in presets {
             // Skip if already imported
             if isImported(preset.id) {
                 let result = PresetImportResult(
                     presetId: preset.id,
                     libraryId: nil,
-                    error: PresetImportError.alreadyImported(presetId: preset.id)
+                    errorMessage: PresetImportError.alreadyImported(presetId: preset.id).localizedDescription
                 )
                 results.append(result)
                 onComplete(result)
@@ -386,31 +389,39 @@ final class PresetDictionaryService {
 
             importStatus[preset.id] = .importing(progress: 0)
 
-            do {
-                let dictId: String
-                if preset.isBundleAsset {
-                    dictId = try await importFromBundle(preset)
-                } else {
-                    dictId = try await importFromODR(preset) { progress in
-                        onProgress(preset.id, progress)
+            let task = Task { @MainActor [self] () -> PresetImportResult in
+                do {
+                    let dictId: String
+                    if preset.isBundleAsset {
+                        dictId = try await importFromBundle(preset)
+                    } else {
+                        dictId = try await importFromODR(preset) { progress in
+                            onProgress(preset.id, progress)
+                        }
                     }
+
+                    importStatus[preset.id] = .imported(libraryId: dictId)
+                    let result = PresetImportResult(presetId: preset.id, libraryId: dictId, errorMessage: nil)
+                    onComplete(result)
+                    print("✅ Imported preset: \(preset.displayName) → \(dictId.prefix(16))...")
+                    return result
+
+                } catch {
+                    importStatus[preset.id] = .failed(error: error)
+                    let result = PresetImportResult(presetId: preset.id, libraryId: nil, errorMessage: error.localizedDescription)
+                    onComplete(result)
+                    print("❌ Failed to import preset \(preset.displayName): \(error.localizedDescription)")
+                    return result
                 }
-
-                importStatus[preset.id] = .imported(libraryId: dictId)
-                let result = PresetImportResult(presetId: preset.id, libraryId: dictId, error: nil)
-                results.append(result)
-                onComplete(result)
-
-                print("✅ Imported preset: \(preset.displayName) → \(dictId.prefix(16))...")
-
-            } catch {
-                importStatus[preset.id] = .failed(error: error)
-                let result = PresetImportResult(presetId: preset.id, libraryId: nil, error: error)
-                results.append(result)
-                onComplete(result)
-
-                print("❌ Failed to import preset \(preset.displayName): \(error.localizedDescription)")
             }
+
+            tasks.append((preset, task))
+        }
+
+        // Await all concurrent tasks
+        for (_, task) in tasks {
+            let result = await task.value
+            results.append(result)
         }
 
         return results
