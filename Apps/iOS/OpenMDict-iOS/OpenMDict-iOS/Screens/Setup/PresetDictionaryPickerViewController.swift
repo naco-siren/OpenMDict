@@ -197,29 +197,32 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         for group in languageGroups {
             for preset in group.presets {
-                // First install: always select bundle assets
+                // Rule 1: First install — always select bundle assets (locked)
                 if mode == .firstInstall && preset.isBundleAsset {
                     selectedIds.insert(preset.id)
                     continue
                 }
 
-                // Management: skip already-imported
+                // Rule 2: Management — skip already-imported
                 if mode == .management && service.isImported(preset.id) {
                     continue
                 }
 
-                // Pre-select tier 0 if src or any dest language matches user's preferred languages
-                if preset.tier == 0 && !preset.languages.isDisjoint(with: preferredLangs) {
+                // Rule 3: Pre-select tier 0 only if BOTH src AND at least one dest
+                // are in the user's preferred languages.
+                // This ensures we only recommend dictionaries the user can fully use:
+                //   - They speak the headword language (src)
+                //   - They understand at least one definition language (dest)
+                // Examples:
+                //   EN-only user → WordNet (EN→EN), Moby (EN→EN). NOT EN→DE (user has no DE).
+                //   EN+ZH user  → WordNet, Moby, CEDICT (ZH→EN). NOT EN→DE.
+                //   EN+DE user  → WordNet, Moby, FreeDict DE→EN, FreeDict EN→DE.
+                let destLangs = Set(preset.direction.dest)
+                if preset.tier == 0
+                    && preferredLangs.contains(preset.direction.src)
+                    && !destLangs.isDisjoint(with: preferredLangs) {
                     selectedIds.insert(preset.id)
                 }
-            }
-        }
-
-        // EN src tier 0 always pre-selected on first install
-        if mode == .firstInstall {
-            for preset in PresetDictionaryService.shared.catalog
-                where preset.direction.src == "EN" && preset.tier == 0 {
-                selectedIds.insert(preset.id)
             }
         }
     }
@@ -228,8 +231,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     /// Extract ISO 639-1 language codes from Locale.preferredLanguages.
     /// Maps iOS locale codes (e.g. "zh-Hans-US", "ja-JP") to our catalog codes ("ZH", "JA").
+    /// Returns only the languages the user has actually configured on their device.
     static func preferredLanguageCodes() -> Set<String> {
-        var codes: Set<String> = ["EN"]  // Always include English
+        var codes = Set<String>()
         for lang in Locale.preferredLanguages {
             let primary = lang.split(separator: "-").first.map(String.init) ?? lang
             codes.insert(primary.uppercased())
@@ -340,16 +344,14 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         // Content configuration
         var content = UIListContentConfiguration.subtitleCell()
-        content.text = "\(preset.flag) \(preset.displayName)"
+        content.text = preset.displayName
 
         let entriesStr = Self.formatNumber(preset.entries)
         let size = preset.sizeFormatted
-        let defLangs = preset.direction.dest.map { code in
-            let f = PresetDictionary.flagEmoji(for: code)
-            let name = PresetDictionary.localizedLanguageName(code)
-            return "\(f) \(name)"
-        }.joined(separator: ", ")
-        content.secondaryText = "\(defLangs) \u{00B7} \(entriesStr) entries \u{00B7} \(size)"
+        let srcFlag = preset.flag
+        let destFlags = preset.direction.dest.map { PresetDictionary.flagEmoji(for: $0) }.joined(separator: " ")
+        let directionLabel = "\(srcFlag) \u{2192} \(destFlags)"
+        content.secondaryText = "\(directionLabel) \u{00B7} \(entriesStr) entries \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
         // Dim tier 2+ alternatives OR already-imported items in management mode

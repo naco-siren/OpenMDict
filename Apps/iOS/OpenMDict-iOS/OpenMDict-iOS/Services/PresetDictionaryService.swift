@@ -104,17 +104,19 @@ struct PresetDictionary: Codable, Identifiable {
 
     /// Flag emoji for a given language code.
     /// Language codes are not country codes, so a manual mapping is required.
+    /// Dual flags represent languages with two major national traditions
+    /// (ordered by historical origin first, then largest population).
     static func flagEmoji(for code: String) -> String {
         switch code {
-        case "EN": return "🇬🇧"
-        case "ZH": return "🇨🇳"
+        case "EN": return "🇬🇧🇺🇸"
+        case "ZH": return "🇨🇳🇹🇼"
         case "JA": return "🇯🇵"
         case "KO": return "🇰🇷"
         case "ES": return "🇪🇸"
         case "FR": return "🇫🇷"
-        case "DE": return "🇩🇪"
+        case "DE": return "🇩🇪🇦🇹"
         case "IT": return "🇮🇹"
-        case "PT": return "🇧🇷"
+        case "PT": return "🇵🇹🇧🇷"
         case "RU": return "🇷🇺"
         case "AR": return "🇸🇦"
         case "TR": return "🇹🇷"

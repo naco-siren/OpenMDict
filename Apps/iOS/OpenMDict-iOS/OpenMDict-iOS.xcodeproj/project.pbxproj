@@ -7,16 +7,96 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		035E2FD10EC0DA9203B83290 /* Wiktionary-KO-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = D8AE0AAEA6CB429E99683461 /* Wiktionary-KO-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wiktionary-ko-en", ); }; };
+		06080D707CF9E15C904559BF /* WikDict-ES-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 2D23928BE1AEEB5B1D4C6225 /* WikDict-ES-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-es-en", ); }; };
+		0BA5637F5BC1A586B01A122D /* WikDict-EN-EL.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 8A33AE5FD96E64DE397B676E /* WikDict-EN-EL.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-el", ); }; };
+		0C312741D3E5DC1022D81206 /* Kaikki-KO-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 7694A15EE9C5D71DF7650A4C /* Kaikki-KO-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-ko-en", ); }; };
+		0F682E119811B323C2632C1F /* WikDict-ES-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 4C1A20FE27494B7B33EC4E15 /* WikDict-ES-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-es-pt", ); }; };
+		1837C4AC2A5238656FAFD444 /* WikDict-EN-IT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 0D1749806757BAD8754B462B /* WikDict-EN-IT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-it", ); }; };
+		1FDB0D77E311787DFD2780E7 /* Kaikki-LA-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = A72DC9920539D71F19422B6A /* Kaikki-LA-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-la-en", ); }; };
+		23EC7067E39794A8C8877F84 /* WikDict-EL-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 4EB6C0AB3620983F1C79E4E2 /* WikDict-EL-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-el-en", ); }; };
+		3026A37C02E0231E35205D62 /* WikDict-RU-DE.mdx in Resources */ = {isa = PBXBuildFile; fileRef = D1F4F727DFF0405D308E6784 /* WikDict-RU-DE.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-ru-de", ); }; };
+		35F1295854C77E9A2B94E42B /* WikDict-IT-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = C79C98297F6FA34BA842C8F5 /* WikDict-IT-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-it-en", ); }; };
+		3AFD9E8E9D300936EFBFEA14 /* Kaikki-IT-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 9410BF6EA0DBAF5482F4C7A5 /* Kaikki-IT-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-it-en", ); }; };
+		3E196BE03664A575F0D596F0 /* Moby-Thesaurus-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 12461023AA505D8996831D9B /* Moby-Thesaurus-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-moby-thesaurus-en", ); }; };
+		4951A2C94C389D202A8D44A6 /* Kaikki-PT-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = C38C13F3A265D854C918379C /* Kaikki-PT-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-pt-en", ); }; };
+		4EC14EBAAF1A194B34D9849D /* WikDict-FR-RU.mdx in Resources */ = {isa = PBXBuildFile; fileRef = D2579C2C480C38AC1F102966 /* WikDict-FR-RU.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-fr-ru", ); }; };
+		5E23BEDEECB8F7E0381E784E /* WikDict-LA-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 401AB586A69804FC404D0D4D /* WikDict-LA-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-la-en", ); }; };
+		63621E68212311361244013D /* Kaikki-FR-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = B856B4A362B18CDA5AAC1F75 /* Kaikki-FR-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-fr-en", ); }; };
+		67CCB93692A7E09A21E17DC1 /* WikDict-DE-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 83B0358E58925139837BEEC9 /* WikDict-DE-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-de-en", ); }; };
+		6C3757E8A493E4247A722527 /* WikDict-EN-LA.mdx in Resources */ = {isa = PBXBuildFile; fileRef = C1B5B9DC98606A3B72A9348C /* WikDict-EN-LA.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-la", ); }; };
+		7239C1B7BDDA6927B4699948 /* FreeDict-DE-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = C9F67CCDACAC4EFDD5F55381 /* FreeDict-DE-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-freedict-de-en", ); }; };
+		861550477BC50EFDF38495F1 /* WikDict-PT-ES.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 7FA2F221756D09CAE7D8DA38 /* WikDict-PT-ES.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-pt-es", ); }; };
+		8671BA2ABF6786FA883BF727 /* Kaikki-RU-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 4942807B503718381030BAE6 /* Kaikki-RU-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-ru-en", ); }; };
+		879EF5F1216CBD9F352A8FEC /* WikDict-FR-ES.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 87F99A734BC4E84175449249 /* WikDict-FR-ES.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-fr-es", ); }; };
+		8802E94AB61803CA9BE929AE /* FreeDict-EN-DE.mdx in Resources */ = {isa = PBXBuildFile; fileRef = EB8D80E54F2C0D95FBC83B2C /* FreeDict-EN-DE.mdx */; settings = {ASSET_TAGS = ("preset-dict-freedict-en-de", ); }; };
+		8AF5535DD1B201884E9FF196 /* WikDict-PT-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 92F0AFC292F77662550D8739 /* WikDict-PT-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-pt-en", ); }; };
+		9D7FA88EB71BAE4937A29412 /* WikDict-EN-ES.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 85A8C769A499C6EB062CC317 /* WikDict-EN-ES.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-es", ); }; };
+		ADB88881B42497C6A78DECBF /* Kaikki-TR-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 193B1E0F8EA1A67A162ABB52 /* Kaikki-TR-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-tr-en", ); }; };
+		AE4680C7018A4459255955B2 /* Kaikki-EL-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 27C17F746335DC5529C700A6 /* Kaikki-EL-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-el-en", ); }; };
+		BCAB1FDE13D5E5DD27ED4495 /* WikDict-DE-RU.mdx in Resources */ = {isa = PBXBuildFile; fileRef = BE8B6215B206D0D2CDD47516 /* WikDict-DE-RU.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-de-ru", ); }; };
+		BEE6853139E6D3ADCC885873 /* WikDict-FR-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = E3D7B8CC185103C942D41988 /* WikDict-FR-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-fr-en", ); }; };
+		C4B60B1F726A8C5E5DB51927 /* Kaikki-AR-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = A1478BBEFC48C3283A850459 /* Kaikki-AR-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-ar-en", ); }; };
+		C60C31055866D8CD5A67D070 /* WikDict-RU-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 814FFF36FEBDB40310904397 /* WikDict-RU-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-ru-en", ); }; };
+		DE49EA83E91EC10FA85117A4 /* WikDict-ES-FR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 1FC3CDD3B7CBCCB701B2CCDD /* WikDict-ES-FR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-es-fr", ); }; };
+		E9895D4762D443D7F377FF92 /* WikDict-EN-RU.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F7A3C84F8B10373D73759D06 /* WikDict-EN-RU.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-ru", ); }; };
+		EE9ACBD72DCB84FD4BEA80CC /* WikDict-EN-DE.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 214F3619CB5787BD8E4B257E /* WikDict-EN-DE.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-de", ); }; };
+		EF389DB21D9D2DF08969669B /* Kaikki-ES-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 1AF63332496B37495B43BCC0 /* Kaikki-ES-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-es-en", ); }; };
+		F4B4F505D7CAB504AFEDA395 /* WikDict-EN-FR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 9287DC7D651A48AA80D05A1A /* WikDict-EN-FR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-fr", ); }; };
+		F60DBB128857DBB3C50A2FC8 /* WikDict-EN-TR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = D1ADB7E384E8953AAC6D823A /* WikDict-EN-TR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-tr", ); }; };
+		F6FD4BC42482491A01CA719C /* WikDict-TR-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 693DD64A93A5D4E74D3141DA /* WikDict-TR-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-tr-en", ); }; };
+		F7155B94371D74F0AF0B966F /* WikDict-RU-FR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = DC36D9069E695BB93FFB9177 /* WikDict-RU-FR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-ru-fr", ); }; };
 		F835C4682F39975A00A22FB5 /* CEDICT-ZH-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C4672F39975A00A22FB5 /* CEDICT-ZH-EN.mdx */; };
 		F835C46A2F39977600A22FB5 /* WordNet-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C4692F39977600A22FB5 /* WordNet-EN.mdx */; };
 		F835C46C2F3997D000A22FB5 /* JMdict-JA-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */; };
 		F835C46E2F399C2200A22FB5 /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */; };
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
+		FA145F7E660FC1A610954238 /* WikDict-EN-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 09C3AB550582DB27ED5C0CEC /* WikDict-EN-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-pt", ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		09C3AB550582DB27ED5C0CEC /* WikDict-EN-PT.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-PT.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-PT/WikDict-EN-PT.mdx"; sourceTree = "<absolute>"; };
+		0D1749806757BAD8754B462B /* WikDict-EN-IT.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-IT.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-IT/WikDict-EN-IT.mdx"; sourceTree = "<absolute>"; };
+		12461023AA505D8996831D9B /* Moby-Thesaurus-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Moby-Thesaurus-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Moby-Thesaurus-EN/Moby-Thesaurus-EN.mdx"; sourceTree = "<absolute>"; };
+		193B1E0F8EA1A67A162ABB52 /* Kaikki-TR-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-TR-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-TR-EN/Kaikki-TR-EN.mdx"; sourceTree = "<absolute>"; };
+		1AF63332496B37495B43BCC0 /* Kaikki-ES-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-ES-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-ES-EN/Kaikki-ES-EN.mdx"; sourceTree = "<absolute>"; };
+		1FC3CDD3B7CBCCB701B2CCDD /* WikDict-ES-FR.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-ES-FR.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-ES-FR/WikDict-ES-FR.mdx"; sourceTree = "<absolute>"; };
+		214F3619CB5787BD8E4B257E /* WikDict-EN-DE.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-DE.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-DE/WikDict-EN-DE.mdx"; sourceTree = "<absolute>"; };
+		27C17F746335DC5529C700A6 /* Kaikki-EL-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-EL-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-EL-EN/Kaikki-EL-EN.mdx"; sourceTree = "<absolute>"; };
+		2D23928BE1AEEB5B1D4C6225 /* WikDict-ES-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-ES-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-ES-EN/WikDict-ES-EN.mdx"; sourceTree = "<absolute>"; };
+		401AB586A69804FC404D0D4D /* WikDict-LA-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-LA-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-LA-EN/WikDict-LA-EN.mdx"; sourceTree = "<absolute>"; };
+		4942807B503718381030BAE6 /* Kaikki-RU-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-RU-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-RU-EN/Kaikki-RU-EN.mdx"; sourceTree = "<absolute>"; };
+		4C1A20FE27494B7B33EC4E15 /* WikDict-ES-PT.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-ES-PT.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-ES-PT/WikDict-ES-PT.mdx"; sourceTree = "<absolute>"; };
+		4EB6C0AB3620983F1C79E4E2 /* WikDict-EL-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EL-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EL-EN/WikDict-EL-EN.mdx"; sourceTree = "<absolute>"; };
+		693DD64A93A5D4E74D3141DA /* WikDict-TR-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-TR-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-TR-EN/WikDict-TR-EN.mdx"; sourceTree = "<absolute>"; };
+		7694A15EE9C5D71DF7650A4C /* Kaikki-KO-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-KO-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-KO-EN/Kaikki-KO-EN.mdx"; sourceTree = "<absolute>"; };
+		7FA2F221756D09CAE7D8DA38 /* WikDict-PT-ES.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-PT-ES.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-PT-ES/WikDict-PT-ES.mdx"; sourceTree = "<absolute>"; };
+		814FFF36FEBDB40310904397 /* WikDict-RU-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-RU-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-RU-EN/WikDict-RU-EN.mdx"; sourceTree = "<absolute>"; };
+		83B0358E58925139837BEEC9 /* WikDict-DE-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-DE-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-DE-EN/WikDict-DE-EN.mdx"; sourceTree = "<absolute>"; };
+		85A8C769A499C6EB062CC317 /* WikDict-EN-ES.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-ES.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-ES/WikDict-EN-ES.mdx"; sourceTree = "<absolute>"; };
+		87F99A734BC4E84175449249 /* WikDict-FR-ES.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-FR-ES.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-FR-ES/WikDict-FR-ES.mdx"; sourceTree = "<absolute>"; };
+		8A33AE5FD96E64DE397B676E /* WikDict-EN-EL.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-EL.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-EL/WikDict-EN-EL.mdx"; sourceTree = "<absolute>"; };
+		9287DC7D651A48AA80D05A1A /* WikDict-EN-FR.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-FR.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-FR/WikDict-EN-FR.mdx"; sourceTree = "<absolute>"; };
+		92F0AFC292F77662550D8739 /* WikDict-PT-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-PT-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-PT-EN/WikDict-PT-EN.mdx"; sourceTree = "<absolute>"; };
+		9410BF6EA0DBAF5482F4C7A5 /* Kaikki-IT-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-IT-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-IT-EN/Kaikki-IT-EN.mdx"; sourceTree = "<absolute>"; };
+		A1478BBEFC48C3283A850459 /* Kaikki-AR-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-AR-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-AR-EN/Kaikki-AR-EN.mdx"; sourceTree = "<absolute>"; };
 		A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenMDict-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A72DC9920539D71F19422B6A /* Kaikki-LA-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-LA-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-LA-EN/Kaikki-LA-EN.mdx"; sourceTree = "<absolute>"; };
+		B856B4A362B18CDA5AAC1F75 /* Kaikki-FR-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-FR-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-FR-EN/Kaikki-FR-EN.mdx"; sourceTree = "<absolute>"; };
+		BE8B6215B206D0D2CDD47516 /* WikDict-DE-RU.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-DE-RU.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-DE-RU/WikDict-DE-RU.mdx"; sourceTree = "<absolute>"; };
+		C1B5B9DC98606A3B72A9348C /* WikDict-EN-LA.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-LA.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-LA/WikDict-EN-LA.mdx"; sourceTree = "<absolute>"; };
+		C38C13F3A265D854C918379C /* Kaikki-PT-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Kaikki-PT-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Kaikki-PT-EN/Kaikki-PT-EN.mdx"; sourceTree = "<absolute>"; };
+		C79C98297F6FA34BA842C8F5 /* WikDict-IT-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-IT-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-IT-EN/WikDict-IT-EN.mdx"; sourceTree = "<absolute>"; };
+		C9F67CCDACAC4EFDD5F55381 /* FreeDict-DE-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "FreeDict-DE-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/FreeDict-DE-EN/FreeDict-DE-EN.mdx"; sourceTree = "<absolute>"; };
+		D1ADB7E384E8953AAC6D823A /* WikDict-EN-TR.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-TR.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-TR/WikDict-EN-TR.mdx"; sourceTree = "<absolute>"; };
+		D1F4F727DFF0405D308E6784 /* WikDict-RU-DE.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-RU-DE.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-RU-DE/WikDict-RU-DE.mdx"; sourceTree = "<absolute>"; };
+		D2579C2C480C38AC1F102966 /* WikDict-FR-RU.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-FR-RU.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-FR-RU/WikDict-FR-RU.mdx"; sourceTree = "<absolute>"; };
+		D8AE0AAEA6CB429E99683461 /* Wiktionary-KO-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "Wiktionary-KO-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/Wiktionary-KO-EN/Wiktionary-KO-EN.mdx"; sourceTree = "<absolute>"; };
+		DC36D9069E695BB93FFB9177 /* WikDict-RU-FR.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-RU-FR.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-RU-FR/WikDict-RU-FR.mdx"; sourceTree = "<absolute>"; };
+		E3D7B8CC185103C942D41988 /* WikDict-FR-EN.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-FR-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-FR-EN/WikDict-FR-EN.mdx"; sourceTree = "<absolute>"; };
+		EB8D80E54F2C0D95FBC83B2C /* FreeDict-EN-DE.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "FreeDict-EN-DE.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/FreeDict-EN-DE/FreeDict-EN-DE.mdx"; sourceTree = "<absolute>"; };
+		F7A3C84F8B10373D73759D06 /* WikDict-EN-RU.mdx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = "WikDict-EN-RU.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WikDict-EN-RU/WikDict-EN-RU.mdx"; sourceTree = "<absolute>"; };
 		F835C4672F39975A00A22FB5 /* CEDICT-ZH-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CEDICT-ZH-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx"; sourceTree = "<absolute>"; };
 		F835C4692F39977600A22FB5 /* WordNet-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WordNet-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WordNet-EN/WordNet-EN.mdx"; sourceTree = "<absolute>"; };
 		F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "JMdict-JA-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/JMdict-JA-EN/JMdict-JA-EN.mdx"; sourceTree = "<absolute>"; };
@@ -97,6 +177,46 @@
 				F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */,
 				F835C4692F39977600A22FB5 /* WordNet-EN.mdx */,
 				F835C4672F39975A00A22FB5 /* CEDICT-ZH-EN.mdx */,
+				12461023AA505D8996831D9B /* Moby-Thesaurus-EN.mdx */,
+				1AF63332496B37495B43BCC0 /* Kaikki-ES-EN.mdx */,
+				B856B4A362B18CDA5AAC1F75 /* Kaikki-FR-EN.mdx */,
+				C9F67CCDACAC4EFDD5F55381 /* FreeDict-DE-EN.mdx */,
+				7694A15EE9C5D71DF7650A4C /* Kaikki-KO-EN.mdx */,
+				4942807B503718381030BAE6 /* Kaikki-RU-EN.mdx */,
+				A1478BBEFC48C3283A850459 /* Kaikki-AR-EN.mdx */,
+				9410BF6EA0DBAF5482F4C7A5 /* Kaikki-IT-EN.mdx */,
+				C38C13F3A265D854C918379C /* Kaikki-PT-EN.mdx */,
+				27C17F746335DC5529C700A6 /* Kaikki-EL-EN.mdx */,
+				193B1E0F8EA1A67A162ABB52 /* Kaikki-TR-EN.mdx */,
+				A72DC9920539D71F19422B6A /* Kaikki-LA-EN.mdx */,
+				E3D7B8CC185103C942D41988 /* WikDict-FR-EN.mdx */,
+				2D23928BE1AEEB5B1D4C6225 /* WikDict-ES-EN.mdx */,
+				814FFF36FEBDB40310904397 /* WikDict-RU-EN.mdx */,
+				C79C98297F6FA34BA842C8F5 /* WikDict-IT-EN.mdx */,
+				92F0AFC292F77662550D8739 /* WikDict-PT-EN.mdx */,
+				4EB6C0AB3620983F1C79E4E2 /* WikDict-EL-EN.mdx */,
+				693DD64A93A5D4E74D3141DA /* WikDict-TR-EN.mdx */,
+				401AB586A69804FC404D0D4D /* WikDict-LA-EN.mdx */,
+				BE8B6215B206D0D2CDD47516 /* WikDict-DE-RU.mdx */,
+				4C1A20FE27494B7B33EC4E15 /* WikDict-ES-PT.mdx */,
+				87F99A734BC4E84175449249 /* WikDict-FR-ES.mdx */,
+				D2579C2C480C38AC1F102966 /* WikDict-FR-RU.mdx */,
+				D8AE0AAEA6CB429E99683461 /* Wiktionary-KO-EN.mdx */,
+				83B0358E58925139837BEEC9 /* WikDict-DE-EN.mdx */,
+				214F3619CB5787BD8E4B257E /* WikDict-EN-DE.mdx */,
+				8A33AE5FD96E64DE397B676E /* WikDict-EN-EL.mdx */,
+				85A8C769A499C6EB062CC317 /* WikDict-EN-ES.mdx */,
+				9287DC7D651A48AA80D05A1A /* WikDict-EN-FR.mdx */,
+				0D1749806757BAD8754B462B /* WikDict-EN-IT.mdx */,
+				C1B5B9DC98606A3B72A9348C /* WikDict-EN-LA.mdx */,
+				09C3AB550582DB27ED5C0CEC /* WikDict-EN-PT.mdx */,
+				F7A3C84F8B10373D73759D06 /* WikDict-EN-RU.mdx */,
+				D1ADB7E384E8953AAC6D823A /* WikDict-EN-TR.mdx */,
+				1FC3CDD3B7CBCCB701B2CCDD /* WikDict-ES-FR.mdx */,
+				7FA2F221756D09CAE7D8DA38 /* WikDict-PT-ES.mdx */,
+				D1F4F727DFF0405D308E6784 /* WikDict-RU-DE.mdx */,
+				DC36D9069E695BB93FFB9177 /* WikDict-RU-FR.mdx */,
+				EB8D80E54F2C0D95FBC83B2C /* FreeDict-EN-DE.mdx */,
 			);
 			path = Dictionaries;
 			sourceTree = "<group>";
@@ -135,6 +255,48 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
+				KnownAssetTags = (
+					"preset-dict-freedict-de-en",
+					"preset-dict-freedict-en-de",
+					"preset-dict-kaikki-ar-en",
+					"preset-dict-kaikki-el-en",
+					"preset-dict-kaikki-es-en",
+					"preset-dict-kaikki-fr-en",
+					"preset-dict-kaikki-it-en",
+					"preset-dict-kaikki-ko-en",
+					"preset-dict-kaikki-la-en",
+					"preset-dict-kaikki-pt-en",
+					"preset-dict-kaikki-ru-en",
+					"preset-dict-kaikki-tr-en",
+					"preset-dict-moby-thesaurus-en",
+					"preset-dict-wikdict-de-en",
+					"preset-dict-wikdict-de-ru",
+					"preset-dict-wikdict-el-en",
+					"preset-dict-wikdict-en-de",
+					"preset-dict-wikdict-en-el",
+					"preset-dict-wikdict-en-es",
+					"preset-dict-wikdict-en-fr",
+					"preset-dict-wikdict-en-it",
+					"preset-dict-wikdict-en-la",
+					"preset-dict-wikdict-en-pt",
+					"preset-dict-wikdict-en-ru",
+					"preset-dict-wikdict-en-tr",
+					"preset-dict-wikdict-es-en",
+					"preset-dict-wikdict-es-fr",
+					"preset-dict-wikdict-es-pt",
+					"preset-dict-wikdict-fr-en",
+					"preset-dict-wikdict-fr-es",
+					"preset-dict-wikdict-fr-ru",
+					"preset-dict-wikdict-it-en",
+					"preset-dict-wikdict-la-en",
+					"preset-dict-wikdict-pt-en",
+					"preset-dict-wikdict-pt-es",
+					"preset-dict-wikdict-ru-de",
+					"preset-dict-wikdict-ru-en",
+					"preset-dict-wikdict-ru-fr",
+					"preset-dict-wikdict-tr-en",
+					"preset-dict-wiktionary-ko-en",
+				);
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
@@ -153,7 +315,7 @@
 			mainGroup = A5AB7E2F2F0E15A000B554E0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */,
+				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A5AB7E392F0E15A000B554E0 /* Products */;
@@ -174,6 +336,46 @@
 				F835C4682F39975A00A22FB5 /* CEDICT-ZH-EN.mdx in Resources */,
 				F835C46E2F399C2200A22FB5 /* preset-dictionaries.json in Resources */,
 				F835C46A2F39977600A22FB5 /* WordNet-EN.mdx in Resources */,
+				3E196BE03664A575F0D596F0 /* Moby-Thesaurus-EN.mdx in Resources */,
+				EF389DB21D9D2DF08969669B /* Kaikki-ES-EN.mdx in Resources */,
+				63621E68212311361244013D /* Kaikki-FR-EN.mdx in Resources */,
+				7239C1B7BDDA6927B4699948 /* FreeDict-DE-EN.mdx in Resources */,
+				0C312741D3E5DC1022D81206 /* Kaikki-KO-EN.mdx in Resources */,
+				8671BA2ABF6786FA883BF727 /* Kaikki-RU-EN.mdx in Resources */,
+				C4B60B1F726A8C5E5DB51927 /* Kaikki-AR-EN.mdx in Resources */,
+				3AFD9E8E9D300936EFBFEA14 /* Kaikki-IT-EN.mdx in Resources */,
+				4951A2C94C389D202A8D44A6 /* Kaikki-PT-EN.mdx in Resources */,
+				AE4680C7018A4459255955B2 /* Kaikki-EL-EN.mdx in Resources */,
+				ADB88881B42497C6A78DECBF /* Kaikki-TR-EN.mdx in Resources */,
+				1FDB0D77E311787DFD2780E7 /* Kaikki-LA-EN.mdx in Resources */,
+				BEE6853139E6D3ADCC885873 /* WikDict-FR-EN.mdx in Resources */,
+				06080D707CF9E15C904559BF /* WikDict-ES-EN.mdx in Resources */,
+				C60C31055866D8CD5A67D070 /* WikDict-RU-EN.mdx in Resources */,
+				35F1295854C77E9A2B94E42B /* WikDict-IT-EN.mdx in Resources */,
+				8AF5535DD1B201884E9FF196 /* WikDict-PT-EN.mdx in Resources */,
+				23EC7067E39794A8C8877F84 /* WikDict-EL-EN.mdx in Resources */,
+				F6FD4BC42482491A01CA719C /* WikDict-TR-EN.mdx in Resources */,
+				5E23BEDEECB8F7E0381E784E /* WikDict-LA-EN.mdx in Resources */,
+				BCAB1FDE13D5E5DD27ED4495 /* WikDict-DE-RU.mdx in Resources */,
+				0F682E119811B323C2632C1F /* WikDict-ES-PT.mdx in Resources */,
+				879EF5F1216CBD9F352A8FEC /* WikDict-FR-ES.mdx in Resources */,
+				4EC14EBAAF1A194B34D9849D /* WikDict-FR-RU.mdx in Resources */,
+				035E2FD10EC0DA9203B83290 /* Wiktionary-KO-EN.mdx in Resources */,
+				67CCB93692A7E09A21E17DC1 /* WikDict-DE-EN.mdx in Resources */,
+				EE9ACBD72DCB84FD4BEA80CC /* WikDict-EN-DE.mdx in Resources */,
+				0BA5637F5BC1A586B01A122D /* WikDict-EN-EL.mdx in Resources */,
+				9D7FA88EB71BAE4937A29412 /* WikDict-EN-ES.mdx in Resources */,
+				F4B4F505D7CAB504AFEDA395 /* WikDict-EN-FR.mdx in Resources */,
+				1837C4AC2A5238656FAFD444 /* WikDict-EN-IT.mdx in Resources */,
+				6C3757E8A493E4247A722527 /* WikDict-EN-LA.mdx in Resources */,
+				FA145F7E660FC1A610954238 /* WikDict-EN-PT.mdx in Resources */,
+				E9895D4762D443D7F377FF92 /* WikDict-EN-RU.mdx in Resources */,
+				F60DBB128857DBB3C50A2FC8 /* WikDict-EN-TR.mdx in Resources */,
+				DE49EA83E91EC10FA85117A4 /* WikDict-ES-FR.mdx in Resources */,
+				861550477BC50EFDF38495F1 /* WikDict-PT-ES.mdx in Resources */,
+				3026A37C02E0231E35205D62 /* WikDict-RU-DE.mdx in Resources */,
+				F7155B94371D74F0AF0B966F /* WikDict-RU-FR.mdx in Resources */,
+				8802E94AB61803CA9BE929AE /* FreeDict-EN-DE.mdx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -501,7 +703,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */ = {
+		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../../OpenMDict;
 		};
@@ -510,12 +712,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		F8E12D982F1CA93800D8E524 /* OpenMDictKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
 			productName = OpenMDictKit;
 		};
 		F8E12D9A2F1CA97800D8E524 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
 			productName = OpenMDict;
 		};
 /* End XCSwiftPackageProductDependency section */
