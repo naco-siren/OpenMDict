@@ -349,11 +349,11 @@ final class PresetDictionaryService {
     ///
     /// - Parameters:
     ///   - preset: The preset dictionary to import
-    ///   - onProgress: Progress callback (0.0 to 1.0)
+    ///   - onProgress: Progress callback (fraction 0.0–1.0, completedBytes, totalBytes)
     /// - Returns: The library dictionary ID (SHA256 hash)
     func importFromODR(
         _ preset: PresetDictionary,
-        onProgress: @escaping @Sendable (Double) -> Void
+        onProgress: @escaping @Sendable (Double, Int64, Int64) -> Void
     ) async throws -> String {
         guard let tag = preset.odrTag else {
             throw PresetImportError.odrTagMissing(presetId: preset.id)
@@ -366,10 +366,10 @@ final class PresetDictionaryService {
         activeODRRequests[preset.id] = request
         defer { activeODRRequests.removeValue(forKey: preset.id) }
 
-        // Observe download progress
+        // Observe download progress (fraction + byte counts)
         let observation = request.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
             Task { @MainActor in
-                onProgress(progress.fractionCompleted)
+                onProgress(progress.fractionCompleted, progress.completedUnitCount, progress.totalUnitCount)
             }
         }
         defer { observation.invalidate() }
@@ -425,12 +425,12 @@ final class PresetDictionaryService {
     ///
     /// - Parameters:
     ///   - presets: List of preset dictionaries to import
-    ///   - onProgress: Progress callback (presetId, progress 0.0–1.0)
+    ///   - onProgress: Progress callback (presetId, fraction 0.0–1.0, completedBytes, totalBytes)
     ///   - onComplete: Called when each individual import finishes (may be called concurrently)
     /// - Returns: Array of import results (order matches completion order, not input order)
     func importBatch(
         _ presets: [PresetDictionary],
-        onProgress: @escaping @Sendable (String, Double) -> Void,
+        onProgress: @escaping @Sendable (String, Double, Int64, Int64) -> Void,
         onComplete: @escaping @Sendable (PresetImportResult) -> Void
     ) async -> [PresetImportResult] {
 
@@ -462,8 +462,8 @@ final class PresetDictionaryService {
                     if preset.isBundleAsset {
                         dictId = try await importFromBundle(preset)
                     } else {
-                        dictId = try await importFromODR(preset) { progress in
-                            onProgress(preset.id, progress)
+                        dictId = try await importFromODR(preset) { progress, completed, total in
+                            onProgress(preset.id, progress, completed, total)
                         }
                     }
 

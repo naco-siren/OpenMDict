@@ -142,6 +142,12 @@ nonisolated enum L10n {
                 percent
             )
         }
+        static func downloadingBytes(completedMB: Double, totalMB: Double) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("progress.downloadingBytes", value: "Downloaded %.1f MB / %.1f MB", comment: "Download progress with megabyte counts; %.1f = completed MB, %.1f = total MB"),
+                completedMB, totalMB
+            )
+        }
     }
 
     // MARK: - Sidebar
