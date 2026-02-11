@@ -50,6 +50,7 @@
 		F835C46A2F39977600A22FB5 /* WordNet-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C4692F39977600A22FB5 /* WordNet-EN.mdx */; };
 		F835C46C2F3997D000A22FB5 /* JMdict-JA-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */; };
 		F835C46E2F399C2200A22FB5 /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */; };
+		F835C6222F3C5E2D00A22FB5 /* OpenMDict.icon in Resources */ = {isa = PBXBuildFile; fileRef = F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */; };
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
 		FA145F7E660FC1A610954238 /* WikDict-EN-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 09C3AB550582DB27ED5C0CEC /* WikDict-EN-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-pt", ); }; };
@@ -101,6 +102,7 @@
 		F835C4692F39977600A22FB5 /* WordNet-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WordNet-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/WordNet-EN/WordNet-EN.mdx"; sourceTree = "<absolute>"; };
 		F835C46B2F3997D000A22FB5 /* JMdict-JA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "JMdict-JA-EN.mdx"; path = "/path/to/open-mdict/bundled-dicts/output/JMdict-JA-EN/JMdict-JA-EN.mdx"; sourceTree = "<absolute>"; };
 		F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "preset-dictionaries.json"; path = "/path/to/open-mdict/bundled-dicts/preset-dictionaries.json"; sourceTree = "<absolute>"; };
+		F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = OpenMDict.icon; path = "/path/to/open-mdict/OpenMDict.icon"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -144,6 +146,7 @@
 				A5AB7E3A2F0E15A000B554E0 /* OpenMDict-iOS */,
 				F8E12D972F1CA93800D8E524 /* Frameworks */,
 				A5AB7E392F0E15A000B554E0 /* Products */,
+				F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -352,6 +355,7 @@
 				EF389DB21D9D2DF08969669B /* Kaikki-ES-EN.mdx in Resources */,
 				63621E68212311361244013D /* Kaikki-FR-EN.mdx in Resources */,
 				7239C1B7BDDA6927B4699948 /* FreeDict-DE-EN.mdx in Resources */,
+				F835C6222F3C5E2D00A22FB5 /* OpenMDict.icon in Resources */,
 				0C312741D3E5DC1022D81206 /* Kaikki-KO-EN.mdx in Resources */,
 				8671BA2ABF6786FA883BF727 /* Kaikki-RU-EN.mdx in Resources */,
 				C4B60B1F726A8C5E5DB51927 /* Kaikki-AR-EN.mdx in Resources */,
@@ -407,7 +411,7 @@
 		A5AB7E502F0E15A200B554E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = OpenMDict;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -426,7 +430,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -443,7 +447,7 @@
 		A5AB7E512F0E15A200B554E0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = OpenMDict;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -462,7 +466,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -653,7 +657,7 @@
 		F8E12DC92F1E04E100D8E524 /* Perf */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = OpenMDict;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -673,7 +677,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
