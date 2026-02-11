@@ -155,7 +155,7 @@ enum ArticleHTMLRenderer {
         </head>
         <body>
             <div class="spinner"></div>
-            <p>Loading "\(word.htmlEscaped)"...</p>
+            <p>\(L10n.Articles.loadingWord(word.htmlEscaped))</p>
         </body>
         </html>
         """
@@ -189,8 +189,8 @@ enum ArticleHTMLRenderer {
         </head>
         <body>
             <div class="icon">🔍</div>
-            <h3>"\(word.htmlEscaped)" not found</h3>
-            <p>in \(dictName.htmlEscaped)</p>
+            <h3>\(L10n.Articles.notFoundTitle(word.htmlEscaped))</h3>
+            <p>\(L10n.Articles.notFoundSubtitle(dictName: dictName.htmlEscaped))</p>
         </body>
         </html>
         """
@@ -223,7 +223,7 @@ enum ArticleHTMLRenderer {
         </head>
         <body>
             <div class="icon">📖</div>
-            <p>Select a word to view</p>
+            <p>\(L10n.Articles.selectWord)</p>
         </body>
         </html>
         """

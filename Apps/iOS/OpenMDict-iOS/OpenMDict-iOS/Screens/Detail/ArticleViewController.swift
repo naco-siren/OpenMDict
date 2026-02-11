@@ -83,7 +83,7 @@ class ArticleViewController: UIViewController {
         img.preferredSymbolConfiguration = .init(pointSize: 64)
         
         let lbl = UILabel()
-        lbl.text = "Select a word to view"
+        lbl.text = L10n.Articles.selectWord
         lbl.textColor = .secondaryLabel
         
         stack.addArrangedSubview(img)

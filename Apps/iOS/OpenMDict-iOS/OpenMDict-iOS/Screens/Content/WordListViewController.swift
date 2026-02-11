@@ -34,7 +34,7 @@ class WordListViewController: UIViewController {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
         sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = "Search words..."
+        sc.searchBar.placeholder = L10n.WordList.searchPlaceholder
         return sc
     }()
     
@@ -51,7 +51,7 @@ class WordListViewController: UIViewController {
     private lazy var emptyLabel: UILabel = {
         let l = UILabel()
         l.translatesAutoresizingMaskIntoConstraints = false
-        l.text = "Type to search"
+        l.text = L10n.WordList.typeToSearch
         l.textColor = .secondaryLabel
         l.textAlignment = .center
         return l
@@ -63,7 +63,7 @@ class WordListViewController: UIViewController {
         super.viewDidLoad()
         
         navigationItem.backButtonDisplayMode = .minimal
-        navigationItem.backButtonTitle = "Word Search"
+        navigationItem.backButtonTitle = L10n.WordList.wordSearch
         navigationController?.navigationBar.prefersLargeTitles = false
         navigationItem.largeTitleDisplayMode = .never
         
@@ -126,11 +126,11 @@ class WordListViewController: UIViewController {
         
         let context = searchSession?.currentContext ?? .none
         if case .none = context {
-            emptyLabel.text = "Select a dictionary or group"
+            emptyLabel.text = L10n.WordList.selectDictionaryOrGroup
         } else if isSearching && displayedWords.isEmpty {
-            emptyLabel.text = "No results for '\(searchController.searchBar.text ?? "")'"
+            emptyLabel.text = L10n.WordList.noResults(query: searchController.searchBar.text ?? "")
         } else {
-            emptyLabel.text = "Type to search"
+            emptyLabel.text = L10n.WordList.typeToSearch
         }
     }
     
@@ -220,10 +220,10 @@ extension WordListViewController: UITableViewDelegate {
             }
                          
             return UIMenu(children: [
-                UIAction(title: "Open", image: UIImage(systemName: "doc.text")) { _ in
+                UIAction(title: L10n.Articles.open, image: UIImage(systemName: "doc.text")) { _ in
                     self.onWordSelected?(word)
                 },
-                UIAction(title: "Open in New Window", image: UIImage(systemName: "square.split.2x1")) { [weak self] _ in
+                UIAction(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "square.split.2x1")) { [weak self] _ in
                     let session = self?.view.window?.windowScene?.session
                     SceneDelegate.openNewWindow(for: article, sourceSession: session)
                 },

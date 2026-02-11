@@ -66,7 +66,7 @@ class ArticlesViewController: UIViewController {
         img.tintColor = .tertiaryLabel
         img.preferredSymbolConfiguration = .init(pointSize: 64)
         let lbl = UILabel()
-        lbl.text = "Select a word to view"
+        lbl.text = L10n.Articles.selectWord
         lbl.textColor = .secondaryLabel
         stack.addArrangedSubview(img)
         stack.addArrangedSubview(lbl)
@@ -565,20 +565,20 @@ extension ArticlesViewController: UICollectionViewDelegate {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 
         var actions: [UIAction] = []
-        actions.append(.init(title: "Bookmark", image: UIImage(systemName: "bookmark")) { _ in
+        actions.append(.init(title: L10n.Articles.bookmark, image: UIImage(systemName: "bookmark")) { _ in
             print("🔖 Bookmark: \(article.word)")
             // TODO: Implement bookmark persistence
         })
         if #available(iOS 16, *) {
-            actions.append(.init(title: "Find in Page", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+            actions.append(.init(title: L10n.Articles.findInPage, image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
                 self?.pendingFindIndexPath = indexPath
             })
         }
-        actions.append(.init(title: "Open in New Window", image: UIImage(systemName: "rectangle.badge.plus")) { _ in
+        actions.append(.init(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "rectangle.badge.plus")) { _ in
             let session = self.view.window?.windowScene?.session
             SceneDelegate.openNewWindow(for: article, sourceSession: session)
         })
-        actions.append(.init(title: "Close", image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
+        actions.append(.init(title: L10n.Articles.close, image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
             if let self = self {
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
             }

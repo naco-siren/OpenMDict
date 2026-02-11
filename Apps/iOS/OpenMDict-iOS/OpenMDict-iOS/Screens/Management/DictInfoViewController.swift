@@ -131,11 +131,11 @@ class DictInfoViewController: UIViewController {
             switch self {
             case .status: return nil
             case .manageResources: return nil
-            case .displayName: return "Custom Name"
+            case .displayName: return L10n.DictInfo.customName
             case .selectFile: return nil
-            case .basicMetadata: return "Basic Info"
-            case .advancedMetadata: return "Technical Details"
-            case .description: return "Description"
+            case .basicMetadata: return L10n.DictInfo.basicInfo
+            case .advancedMetadata: return L10n.DictInfo.technicalDetails
+            case .description: return L10n.DictInfo.descriptionHeader
             case .dangerZone: return nil
             }
         }
@@ -202,13 +202,13 @@ class DictInfoViewController: UIViewController {
         imageView.preferredSymbolConfiguration = .init(pointSize: 60)
         
         let label = UILabel()
-        label.text = "Select an MDX file to import\na new dictionary"
+        label.text = L10n.DictInfo.emptyState
         label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.numberOfLines = 0
         
         let button = UIButton(type: .system)
-        button.setTitle("Select MDX File", for: .normal)
+        button.setTitle(L10n.DictInfo.selectMdxFile, for: .normal)
         button.setImage(UIImage(systemName: "folder"), for: .normal)
         button.addTarget(self, action: #selector(selectFileTapped), for: .touchUpInside)
         
@@ -333,9 +333,9 @@ class DictInfoViewController: UIViewController {
         // MARK: Warning Cell (orange background)
         let warningReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, existingId in
             var content = UIListContentConfiguration.subtitleCell()
-            content.text = "Dictionary Already Imported"
+            content.text = L10n.DictInfo.alreadyImportedTitle
             content.textProperties.color = .systemOrange
-            content.secondaryText = "Tap to view the existing dictionary"
+            content.secondaryText = L10n.DictInfo.alreadyImportedSubtitle
             content.secondaryTextProperties.color = .secondaryLabel
             content.image = UIImage(systemName: "exclamationmark.triangle.fill")
             content.imageProperties.tintColor = .systemOrange
@@ -350,7 +350,7 @@ class DictInfoViewController: UIViewController {
         // MARK: Select File Button (blue background)
         let selectFileReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
             var content = UIListContentConfiguration.cell()
-            content.text = "Select MDX File"
+            content.text = L10n.DictInfo.selectMdxFile
             content.textProperties.color = .white
             content.textProperties.alignment = .center
             content.textProperties.font = .preferredFont(forTextStyle: .headline)
@@ -368,7 +368,7 @@ class DictInfoViewController: UIViewController {
             var content = UIListContentConfiguration.cell()
             content.image = UIImage(systemName: "folder.badge.gearshape")
             content.imageProperties.tintColor = .white
-            content.text = "Manage Resources"
+            content.text = L10n.DictInfo.manageResources
             content.textProperties.color = .white
             content.textProperties.font = .preferredFont(forTextStyle: .headline)
             cell.contentConfiguration = content
@@ -383,7 +383,7 @@ class DictInfoViewController: UIViewController {
         // MARK: Display Name Label (viewing mode - read-only)
         let displayNameLabelReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
             var content = UIListContentConfiguration.cell()
-            content.text = value.isEmpty ? "No custom name" : value
+            content.text = value.isEmpty ? L10n.DictInfo.noCustomName : value
             content.textProperties.color = value.isEmpty ? .tertiaryLabel : .label
             content.textProperties.numberOfLines = 0  // Allow multi-line display
             cell.contentConfiguration = content
@@ -439,7 +439,7 @@ class DictInfoViewController: UIViewController {
         /// Only shown when count > 0 (snapshots skip this cell otherwise)
         let entryCountReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, indexPath, count in
             var content = UIListContentConfiguration.valueCell()
-            content.text = "Entries"
+            content.text = L10n.DictInfo.metaEntries
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
             content.secondaryText = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
@@ -475,7 +475,7 @@ class DictInfoViewController: UIViewController {
             content.text = nil  // No title - standalone section header serves as label
             
             if htmlValue.isEmpty {
-                content.secondaryText = "No description"
+                content.secondaryText = L10n.DictInfo.noDescription
                 content.secondaryTextProperties.color = .tertiaryLabel
             } else if let cached = self?.cachedAttributedDescription,
                       self?.cachedDescriptionHTML == htmlValue {
@@ -483,7 +483,7 @@ class DictInfoViewController: UIViewController {
                 content.secondaryAttributedText = cached
             } else {
                 // Show placeholder while parsing
-                content.secondaryText = "Loading..."
+                content.secondaryText = L10n.loading
                 content.secondaryTextProperties.color = .tertiaryLabel
                 
                 // Parse HTML asynchronously and reconfigure cell
@@ -532,7 +532,7 @@ class DictInfoViewController: UIViewController {
         // MARK: Delete Button Cell
         let deleteReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
             var content = UIListContentConfiguration.cell()
-            content.text = "Delete Dictionary"
+            content.text = L10n.DictInfo.deleteDictionary
             content.textProperties.color = .systemRed
             content.textProperties.alignment = .center
             cell.contentConfiguration = content
@@ -572,7 +572,7 @@ class DictInfoViewController: UIViewController {
                 
             // Basic Metadata
             case .title(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("book", "Title", value))
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("book", L10n.DictInfo.metaTitle, value))
             case .date(let title, let icon, let date):
                 return collectionView.dequeueConfiguredReusableCell(using: dateReg, for: indexPath, item: (title, icon, date))
             case .entryCount(let count):
@@ -582,15 +582,15 @@ class DictInfoViewController: UIViewController {
                 
             // Advanced Metadata
             case .engineVersion(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("gearshape", "Engine Version", value))
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("gearshape", L10n.DictInfo.metaEngineVersion, value))
             case .format(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("doc.text", "Format", value))
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("doc.text", L10n.DictInfo.metaFormat, value))
             case .encoding(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("textformat", "Encoding", value))
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("textformat", L10n.DictInfo.metaEncoding, value))
             case .isEncrypted(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("lock.shield", "Encrypted", value))
+                return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("lock.shield", L10n.DictInfo.metaEncrypted, value))
             case .isCaseSensitive(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("textformat.abc", "Case Sensitive", value))
+                return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("textformat.abc", L10n.DictInfo.metaCaseSensitive, value))
                 
             // Danger Zone
             case .deleteButton:
@@ -668,14 +668,14 @@ class DictInfoViewController: UIViewController {
         
         switch currentMode {
         case .empty:
-            title = "Import Dictionary"
+            title = L10n.DictInfo.importDictionary
             emptyStateView.isHidden = false
             collectionView.isHidden = true
             hasUnsavedChanges = false
             isEditingMode = false
             
         case .importing:
-            title = "Import Dictionary"
+            title = L10n.DictInfo.importDictionary
             emptyStateView.isHidden = true
             collectionView.isHidden = false
             hasUnsavedChanges = true  // File selected = has changes to import
@@ -773,7 +773,7 @@ class DictInfoViewController: UIViewController {
             var basicItems: [Item] = [.title(titleDisplay)]
             
             if let date = Self.parseCreationDate(metadata.creationDate) {
-                basicItems.append(.date(title: "Date Created", icon: "calendar", date: date))
+                basicItems.append(.date(title: L10n.DictInfo.metaDateCreated, icon: "calendar", date: date))
             }
             
             if let count = metadata.entryCount, count > 0 {
@@ -850,12 +850,12 @@ class DictInfoViewController: UIViewController {
                 var basicItems: [Item] = [.title(dict.displayTitle)]
                 
                 if let date = Self.parseCreationDate(metadata.creationDate) {
-                    basicItems.append(.date(title: "Date Created", icon: "calendar", date: date))
+                    basicItems.append(.date(title: L10n.DictInfo.metaDateCreated, icon: "calendar", date: date))
                 }
                 
                 // Date Imported (from manifest, only for existing dictionaries)
                 if let importedDate = DictionaryService.shared.importedDate(dictId) {
-                    basicItems.append(.date(title: "Date Imported", icon: "square.and.arrow.down", date: importedDate))
+                    basicItems.append(.date(title: L10n.DictInfo.metaDateImported, icon: "square.and.arrow.down", date: importedDate))
                 }
                 
                 if let count = metadata.entryCount, count > 0 {
@@ -954,13 +954,13 @@ class DictInfoViewController: UIViewController {
     /// Show alert to confirm discarding edits (not the whole import)
     private func showAbandonEditingAlert() {
         let alert = UIAlertController(
-            title: "Discard Changes?",
-            message: "You have unsaved changes. Are you sure you want to discard them?",
+            title: L10n.discardChangesTitle,
+            message: L10n.discardChangesMessage,
             preferredStyle: .alert
         )
-        
-        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+
+        alert.addAction(UIAlertAction(title: L10n.keepEditing, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.discard, style: .destructive) { [weak self] _ in
             self?.exitEditingMode()
         })
         
@@ -1005,13 +1005,13 @@ class DictInfoViewController: UIViewController {
     
     private func showAbandonChangesAlert() {
         let alert = UIAlertController(
-            title: "Discard Changes?",
-            message: "You have unsaved changes. Are you sure you want to discard them?",
+            title: L10n.discardChangesTitle,
+            message: L10n.discardChangesMessage,
             preferredStyle: .alert
         )
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.discard, style: .destructive) { [weak self] _ in
             self?.performDismiss()
         })
         
@@ -1022,13 +1022,13 @@ class DictInfoViewController: UIViewController {
         guard let url = selectedMDXURL else { return }
         
         let alert = UIAlertController(
-            title: "Import Dictionary?",
-            message: "Import \"\(url.lastPathComponent)\" to your library?",
+            title: L10n.DictInfo.importQuestion,
+            message: L10n.DictInfo.importMessage(filename: url.lastPathComponent),
             preferredStyle: .alert
         )
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Import", style: .default) { [weak self] _ in
+
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.importAction, style: .default) { [weak self] _ in
             self?.performImport()
         })
         
@@ -1037,13 +1037,13 @@ class DictInfoViewController: UIViewController {
     
     private func showConfirmSaveAlert() {
         let alert = UIAlertController(
-            title: "Save Changes?",
-            message: "Save your changes to this dictionary?",
+            title: L10n.DictInfo.saveChangesTitle,
+            message: L10n.DictInfo.saveChangesMessage,
             preferredStyle: .alert
         )
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.save, style: .default) { [weak self] _ in
             self?.performSave()
         })
         
@@ -1057,13 +1057,13 @@ class DictInfoViewController: UIViewController {
         let dictTitle = dict?.metadata?.title ?? "this dictionary"
         
         let alert = UIAlertController(
-            title: "Delete Dictionary",
-            message: "Are you sure you want to delete \"\(dictTitle)\"? This action cannot be undone.",
+            title: L10n.DictInfo.deleteDictionary,
+            message: L10n.DictInfo.deleteMessage(name: dictTitle),
             preferredStyle: .alert
         )
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
             self?.performDelete(dictId: dictId)
         })
         
@@ -1169,21 +1169,21 @@ class DictInfoViewController: UIViewController {
     
     private func showImportError(_ error: Error) {
         let alert = UIAlertController(
-            title: "Import Failed",
+            title: L10n.DictInfo.importFailed,
             message: error.localizedDescription,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
         present(alert, animated: true)
     }
 
     private func showDeleteError(_ error: Error) {
         let alert = UIAlertController(
-            title: "Delete Failed",
+            title: L10n.DictInfo.deleteFailed,
             message: error.localizedDescription,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
         present(alert, animated: true)
     }
     

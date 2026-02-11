@@ -74,7 +74,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private let continueButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.title = "Continue"
+        config.title = L10n.Picker.continueButton
         config.cornerStyle = .large
         config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 24, bottom: 14, trailing: 24)
         let button = UIButton(configuration: config)
@@ -109,11 +109,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         // Navigation bar title
         if mode == .firstInstall {
-            title = "Choose Dictionaries"
-            subtitleLabel.text = "Select dictionaries to install. You can change this later."
+            title = L10n.Picker.titleFirstInstall
+            subtitleLabel.text = L10n.Picker.subtitleFirstInstall
         } else {
-            title = "Add Preset Dictionaries"
-            subtitleLabel.text = "Select dictionaries to add to your library."
+            title = L10n.Picker.titleManagement
+            subtitleLabel.text = L10n.Picker.subtitleManagement
         }
 
         // Navigation bar items
@@ -128,7 +128,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         // Right: Select All / Deselect All
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Select All",
+            title: L10n.Picker.selectAll,
             style: .plain,
             target: self,
             action: #selector(selectAllTapped)
@@ -346,12 +346,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
         var content = UIListContentConfiguration.subtitleCell()
         content.text = preset.displayName
 
-        let entriesStr = Self.formatNumber(preset.entries)
         let size = preset.sizeFormatted
         let srcFlag = preset.flag
         let destFlags = preset.direction.dest.map { PresetDictionary.flagEmoji(for: $0) }.joined(separator: " ")
         let directionLabel = "\(srcFlag) \u{2192} \(destFlags)"
-        content.secondaryText = "\(directionLabel) \u{00B7} \(entriesStr) entries \u{00B7} \(size)"
+        content.secondaryText = "\(directionLabel) \u{00B7} \(L10n.entryCount(preset.entries)) \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
         // Dim tier 2+ alternatives OR already-imported items in management mode
@@ -417,7 +416,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private func updateContinueButton() {
         let count = selectedIds.count
-        let title = count > 0 ? "Confirm Selection (\(count) items)" : "Confirm Selection"
+        let title = count > 0 ? L10n.confirmSelection(count) : L10n.Picker.confirmSelection
         continueButton.configuration?.title = title
         continueButton.isEnabled = count > 0
     }
@@ -470,7 +469,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
     private func updateSelectAllButton() {
         let selectableIds = allSelectableIds()
         let allSelected = !selectableIds.isEmpty && selectableIds.isSubset(of: selectedIds)
-        navigationItem.rightBarButtonItem?.title = allSelected ? "Deselect All" : "Select All"
+        navigationItem.rightBarButtonItem?.title = allSelected ? L10n.Picker.deselectAll : L10n.Picker.selectAll
     }
 
     // MARK: - Helpers

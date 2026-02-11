@@ -19,10 +19,10 @@ class DictResourceEditorViewController: UIViewController {
         
         var title: String {
             switch self {
-            case .mdx: return "DICTIONARY FILE (MDX)"
-            case .mdd: return "RESOURCE FILES (MDD)"
-            case .css: return "CUSTOM STYLES (CSS)"
-            case .js: return "CUSTOM SCRIPTS (JS)"
+            case .mdx: return L10n.ResourceEditor.sectionMdx
+            case .mdd: return L10n.ResourceEditor.sectionMdd
+            case .css: return L10n.ResourceEditor.sectionCss
+            case .js: return L10n.ResourceEditor.sectionJs
             }
         }
         
@@ -98,7 +98,7 @@ class DictResourceEditorViewController: UIViewController {
         titleLabel.font = .preferredFont(forTextStyle: .title2)
         titleLabel.textColor = .secondaryLabel
         titleLabel.textAlignment = .center
-        titleLabel.text = "No Dictionary Selected"
+        titleLabel.text = L10n.ResourceEditor.noSelection
         stack.addArrangedSubview(titleLabel)
         
         let subtitleLabel = UILabel()
@@ -106,7 +106,7 @@ class DictResourceEditorViewController: UIViewController {
         subtitleLabel.textColor = .tertiaryLabel
         subtitleLabel.textAlignment = .center
         subtitleLabel.numberOfLines = 0
-        subtitleLabel.text = "Select a dictionary to manage its resources"
+        subtitleLabel.text = L10n.ResourceEditor.noSelectionSubtitle
         stack.addArrangedSubview(subtitleLabel)
         
         stack.setCustomSpacing(24, after: iv)
@@ -130,7 +130,7 @@ class DictResourceEditorViewController: UIViewController {
     
     private func setupUI() {
         view.backgroundColor = .systemGroupedBackground
-        navigationItem.title = "Resources"
+        navigationItem.title = L10n.ResourceEditor.resources
         
         // Empty state
         view.addSubview(emptyStateView)
@@ -205,7 +205,7 @@ class DictResourceEditorViewController: UIViewController {
             cell, indexPath, section in
             
             var content = cell.defaultContentConfiguration()
-            content.text = "Add \(section.resourceType.fileExtension.uppercased()) File"
+            content.text = L10n.ResourceEditor.addFile(ext: section.resourceType.fileExtension.uppercased())
             content.textProperties.color = .systemBlue
             content.image = UIImage(systemName: "plus.circle.fill")
             content.imageProperties.tintColor = .systemBlue
@@ -218,7 +218,7 @@ class DictResourceEditorViewController: UIViewController {
             cell, indexPath, section in
             
             var content = cell.defaultContentConfiguration()
-            content.text = "No \(section.resourceType.displayName.lowercased())"
+            content.text = L10n.ResourceEditor.noFiles(type: section.resourceType.displayName.lowercased())
             content.textProperties.color = .tertiaryLabel
             content.textProperties.alignment = .center
             
@@ -419,7 +419,7 @@ class DictResourceEditorViewController: UIViewController {
             return nil
         }
         
-        let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { [weak self] _, _, completion in
+        let deleteAction = UIContextualAction(style: .destructive, title: L10n.delete) { [weak self] _, _, completion in
             self?.confirmDeleteResource(resource, completion: completion)
         }
         deleteAction.image = UIImage(systemName: "trash")
@@ -450,16 +450,16 @@ class DictResourceEditorViewController: UIViewController {
     
     private func confirmDeleteResource(_ resource: ResourceFile, completion: @escaping (Bool) -> Void) {
         let alert = UIAlertController(
-            title: "Delete Resource?",
-            message: "Are you sure you want to delete \(resource.fileName)? This action cannot be undone.",
+            title: L10n.ResourceEditor.deleteResourceTitle,
+            message: L10n.ResourceEditor.deleteResourceMessage(filename: resource.fileName),
             preferredStyle: .alert
         )
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel) { _ in
             completion(false)
         })
-        
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
             self?.deleteResource(resource)
             completion(true)
         })
@@ -499,7 +499,7 @@ class DictResourceEditorViewController: UIViewController {
             // Editing mode: copy file to storage immediately
             // Show loading modal on the presenting view controller
             let presentingVC = view.window?.rootViewController
-            let loadingVC = presentingVC?.showLoadingModal(message: "Adding resource...")
+            let loadingVC = presentingVC?.showLoadingModal(message: L10n.ResourceEditor.addingResource)
             
             Task {
                 do {
@@ -567,11 +567,11 @@ class DictResourceEditorViewController: UIViewController {
     
     private func showError(_ error: Error) {
         let alert = UIAlertController(
-            title: "Error",
+            title: L10n.error,
             message: error.localizedDescription,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
         present(alert, animated: true)
     }
     

@@ -311,11 +311,23 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
+				"zh-Hant",
+				ru,
+				es,
+				de,
+				ja,
+				fr,
+				"pt-BR",
+				ko,
+				uk,
+				ar,
+				hi,
 			);
 			mainGroup = A5AB7E2F2F0E15A000B554E0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */,
+				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A5AB7E392F0E15A000B554E0 /* Products */;
@@ -703,7 +715,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */ = {
+		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../../OpenMDict;
 		};
@@ -712,12 +724,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		F8E12D982F1CA93800D8E524 /* OpenMDictKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
 			productName = OpenMDictKit;
 		};
 		F8E12D9A2F1CA97800D8E524 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
 			productName = OpenMDict;
 		};
 /* End XCSwiftPackageProductDependency section */

@@ -220,7 +220,7 @@ class MainSplitViewController: UISplitViewController {
         
         dictInfoVC.onImportStarted = { [weak self] in
             guard let self else { return }
-            loadingVC = showLoadingModal(message: "Importing dictionary...")
+            loadingVC = showLoadingModal(message: L10n.Detail.importingDictionary)
             debugLog("📦 Import started: showing loading modal")
         }
         
@@ -537,7 +537,7 @@ class MainSplitViewController: UISplitViewController {
             let session = DictionaryService.shared.groupSession
             session.beginCreate()
             configureColumns(for: .managementGroup)
-            groupInfoVC.showCreatingMode(pendingName: session.pendingName ?? "New Group")
+            groupInfoVC.showCreatingMode(pendingName: session.pendingName ?? L10n.GroupInfo.newGroup)
             groupDictEditorVC.showCreatingEditor()
         case .viewDefaultGroup(let groupId):
             configureColumns(for: .managementGroup)

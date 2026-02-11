@@ -499,16 +499,16 @@ final class ManagementActionCell: UICollectionViewListCell {
         
         switch item {
         case .importDictionary:
-            content.text = "Import Dictionary"
+            content.text = L10n.Sidebar.importDictionary
             content.image = UIImage(systemName: "plus.circle.fill")
         case .addGroup:
-            content.text = "Add New Group"
+            content.text = L10n.Sidebar.addNewGroup
             content.image = UIImage(systemName: "folder.badge.plus")
         case .managePresets:
-            content.text = "Preset Dictionaries"
+            content.text = L10n.Sidebar.presetDictionaries
             content.image = UIImage(systemName: "books.vertical")
         case .settings:
-            content.text = "App Settings"
+            content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")
         default:
             break

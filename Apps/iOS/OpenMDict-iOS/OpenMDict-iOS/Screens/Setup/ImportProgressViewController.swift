@@ -55,7 +55,7 @@ final class ImportProgressViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Setting Up Dictionaries"
+        label.text = L10n.Progress.title
         // Match UINavigationBar standard title style
         label.font = .systemFont(ofSize: 17, weight: .semibold)
         label.textAlignment = .center
@@ -79,7 +79,7 @@ final class ImportProgressViewController: UIViewController {
 
     private let doneButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.title = "Importing..."
+        config.title = L10n.Progress.importing
         config.cornerStyle = .large
         config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 24, bottom: 14, trailing: 24)
         let button = UIButton(configuration: config)
@@ -209,7 +209,7 @@ final class ImportProgressViewController: UIViewController {
                 }
             }
         } else {
-            let message = result.errorMessage ?? "Unknown error"
+            let message = result.errorMessage ?? L10n.unknownError
             importStates[result.presetId] = .failed(message: message)
         }
         reconfigureItem(result.presetId)
@@ -230,7 +230,7 @@ final class ImportProgressViewController: UIViewController {
     private func updateDoneButton() {
         let done = isAllDone
         doneButton.isEnabled = done
-        doneButton.configuration?.title = done ? "Done" : "Importing..."
+        doneButton.configuration?.title = done ? L10n.done : L10n.Progress.importing
     }
 
     private func updateStatusLabel() {
@@ -246,13 +246,13 @@ final class ImportProgressViewController: UIViewController {
 
         if isAllDone {
             if failed == 0 {
-                statusLabel.text = "All \(completed) dictionaries imported successfully!"
+                statusLabel.text = L10n.allImportedSuccess(completed)
             } else {
-                statusLabel.text = "\(completed) imported, \(failed) failed"
+                statusLabel.text = L10n.importedAndFailed(imported: completed, failed: failed)
             }
         } else {
             let inProgress = completed + 1
-            statusLabel.text = "Importing \(min(inProgress, total)) of \(total)..."
+            statusLabel.text = L10n.importingProgress(current: min(inProgress, total), total: total)
         }
     }
 
@@ -352,7 +352,7 @@ final class ImportProgressViewController: UIViewController {
 
         case .importing(let progress):
             let percent = Int(progress * 100)
-            content.secondaryText = percent > 0 ? "Downloading... \(percent)%" : "Importing..."
+            content.secondaryText = percent > 0 ? L10n.Progress.downloading(percent: percent) : L10n.Progress.importing
             content.secondaryTextProperties.color = .secondaryLabel
 
             let progressView = UIProgressView(progressViewStyle: .default)

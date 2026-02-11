@@ -27,23 +27,23 @@ final class WelcomePageViewController: UIViewController {
     private let features: [Feature] = [
         Feature(
             symbolName: "text.and.command.macwindow",
-            title: "Three Article Layouts on iPadOS",
-            body: "View multiple definitions from different dictionaries in Columns, Grid or List, all at once."
+            title: L10n.Welcome.layoutsTitle,
+            body: L10n.Welcome.layoutsBody
         ),
         Feature(
             symbolName: "macwindow.on.rectangle",
-            title: "Multi-Window on iPadOS",
-            body: "Enjoy desktop-class productivity on iPadOS with multi-window and full keyboard support."
+            title: L10n.Welcome.multiWindowTitle,
+            body: L10n.Welcome.multiWindowBody
         ),
         Feature(
             symbolName: "infinity",
-            title: "No Limits, Free Forever",
-            body: "Import unlimited dictionaries and create unlimited groups, without any subscriptions or paid memberships."
+            title: L10n.Welcome.noLimitsTitle,
+            body: L10n.Welcome.noLimitsBody
         ),
         Feature(
             symbolName: "gift",
-            title: "Preset Dictionaries Included",
-            body: "We\u{2019}ve got you covered with a curated selection of open-source dictionaries, ready to use with minimum setup."
+            title: L10n.Welcome.presetsTitle,
+            body: L10n.Welcome.presetsBody
         ),
     ]
 
@@ -74,7 +74,7 @@ final class WelcomePageViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Welcome to OpenMDict"
+        label.text = L10n.Welcome.title
         label.font = .systemFont(ofSize: 34, weight: .bold)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -102,7 +102,7 @@ final class WelcomePageViewController: UIViewController {
 
     private let footerLabel: UILabel = {
         let label = UILabel()
-        label.text = "OpenMDict is an MDict (MDX) format dictionary reader. For richer content, you can import your own .mdx files \u{2014} refer to the thriving MDict ecosystem and its communities for resources and format specifications."
+        label.text = L10n.Welcome.footer
         label.font = .preferredFont(forTextStyle: .caption1)
         label.textColor = .secondaryLabel
         label.textAlignment = .center
@@ -113,7 +113,7 @@ final class WelcomePageViewController: UIViewController {
 
     private let getStartedButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.title = "Get Started"
+        config.title = L10n.Welcome.getStarted
         config.cornerStyle = .large
         config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 24, bottom: 14, trailing: 24)
         let button = UIButton(configuration: config)

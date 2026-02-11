@@ -100,7 +100,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 return nil
             }
             
-            let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { [weak self] _, _, completion in
+            let deleteAction = UIContextualAction(style: .destructive, title: L10n.delete) { [weak self] _, _, completion in
                 self?.confirmDeleteGroup(id: id)
                 completion(true)
             }
@@ -122,7 +122,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         super.viewDidLoad()
         
         navigationItem.backButtonDisplayMode = .minimal
-        navigationItem.backButtonTitle = "Dictionaries"
+        navigationItem.backButtonTitle = L10n.Sidebar.dictionaries
         
         title = "OpenMDict"
         navigationController?.navigationBar.prefersLargeTitles = true
@@ -394,7 +394,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         // Section 1: My Groups - with header
         var userSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
-        let userHeader = SidebarItem.header("My Groups", isBold: false)
+        let userHeader = SidebarItem.header(L10n.Sidebar.myGroups, isBold: false)
         userSnapshot.append([userHeader])
         for group in userGroups {
             let groupItem = SidebarItem.group(id: group.id, isDefault: false)
@@ -412,7 +412,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         // Section 2: Management - with header
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
-        let mgmtHeader = SidebarItem.header("Management", isBold: false)
+        let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
         mgmtSnapshot.append([mgmtHeader])
         mgmtSnapshot.append([.managePresets, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
@@ -480,7 +480,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Only allow selecting loaded dictionaries
             guard let dict = DictionaryService.shared.dict(id: dictId) else { return false }
             if dict.state != .loaded {
-                let message = dict.state == .loading ? "Loading..." : "Dictionary not loaded"
+                let message = dict.state == .loading ? L10n.loading : L10n.Sidebar.dictionaryNotLoaded
                 print("⚠️ \(message): \(dict.metadata?.title ?? dict.id)")
                 return false
             }
@@ -598,7 +598,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
                 guard let self else { return UIMenu(children: []) }
                 
                 let editAction = UIAction(
-                    title: "Edit Info",
+                    title: L10n.Sidebar.editInfo,
                     image: UIImage(systemName: "info.circle")
                 ) { _ in
                     self.onGroupInfoSelected?(id)
@@ -609,7 +609,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
                 let currentIndex = userGroups.firstIndex(where: { $0.id == id })
                 
                 let moveUpAction = UIAction(
-                    title: "Move Up",
+                    title: L10n.Sidebar.moveUp,
                     image: UIImage(systemName: "arrow.up"),
                     attributes: currentIndex == 0 || currentIndex == nil ? .disabled : []
                 ) { _ in
@@ -617,7 +617,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
                 }
                 
                 let moveDownAction = UIAction(
-                    title: "Move Down",
+                    title: L10n.Sidebar.moveDown,
                     image: UIImage(systemName: "arrow.down"),
                     attributes: currentIndex == (userGroups.count - 1) || currentIndex == nil ? .disabled : []
                 ) { _ in
@@ -625,7 +625,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
                 }
                 
                 let deleteAction = UIAction(
-                    title: "Delete Group",
+                    title: L10n.Sidebar.deleteGroup,
                     image: UIImage(systemName: "trash"),
                     attributes: .destructive
                 ) { _ in
@@ -639,7 +639,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .group(let id, let isDefault) where isDefault:
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
                 let viewAction = UIAction(
-                    title: "View Info",
+                    title: L10n.Sidebar.viewInfo,
                     image: UIImage(systemName: "info.circle")
                 ) { _ in
                     self?.onGroupInfoSelected?(id)
@@ -654,7 +654,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
                 let editAction = UIAction(
-                    title: "Edit Info",
+                    title: L10n.Sidebar.editInfo,
                     image: UIImage(systemName: "info.circle")
                 ) { _ in
                     self?.onDictionaryInfoSelected?(dictId)
@@ -699,12 +699,12 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         let groupName = group?.name ?? "this group"
         
         let alert = UIAlertController(
-            title: "Delete Group",
-            message: "Delete \"\(groupName)\"? Dictionaries in this group will not be removed.",
+            title: L10n.Sidebar.deleteGroup,
+            message: L10n.GroupInfo.deleteGroupMessage(name: groupName),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
             self?.performDeleteGroup(id: id)
         })
         present(alert, animated: true)

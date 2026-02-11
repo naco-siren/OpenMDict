@@ -70,7 +70,7 @@ final class GroupManagementSession: ObservableObject {
     /// Begin creating a new group.
     /// Generates a unique default name. pendingDictionaryIds starts empty.
     func beginCreate() {
-        let name = DictionaryService.shared.uniqueGroupName(from: "New Group")
+        let name = DictionaryService.shared.uniqueGroupName(from: L10n.GroupInfo.newGroup)
         pendingDictionaryIds = []
         mode = .creating(pendingName: name)
         print("📂 GroupSession: beginCreate → pending name \"\(name)\"")

@@ -208,7 +208,7 @@ final class DictionaryService: ObservableObject {
 
         let allGroup = MDicts(
             id: "all",
-            name: "All Dictionaries",
+            name: L10n.GroupInfo.allDictionaries,
             isDefault: true,
             dictionaryIds: validOrder
         )
@@ -471,7 +471,7 @@ final class DictionaryService: ObservableObject {
     /// - Parameter name: Display name for the group (auto-deduplicated if conflict)
     /// - Returns: The new MDicts group instance (already added to `groups` and persisted)
     @discardableResult
-    func createGroup(name: String = "New Group") throws -> MDicts {
+    func createGroup(name: String = L10n.GroupInfo.newGroup) throws -> MDicts {
         let finalName = uniqueGroupName(from: name)
         
         let now = Date()

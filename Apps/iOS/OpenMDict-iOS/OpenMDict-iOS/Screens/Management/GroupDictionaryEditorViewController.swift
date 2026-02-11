@@ -28,8 +28,8 @@ class GroupDictionaryEditorViewController: UIViewController {
         
         var title: String {
             switch self {
-            case .inGroup: return "IN THIS GROUP"
-            case .available: return "AVAILABLE DICTIONARIES"
+            case .inGroup: return L10n.DictEditor.inThisGroup
+            case .available: return L10n.DictEditor.available
             }
         }
     }
@@ -38,7 +38,7 @@ class GroupDictionaryEditorViewController: UIViewController {
     private nonisolated enum ReorderSection: Int, CaseIterable {
         case dictionaries
         
-        var title: String { "DICTIONARIES" }
+        var title: String { L10n.DictEditor.sectionDictionaries }
     }
     
     private nonisolated enum Item: Hashable {
@@ -103,7 +103,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         titleLabel.font = .preferredFont(forTextStyle: .title2)
         titleLabel.textColor = .secondaryLabel
         titleLabel.textAlignment = .center
-        titleLabel.text = "No Group Selected"
+        titleLabel.text = L10n.DictEditor.noSelection
         stack.addArrangedSubview(titleLabel)
         
         let subtitleLabel = UILabel()
@@ -111,7 +111,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         subtitleLabel.textColor = .tertiaryLabel
         subtitleLabel.textAlignment = .center
         subtitleLabel.numberOfLines = 0
-        subtitleLabel.text = "Select a group to manage its dictionaries"
+        subtitleLabel.text = L10n.DictEditor.noSelectionSubtitle
         stack.addArrangedSubview(subtitleLabel)
         
         stack.setCustomSpacing(24, after: iv)
@@ -136,7 +136,7 @@ class GroupDictionaryEditorViewController: UIViewController {
     
     private func setupUI() {
         view.backgroundColor = .systemGroupedBackground
-        navigationItem.title = "Dictionaries"
+        navigationItem.title = L10n.DictEditor.dictionaries
         
         view.addSubview(emptyStateView)
         NSLayoutConstraint.activate([
@@ -246,9 +246,9 @@ class GroupDictionaryEditorViewController: UIViewController {
             case .dict(let id, let inGroup):
                 return collectionView.dequeueConfiguredReusableCell(using: dictReg, for: indexPath, item: (id, inGroup))
             case .emptyInGroup:
-                return collectionView.dequeueConfiguredReusableCell(using: emptyReg, for: indexPath, item: "No dictionaries in this group")
+                return collectionView.dequeueConfiguredReusableCell(using: emptyReg, for: indexPath, item: L10n.DictEditor.noDictionariesInGroup)
             case .emptyAvailable:
-                return collectionView.dequeueConfiguredReusableCell(using: emptyReg, for: indexPath, item: "All dictionaries added")
+                return collectionView.dequeueConfiguredReusableCell(using: emptyReg, for: indexPath, item: L10n.DictEditor.allAdded)
             }
         }
         
@@ -324,7 +324,7 @@ class GroupDictionaryEditorViewController: UIViewController {
             case .dict(let id):
                 return collectionView.dequeueConfiguredReusableCell(using: reorderDictReg, for: indexPath, item: id)
             case .empty:
-                return collectionView.dequeueConfiguredReusableCell(using: emptyReg, for: indexPath, item: "No dictionaries")
+                return collectionView.dequeueConfiguredReusableCell(using: emptyReg, for: indexPath, item: L10n.DictEditor.noDictionaries)
             }
         }
         

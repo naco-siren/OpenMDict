@@ -145,9 +145,9 @@ class GroupInfoViewController: UIViewController {
         
         var title: String? {
             switch self {
-            case .displayName(_, let isDefault): return isDefault ? "Group Name" : "Custom Name"
-            case .containedItems: return "Contained Items"
-            case .stats: return "Group Info"
+            case .displayName(_, let isDefault): return isDefault ? L10n.GroupInfo.groupName : L10n.GroupInfo.customName
+            case .containedItems: return L10n.GroupInfo.containedItems
+            case .stats: return L10n.GroupInfo.groupInfoHeader
             case .dangerZone: return nil
             }
         }
@@ -265,7 +265,7 @@ class GroupInfoViewController: UIViewController {
             let isCollapsed = self.isSplitViewCollapsed
             let isDefault = self.isViewingDefaultMode
             let isEmpty = count == 0
-            let countStr = count == 1 ? "1 dictionary" : "\(count) dictionaries"
+            let countStr = L10n.dictionaryCount(count)
             
             if isCollapsed && !isDefault {
                 // COMPACT (user groups): button-like cell with disclosure chevron
@@ -275,7 +275,7 @@ class GroupInfoViewController: UIViewController {
                 
                 if isEmpty {
                     content.image = UIImage(systemName: "exclamationmark.triangle")
-                    content.text = "Tap to add dictionaries"
+                    content.text = L10n.GroupInfo.tapToAddDictionaries
                 } else {
                     content.image = UIImage(systemName: "books.vertical")
                     content.text = countStr
@@ -295,7 +295,7 @@ class GroupInfoViewController: UIViewController {
                 content.textProperties.font = .preferredFont(forTextStyle: .headline)
                 content.textProperties.color = .white
                 content.image = UIImage(systemName: "arrow.up.arrow.down")
-                content.text = "Reorder Dictionaries"
+                content.text = L10n.GroupInfo.reorderDictionaries
                 content.imageProperties.tintColor = .white
                 cell.contentConfiguration = content
                 
@@ -312,7 +312,7 @@ class GroupInfoViewController: UIViewController {
                 if isEmpty && !isDefault {
                     content.image = UIImage(systemName: "exclamationmark.triangle")
                     content.imageProperties.tintColor = .systemOrange
-                    content.text = "Add at least one dictionary"
+                    content.text = L10n.GroupInfo.addAtLeastOne
                     content.textProperties.color = .systemOrange
                 } else {
                     content.image = UIImage(systemName: "books.vertical")
@@ -329,7 +329,7 @@ class GroupInfoViewController: UIViewController {
         // MARK: Name Label (viewing mode)
         let nameLabelReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, indexPath, value in
             var content = UIListContentConfiguration.cell()
-            content.text = value.isEmpty ? "Untitled Group" : value
+            content.text = value.isEmpty ? L10n.GroupInfo.untitledGroup : value
             content.textProperties.color = value.isEmpty ? .tertiaryLabel : .label
             content.textProperties.numberOfLines = 0
             cell.contentConfiguration = content
@@ -381,7 +381,7 @@ class GroupInfoViewController: UIViewController {
         // MARK: Delete Button
         let deleteReg = UICollectionView.CellRegistration<UICollectionViewListCell, Void> { cell, indexPath, _ in
             var content = UIListContentConfiguration.cell()
-            content.text = "Delete Group"
+            content.text = L10n.GroupInfo.deleteGroup
             content.textProperties.color = .systemRed
             content.textProperties.alignment = .center
             cell.contentConfiguration = content
@@ -411,13 +411,13 @@ class GroupInfoViewController: UIViewController {
                     content.image = .init(systemName: "exclamationmark.triangle")
                     content.imageProperties.tintColor = .systemRed
                     content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-                    content.text = "Custom name cannot be empty"
+                    content.text = L10n.GroupInfo.nameCannotBeEmpty
                     content.textProperties.color = .systemRed
                 case .conflict:
                     content.image = .init(systemName: "exclamationmark.triangle")
                     content.imageProperties.tintColor = .systemRed
                     content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-                    content.text = "This name is already taken"
+                    content.text = L10n.GroupInfo.nameAlreadyTaken
                     content.textProperties.color = .systemRed
                 }
             default:
@@ -440,9 +440,9 @@ class GroupInfoViewController: UIViewController {
             case .containedItems(let count):
                 return collectionView.dequeueConfiguredReusableCell(using: containedItemsReg, for: indexPath, item: count)
             case .createdDate(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("calendar", "Created", value))
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("calendar", L10n.GroupInfo.created, value))
             case .modifiedDate(let value):
-                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("clock", "Modified", value))
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("clock", L10n.GroupInfo.modified, value))
                 
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
@@ -458,26 +458,26 @@ class GroupInfoViewController: UIViewController {
     
     private func updateUI() {
         guard let mode = currentMode else {
-            title = "Group"
+            title = L10n.GroupInfo.group
             return
         }
         
         switch mode {
         case .creating:
-            title = "New Group"
+            title = L10n.GroupInfo.newGroup
             isEditingMode = true
             hasUnsavedChanges = true  // New group always has "changes" to save
             
         case .managing(let groupId):
             let group = DictionaryService.shared.group(id: groupId)
-            title = group?.name ?? "Group"
+            title = group?.name ?? L10n.GroupInfo.group
             if !isEditingMode {
                 hasUnsavedChanges = false
             }
             
         case .viewingDefault(let groupId):
             let group = DictionaryService.shared.group(id: groupId)
-            title = group?.name ?? "All Dictionaries"
+            title = group?.name ?? L10n.GroupInfo.allDictionaries
             isEditingMode = false
             hasUnsavedChanges = false
         }
@@ -528,7 +528,7 @@ class GroupInfoViewController: UIViewController {
     
     private func applyCreatingSnapshot(groupId: String) {
         let group = DictionaryService.shared.group(id: groupId)
-        let name = editedName ?? group?.name ?? "New Group"
+        let name = editedName ?? group?.name ?? L10n.GroupInfo.newGroup
         let isCollapsed = isSplitViewCollapsed
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
@@ -683,12 +683,12 @@ class GroupInfoViewController: UIViewController {
     
     private func showAbandonCreateAlert() {
         let alert = UIAlertController(
-            title: "Discard New Group?",
-            message: "The new group will not be saved.",
+            title: L10n.GroupInfo.discardNewGroupTitle,
+            message: L10n.GroupInfo.discardNewGroupMessage,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.keepEditing, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.discard, style: .destructive) { [weak self] _ in
             self?.performCancelCreate()
         })
         present(alert, animated: true)
@@ -696,12 +696,12 @@ class GroupInfoViewController: UIViewController {
     
     private func showAbandonEditingAlert() {
         let alert = UIAlertController(
-            title: "Discard Changes?",
-            message: "You have unsaved changes. Are you sure you want to discard them?",
+            title: L10n.discardChangesTitle,
+            message: L10n.discardChangesMessage,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.keepEditing, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.discard, style: .destructive) { [weak self] _ in
             self?.exitEditingMode()
         })
         present(alert, animated: true)
@@ -713,12 +713,12 @@ class GroupInfoViewController: UIViewController {
         let groupName = group?.name ?? "this group"
         
         let alert = UIAlertController(
-            title: "Delete Group",
-            message: "Delete \"\(groupName)\"? Dictionaries in this group will not be removed.",
+            title: L10n.GroupInfo.deleteGroup,
+            message: L10n.GroupInfo.deleteGroupMessage(name: groupName),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
             self?.performDelete(groupId: groupId)
         })
         present(alert, animated: true)
@@ -748,7 +748,7 @@ class GroupInfoViewController: UIViewController {
     
     private func performSaveCreate(groupId: String) {
         let name = (editedName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let finalName = name.isEmpty ? "New Group" : name
+        let finalName = name.isEmpty ? L10n.GroupInfo.newGroup : name
         let session = DictionaryService.shared.groupSession
         let pendingDicts = session.pendingDictionaryIds
         
@@ -813,11 +813,11 @@ class GroupInfoViewController: UIViewController {
             onDeleteComplete?(groupId)
         } catch {
             let alert = UIAlertController(
-                title: "Delete Failed",
+                title: L10n.DictInfo.deleteFailed,
                 message: error.localizedDescription,
                 preferredStyle: .alert
             )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
             present(alert, animated: true)
         }
     }
@@ -1027,13 +1027,13 @@ private extension GroupInfoViewController {
             content.image = .init(systemName: "exclamationmark.triangle")
             content.imageProperties.tintColor = .systemRed
             content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-            content.text = "Custom name cannot be empty"
+            content.text = L10n.GroupInfo.nameCannotBeEmpty
             content.textProperties.color = .systemRed
         case .conflict:
             content.image = .init(systemName: "exclamationmark.triangle")
             content.imageProperties.tintColor = .systemRed
             content.imageProperties.preferredSymbolConfiguration = .init(scale: .medium)
-            content.text = "This name is already taken"
+            content.text = L10n.GroupInfo.nameAlreadyTaken
             content.textProperties.color = .systemRed
         }
         headerView.contentConfiguration = content

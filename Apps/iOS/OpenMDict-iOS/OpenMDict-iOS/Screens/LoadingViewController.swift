@@ -37,7 +37,7 @@ final class LoadingViewController: UIViewController {
     
     // MARK: - Configuration
     
-    var message: String = "Loading..." {
+    var message: String = L10n.loading {
         didSet {
             messageLabel.text = message
         }
@@ -88,7 +88,7 @@ final class LoadingViewController: UIViewController {
 extension UIViewController {
     
     /// Show a non-dismissable loading modal
-    func showLoadingModal(message: String = "Loading...") -> LoadingViewController {
+    func showLoadingModal(message: String = L10n.loading) -> LoadingViewController {
         let loadingVC = LoadingViewController()
         loadingVC.message = message
         loadingVC.modalPresentationStyle = .overFullScreen
