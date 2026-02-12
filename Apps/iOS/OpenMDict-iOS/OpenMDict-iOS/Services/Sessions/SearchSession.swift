@@ -49,7 +49,7 @@ final class SearchSession: ObservableObject {
             contextSubject
                 .removeDuplicates()
         )
-        .map { [weak self] query, context -> AnyPublisher<[WordDisplayItem], Never> in
+        .map { query, context -> AnyPublisher<[WordDisplayItem], Never> in
             guard !query.isEmpty,
                   let lookupable = context.lookupable else {
                 return Just([]).eraseToAnyPublisher()

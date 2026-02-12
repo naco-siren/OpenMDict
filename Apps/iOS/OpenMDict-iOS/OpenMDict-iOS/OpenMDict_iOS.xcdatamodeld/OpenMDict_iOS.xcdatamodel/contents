@@ -5,14 +5,18 @@
         <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="firstLookedUpAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="lastLookedUpAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lookupContextDictId" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="lookupContextGroupId" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="lookupCount" attributeType="Integer 32" defaultValueString="1" usesScalarValueType="YES"/>
         <attribute name="word" optional="YES" attributeType="String" defaultValueString=""/>
         <fetchIndex name="byLastLookedUpAt">
             <fetchIndexElement property="lastLookedUpAt" type="Binary" order="descending"/>
         </fetchIndex>
-        <fetchIndex name="byWordAndDictId">
+        <fetchIndex name="byWordAndContext">
             <fetchIndexElement property="word" type="Binary" order="ascending"/>
             <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
+            <fetchIndexElement property="lookupContextDictId" type="Binary" order="ascending"/>
+            <fetchIndexElement property="lookupContextGroupId" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
 </model>

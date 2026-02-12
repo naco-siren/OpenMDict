@@ -45,25 +45,41 @@ final class LookupHistoryService {
 
     // MARK: - Record Lookup (Upsert)
 
-    /// Record a lookup. If a record with the same (word, dictId) exists,
+    /// Record a lookup. If a record with the same (word, dictId, context) exists,
     /// update `lastLookedUpAt` and increment `lookupCount`.
     /// Otherwise create a new record.
     ///
-    /// Also increments the manifest-based trophy counter (monotonically increasing,
+    /// Context tuple: exactly one of `lookupContextDictId` / `lookupContextGroupId` should be non-nil.
+    ///
+    /// Also increments the manifest-based per-context trophy counter (monotonically increasing,
     /// independent of history deletion).
-    func recordLookup(word: String, dictId: String, dictName: String) {
+    func recordLookup(word: String, dictId: String, dictName: String,
+                      lookupContextDictId: String?, lookupContextGroupId: String?) {
         // Increment the manifest-based trophy counter (deferred save)
-        DictionaryStorageService.shared.incrementLookupCount(id: dictId)
+        DictionaryStorageService.shared.incrementLookupCount(
+            contextDictId: lookupContextDictId, contextGroupId: lookupContextGroupId
+        )
 
         // Create background context on MainActor before escaping.
         let ctx = self.stack.newBackgroundContext()
         Task.detached {
             try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
                 let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
-                request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                var subpredicates: [NSPredicate] = [
                     NSPredicate(format: "word == %@", word),
                     NSPredicate(format: "dictId == %@", dictId),
-                ])
+                ]
+                if let ctxDictId = lookupContextDictId {
+                    subpredicates.append(NSPredicate(format: "lookupContextDictId == %@", ctxDictId))
+                } else {
+                    subpredicates.append(NSPredicate(format: "lookupContextDictId == nil OR lookupContextDictId == %@", ""))
+                }
+                if let ctxGroupId = lookupContextGroupId {
+                    subpredicates.append(NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId))
+                } else {
+                    subpredicates.append(NSPredicate(format: "lookupContextGroupId == nil OR lookupContextGroupId == %@", ""))
+                }
+                request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
                 request.fetchLimit = 1
 
                 let now = Date()
@@ -76,6 +92,8 @@ final class LookupHistoryService {
                     record.word = word
                     record.dictId = dictId
                     record.dictName = dictName
+                    record.lookupContextDictId = lookupContextDictId
+                    record.lookupContextGroupId = lookupContextGroupId
                     record.firstLookedUpAt = now
                     record.lastLookedUpAt = now
                     record.lookupCount = 1
@@ -92,20 +110,23 @@ final class LookupHistoryService {
 
     // MARK: - Read (Grouped by Date)
 
-    /// Fetch history records grouped by date category.
-    /// - Parameter dictIds: If non-nil, only return records whose dictId is in this set.
-    ///   Pass `nil` to return all records (e.g. for the default "All" group).
-    /// - Returns: Sections in chronological order (most recent first).
+    /// Fetch history records for a specific lookup context, grouped by date category.
+    ///
+    /// Context tuple: exactly one of `lookupContextDictId` / `lookupContextGroupId` should be non-nil.
     ///
     /// Runs on viewContext (main queue) — safe because this class is MainActor-isolated.
-    func groupedHistory(dictIds: Set<String>? = nil) -> [HistorySection] {
+    func groupedHistory(lookupContextDictId: String?,
+                        lookupContextGroupId: String?) -> [HistorySection] {
         let ctx = stack.viewContext
         let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
         request.sortDescriptors = [NSSortDescriptor(key: "lastLookedUpAt", ascending: false)]
 
-        if let dictIds, !dictIds.isEmpty {
-            request.predicate = NSPredicate(format: "dictId IN %@", dictIds)
+        if let ctxDictId = lookupContextDictId {
+            request.predicate = NSPredicate(format: "lookupContextDictId == %@", ctxDictId)
+        } else if let ctxGroupId = lookupContextGroupId {
+            request.predicate = NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId)
         }
+        // If both nil, no predicate → returns all records (shouldn't happen in normal use)
 
         do {
             let records = try ctx.fetch(request)
@@ -131,10 +152,10 @@ final class LookupHistoryService {
         }
     }
 
-    /// Delete history records, optionally filtered by dictionary IDs.
-    /// - Parameter dictIds: If non-nil, only delete records whose dictId is in this set.
-    ///   Pass `nil` to delete all records.
-    func clearHistory(dictIds: Set<String>? = nil) {
+    /// Delete history records for a specific lookup context.
+    ///
+    /// Context tuple: exactly one of `lookupContextDictId` / `lookupContextGroupId` should be non-nil.
+    func clearHistory(lookupContextDictId: String?, lookupContextGroupId: String?) {
         // Create background context and capture viewContext on MainActor before escaping
         let ctx = self.stack.newBackgroundContext()
         let viewContext = self.stack.viewContext
@@ -142,8 +163,10 @@ final class LookupHistoryService {
 
             try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
                 let request = NSFetchRequest<NSFetchRequestResult>(entityName: "LookupRecord")
-                if let dictIds, !dictIds.isEmpty {
-                    request.predicate = NSPredicate(format: "dictId IN %@", dictIds)
+                if let ctxDictId = lookupContextDictId {
+                    request.predicate = NSPredicate(format: "lookupContextDictId == %@", ctxDictId)
+                } else if let ctxGroupId = lookupContextGroupId {
+                    request.predicate = NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId)
                 }
                 let batchDelete = NSBatchDeleteRequest(fetchRequest: request)
                 batchDelete.resultType = .resultTypeObjectIDs

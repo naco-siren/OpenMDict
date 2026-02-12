@@ -124,23 +124,25 @@ class WordListViewController: UIViewController {
 
     // MARK: - History Data
 
-    /// Dictionary IDs to filter history by, derived from current search context.
-    /// `nil` means show all history (default group contains all dicts).
-    private var historyFilterDictIds: Set<String>? {
+    /// Lookup context tuple derived from current search context.
+    /// Exactly one of the two values is non-nil.
+    private var lookupContext: (dictId: String?, groupId: String?)? {
         guard let context = searchSession?.currentContext else { return nil }
         switch context {
         case .group(let group):
-            // Default group → show all; user group → filter by group's dicts
-            return group.isDefault ? nil : Set(group.dictionaryIds)
+            return (nil, group.id)
         case .dictionary(let dict):
-            return [dict.id]
+            return (dict.id, nil)
         case .none:
             return nil
         }
     }
 
     private func loadHistory() {
-        historyGroups = LookupHistoryService.shared.groupedHistory(dictIds: historyFilterDictIds)
+        let ctx = lookupContext
+        historyGroups = LookupHistoryService.shared.groupedHistory(
+            lookupContextDictId: ctx?.dictId, lookupContextGroupId: ctx?.groupId
+        )
         if !isSearching {
             tableView.reloadData()
             updateEmptyState()
@@ -250,9 +252,11 @@ class WordListViewController: UIViewController {
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        let filterIds = historyFilterDictIds
+        let ctx = lookupContext
         alert.addAction(UIAlertAction(title: L10n.History.clearAll, style: .destructive) { _ in
-            LookupHistoryService.shared.clearHistory(dictIds: filterIds)
+            LookupHistoryService.shared.clearHistory(
+                lookupContextDictId: ctx?.dictId, lookupContextGroupId: ctx?.groupId
+            )
         })
         present(alert, animated: true)
     }

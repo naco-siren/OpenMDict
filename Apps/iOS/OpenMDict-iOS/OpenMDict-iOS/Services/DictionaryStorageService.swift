@@ -482,6 +482,12 @@ final class DictionaryStorageService {
     func updateDefaultOrder(_ order: [String]) {
         manifest.groups.defaultOrder = order
     }
+
+    /// Stamp the default group creation date (called once on first setup)
+    func setDefaultGroupCreatedAt(_ date: Date) {
+        manifest.groups.defaultGroupCreatedAt = date
+        scheduleDeferredManifestSave()
+    }
     
     /// Update user groups
     func updateUserGroups(_ groups: [DictionaryManifest.UserGroup]) {
@@ -841,21 +847,16 @@ final class DictionaryStorageService {
         print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
     }
     
-    /// Increment lookup count for a dictionary (trophy counter).
+    /// Increment per-context lookup count (trophy counter).
     /// Batches saves to avoid excessive disk I/O.
-    func incrementLookupCount(id: String) {
-        manifest.incrementLookupCount(id: id)
+    func incrementLookupCount(contextDictId: String?, contextGroupId: String?) {
+        manifest.incrementLookupCount(contextDictId: contextDictId, contextGroupId: contextGroupId)
         scheduleDeferredManifestSave()
     }
 
-    /// Lookup count for a single dictionary (from manifest)
-    func lookupCount(id: String) -> Int {
-        manifest.lookupCount(id: id)
-    }
-
-    /// Lookup count across multiple dictionaries (from manifest)
-    func lookupCount(ids: [String]) -> Int {
-        manifest.lookupCount(ids: ids)
+    /// Per-context lookup count (from manifest)
+    func lookupCount(contextDictId: String?, contextGroupId: String?) -> Int {
+        manifest.lookupCount(contextDictId: contextDictId, contextGroupId: contextGroupId)
     }
 
     // MARK: - Deferred Manifest Save

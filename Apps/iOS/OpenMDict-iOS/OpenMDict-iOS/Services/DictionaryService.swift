@@ -201,6 +201,11 @@ final class DictionaryService: ObservableObject {
             defaultOrder = allDictionaries.map { $0.id }
         }
 
+        // Stamp default group creation date on first setup
+        if manifest.groups.defaultGroupCreatedAt == nil && !allDictionaries.isEmpty {
+            storage.setDefaultGroupCreatedAt(Date())
+        }
+
         // Filter to only IDs that exist in allDictionaries
         let validOrder = defaultOrder.filter { id in
             allDictionaries.contains { $0.id == id }
@@ -210,7 +215,8 @@ final class DictionaryService: ObservableObject {
             id: "all",
             name: L10n.GroupInfo.allDictionaries,
             isDefault: true,
-            dictionaryIds: validOrder
+            dictionaryIds: validOrder,
+            createdAt: storage.manifest.groups.defaultGroupCreatedAt
         )
         allGroup.populate(from: allDictionaries)
 

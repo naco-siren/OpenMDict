@@ -21,6 +21,10 @@ class DetailContainerViewController: UIViewController {
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
     private var zoom = ZoomLevel()
      
+    /// Current lookup context for recording entry-link lookups.
+    /// Set by MainSplitViewController whenever the search context changes.
+    var lookupContext: (dictId: String?, groupId: String?)?
+
     /// Called when articles become empty (for compact mode navigation)
     var onArticlesEmptied: (() -> Void)?
     
@@ -759,10 +763,12 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
         syncStateToActiveChild()
         articlesVC.scrollToArticle(articles.first!, animated: true)
 
-        // Record lookup history
+        // Record lookup history using the current lookup context
         let historyDictName = DictionaryService.shared.dict(id: dictId)?.metadata?.title ?? dictId
+        let ctx = lookupContext ?? (nil, "all")
         LookupHistoryService.shared.recordLookup(
-            word: word, dictId: dictId, dictName: historyDictName
+            word: word, dictId: dictId, dictName: historyDictName,
+            lookupContextDictId: ctx.dictId, lookupContextGroupId: ctx.groupId
         )
     }
 

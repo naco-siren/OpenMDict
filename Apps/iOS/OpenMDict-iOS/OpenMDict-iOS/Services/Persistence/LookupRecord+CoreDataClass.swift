@@ -31,4 +31,10 @@ nonisolated public class LookupRecord: NSManagedObject {
     @NSManaged public var firstLookedUpAt: Date?
     @NSManaged public var lastLookedUpAt: Date?
     @NSManaged public var lookupCount: Int32
+
+    /// Lookup context: non-nil when the lookup was performed in a single-dictionary context.
+    @NSManaged public var lookupContextDictId: String?
+
+    /// Lookup context: non-nil when the lookup was performed in a group context (including "all").
+    @NSManaged public var lookupContextGroupId: String?
 }

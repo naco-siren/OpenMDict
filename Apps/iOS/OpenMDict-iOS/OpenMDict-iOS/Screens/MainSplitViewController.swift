@@ -494,9 +494,16 @@ class MainSplitViewController: UISplitViewController {
         
         showArticle(article, animated: true)
 
-        // Record lookup history
+        // Record lookup history with current search context
+        let (ctxDictId, ctxGroupId): (String?, String?) = switch wordListVC.searchSession?.currentContext {
+        case .dictionary(let d): (d.id, nil)
+        case .group(let g):      (nil, g.id)
+        case .none?, nil:        (nil, "all")   // SearchContext.none or no session
+        }
+        detailContainer.lookupContext = (dictId: ctxDictId, groupId: ctxGroupId)
         LookupHistoryService.shared.recordLookup(
-            word: word.word, dictId: word.dictId, dictName: word.dictName
+            word: word.word, dictId: word.dictId, dictName: word.dictName,
+            lookupContextDictId: ctxDictId, lookupContextGroupId: ctxGroupId
         )
     }
     
