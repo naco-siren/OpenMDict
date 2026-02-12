@@ -360,6 +360,9 @@ nonisolated enum L10n {
         static var deleteFailed: String {
             NSLocalizedString("dictInfo.deleteFailed", value: "Delete Failed", comment: "Alert title when delete fails")
         }
+        static var lookupCount: String {
+            NSLocalizedString("dictInfo.lookupCount", value: "Lookups", comment: "Metadata label: number of lookups for this dictionary")
+        }
     }
 
     // MARK: - Group Info
@@ -424,6 +427,9 @@ nonisolated enum L10n {
         }
         static var allDictionaries: String {
             NSLocalizedString("groupInfo.allDictionaries", value: "All Dictionaries", comment: "Navigation title for default group")
+        }
+        static var lookupCount: String {
+            NSLocalizedString("groupInfo.lookupCount", value: "Lookups", comment: "Metadata label: total lookups for this group")
         }
     }
 
@@ -506,6 +512,55 @@ nonisolated enum L10n {
         }
         static var sectionDictionaries: String {
             NSLocalizedString("dictEditor.sectionDictionaries", value: "DICTIONARIES", comment: "Section header in reorder mode")
+        }
+    }
+
+    // MARK: - Lookup History
+
+    enum History {
+        static var clearAll: String {
+            NSLocalizedString("history.clearAll", value: "Clear All", comment: "Button to clear all lookup history")
+        }
+        static var clearAllConfirmTitle: String {
+            NSLocalizedString("history.clearAllConfirm.title", value: "Clear Lookup History?", comment: "Alert title to confirm clearing all history")
+        }
+        static var clearAllConfirmMessage: String {
+            NSLocalizedString("history.clearAllConfirm.message", value: "This cannot be undone.", comment: "Alert body to confirm clearing all history")
+        }
+        static var emptyState: String {
+            NSLocalizedString("history.emptyState", value: "No lookup history", comment: "Empty state when no lookup history exists")
+        }
+    }
+
+    // MARK: - History Section Headers (Date Grouping)
+
+    enum HistorySection {
+        static var today: String {
+            NSLocalizedString("historySection.today", value: "Today", comment: "History date group: today")
+        }
+        static var yesterday: String {
+            NSLocalizedString("historySection.yesterday", value: "Yesterday", comment: "History date group: yesterday")
+        }
+        static func daysAgo(_ n: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("historySection.daysAgo", value: "%d Days Ago", comment: "History date group: N days ago"),
+                n
+            )
+        }
+        static func weeksAgo(_ n: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("historySection.weeksAgo", value: "%d Weeks Ago", comment: "History date group: N weeks ago"),
+                n
+            )
+        }
+        static var earlierThisMonth: String {
+            NSLocalizedString("historySection.earlierThisMonth", value: "Earlier This Month", comment: "History date group: earlier this month")
+        }
+        static var lastMonth: String {
+            NSLocalizedString("historySection.lastMonth", value: "Last Month", comment: "History date group: last month")
+        }
+        static var lastYear: String {
+            NSLocalizedString("historySection.lastYear", value: "Last Year", comment: "History date group: last year")
         }
     }
 

@@ -493,6 +493,11 @@ class MainSplitViewController: UISplitViewController {
         }
         
         showArticle(article, animated: true)
+
+        // Record lookup history
+        LookupHistoryService.shared.recordLookup(
+            word: word.word, dictId: word.dictId, dictName: word.dictName
+        )
     }
     
     func showArticle(_ article: ArticleDisplayItem, animated: Bool) {

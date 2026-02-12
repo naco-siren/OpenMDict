@@ -562,15 +562,25 @@ class DetailContainerViewController: UIViewController {
     // MARK: - Public API (called by MainSplitVC)
     
     func pushArticle(_ article: ArticleDisplayItem, animated: Bool) {
-        // Check if already exists
-        if let existingIndex = articles.firstIndex(of: article) {
-            // Move to front
+        // Check if already exists (by id, not full Equatable which includes contentState)
+        if let existingIndex = articles.firstIndex(where: { $0.id == article.id }) {
+            // Update content state if the existing one is pending and the new one is loaded
+            var updated = article
+            if case .pending = articles[existingIndex].contentState,
+               case .pending = article.contentState {
+                // Both pending — just move to front
+                updated = articles[existingIndex]
+            }
             articles.remove(at: existingIndex)
-            articles.insert(article, at: 0)
+            articles.insert(updated, at: 0)
         } else {
             articles.insert(article, at: 0)
+            // If pending, subscribe to the dictionary's load state
+            if case .pending = article.contentState {
+                subscribeToDict(id: article.dictId)
+            }
         }
-        
+
         // Update child
         if activeChild === articlesVC {
             articlesVC.configure(articles: articles, animated: animated)
@@ -748,6 +758,12 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
 
         syncStateToActiveChild()
         articlesVC.scrollToArticle(articles.first!, animated: true)
+
+        // Record lookup history
+        let historyDictName = DictionaryService.shared.dict(id: dictId)?.metadata?.title ?? dictId
+        LookupHistoryService.shared.recordLookup(
+            word: word, dictId: dictId, dictName: historyDictName
+        )
     }
 
     func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String) {

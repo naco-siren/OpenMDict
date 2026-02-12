@@ -159,6 +159,7 @@ class DictInfoViewController: UIViewController {
         /// Entry count: -1 = unknown/missing, 0 = parse error, >0 = actual count
         case date(title: String, icon: String, date: Date)
         case entryCount(Int)
+        case lookupCount(Int)
         case description(String)
         
         // Advanced Metadata
@@ -577,6 +578,9 @@ class DictInfoViewController: UIViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: dateReg, for: indexPath, item: (title, icon, date))
             case .entryCount(let count):
                 return collectionView.dequeueConfiguredReusableCell(using: entryCountReg, for: indexPath, item: count)
+            case .lookupCount(let count):
+                let formatted = NumberFormatter.localizedString(from: NSNumber(value: count), number: .decimal)
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("number.circle", L10n.DictInfo.lookupCount, formatted))
             case .description(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: descriptionReg, for: indexPath, item: value)
                 
@@ -861,9 +865,13 @@ class DictInfoViewController: UIViewController {
                 if let count = metadata.entryCount, count > 0 {
                     basicItems.append(.entryCount(count))
                 }
-                
+
+                // Lookup count (trophy counter from manifest)
+                let lookups = DictionaryStorageService.shared.lookupCount(id: dictId)
+                basicItems.append(.lookupCount(lookups))
+
                 snapshot.appendItems(basicItems, toSection: .basicMetadata)
-                
+
                 // SECTION: Advanced Metadata
                 snapshot.appendSections([.advancedMetadata])
                 snapshot.appendItems([
@@ -1281,7 +1289,7 @@ extension DictInfoViewController: UICollectionViewDelegate {
             showDeleteConfirmation()
             
         // Metadata items - not tappable
-        case .title, .date, .entryCount, .description,
+        case .title, .date, .entryCount, .lookupCount, .description,
              .engineVersion, .format, .encoding,
              .isEncrypted, .isCaseSensitive:
             break

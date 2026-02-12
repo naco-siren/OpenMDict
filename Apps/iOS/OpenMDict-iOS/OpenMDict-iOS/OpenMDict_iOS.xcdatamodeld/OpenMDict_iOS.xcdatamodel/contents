@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="true" userDefinedModelVersionIdentifier="">
-    <elements/>
+    <entity name="LookupRecord" representedClassName="LookupRecord" syncable="YES">
+        <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="firstLookedUpAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastLookedUpAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lookupCount" attributeType="Integer 32" defaultValueString="1" usesScalarValueType="YES"/>
+        <attribute name="word" optional="YES" attributeType="String" defaultValueString=""/>
+        <fetchIndex name="byLastLookedUpAt">
+            <fetchIndexElement property="lastLookedUpAt" type="Binary" order="descending"/>
+        </fetchIndex>
+        <fetchIndex name="byWordAndDictId">
+            <fetchIndexElement property="word" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
 </model>

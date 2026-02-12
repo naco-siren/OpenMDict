@@ -12,6 +12,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Initialize persistent store (Core Data)
+        CoreDataStack.shared.setup()
         // Initialize dictionary service (loads Library dictionaries)
         DictionaryService.shared.setup()
         return true

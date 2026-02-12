@@ -841,6 +841,42 @@ final class DictionaryStorageService {
         print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
     }
     
+    /// Increment lookup count for a dictionary (trophy counter).
+    /// Batches saves to avoid excessive disk I/O.
+    func incrementLookupCount(id: String) {
+        manifest.incrementLookupCount(id: id)
+        scheduleDeferredManifestSave()
+    }
+
+    /// Lookup count for a single dictionary (from manifest)
+    func lookupCount(id: String) -> Int {
+        manifest.lookupCount(id: id)
+    }
+
+    /// Lookup count across multiple dictionaries (from manifest)
+    func lookupCount(ids: [String]) -> Int {
+        manifest.lookupCount(ids: ids)
+    }
+
+    // MARK: - Deferred Manifest Save
+
+    private var deferredSaveWorkItem: DispatchWorkItem?
+
+    /// Schedule a deferred manifest save (coalesces rapid increments)
+    private func scheduleDeferredManifestSave() {
+        deferredSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            do {
+                try self.saveManifest()
+            } catch {
+                print("❌ Deferred manifest save failed: \(error)")
+            }
+        }
+        deferredSaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: workItem)
+    }
+
     // MARK: - Resource Management (Hash-based)
     
     /// Calculate SHA256 hash of a file (for resource naming)

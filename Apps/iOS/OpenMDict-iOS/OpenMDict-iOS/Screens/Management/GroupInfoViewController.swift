@@ -164,7 +164,8 @@ class GroupInfoViewController: UIViewController {
         // Stats
         case createdDate(String)
         case modifiedDate(String)
-        
+        case lookupCount(Int)
+
         // Danger Zone
         case deleteButton
     }
@@ -443,7 +444,10 @@ class GroupInfoViewController: UIViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("calendar", L10n.GroupInfo.created, value))
             case .modifiedDate(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("clock", L10n.GroupInfo.modified, value))
-                
+            case .lookupCount(let count):
+                let formatted = NumberFormatter.localizedString(from: NSNumber(value: count), number: .decimal)
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("number.circle", L10n.GroupInfo.lookupCount, formatted))
+
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
             }
@@ -587,6 +591,12 @@ class GroupInfoViewController: UIViewController {
             if let modified = group.modifiedAt {
                 statsItems.append(.modifiedDate(fmt.string(from: modified)))
             }
+
+            // Lookup count (trophy counter from manifest)
+            let dictIds = group.items.map { $0.id }
+            let lookups = DictionaryStorageService.shared.lookupCount(ids: dictIds)
+            statsItems.append(.lookupCount(lookups))
+
             if !statsItems.isEmpty {
                 snapshot.appendSections([.stats])
                 snapshot.appendItems(statsItems, toSection: .stats)

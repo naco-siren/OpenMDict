@@ -66,12 +66,15 @@ extension DictionaryManifest {
         
         /// Number of custom font files (0-N)
         public var fontsCount: Int
-        
+
+        /// Cumulative lookup count (trophy — never decreases when history is deleted)
+        public var lookupCount: Int
+
         // MARK: - CodingKeys (with legacy fallback)
-        
+
         private enum CodingKeys: String, CodingKey {
             case id, displayName, originalFileName, importedAt, updatedAt, totalSizeKB
-            case mddCount, cssCount, jsCount, fontsCount
+            case mddCount, cssCount, jsCount, fontsCount, lookupCount
             // Legacy keys for reading old manifests
             case mdd, css, js, fonts
         }
@@ -86,7 +89,8 @@ extension DictionaryManifest {
             mddCount: Int = 0,
             cssCount: Int = 0,
             jsCount: Int = 0,
-            fontsCount: Int = 0
+            fontsCount: Int = 0,
+            lookupCount: Int = 0
         ) {
             self.id = id
             self.displayName = displayName
@@ -98,6 +102,7 @@ extension DictionaryManifest {
             self.cssCount = cssCount
             self.jsCount = jsCount
             self.fontsCount = fontsCount
+            self.lookupCount = lookupCount
         }
         
         // MARK: - Decodable (backward compatible)
@@ -127,6 +132,7 @@ extension DictionaryManifest {
             fontsCount = try container.decodeIfPresent(Int.self, forKey: .fontsCount)
                          ?? container.decodeIfPresent(Int.self, forKey: .fonts)
                          ?? 0
+            lookupCount = try container.decodeIfPresent(Int.self, forKey: .lookupCount) ?? 0
         }
 
         // MARK: - Encodable (always use new keys)
@@ -144,6 +150,7 @@ extension DictionaryManifest {
             try container.encode(cssCount, forKey: .cssCount)
             try container.encode(jsCount, forKey: .jsCount)
             try container.encode(fontsCount, forKey: .fontsCount)
+            try container.encode(lookupCount, forKey: .lookupCount)
         }
     }
 }
@@ -359,6 +366,26 @@ extension DictionaryManifest {
         if let index = dictionaries.firstIndex(where: { $0.id == id }) {
             dictionaries[index].totalSizeKB = sizeKB
         }
+    }
+
+    /// Increment lookup count for a dictionary (trophy — monotonically increasing)
+    public mutating func incrementLookupCount(id: String) {
+        if let index = dictionaries.firstIndex(where: { $0.id == id }) {
+            dictionaries[index].lookupCount += 1
+        }
+    }
+
+    /// Get lookup count for a dictionary
+    public func lookupCount(id: String) -> Int {
+        dictionaries.first(where: { $0.id == id })?.lookupCount ?? 0
+    }
+
+    /// Get total lookup count across multiple dictionaries
+    public func lookupCount(ids: [String]) -> Int {
+        let idSet = Set(ids)
+        return dictionaries
+            .filter { idSet.contains($0.id) }
+            .reduce(0) { $0 + $1.lookupCount }
     }
 }
 
