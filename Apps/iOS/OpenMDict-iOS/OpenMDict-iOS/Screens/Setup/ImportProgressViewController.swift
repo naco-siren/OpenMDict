@@ -26,7 +26,7 @@ final class ImportProgressViewController: UIViewController {
 
     private enum ImportItemState {
         case pending
-        case importing(progress: Double, completedBytes: Int64, totalBytes: Int64)
+        case importing(progress: Double)
         case completed
         case failed(message: String)
 
@@ -34,7 +34,7 @@ final class ImportProgressViewController: UIViewController {
         var snapshotKey: String {
             switch self {
             case .pending: return "pending"
-            case .importing(let p, _, _): return "importing:\(Int(p * 100))"
+            case .importing(let p): return "importing:\(Int(p * 100))"
             case .completed: return "completed"
             case .failed(let m): return "failed:\(m.prefix(40))"
             }
@@ -137,9 +137,9 @@ final class ImportProgressViewController: UIViewController {
 
         _ = await service.importBatch(
             presets,
-            onProgress: { [weak self] presetId, progress, completedBytes, totalBytes in
+            onProgress: { [weak self] presetId, progress in
                 Task { @MainActor in
-                    self?.importStates[presetId] = .importing(progress: progress, completedBytes: completedBytes, totalBytes: totalBytes)
+                    self?.importStates[presetId] = .importing(progress: progress)
                     self?.reconfigureItem(presetId)
                 }
             },
@@ -157,7 +157,7 @@ final class ImportProgressViewController: UIViewController {
 
     /// Retry a single failed preset import
     private func retryImport(preset: PresetDictionary) {
-        importStates[preset.id] = .importing(progress: 0, completedBytes: 0, totalBytes: 0)
+        importStates[preset.id] = .importing(progress: 0)
         reconfigureItem(preset.id)
         updateDoneButton()
         updateStatusLabel()
@@ -169,9 +169,9 @@ final class ImportProgressViewController: UIViewController {
                 if preset.isBundleAsset {
                     dictId = try await service.importFromBundle(preset)
                 } else {
-                    dictId = try await service.importFromODR(preset) { [weak self] progress, completedBytes, totalBytes in
+                    dictId = try await service.importFromODR(preset) { [weak self] progress in
                         Task { @MainActor in
-                            self?.importStates[preset.id] = .importing(progress: progress, completedBytes: completedBytes, totalBytes: totalBytes)
+                            self?.importStates[preset.id] = .importing(progress: progress)
                             self?.reconfigureItem(preset.id)
                         }
                     }
@@ -350,17 +350,13 @@ final class ImportProgressViewController: UIViewController {
                 customView: clockImage, placement: .trailing(displayed: .always)
             )))
 
-        case .importing(let progress, let completedBytes, let totalBytes):
-            if totalBytes > 0 {
-                // Real ODR download – show byte counts
-                let completedMB = Double(completedBytes) / 1_048_576
-                let totalMB = Double(totalBytes) / 1_048_576
+        case .importing(let progress):
+            let totalMB = Double(preset.sizeBytes) / 1_048_576
+            if progress > 0 && totalMB > 0 {
+                let completedMB = totalMB * progress
                 content.secondaryText = L10n.Progress.downloadingBytes(
                     completedMB: completedMB, totalMB: totalMB
                 )
-            } else if progress > 0 {
-                // Xcode-hosted ODR or totalUnitCount unavailable – fall back to percentage
-                content.secondaryText = L10n.Progress.downloading(percent: Int(progress * 100))
             } else {
                 content.secondaryText = L10n.Progress.importing
             }
