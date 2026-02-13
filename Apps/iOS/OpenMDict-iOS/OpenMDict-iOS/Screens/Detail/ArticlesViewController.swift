@@ -6,6 +6,7 @@
 //  Passive View - receives data from Container, sends callbacks up
 //
 
+import Combine
 import UIKit
 import WebKit
 
@@ -31,7 +32,8 @@ class ArticlesViewController: UIViewController {
     weak var cellDelegate: ArticleCellDelegate?
     
     // MARK: - Internal State (view-rendering only, not source of truth)
-    
+
+    private var bookmarkCancellable: AnyCancellable?
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     private var zoomLevel: Int = ZoomLevel.defaultLevel
@@ -100,10 +102,12 @@ class ArticlesViewController: UIViewController {
         view.addSubview(emptyView)
 
         // Refresh bookmark icon state when bookmarks change
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(bookmarksDidChange),
-            name: BookmarkService.didChangeNotification, object: nil
-        )
+        bookmarkCancellable = BookmarkService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.bookmarksDidChange()
+            }
         
         // Initialize paging for default mode
         collectionView.isPagingEnabled = (layoutMode == .list)
@@ -511,7 +515,7 @@ class ArticlesViewController: UIViewController {
         collectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
     }
     
-    @objc private func bookmarksDidChange() {
+    private func bookmarksDidChange() {
         // Directly update bookmark icon on visible cells.
         // Avoids reconfigureItems which re-runs the full cell registration
         // closure (including setZoomLevel), causing a subtle reflow glitch.

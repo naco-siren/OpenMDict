@@ -579,6 +579,12 @@ nonisolated enum L10n {
         static var byLookupCount: String {
             NSLocalizedString("bookmarkSort.byLookupCount", value: "Lookup Times", comment: "Bookmark sort mode: by total lookup count")
         }
+        static var ascending: String {
+            NSLocalizedString("bookmarkSort.ascending", value: "Ascending", comment: "Sort order: ascending (oldest/lowest first)")
+        }
+        static var descending: String {
+            NSLocalizedString("bookmarkSort.descending", value: "Descending", comment: "Sort order: descending (newest/highest first)")
+        }
     }
 
     // MARK: - Bookmarks

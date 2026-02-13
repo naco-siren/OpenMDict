@@ -4,7 +4,8 @@
 //
 //  CRUD for bookmark records.
 //  Writes happen on the viewContext; batch delete uses a background context.
-//  Posts `didChangeNotification` after every mutation so the UI can refresh.
+//  Publishes `revision` (Combine @Published) after every mutation so the
+//  UI can react without NotificationCenter.
 //
 //  Thread-safety:
 //  - BookmarkRecord is `nonisolated` (not MainActor-isolated), matching
@@ -12,6 +13,7 @@
 //  - UI layer receives BookmarkItem (Sendable value type) instead.
 //
 
+import Combine
 import CoreData
 import Foundation
 
@@ -47,8 +49,10 @@ final class BookmarkService {
 
     static let shared = BookmarkService()
 
-    /// Posted after any mutation (insert / delete / clear).
-    nonisolated static let didChangeNotification = Notification.Name("BookmarkDidChange")
+    /// Monotonically increasing revision counter; incremented after every
+    /// mutation (insert / delete / clear).  Downstream consumers subscribe
+    /// via `$revision.dropFirst()` to react to changes.
+    @Published private(set) var revision: UInt = 0
 
     private var stack: CoreDataStack { CoreDataStack.shared }
 
@@ -73,7 +77,7 @@ final class BookmarkService {
                 // Already bookmarked → remove
                 ctx.delete(existing)
                 try ctx.save()
-                NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+                revision += 1
                 return false
             } else {
                 // Not bookmarked → create
@@ -83,7 +87,7 @@ final class BookmarkService {
                 record.dictName = dictName
                 record.createdAt = Date()
                 try ctx.save()
-                NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+                revision += 1
                 return true
             }
         } catch {
@@ -145,7 +149,7 @@ final class BookmarkService {
         ctx.delete(object)
         do {
             try ctx.save()
-            NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+            revision += 1
         } catch {
             print("❌ BookmarkService deleteBookmark failed: \(error)")
         }
@@ -170,9 +174,7 @@ final class BookmarkService {
                 }
             }
             await MainActor.run {
-                NotificationCenter.default.post(
-                    name: BookmarkService.didChangeNotification, object: nil
-                )
+                BookmarkService.shared.revision += 1
             }
         }
     }

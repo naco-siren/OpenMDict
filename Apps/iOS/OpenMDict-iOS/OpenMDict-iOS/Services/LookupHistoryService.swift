@@ -2,27 +2,65 @@
 //  LookupHistoryService.swift
 //  OpenMDict-iOS
 //
-//  CRUD and aggregation for lookup history records.
-//  Writes happen on a background context; reads use the viewContext.
-//  Posts `didChangeNotification` after every mutation so the UI can refresh.
+//  In-memory cached repository for lookup history records.
+//
+//  Architecture (DataRepository pattern):
+//  - An in-memory cache (`cache`) is the SINGLE SOURCE OF TRUTH for all reads.
+//  - Writes update the cache synchronously on MainActor, then schedule a
+//    deferred batch persist to CoreData.
+//  - Increments `@Published revision` after every mutation so the UI can react.
+//
+//  Flush strategy (three tiers):
+//  1. Dirty-count threshold (≥10): immediate flush on high-frequency lookups.
+//  2. Debounce timer (2 seconds): coalesces low-frequency writes.
+//  3. Lifecycle callbacks (background / memory warning / terminate): safety net.
 //
 //  Thread-safety:
-//  - LookupRecord is `nonisolated` (not MainActor-isolated), matching
-//    CoreData's own context-queue confinement threading model.
-//  - UI layer receives HistoryItem (Sendable value type) instead.
-//  - Background writes use Task.detached + await ctx.perform { }.
+//  - The service is MainActor-isolated (via `-default-isolation=MainActor`).
+//  - Background CoreData writes use Task.detached + ctx.perform { }.
+//  - LookupRecord and value types are `nonisolated` for CoreData queue confinement
+//    and DiffableDataSource Hashable conformance.
 //
 
+import Combine
 import CoreData
 import Foundation
+import UIKit
+
+/// Convenience alias for the (word, dictId) pair used throughout lookup history.
+typealias WordDictPair = (word: String, dictId: String)
 
 // MARK: - Value Types (file-scope, nonisolated)
+
+/// Compound key matching the CoreData compound index on
+/// (word, dictId, lookupContextDictId, lookupContextGroupId).
+nonisolated struct LookupRecordKey: Hashable, Sendable {
+    let word: String
+    let dictId: String
+    let contextDictId: String   // "" if original is nil
+    let contextGroupId: String  // "" if original is nil
+}
+
+/// In-memory representation of a single LookupRecord.
+/// Replaces NSManagedObject for all read paths.
+nonisolated struct CachedLookupRecord: Sendable {
+    /// Stable identity for delete operations. Nil if not yet persisted to CoreData.
+    var objectID: NSManagedObjectID?
+    let word: String
+    let dictId: String
+    var dictName: String
+    var firstLookedUpAt: Date
+    var lastLookedUpAt: Date
+    var lookupCount: Int32
+    let lookupContextDictId: String?
+    let lookupContextGroupId: String?
+}
 
 /// Sendable value type representing a lookup history record.
 /// At file scope so that Hashable conformance is nonisolated
 /// (required by DiffableDataSource under `-default-isolation=MainActor`).
 nonisolated struct HistoryItem: Sendable, Hashable, DateGroupable {
-    let objectID: NSManagedObjectID
+    let objectID: NSManagedObjectID?
     let word: String
     let dictId: String
     let dictName: String
@@ -53,12 +91,101 @@ final class LookupHistoryService {
 
     static let shared = LookupHistoryService()
 
-    /// Posted after any mutation (insert / update / delete / clear).
-    nonisolated static let didChangeNotification = Notification.Name("LookupHistoryDidChange")
-
     private var stack: CoreDataStack { CoreDataStack.shared }
 
-    // MARK: - Record Lookup (Upsert)
+    // MARK: - Combine Publishers
+
+    /// Revision counter — incremented after every cache mutation.
+    /// List-style consumers use `$revision.dropFirst().sink { ... }` to react.
+    @Published private(set) var revision: UInt = 0
+
+    /// Per-(word, dictId) lookup count publisher.
+    /// Emits the aggregated count across all contexts whenever it changes.
+    /// Ideal for ArticleVC which tracks a single word's count.
+    func lookupCountPublisher(word: String, dictId: String) -> AnyPublisher<Int, Never> {
+        $revision
+            .map { [weak self] _ in
+                self?.totalLookupCount(word: word, dictId: dictId) ?? 0
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - In-Memory Cache
+
+    /// The single source of truth for all reads after population.
+    private var cache: [LookupRecordKey: CachedLookupRecord] = [:]
+
+    /// Whether the cache has been populated from CoreData.
+    private var isCachePopulated = false
+
+    /// Keys of cache entries that need CoreData upsert.
+    private var dirtyKeys: Set<LookupRecordKey> = []
+
+    /// Coalescing timer for deferred persistence.
+    private var deferredPersistWorkItem: DispatchWorkItem?
+
+    /// Dirty count threshold: flush immediately when reached.
+    private let flushThreshold = 10
+
+    // MARK: - Init
+
+    private init() {
+        // Scene entering background — flush to avoid data loss
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleFlushTrigger),
+            name: UIScene.didEnterBackgroundNotification, object: nil
+        )
+        // System memory warning — flush (but keep cache)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleFlushTrigger),
+            name: UIApplication.didReceiveMemoryWarningNotification, object: nil
+        )
+        // App will terminate — last chance to persist
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleFlushTrigger),
+            name: UIApplication.willTerminateNotification, object: nil
+        )
+    }
+
+    @objc private func handleFlushTrigger() {
+        flushDirtyEntriesToCoreData()
+    }
+
+    // MARK: - Cache Population (lazy, on first read)
+
+    private func ensureCachePopulated() {
+        guard !isCachePopulated else { return }
+        let ctx = stack.viewContext
+        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
+        do {
+            let records = try ctx.fetch(request)
+            for record in records {
+                let key = LookupRecordKey(
+                    word: record.word ?? "",
+                    dictId: record.dictId ?? "",
+                    contextDictId: record.lookupContextDictId ?? "",
+                    contextGroupId: record.lookupContextGroupId ?? ""
+                )
+                cache[key] = CachedLookupRecord(
+                    objectID: record.objectID,
+                    word: record.word ?? "",
+                    dictId: record.dictId ?? "",
+                    dictName: record.dictName ?? "",
+                    firstLookedUpAt: record.firstLookedUpAt ?? Date(),
+                    lastLookedUpAt: record.lastLookedUpAt ?? Date(),
+                    lookupCount: record.lookupCount,
+                    lookupContextDictId: record.lookupContextDictId,
+                    lookupContextGroupId: record.lookupContextGroupId
+                )
+            }
+        } catch {
+            print("❌ LookupHistory cache population failed: \(error)")
+        }
+        isCachePopulated = true
+    }
+
+    // MARK: - Record Lookup (Upsert — synchronous cache + deferred persist)
 
     /// Record a lookup. If a record with the same (word, dictId, context) exists,
     /// update `lastLookedUpAt` and increment `lookupCount`.
@@ -75,185 +202,166 @@ final class LookupHistoryService {
             contextDictId: lookupContextDictId, contextGroupId: lookupContextGroupId
         )
 
-        // Create background context on MainActor before escaping.
-        let ctx = self.stack.newBackgroundContext()
-        Task.detached {
-            try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
-                let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
-                var subpredicates: [NSPredicate] = [
-                    NSPredicate(format: "word == %@", word),
-                    NSPredicate(format: "dictId == %@", dictId),
-                ]
-                if let ctxDictId = lookupContextDictId {
-                    subpredicates.append(NSPredicate(format: "lookupContextDictId == %@", ctxDictId))
-                } else {
-                    subpredicates.append(NSPredicate(format: "lookupContextDictId == nil OR lookupContextDictId == %@", ""))
-                }
-                if let ctxGroupId = lookupContextGroupId {
-                    subpredicates.append(NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId))
-                } else {
-                    subpredicates.append(NSPredicate(format: "lookupContextGroupId == nil OR lookupContextGroupId == %@", ""))
-                }
-                request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
-                request.fetchLimit = 1
+        // Ensure cache is ready
+        ensureCachePopulated()
 
-                let now = Date()
-                if let existing = try ctx.fetch(request).first {
-                    existing.lastLookedUpAt = now
-                    existing.lookupCount += 1
-                    existing.dictName = dictName
-                } else {
-                    let record = LookupRecord(context: ctx)
-                    record.word = word
-                    record.dictId = dictId
-                    record.dictName = dictName
-                    record.lookupContextDictId = lookupContextDictId
-                    record.lookupContextGroupId = lookupContextGroupId
-                    record.firstLookedUpAt = now
-                    record.lastLookedUpAt = now
-                    record.lookupCount = 1
-                }
-                try ctx.save()
-            }
-            await MainActor.run {
-                NotificationCenter.default.post(
-                    name: LookupHistoryService.didChangeNotification, object: nil
-                )
-            }
+        // Synchronous cache upsert
+        let key = LookupRecordKey(
+            word: word,
+            dictId: dictId,
+            contextDictId: lookupContextDictId ?? "",
+            contextGroupId: lookupContextGroupId ?? ""
+        )
+        let now = Date()
+        if var existing = cache[key] {
+            existing.lastLookedUpAt = now
+            existing.lookupCount += 1
+            existing.dictName = dictName
+            cache[key] = existing
+        } else {
+            cache[key] = CachedLookupRecord(
+                objectID: nil,
+                word: word,
+                dictId: dictId,
+                dictName: dictName,
+                firstLookedUpAt: now,
+                lastLookedUpAt: now,
+                lookupCount: 1,
+                lookupContextDictId: lookupContextDictId,
+                lookupContextGroupId: lookupContextGroupId
+            )
         }
+
+        // Mark dirty and schedule persistence
+        dirtyKeys.insert(key)
+        scheduleDeferredPersist()
+
+        // Notify UI immediately (cache is already updated)
+        revision += 1
     }
 
-    // MARK: - Read (Grouped by Date)
+    // MARK: - Read (Grouped by Date) — pure cache
 
     /// Fetch history records for a specific lookup context, grouped by date category.
     ///
     /// Context tuple: exactly one of `lookupContextDictId` / `lookupContextGroupId` should be non-nil.
-    ///
-    /// Runs on viewContext (main queue) — safe because this class is MainActor-isolated.
     func groupedHistory(lookupContextDictId: String?,
                         lookupContextGroupId: String?) -> [HistorySection] {
-        let ctx = stack.viewContext
-        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
-        request.sortDescriptors = [NSSortDescriptor(key: "lastLookedUpAt", ascending: false)]
+        ensureCachePopulated()
 
+        let filtered: [CachedLookupRecord]
         if let ctxDictId = lookupContextDictId {
-            request.predicate = NSPredicate(format: "lookupContextDictId == %@", ctxDictId)
+            filtered = cache.values.filter { ($0.lookupContextDictId ?? "") == ctxDictId }
         } else if let ctxGroupId = lookupContextGroupId {
-            request.predicate = NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId)
+            filtered = cache.values.filter { ($0.lookupContextGroupId ?? "") == ctxGroupId }
+        } else {
+            // Both nil → return all (shouldn't happen in normal use)
+            filtered = Array(cache.values)
         }
-        // If both nil, no predicate → returns all records (shouldn't happen in normal use)
 
-        do {
-            let records = try ctx.fetch(request)
-            return groupRecordsByDate(records)
-        } catch {
-            print("❌ LookupHistory groupedHistory fetch failed: \(error)")
-            return []
-        }
+        let sorted = filtered.sorted { $0.lastLookedUpAt > $1.lastLookedUpAt }
+        return groupCachedRecordsByDate(sorted)
     }
 
     /// Total lookup count for a (word, dictId) pair across all contexts.
     func totalLookupCount(word: String, dictId: String) -> Int {
-        let ctx = stack.viewContext
-        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "word == %@", word),
-            NSPredicate(format: "dictId == %@", dictId),
-        ])
-
-        do {
-            let records = try ctx.fetch(request)
-            return records.reduce(0) { $0 + Int($1.lookupCount) }
-        } catch {
-            print("❌ LookupHistory totalLookupCount failed: \(error)")
-            return 0
-        }
+        ensureCachePopulated()
+        return cache.values
+            .filter { $0.word == word && $0.dictId == dictId }
+            .reduce(0) { $0 + Int($1.lookupCount) }
     }
 
     /// Batch-fetch lookup metadata for a list of (word, dictId) pairs.
     /// Returns a dictionary keyed by "word\0dictId" with aggregated lookup info.
-    /// Efficient: single Core Data fetch with an OR predicate.
-    func lookupMetadata(for pairs: [(word: String, dictId: String)]) -> [String: (lastDate: Date?, count: Int)] {
+    func lookupMetadata(for pairs: [WordDictPair]) -> [String: (lastDate: Date?, count: Int)] {
         guard !pairs.isEmpty else { return [:] }
-        let ctx = stack.viewContext
-        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
+        ensureCachePopulated()
 
-        let subpredicates = pairs.map { pair in
-            NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "word == %@", pair.word),
-                NSPredicate(format: "dictId == %@", pair.dictId),
-            ])
-        }
-        request.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: subpredicates)
+        // Build a set for O(1) membership check
+        let pairSet = Set(pairs.map { "\($0.word)\0\($0.dictId)" })
 
-        do {
-            let records = try ctx.fetch(request)
-            var result: [String: (lastDate: Date?, count: Int)] = [:]
-            for record in records {
-                let key = "\(record.word ?? "")\0\(record.dictId ?? "")"
-                let existing = result[key]
-                let newDate: Date? = {
-                    guard let recDate = record.lastLookedUpAt else { return existing?.lastDate }
-                    guard let exDate = existing?.lastDate else { return recDate }
-                    return max(recDate, exDate)
-                }()
-                result[key] = (lastDate: newDate, count: (existing?.count ?? 0) + Int(record.lookupCount))
-            }
-            return result
-        } catch {
-            print("❌ LookupHistory lookupMetadata failed: \(error)")
-            return [:]
+        var result: [String: (lastDate: Date?, count: Int)] = [:]
+        for record in cache.values {
+            let pairKey = "\(record.word)\0\(record.dictId)"
+            guard pairSet.contains(pairKey) else { continue }
+
+            let existing = result[pairKey]
+            let newDate: Date? = {
+                let recDate = record.lastLookedUpAt
+                guard let exDate = existing?.lastDate else { return recDate }
+                return max(recDate, exDate)
+            }()
+            result[pairKey] = (lastDate: newDate, count: (existing?.count ?? 0) + Int(record.lookupCount))
         }
+        return result
     }
 
-    // MARK: - Read (All Contexts)
+    // MARK: - Read (All Contexts) — pure cache
 
     /// Fetch ALL history records across all contexts, grouped by date.
     /// Deduplicates by (word, dictId) — keeps the most recent record per pair.
     func allGroupedHistory() -> [HistorySection] {
-        let ctx = stack.viewContext
-        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
-        request.sortDescriptors = [NSSortDescriptor(key: "lastLookedUpAt", ascending: false)]
+        ensureCachePopulated()
 
-        do {
-            let records = try ctx.fetch(request)
-            // Deduplicate: keep only the most recent record per (word, dictId)
-            var seen = Set<String>()
-            let deduplicated = records.filter { record in
-                let key = "\(record.word ?? "")\0\(record.dictId ?? "")"
-                return seen.insert(key).inserted
-            }
-            return groupRecordsByDate(deduplicated)
-        } catch {
-            print("❌ LookupHistory allGroupedHistory fetch failed: \(error)")
-            return []
+        // Sort by lastLookedUpAt descending, then deduplicate
+        let sorted = cache.values.sorted { $0.lastLookedUpAt > $1.lastLookedUpAt }
+        var seen = Set<String>()
+        let deduplicated = sorted.filter { record in
+            let key = "\(record.word)\0\(record.dictId)"
+            return seen.insert(key).inserted
         }
+        return groupCachedRecordsByDate(deduplicated)
     }
 
-    // MARK: - Delete
+    // MARK: - Delete (immediate cache + immediate CoreData)
 
     /// Delete a single record by its managed object ID.
     func deleteRecord(objectID: NSManagedObjectID) {
+        ensureCachePopulated()
+
+        // Find and remove from cache
+        if let key = cache.first(where: { $0.value.objectID == objectID })?.key {
+            cache.removeValue(forKey: key)
+            dirtyKeys.remove(key)
+        }
+
+        // Immediate CoreData delete
         let ctx = stack.viewContext
         let object = ctx.object(with: objectID)
         ctx.delete(object)
         do {
             try ctx.save()
-            NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
         } catch {
             print("❌ LookupHistory deleteRecord failed: \(error)")
         }
+
+        revision += 1
     }
 
     /// Delete history records for a specific lookup context.
     ///
     /// Context tuple: exactly one of `lookupContextDictId` / `lookupContextGroupId` should be non-nil.
     func clearHistory(lookupContextDictId: String?, lookupContextGroupId: String?) {
-        // Create background context and capture viewContext on MainActor before escaping
+        ensureCachePopulated()
+
+        // Remove matching entries from cache
+        let keysToRemove = cache.keys.filter { key in
+            if let ctxDictId = lookupContextDictId {
+                return key.contextDictId == ctxDictId
+            } else if let ctxGroupId = lookupContextGroupId {
+                return key.contextGroupId == ctxGroupId
+            }
+            return false
+        }
+        for key in keysToRemove {
+            cache.removeValue(forKey: key)
+            dirtyKeys.remove(key)
+        }
+
+        // Immediate CoreData batch delete
         let ctx = self.stack.newBackgroundContext()
         let viewContext = self.stack.viewContext
         Task.detached {
-
             try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
                 let request = NSFetchRequest<NSFetchRequestResult>(entityName: "LookupRecord")
                 if let ctxDictId = lookupContextDictId {
@@ -266,23 +374,29 @@ final class LookupHistoryService {
 
                 let result = try ctx.execute(batchDelete) as? NSBatchDeleteResult
                 if let objectIDs = result?.result as? [NSManagedObjectID] {
-                    // mergeChanges dispatches to each context's queue internally
                     NSManagedObjectContext.mergeChanges(
                         fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
                         into: [viewContext]
                     )
                 }
             }
-            await MainActor.run {
-                NotificationCenter.default.post(
-                    name: LookupHistoryService.didChangeNotification, object: nil
-                )
-            }
         }
+
+        // Notify immediately (cache is already updated)
+        revision += 1
     }
 
     /// Delete ALL lookup history records across all contexts.
     func clearAllHistory() {
+        ensureCachePopulated()
+
+        // Clear cache entirely
+        cache.removeAll()
+        dirtyKeys.removeAll()
+        deferredPersistWorkItem?.cancel()
+        deferredPersistWorkItem = nil
+
+        // Immediate CoreData batch delete
         let ctx = self.stack.newBackgroundContext()
         let viewContext = self.stack.viewContext
         Task.detached {
@@ -299,25 +413,135 @@ final class LookupHistoryService {
                     )
                 }
             }
-            await MainActor.run {
-                NotificationCenter.default.post(
-                    name: LookupHistoryService.didChangeNotification, object: nil
-                )
+        }
+
+        // Notify immediately (cache is already updated)
+        revision += 1
+    }
+
+    // MARK: - Deferred Persistence
+
+    /// Schedule a deferred CoreData persist.
+    /// Three-tier strategy:
+    /// 1. Dirty count ≥ threshold → immediate flush
+    /// 2. 2-second debounce timer → coalesced flush
+    /// 3. Lifecycle callbacks → safety-net flush (handled by handleFlushTrigger)
+    private func scheduleDeferredPersist() {
+        // Tier 1: threshold reached → immediate flush
+        if dirtyKeys.count >= flushThreshold {
+            flushDirtyEntriesToCoreData()
+            return
+        }
+
+        // Tier 2: debounce timer
+        deferredPersistWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.flushDirtyEntriesToCoreData()
+        }
+        deferredPersistWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: workItem)
+    }
+
+    /// Force-flush all pending writes to CoreData immediately.
+    func flushDirtyEntriesToCoreData() {
+        deferredPersistWorkItem?.cancel()
+        deferredPersistWorkItem = nil
+
+        guard !dirtyKeys.isEmpty else { return }
+        let keysToFlush = dirtyKeys
+        dirtyKeys.removeAll()
+
+        let entriesToPersist = keysToFlush.compactMap { cache[$0] }
+        guard !entriesToPersist.isEmpty else { return }
+
+        let ctx = stack.newBackgroundContext()
+        Task.detached { [entriesToPersist] in
+            try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
+                for entry in entriesToPersist {
+                    let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
+                    var subpredicates: [NSPredicate] = [
+                        NSPredicate(format: "word == %@", entry.word),
+                        NSPredicate(format: "dictId == %@", entry.dictId),
+                    ]
+                    if let ctxDictId = entry.lookupContextDictId, !ctxDictId.isEmpty {
+                        subpredicates.append(NSPredicate(format: "lookupContextDictId == %@", ctxDictId))
+                    } else {
+                        subpredicates.append(NSPredicate(format: "lookupContextDictId == nil OR lookupContextDictId == %@", ""))
+                    }
+                    if let ctxGroupId = entry.lookupContextGroupId, !ctxGroupId.isEmpty {
+                        subpredicates.append(NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId))
+                    } else {
+                        subpredicates.append(NSPredicate(format: "lookupContextGroupId == nil OR lookupContextGroupId == %@", ""))
+                    }
+                    request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
+                    request.fetchLimit = 1
+
+                    if let existing = try ctx.fetch(request).first {
+                        existing.lastLookedUpAt = entry.lastLookedUpAt
+                        existing.lookupCount = entry.lookupCount
+                        existing.dictName = entry.dictName
+                    } else {
+                        let record = LookupRecord(context: ctx)
+                        record.word = entry.word
+                        record.dictId = entry.dictId
+                        record.dictName = entry.dictName
+                        record.lookupContextDictId = entry.lookupContextDictId
+                        record.lookupContextGroupId = entry.lookupContextGroupId
+                        record.firstLookedUpAt = entry.firstLookedUpAt
+                        record.lastLookedUpAt = entry.lastLookedUpAt
+                        record.lookupCount = entry.lookupCount
+                    }
+                }
+                try ctx.save()
+            }
+
+            // After save, backfill objectIDs for newly created entries
+            await MainActor.run { [weak self] in
+                self?.backfillObjectIDs(for: keysToFlush)
+            }
+        }
+    }
+
+    /// After a background persist, newly inserted records now have permanent objectIDs
+    /// in the viewContext (via automaticallyMergesChangesFromParent). Capture them so
+    /// that deleteRecord(objectID:) can find them later.
+    private func backfillObjectIDs(for keys: Set<LookupRecordKey>) {
+        let ctx = stack.viewContext
+        for key in keys {
+            guard cache[key]?.objectID == nil else { continue }
+            let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
+            var subpredicates: [NSPredicate] = [
+                NSPredicate(format: "word == %@", key.word),
+                NSPredicate(format: "dictId == %@", key.dictId),
+            ]
+            if !key.contextDictId.isEmpty {
+                subpredicates.append(NSPredicate(format: "lookupContextDictId == %@", key.contextDictId))
+            } else {
+                subpredicates.append(NSPredicate(format: "lookupContextDictId == nil OR lookupContextDictId == %@", ""))
+            }
+            if !key.contextGroupId.isEmpty {
+                subpredicates.append(NSPredicate(format: "lookupContextGroupId == %@", key.contextGroupId))
+            } else {
+                subpredicates.append(NSPredicate(format: "lookupContextGroupId == nil OR lookupContextGroupId == %@", ""))
+            }
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
+            request.fetchLimit = 1
+            if let record = try? ctx.fetch(request).first {
+                cache[key]?.objectID = record.objectID
             }
         }
     }
 
     // MARK: - Date Grouping
 
-    /// Convert LookupRecords to HistoryItems and group by date using the shared helper.
-    private func groupRecordsByDate(_ records: [LookupRecord]) -> [HistorySection] {
-        let items = records.compactMap { record -> HistoryItem? in
-            guard record.lastLookedUpAt != nil else { return nil }
-            return HistoryItem(
+    /// Convert CachedLookupRecords to HistoryItems and group by date using the shared helper.
+    private func groupCachedRecordsByDate(_ records: [CachedLookupRecord]) -> [HistorySection] {
+        let items = records.map { record in
+            HistoryItem(
                 objectID: record.objectID,
-                word: record.word ?? "",
-                dictId: record.dictId ?? "",
-                dictName: record.dictName ?? "",
+                word: record.word,
+                dictId: record.dictId,
+                dictName: record.dictName,
                 lastLookedUpAt: record.lastLookedUpAt
             )
         }

@@ -11,6 +11,7 @@
 //  Used as the supplementary column when "Bookmarks" is selected in sidebar.
 //
 
+import Combine
 import UIKit
 
 // MARK: - Section Type
@@ -63,6 +64,9 @@ class BookmarkListViewController: UIViewController {
     /// Cached lookup metadata for modes 2 & 3.
     /// Key: "word\0dictId" → (lastDate, count)
     private var lookupMeta: [String: (lastDate: Date?, count: Int)] = [:]
+
+    private var historyCancellable: AnyCancellable?
+    private var bookmarkCancellable: AnyCancellable?
 
     // MARK: - UI
 
@@ -187,6 +191,22 @@ class BookmarkListViewController: UIViewController {
 
         configureDataSource()
         reload()
+
+        // React to lookup history changes (e.g., count updates from other VCs)
+        historyCancellable = LookupHistoryService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reload()
+            }
+
+        // React to bookmark mutations (e.g., toggle from ArticleVC)
+        bookmarkCancellable = BookmarkService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reload()
+            }
     }
 
     // MARK: - Public Reload
@@ -287,6 +307,10 @@ class BookmarkListViewController: UIViewController {
             applyLookupCountSnapshot(&snapshot, bookmarks: bookmarks)
         }
 
+        // Force cell reconfiguration even when item identity hasn't changed,
+        // because displayed data (lookup count, last lookup date) lives in
+        // lookupMeta — outside the BookmarkItem's Hashable identity.
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
 
@@ -386,7 +410,7 @@ class BookmarkListViewController: UIViewController {
 
     private func buildSortOrderMenu() -> UIMenu {
         let ascAction = UIAction(
-            title: "Ascending",
+            title: L10n.BookmarkSort.ascending,
             image: UIImage(systemName: "arrow.up"),
             state: isAscending ? .on : .off
         ) { [weak self] _ in
@@ -397,7 +421,7 @@ class BookmarkListViewController: UIViewController {
         }
 
         let descAction = UIAction(
-            title: "Descending",
+            title: L10n.BookmarkSort.descending,
             image: UIImage(systemName: "arrow.down"),
             state: !isAscending ? .on : .off
         ) { [weak self] _ in

@@ -559,12 +559,12 @@ class MainSplitViewController: UISplitViewController {
             }
             showArticle(article, animated: true)
 
-            // Record lookup so count stays accurate, then refresh the list
+            // Record lookup so count stays accurate
+            // (bookmarkListVC auto-reloads via $revision subscription)
             LookupHistoryService.shared.recordLookup(
                 word: bookmark.word, dictId: bookmark.dictId, dictName: bookmark.dictName,
                 lookupContextDictId: nil, lookupContextGroupId: nil
             )
-            bookmarkListVC.reload()
         }
     }
 
@@ -595,12 +595,12 @@ class MainSplitViewController: UISplitViewController {
             }
             showArticle(article, animated: true)
 
-            // Record lookup so history stays accurate, then refresh the list
+            // Record lookup so history stays accurate
+            // (lookupHistoryListVC auto-reloads via $revision subscription)
             LookupHistoryService.shared.recordLookup(
                 word: historyItem.word, dictId: historyItem.dictId, dictName: historyItem.dictName,
                 lookupContextDictId: nil, lookupContextGroupId: nil
             )
-            lookupHistoryListVC.reload()
         }
     }
 

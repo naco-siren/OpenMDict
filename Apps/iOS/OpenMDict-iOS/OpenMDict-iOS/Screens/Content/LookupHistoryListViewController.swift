@@ -9,6 +9,7 @@
 //  in the sidebar.
 //
 
+import Combine
 import UIKit
 
 class LookupHistoryListViewController: UIViewController {
@@ -20,6 +21,7 @@ class LookupHistoryListViewController: UIViewController {
     // MARK: - Data
 
     private var dataSource: UICollectionViewDiffableDataSource<String, HistoryItem>!
+    private var historyCancellable: AnyCancellable?
 
     // MARK: - UI
 
@@ -32,7 +34,9 @@ class LookupHistoryListViewController: UIViewController {
                 return nil
             }
             let deleteAction = UIContextualAction(style: .destructive, title: L10n.delete) { [weak self] _, _, completion in
-                LookupHistoryService.shared.deleteRecord(objectID: item.objectID)
+                if let objectID = item.objectID {
+                    LookupHistoryService.shared.deleteRecord(objectID: objectID)
+                }
                 self?.reload()
                 completion(true)
             }
@@ -118,12 +122,20 @@ class LookupHistoryListViewController: UIViewController {
 
         configureDataSource()
         reload()
+
+        // React to lookup history changes (e.g., new lookups from other VCs)
+        historyCancellable = LookupHistoryService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reload()
+            }
     }
 
     // MARK: - Public Reload
 
     /// Reload history from the data layer and refresh the snapshot.
-    /// Called externally by MainSplitVC after lookup mutations.
+    /// Called externally by MainSplitVC when first showing the list.
     func reload() {
         // dataSource is configured in viewDidLoad; if called before that
         // (e.g. from MainSplitVC.showLookupHistoryList before the view

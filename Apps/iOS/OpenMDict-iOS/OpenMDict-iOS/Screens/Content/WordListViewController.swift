@@ -114,7 +114,8 @@ class WordListViewController: UIViewController {
     }
 
     private func subscribeToHistoryChanges() {
-        NotificationCenter.default.publisher(for: LookupHistoryService.didChangeNotification)
+        LookupHistoryService.shared.$revision
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.loadHistory()
@@ -316,8 +317,9 @@ extension WordListViewController: UITableViewDataSource {
         guard indexPath.section < historyGroups.count,
               indexPath.row < historyGroups[indexPath.section].records.count else { return }
         let record = historyGroups[indexPath.section].records[indexPath.row]
-        LookupHistoryService.shared.deleteRecord(objectID: record.objectID)
-        // loadHistory() will be triggered via didChangeNotification
+        guard let objectID = record.objectID else { return }
+        LookupHistoryService.shared.deleteRecord(objectID: objectID)
+        // loadHistory() will be triggered via $revision subscription
     }
 }
 

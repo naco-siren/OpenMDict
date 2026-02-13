@@ -6,6 +6,7 @@
 //  Passive View - no state, just renders what Container gives it
 //
 
+import Combine
 import UIKit
 import WebKit
 
@@ -26,6 +27,8 @@ class ArticleViewController: UIViewController {
     private var currentArticle: ArticleDisplayItem?
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
     private var isBookmarked: Bool = false
+    private var lookupCountCancellable: AnyCancellable?
+    private var bookmarkCancellable: AnyCancellable?
     
     // MARK: - UI
 
@@ -133,14 +136,12 @@ class ArticleViewController: UIViewController {
         setupUI()
         showEmpty()
 
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(bookmarksDidChange),
-            name: BookmarkService.didChangeNotification, object: nil
-        )
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(lookupHistoryDidChange),
-            name: LookupHistoryService.didChangeNotification, object: nil
-        )
+        bookmarkCancellable = BookmarkService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.bookmarksDidChange()
+            }
     }
     
     private func setupUI() {
@@ -221,7 +222,20 @@ class ArticleViewController: UIViewController {
         isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
         bookmarkButton.setNeedsUpdateConfiguration()
 
-        updateLookupCount(word: article.word, dictId: article.dictId)
+        // Subscribe to this article's lookup count (re-binds on each article change)
+        lookupCountCancellable = LookupHistoryService.shared
+            .lookupCountPublisher(word: article.word, dictId: article.dictId)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] count in
+                guard let self else { return }
+                if count > 0 {
+                    self.lookupCountLabel.text = L10n.Articles.lookupCount(count)
+                    self.lookupCountLabel.textColor = self.lookupCountColor(for: count)
+                    self.lookupCountLabel.isHidden = false
+                } else {
+                    self.lookupCountLabel.isHidden = true
+                }
+            }
 
         if reload {
             loadContent(for: article)
@@ -257,17 +271,6 @@ class ArticleViewController: UIViewController {
     }
     
     // MARK: - Lookup Count
-
-    private func updateLookupCount(word: String, dictId: String) {
-        let count = LookupHistoryService.shared.totalLookupCount(word: word, dictId: dictId)
-        if count > 0 {
-            lookupCountLabel.text = L10n.Articles.lookupCount(count)
-            lookupCountLabel.textColor = lookupCountColor(for: count)
-            lookupCountLabel.isHidden = false
-        } else {
-            lookupCountLabel.isHidden = true
-        }
-    }
 
     private func lookupCountColor(for count: Int) -> UIColor {
         switch count {
@@ -308,15 +311,10 @@ class ArticleViewController: UIViewController {
         }
     }
 
-    @objc private func bookmarksDidChange() {
+    private func bookmarksDidChange() {
         guard let article = currentArticle else { return }
         isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
         bookmarkButton.setNeedsUpdateConfiguration()
-    }
-
-    @objc private func lookupHistoryDidChange() {
-        guard let article = currentArticle else { return }
-        updateLookupCount(word: article.word, dictId: article.dictId)
     }
 
     // MARK: - Zoom
