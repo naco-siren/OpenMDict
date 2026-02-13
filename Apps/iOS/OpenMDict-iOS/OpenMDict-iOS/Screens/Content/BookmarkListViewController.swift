@@ -68,101 +68,6 @@ class BookmarkListViewController: UIViewController {
     private var historyCancellable: AnyCancellable?
     private var bookmarkCancellable: AnyCancellable?
 
-    // MARK: - UI
-
-    private lazy var collectionView: UICollectionView = {
-        var config = UICollectionLayoutListConfiguration(appearance: .plain)
-        config.headerMode = .supplementary
-        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            guard let self,
-                  let bookmark = self.dataSource.itemIdentifier(for: indexPath) else {
-                return nil
-            }
-            let deleteAction = UIContextualAction(style: .destructive, title: L10n.Bookmarks.removeBookmark) { [weak self] _, _, completion in
-                guard let self else { completion(false); return }
-                let alert = UIAlertController(
-                    title: L10n.Bookmarks.removeBookmark,
-                    message: L10n.Bookmarks.removeBookmarkMessage(word: bookmark.word, dictName: bookmark.dictName),
-                    preferredStyle: .alert
-                )
-                alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel) { _ in
-                    completion(false)
-                })
-                alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
-                    BookmarkService.shared.deleteBookmark(objectID: bookmark.objectID)
-                    self?.reload()
-                    completion(true)
-                })
-                self.present(alert, animated: true)
-            }
-            deleteAction.image = UIImage(systemName: "bookmark.slash")
-            return UISwipeActionsConfiguration(actions: [deleteAction])
-        }
-
-        let layout = UICollectionViewCompositionalLayout.list(using: config)
-
-        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        cv.translatesAutoresizingMaskIntoConstraints = false
-        cv.delegate = self
-        return cv
-    }()
-
-    private lazy var emptyView: UIView = {
-        let v = UIView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 12
-
-        let img = UIImageView(image: UIImage(systemName: "bookmark.slash"))
-        img.tintColor = .tertiaryLabel
-        img.preferredSymbolConfiguration = .init(pointSize: 48)
-
-        let titleLabel = UILabel()
-        titleLabel.text = L10n.Bookmarks.empty
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = .secondaryLabel
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = L10n.Bookmarks.emptySubtitle
-        subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = .tertiaryLabel
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-
-        stack.addArrangedSubview(img)
-        stack.addArrangedSubview(titleLabel)
-        stack.addArrangedSubview(subtitleLabel)
-        v.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: v.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: v.centerYAnchor),
-            stack.leadingAnchor.constraint(greaterThanOrEqualTo: v.leadingAnchor, constant: 32),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: v.trailingAnchor, constant: -32),
-        ])
-        return v
-    }()
-
-    // MARK: Navigation Bar Buttons
-
-    /// Sort-by menu: line.3.horizontal.decrease
-    private lazy var sortByButton: UIBarButtonItem = {
-        UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: buildSortByMenu())
-    }()
-
-    /// Sort-order menu: arrow.up.arrow.down
-    private lazy var sortOrderButton: UIBarButtonItem = {
-        UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: buildSortOrderMenu())
-    }()
-
-    /// Overflow menu: ellipsis.circle (contains "Clear All")
-    private lazy var overflowButton: UIBarButtonItem = {
-        UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: buildOverflowMenu())
-    }()
-
     private var dataSource: UICollectionViewDiffableDataSource<BookmarkSection, BookmarkItem>!
 
     // MARK: - Lifecycle
@@ -171,7 +76,7 @@ class BookmarkListViewController: UIViewController {
         super.viewDidLoad()
 
         title = L10n.Bookmarks.title
-        navigationItem.rightBarButtonItems = [overflowButton, sortOrderButton, sortByButton]
+        setupNavigationBar()
 
         view.backgroundColor = .systemGroupedBackground
         view.addSubview(collectionView)
@@ -227,6 +132,7 @@ class BookmarkListViewController: UIViewController {
 
         applySnapshot(bookmarks: bookmarks, animated: true)
         updateEmptyState(bookmarks: bookmarks)
+        rebuildMenus()
     }
 
     // MARK: - Data Source Configuration
@@ -388,36 +294,138 @@ class BookmarkListViewController: UIViewController {
         snapshot.appendSections([.all])
         snapshot.appendItems(sorted, toSection: .all)
     }
+    
+    // MARK: - UI
 
+    private lazy var collectionView: UICollectionView = {
+        var config = UICollectionLayoutListConfiguration(appearance: .plain)
+        config.headerMode = .supplementary
+        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
+            guard let self,
+                  let bookmark = self.dataSource.itemIdentifier(for: indexPath) else {
+                return nil
+            }
+            let deleteAction = UIContextualAction(style: .destructive, title: L10n.Bookmarks.removeBookmark) { [weak self] _, _, completion in
+                guard let self else { completion(false); return }
+                let alert = UIAlertController(
+                    title: L10n.Bookmarks.removeBookmark,
+                    message: L10n.Bookmarks.removeBookmarkMessage(word: bookmark.word, dictName: bookmark.dictName),
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel) { _ in
+                    completion(false)
+                })
+                alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+                    BookmarkService.shared.deleteBookmark(objectID: bookmark.objectID)
+                    self?.reload()
+                    completion(true)
+                })
+                self.present(alert, animated: true)
+            }
+            deleteAction.image = UIImage(systemName: "bookmark.slash")
+            return UISwipeActionsConfiguration(actions: [deleteAction])
+        }
+
+        let layout = UICollectionViewCompositionalLayout.list(using: config)
+
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.translatesAutoresizingMaskIntoConstraints = false
+        cv.delegate = self
+        return cv
+    }()
+
+    private lazy var emptyView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 12
+
+        let img = UIImageView(image: UIImage(systemName: "bookmark.slash"))
+        img.tintColor = .tertiaryLabel
+        img.preferredSymbolConfiguration = .init(pointSize: 48)
+
+        let titleLabel = UILabel()
+        titleLabel.text = L10n.Bookmarks.empty
+        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.textColor = .secondaryLabel
+
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = L10n.Bookmarks.emptySubtitle
+        subtitleLabel.font = .systemFont(ofSize: 14)
+        subtitleLabel.textColor = .tertiaryLabel
+        subtitleLabel.textAlignment = .center
+        subtitleLabel.numberOfLines = 0
+
+        stack.addArrangedSubview(img)
+        stack.addArrangedSubview(titleLabel)
+        stack.addArrangedSubview(subtitleLabel)
+        v.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: v.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: v.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: v.trailingAnchor, constant: -32),
+        ])
+        return v
+    }()
+
+    // MARK: Navigation Bar Buttons
+
+    /// Sort-by menu: line.3.horizontal.decrease
+    private lazy var sortByButton: UIBarButtonItem = {
+        .init(
+            title: L10n.BookmarkSort.sortBy,
+            image: UIImage(systemName: "line.3.horizontal.decrease"),
+            menu: sortByMenu,
+        )
+    }()
+
+    /// Sort-order menu: arrow.up.arrow.down
+    private lazy var sortOrderButton: UIBarButtonItem = {
+        .init(
+            title: L10n.BookmarkSort.sortOrder,
+            image: UIImage(systemName: "arrow.up.arrow.down"),
+            menu: sortOrderMenu
+        )
+    }()
+
+    /// Clear all button (used as standalone item in iOS 16+ trailingItemGroups)
+    private lazy var clearAllButton: UIBarButtonItem = {
+        .init(
+            title: L10n.Bookmarks.clearAll,
+            image: UIImage(systemName: "trash"),
+            primaryAction: UIAction(attributes: .destructive) { [weak self] _ in
+                self?.confirmClearAll()
+            }
+        )
+    }()
+    
     // MARK: - Navigation Bar Menus
 
-    private func buildSortByMenu() -> UIMenu {
+    private var sortByMenu: UIMenu {
         let actions = SortMode.allCases.map { mode in
             UIAction(
                 title: mode.title,
                 image: UIImage(systemName: mode.iconName),
                 state: mode == currentMode ? .on : .off
             ) { [weak self] _ in
-                guard let self else { return }
-                self.currentMode = mode
-                self.isAscending = false
-                self.rebuildMenus()
-                self.reload()
+                self?.updateSorting(mode: mode, isAscending: false)
             }
         }
         return UIMenu(children: actions)
     }
 
-    private func buildSortOrderMenu() -> UIMenu {
+    private var sortOrderMenu: UIMenu {
         let ascAction = UIAction(
             title: L10n.BookmarkSort.ascending,
             image: UIImage(systemName: "arrow.up"),
             state: isAscending ? .on : .off
         ) { [weak self] _ in
-            guard let self else { return }
-            self.isAscending = true
-            self.rebuildMenus()
-            self.reload()
+            self?.updateSorting(isAscending: true)
         }
 
         let descAction = UIAction(
@@ -425,16 +433,30 @@ class BookmarkListViewController: UIViewController {
             image: UIImage(systemName: "arrow.down"),
             state: !isAscending ? .on : .off
         ) { [weak self] _ in
-            guard let self else { return }
-            self.isAscending = false
-            self.rebuildMenus()
-            self.reload()
+            self?.updateSorting(isAscending: false)
         }
 
         return UIMenu(children: [ascAction, descAction])
     }
 
-    private func buildOverflowMenu() -> UIMenu {
+    /// iOS 15 overflow menu: sort order + clear all combined
+    private var legacyOverflowMenu: UIMenu {
+        let sortOrderSection = UIMenu(options: .displayInline, children: [
+            UIAction(
+                title: L10n.BookmarkSort.ascending,
+                image: UIImage(systemName: "arrow.up"),
+                state: isAscending ? .on : .off
+            ) { [weak self] _ in
+                self?.updateSorting(isAscending: true)
+            },
+            UIAction(
+                title: L10n.BookmarkSort.descending,
+                image: UIImage(systemName: "arrow.down"),
+                state: !isAscending ? .on : .off
+            ) { [weak self] _ in
+                self?.updateSorting(isAscending: false)
+            },
+        ])
         let clearAction = UIAction(
             title: L10n.Bookmarks.clearAll,
             image: UIImage(systemName: "trash"),
@@ -442,13 +464,63 @@ class BookmarkListViewController: UIViewController {
         ) { [weak self] _ in
             self?.confirmClearAll()
         }
-        return UIMenu(children: [clearAction])
+        return UIMenu(children: [sortOrderSection, clearAction])
+    }
+
+    // MARK: - Navigation Bar Setup
+
+    private func setupNavigationBar() {
+        if #available(iOS 16, *) {
+            // Browser style: title left-aligned, items auto-overflow
+            navigationItem.style = .browser
+            navigationItem.leadingItemGroups = []
+            navigationItem.centerItemGroups = []
+            navigationItem.trailingItemGroups = [
+                // Sort-by is always visible (primary action)
+                .fixedGroup(items: [sortByButton]),
+                // Sort-order collapses into overflow when space is tight
+                .optionalGroup(
+                    customizationIdentifier: "sortOrder",
+                    representativeItem: UIBarButtonItem(
+                        title: isAscending ? L10n.BookmarkSort.ascending : L10n.BookmarkSort.descending,
+                        image: UIImage(systemName: "arrow.up.arrow.down"),
+                        menu: sortOrderMenu
+                    ),
+                    items: [sortOrderButton]
+                ),
+                // Clear all collapses into overflow when space is tight
+                // representativeItem must be a DIFFERENT instance from the items array
+                .optionalGroup(
+                    customizationIdentifier: "clearAll",
+                    representativeItem: UIBarButtonItem(
+                        title: L10n.Bookmarks.clearAll,
+                        image: UIImage(systemName: "trash"),
+                        primaryAction: UIAction(attributes: .destructive) { [weak self] _ in
+                            self?.confirmClearAll()
+                        }
+                    ),
+                    items: [clearAllButton]
+                ),
+            ]
+        } else {
+            // iOS 15: merge sort-order into overflow
+            navigationItem.leftBarButtonItems = []
+            navigationItem.rightBarButtonItems = [
+                UIBarButtonItem(
+                    image: UIImage(systemName: "ellipsis.circle"),
+                    menu: legacyOverflowMenu
+                ),
+                sortByButton,
+            ]
+        }
     }
 
     /// Rebuild all menus to reflect current sort state (checkmarks).
     private func rebuildMenus() {
-        sortByButton.menu = buildSortByMenu()
-        sortOrderButton.menu = buildSortOrderMenu()
+        sortByButton.menu = sortByMenu
+        sortOrderButton.menu = sortOrderMenu
+
+        setupNavigationBar()
     }
 
     // MARK: - Empty State
@@ -457,11 +529,21 @@ class BookmarkListViewController: UIViewController {
         let isEmpty = bookmarks.isEmpty
         emptyView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
-        overflowButton.isEnabled = !isEmpty
+        clearAllButton.isEnabled = !isEmpty
     }
 
     // MARK: - Actions
 
+    private func updateSorting(mode: SortMode? = nil, isAscending: Bool? = nil) {
+        if let mode = mode {
+            self.currentMode = mode
+        }
+        if let isAscending = isAscending {
+            self.isAscending = isAscending
+        }
+        self.reload()
+    }
+    
     private func confirmClearAll() {
         let alert = UIAlertController(
             title: L10n.Bookmarks.clearAll,
@@ -474,6 +556,8 @@ class BookmarkListViewController: UIViewController {
             self?.reload()
         })
         present(alert, animated: true)
+        
+        rebuildMenus()
     }
 }
 

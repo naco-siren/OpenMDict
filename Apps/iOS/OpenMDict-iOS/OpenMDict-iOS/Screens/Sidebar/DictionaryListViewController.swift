@@ -588,11 +588,27 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             onAddGroupSelected?()
             
         case .bookmarks:
-            collectionView.deselectItem(at: indexPath, animated: true)
+            // Navigation destination — keep selected, deselect others
+            activeGroupId = nil
+            activeDict = nil
+            for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                if selectedIndexPath != indexPath {
+                    collectionView.deselectItem(at: selectedIndexPath, animated: true)
+                }
+            }
+            invalidateVisibleCellConfigurations()
             onBookmarksSelected?()
 
         case .lookupHistory:
-            collectionView.deselectItem(at: indexPath, animated: true)
+            // Navigation destination — keep selected, deselect others
+            activeGroupId = nil
+            activeDict = nil
+            for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                if selectedIndexPath != indexPath {
+                    collectionView.deselectItem(at: selectedIndexPath, animated: true)
+                }
+            }
+            invalidateVisibleCellConfigurations()
             onLookupHistorySelected?()
 
         case .managePresets:

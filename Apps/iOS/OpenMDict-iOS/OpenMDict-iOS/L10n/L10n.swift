@@ -551,7 +551,7 @@ nonisolated enum L10n {
 
     enum LookupHistory {
         static var title: String {
-            NSLocalizedString("lookupHistory.title", value: "My Lookup History", comment: "Navigation title for centralized lookup history list")
+            NSLocalizedString("lookupHistory.title", value: "Lookup History", comment: "Navigation title for centralized lookup history list")
         }
         static var empty: String {
             NSLocalizedString("lookupHistory.empty", value: "No lookup history", comment: "Empty state title for lookup history")
@@ -585,13 +585,19 @@ nonisolated enum L10n {
         static var descending: String {
             NSLocalizedString("bookmarkSort.descending", value: "Descending", comment: "Sort order: descending (newest/highest first)")
         }
+        static var sortBy: String {
+            NSLocalizedString("bookmarkSort.sortBy", value: "Sort By", comment: "Navigation bar button title: choose sort mode")
+        }
+        static var sortOrder: String {
+            NSLocalizedString("bookmarkSort.sortOrder", value: "Sort Order", comment: "Navigation bar button title: choose sort order")
+        }
     }
 
     // MARK: - Bookmarks
 
     enum Bookmarks {
         static var title: String {
-            NSLocalizedString("bookmarks.title", value: "My Bookmarks", comment: "Navigation title for bookmarks list")
+            NSLocalizedString("bookmarks.title", value: "Bookmarks", comment: "Navigation title for bookmarks list")
         }
         static var empty: String {
             NSLocalizedString("bookmarks.empty", value: "No bookmarks yet", comment: "Empty state title for bookmarks")

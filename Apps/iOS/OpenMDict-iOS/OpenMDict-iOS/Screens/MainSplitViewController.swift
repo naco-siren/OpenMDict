@@ -715,14 +715,14 @@ class MainSplitViewController: UISplitViewController {
             setViewController(detailContainer, for: .secondary)
 
         case .bookmarks:
-            preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
-            minimumSupplementaryColumnWidth = ColumnWidth.managementMin
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
             setViewController(bookmarkListVC, for: .supplementary)
             setViewController(detailContainer, for: .secondary)
 
         case .lookupHistory:
-            preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
-            minimumSupplementaryColumnWidth = ColumnWidth.managementMin
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
             setViewController(lookupHistoryListVC, for: .supplementary)
             setViewController(detailContainer, for: .secondary)
 

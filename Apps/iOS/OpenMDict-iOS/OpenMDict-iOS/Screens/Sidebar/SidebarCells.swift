@@ -496,6 +496,7 @@ final class ManagementActionCell: UICollectionViewListCell {
         let isDisabled = isEditing && item != .importDictionary && item != .addGroup
         
         var content = UIListContentConfiguration.sidebarCell()
+        var bg = UIBackgroundConfiguration.listSidebarCell()
         
         switch item {
         case .importDictionary:
@@ -525,21 +526,21 @@ final class ManagementActionCell: UICollectionViewListCell {
             // Disabled state - gray text/icon
             content.textProperties.color = .tertiaryLabel
             content.imageProperties.tintColor = .tertiaryLabel
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
+
+            bg.backgroundColor = .clear
         } else if isActive {
             // Selected state - blue background + white text/icon
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
 
-            var bg = UIBackgroundConfiguration.listSidebarCell()
             bg.backgroundColor = .systemBlue
-            backgroundConfiguration = bg
         } else {
             // Normal state
-            backgroundConfiguration = UIBackgroundConfiguration.listSidebarCell()
         }
         
         contentConfiguration = content
+        backgroundConfiguration = bg
+        
         accessories = []
     }
 }
