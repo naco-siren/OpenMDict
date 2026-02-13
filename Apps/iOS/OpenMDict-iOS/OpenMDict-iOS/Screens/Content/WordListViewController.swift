@@ -29,7 +29,7 @@ class WordListViewController: UIViewController {
     private var displayedWords: [WordDisplayItem] = []
 
     /// History records grouped by date (used only in history mode)
-    private var historyGroups: [LookupHistoryService.HistorySection] = []
+    private var historyGroups: [HistorySection] = []
 
     private var isSearching: Bool {
         !(searchController.searchBar.text?.isEmpty ?? true)

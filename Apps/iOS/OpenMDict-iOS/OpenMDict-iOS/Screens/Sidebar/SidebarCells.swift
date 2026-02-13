@@ -507,6 +507,9 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .bookmarks:
             content.text = L10n.Sidebar.bookmarks
             content.image = UIImage(systemName: "bookmark")
+        case .lookupHistory:
+            content.text = L10n.Sidebar.lookupHistory
+            content.image = UIImage(systemName: "clock.arrow.circlepath")
         case .managePresets:
             content.text = L10n.Sidebar.presetDictionaries
             content.image = UIImage(systemName: "books.vertical")

@@ -27,6 +27,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onGroupInfoSelected: ((String) -> Void)?       // groupId
     var onAddGroupSelected: (() -> Void)?
     var onBookmarksSelected: (() -> Void)?
+    var onLookupHistorySelected: (() -> Void)?
     var onManagePresetsSelected: (() -> Void)?
     
     // MARK: - SidebarStateProvider
@@ -355,7 +356,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .importDictionary, .addGroup, .bookmarks, .managePresets, .settings:
+            case .importDictionary, .addGroup, .bookmarks, .lookupHistory, .managePresets, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -415,7 +416,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
         mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.bookmarks, .managePresets, .settings], to: mgmtHeader)
+        mgmtSnapshot.append([.bookmarks, .lookupHistory, .managePresets, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
         dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
     }
@@ -497,6 +498,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             
         case .bookmarks:
             // Bookmarks disabled in edit mode
+            return !isEditing
+
+        case .lookupHistory:
+            // Lookup history disabled in edit mode
             return !isEditing
 
         case .managePresets:
@@ -585,6 +590,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .bookmarks:
             collectionView.deselectItem(at: indexPath, animated: true)
             onBookmarksSelected?()
+
+        case .lookupHistory:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onLookupHistorySelected?()
 
         case .managePresets:
             collectionView.deselectItem(at: indexPath, animated: true)

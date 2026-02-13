@@ -865,6 +865,42 @@
         }
       }
     },
+    "bookmarkSort.byBookmarkDate" : {
+      "comment" : "Bookmark sort mode: by date bookmarked",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark Date"
+          }
+        }
+      }
+    },
+    "bookmarkSort.byLastLookup" : {
+      "comment" : "Bookmark sort mode: by last lookup date",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Recent Lookup Date"
+          }
+        }
+      }
+    },
+    "bookmarkSort.byLookupCount" : {
+      "comment" : "Bookmark sort mode: by total lookup count",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lookup Times"
+          }
+        }
+      }
+    },
     "common.cancel" : {
       "comment" : "Button: cancel an action",
       "extractionState" : "manual",
@@ -8845,6 +8881,18 @@
         }
       }
     },
+    "historySection.unknown" : {
+      "comment" : "History date group: unknown date",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unknown"
+          }
+        }
+      }
+    },
     "historySection.weeksAgo" : {
       "comment" : "History date group header, %d is number",
       "extractionState" : "manual",
@@ -9009,6 +9057,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "昨天"
+          }
+        }
+      }
+    },
+    "lookupHistory.clearAllConfirmMessage" : {
+      "comment" : "Alert body for clearing all lookup history",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "All lookup history will be removed. This cannot be undone."
+          }
+        }
+      }
+    },
+    "lookupHistory.clearAllConfirmTitle" : {
+      "comment" : "Alert title for clearing all lookup history",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clear All Lookup History?"
+          }
+        }
+      }
+    },
+    "lookupHistory.empty" : {
+      "comment" : "Empty state title for lookup history",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No lookup history"
+          }
+        }
+      }
+    },
+    "lookupHistory.emptySubtitle" : {
+      "comment" : "Empty state subtitle for lookup history",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Words you look up will appear here"
+          }
+        }
+      }
+    },
+    "lookupHistory.title" : {
+      "comment" : "Navigation title for centralized lookup history list",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "My Lookup History"
           }
         }
       }

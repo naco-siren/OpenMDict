@@ -547,6 +547,40 @@ nonisolated enum L10n {
         }
     }
 
+    // MARK: - Lookup History (Centralized List)
+
+    enum LookupHistory {
+        static var title: String {
+            NSLocalizedString("lookupHistory.title", value: "My Lookup History", comment: "Navigation title for centralized lookup history list")
+        }
+        static var empty: String {
+            NSLocalizedString("lookupHistory.empty", value: "No lookup history", comment: "Empty state title for lookup history")
+        }
+        static var emptySubtitle: String {
+            NSLocalizedString("lookupHistory.emptySubtitle", value: "Words you look up will appear here", comment: "Empty state subtitle for lookup history")
+        }
+        static var clearAllConfirmTitle: String {
+            NSLocalizedString("lookupHistory.clearAllConfirmTitle", value: "Clear All Lookup History?", comment: "Alert title for clearing all lookup history")
+        }
+        static var clearAllConfirmMessage: String {
+            NSLocalizedString("lookupHistory.clearAllConfirmMessage", value: "All lookup history will be removed. This cannot be undone.", comment: "Alert body for clearing all lookup history")
+        }
+    }
+
+    // MARK: - Bookmark Sort Modes
+
+    enum BookmarkSort {
+        static var byBookmarkDate: String {
+            NSLocalizedString("bookmarkSort.byBookmarkDate", value: "Bookmark Date", comment: "Bookmark sort mode: by date bookmarked")
+        }
+        static var byLastLookup: String {
+            NSLocalizedString("bookmarkSort.byLastLookup", value: "Recent Lookup Date", comment: "Bookmark sort mode: by last lookup date")
+        }
+        static var byLookupCount: String {
+            NSLocalizedString("bookmarkSort.byLookupCount", value: "Lookup Times", comment: "Bookmark sort mode: by total lookup count")
+        }
+    }
+
     // MARK: - Bookmarks
 
     enum Bookmarks {
@@ -607,6 +641,9 @@ nonisolated enum L10n {
         }
         static var lastYear: String {
             NSLocalizedString("historySection.lastYear", value: "Last Year", comment: "History date group: last year")
+        }
+        static var unknown: String {
+            NSLocalizedString("historySection.unknown", value: "Unknown", comment: "History date group: unknown date")
         }
     }
 

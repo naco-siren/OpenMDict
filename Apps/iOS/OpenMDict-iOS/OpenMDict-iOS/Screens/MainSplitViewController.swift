@@ -31,6 +31,7 @@ class MainSplitViewController: UISplitViewController {
     private lazy var groupInfoVC = GroupInfoViewController()
     private lazy var groupDictEditorVC = GroupDictionaryEditorViewController()
     private lazy var bookmarkListVC = BookmarkListViewController()
+    private lazy var lookupHistoryListVC = LookupHistoryListViewController()
     
     // MARK: - State
     
@@ -91,6 +92,7 @@ class MainSplitViewController: UISplitViewController {
         setupSidebarCallbacks()
         setupManagementCallbacks()
         setupBookmarkCallbacks()
+        setupLookupHistoryCallbacks()
         applyInitialSelection()
     }
     
@@ -189,6 +191,10 @@ class MainSplitViewController: UISplitViewController {
 
         dictionaryListVC.onBookmarksSelected = { [weak self] in
             self?.showBookmarksList()
+        }
+
+        dictionaryListVC.onLookupHistorySelected = { [weak self] in
+            self?.showLookupHistoryList()
         }
 
         dictionaryListVC.onManagePresetsSelected = { [weak self] in
@@ -458,8 +464,8 @@ class MainSplitViewController: UISplitViewController {
     func select(group: MDicts) {
         currentGroup = group
         currentDict = nil
-        // Exit bookmarks column if needed
-        if currentColumnTarget == .bookmarks {
+        // Exit bookmarks/history column if needed
+        if currentColumnTarget == .bookmarks || currentColumnTarget == .lookupHistory {
             configureColumns(for: .lookup)
         }
         wordListVC.loadWords(for: group)
@@ -470,8 +476,8 @@ class MainSplitViewController: UISplitViewController {
     func select(dictionary dict: MDict) {
         currentGroup = nil
         currentDict = dict
-        // Exit bookmarks column if needed
-        if currentColumnTarget == .bookmarks {
+        // Exit bookmarks/history column if needed
+        if currentColumnTarget == .bookmarks || currentColumnTarget == .lookupHistory {
             configureColumns(for: .lookup)
         }
         wordListVC.loadWords(for: dict)
@@ -533,6 +539,7 @@ class MainSplitViewController: UISplitViewController {
         exitToLookupModeIfNeeded()
 
         configureColumns(for: .bookmarks)
+        bookmarkListVC.reload()
         show(.supplementary)
         debugLog("🔖 Showing bookmarks list")
     }
@@ -551,6 +558,49 @@ class MainSplitViewController: UISplitViewController {
                 article.contentState = .loaded(html: entry.article.html, css: nil)
             }
             showArticle(article, animated: true)
+
+            // Record lookup so count stays accurate, then refresh the list
+            LookupHistoryService.shared.recordLookup(
+                word: bookmark.word, dictId: bookmark.dictId, dictName: bookmark.dictName,
+                lookupContextDictId: nil, lookupContextGroupId: nil
+            )
+            bookmarkListVC.reload()
+        }
+    }
+
+    // MARK: - Lookup History
+
+    private func showLookupHistoryList() {
+        // Exit management mode if needed, but stay in lookup mode
+        exitToLookupModeIfNeeded()
+
+        configureColumns(for: .lookupHistory)
+        lookupHistoryListVC.reload()
+        show(.supplementary)
+        debugLog("🕐 Showing lookup history list")
+    }
+
+    private func setupLookupHistoryCallbacks() {
+        lookupHistoryListVC.onHistorySelected = { [weak self] historyItem in
+            guard let self else { return }
+            let dict = DictionaryService.shared.dict(id: historyItem.dictId)
+            var article = ArticleDisplayItem(
+                word: historyItem.word,
+                dictId: historyItem.dictId,
+                dictName: historyItem.dictName,
+                contentState: .pending
+            )
+            if let dict, let entry = dict.lookup(historyItem.word) {
+                article.contentState = .loaded(html: entry.article.html, css: nil)
+            }
+            showArticle(article, animated: true)
+
+            // Record lookup so history stays accurate, then refresh the list
+            LookupHistoryService.shared.recordLookup(
+                word: historyItem.word, dictId: historyItem.dictId, dictName: historyItem.dictName,
+                lookupContextDictId: nil, lookupContextGroupId: nil
+            )
+            lookupHistoryListVC.reload()
         }
     }
 
@@ -643,6 +693,7 @@ class MainSplitViewController: UISplitViewController {
     private enum ColumnTarget {
         case lookup
         case bookmarks
+        case lookupHistory
         case managementDict
         case managementGroup
     }
@@ -664,9 +715,15 @@ class MainSplitViewController: UISplitViewController {
             setViewController(detailContainer, for: .secondary)
 
         case .bookmarks:
-            preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
-            minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.managementMin
             setViewController(bookmarkListVC, for: .supplementary)
+            setViewController(detailContainer, for: .secondary)
+
+        case .lookupHistory:
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.managementMin
+            setViewController(lookupHistoryListVC, for: .supplementary)
             setViewController(detailContainer, for: .secondary)
 
         case .managementDict:

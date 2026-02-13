@@ -22,12 +22,14 @@ import Foundation
 /// Defined at file scope (not nested inside BookmarkService) so that
 /// Hashable conformance is nonisolated — required for DiffableDataSource
 /// under the project's `-default-isolation=MainActor` setting.
-nonisolated struct BookmarkItem: Sendable, Hashable {
+nonisolated struct BookmarkItem: Sendable, Hashable, DateGroupable {
     let objectID: NSManagedObjectID
     let word: String
     let dictId: String
     let dictName: String
     let createdAt: Date?
+
+    var groupingDate: Date? { createdAt }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(word)

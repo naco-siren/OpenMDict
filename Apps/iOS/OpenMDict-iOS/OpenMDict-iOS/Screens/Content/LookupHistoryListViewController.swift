@@ -1,0 +1,232 @@
+//
+//  LookupHistoryListViewController.swift
+//  OpenMDict-iOS
+//
+//  Centralized lookup history list — shows ALL history records across
+//  all lookup contexts, deduplicated by (word, dictId) and grouped by date.
+//
+//  Used as the supplementary column when "My Lookup History" is selected
+//  in the sidebar.
+//
+
+import UIKit
+
+class LookupHistoryListViewController: UIViewController {
+
+    // MARK: - Callbacks
+
+    var onHistorySelected: ((HistoryItem) -> Void)?
+
+    // MARK: - Data
+
+    private var dataSource: UICollectionViewDiffableDataSource<String, HistoryItem>!
+
+    // MARK: - UI
+
+    private lazy var collectionView: UICollectionView = {
+        var config = UICollectionLayoutListConfiguration(appearance: .plain)
+        config.headerMode = .supplementary
+        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
+            guard let self,
+                  let item = self.dataSource.itemIdentifier(for: indexPath) else {
+                return nil
+            }
+            let deleteAction = UIContextualAction(style: .destructive, title: L10n.delete) { [weak self] _, _, completion in
+                LookupHistoryService.shared.deleteRecord(objectID: item.objectID)
+                self?.reload()
+                completion(true)
+            }
+            deleteAction.image = UIImage(systemName: "trash")
+            return UISwipeActionsConfiguration(actions: [deleteAction])
+        }
+
+        let layout = UICollectionViewCompositionalLayout.list(using: config)
+
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.translatesAutoresizingMaskIntoConstraints = false
+        cv.delegate = self
+        return cv
+    }()
+
+    private lazy var emptyView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 12
+
+        let img = UIImageView(image: UIImage(systemName: "clock"))
+        img.tintColor = .tertiaryLabel
+        img.preferredSymbolConfiguration = .init(pointSize: 48)
+
+        let titleLabel = UILabel()
+        titleLabel.text = L10n.LookupHistory.empty
+        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.textColor = .secondaryLabel
+
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = L10n.LookupHistory.emptySubtitle
+        subtitleLabel.font = .systemFont(ofSize: 14)
+        subtitleLabel.textColor = .tertiaryLabel
+        subtitleLabel.textAlignment = .center
+        subtitleLabel.numberOfLines = 0
+
+        stack.addArrangedSubview(img)
+        stack.addArrangedSubview(titleLabel)
+        stack.addArrangedSubview(subtitleLabel)
+        v.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: v.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: v.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: v.trailingAnchor, constant: -32),
+        ])
+        return v
+    }()
+
+    /// Overflow "..." menu containing "Clear All"
+    private lazy var overflowButton: UIBarButtonItem = {
+        UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: buildOverflowMenu())
+    }()
+
+    // MARK: - Lifecycle
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        title = L10n.LookupHistory.title
+        navigationItem.rightBarButtonItem = overflowButton
+
+        view.backgroundColor = .systemGroupedBackground
+        view.addSubview(collectionView)
+        view.addSubview(emptyView)
+
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            emptyView.topAnchor.constraint(equalTo: view.topAnchor),
+            emptyView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emptyView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emptyView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        configureDataSource()
+        reload()
+    }
+
+    // MARK: - Public Reload
+
+    /// Reload history from the data layer and refresh the snapshot.
+    /// Called externally by MainSplitVC after lookup mutations.
+    func reload() {
+        // dataSource is configured in viewDidLoad; if called before that
+        // (e.g. from MainSplitVC.showLookupHistoryList before the view
+        // hierarchy triggers loadView), force-load the view first.
+        loadViewIfNeeded()
+
+        let groups = LookupHistoryService.shared.allGroupedHistory()
+        applySnapshot(groups: groups, animated: true)
+        updateEmptyState(groups: groups)
+    }
+
+    // MARK: - Data Source Configuration
+
+    private func configureDataSource() {
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, HistoryItem> {
+            cell, indexPath, item in
+
+            var content = cell.defaultContentConfiguration()
+            content.text = item.word
+            content.secondaryText = item.dictName
+            content.secondaryTextProperties.color = .secondaryLabel
+            content.image = UIImage(systemName: "clock")
+            content.imageProperties.tintColor = .secondaryLabel
+            cell.contentConfiguration = content
+            cell.accessories = []
+        }
+
+        // Section header registration
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
+            elementKind: UICollectionView.elementKindSectionHeader
+        ) { [weak self] headerView, _, indexPath in
+            guard let self,
+                  let sectionTitle = self.dataSource.sectionIdentifier(for: indexPath.section) else { return }
+
+            var config = UIListContentConfiguration.groupedHeader()
+            config.text = sectionTitle
+            headerView.contentConfiguration = config
+        }
+
+        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) {
+            collectionView, indexPath, item in
+            collectionView.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
+        }
+
+        dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
+            collectionView.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
+        }
+    }
+
+    // MARK: - Snapshot
+
+    private func applySnapshot(groups: [HistorySection], animated: Bool) {
+        var snapshot = NSDiffableDataSourceSnapshot<String, HistoryItem>()
+        for group in groups {
+            snapshot.appendSections([group.title])
+            snapshot.appendItems(group.records, toSection: group.title)
+        }
+        dataSource.apply(snapshot, animatingDifferences: animated)
+    }
+
+    // MARK: - Empty State
+
+    private func updateEmptyState(groups: [HistorySection]) {
+        let isEmpty = groups.isEmpty
+        emptyView.isHidden = !isEmpty
+        collectionView.isHidden = isEmpty
+        overflowButton.isEnabled = !isEmpty
+    }
+
+    // MARK: - Overflow Menu
+
+    private func buildOverflowMenu() -> UIMenu {
+        let clearAction = UIAction(
+            title: L10n.History.clearAll,
+            image: UIImage(systemName: "trash"),
+            attributes: .destructive
+        ) { [weak self] _ in
+            self?.confirmClearAll()
+        }
+        return UIMenu(children: [clearAction])
+    }
+
+    private func confirmClearAll() {
+        let alert = UIAlertController(
+            title: L10n.LookupHistory.clearAllConfirmTitle,
+            message: L10n.LookupHistory.clearAllConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+            LookupHistoryService.shared.clearAllHistory()
+            self?.reload()
+        })
+        present(alert, animated: true)
+    }
+}
+
+// MARK: - UICollectionViewDelegate
+
+extension LookupHistoryListViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        collectionView.deselectItem(at: indexPath, animated: true)
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
+        onHistorySelected?(item)
+    }
+}
