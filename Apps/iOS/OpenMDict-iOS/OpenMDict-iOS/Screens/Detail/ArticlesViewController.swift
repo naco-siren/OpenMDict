@@ -98,6 +98,12 @@ class ArticlesViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         setupCollectionView()
         view.addSubview(emptyView)
+
+        // Refresh bookmark icon state when bookmarks change
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(bookmarksDidChange),
+            name: BookmarkService.didChangeNotification, object: nil
+        )
         
         // Initialize paging for default mode
         collectionView.isPagingEnabled = (layoutMode == .list)
@@ -207,9 +213,13 @@ class ArticlesViewController: UIViewController {
                 let session = self?.view.window?.windowScene?.session
                 SceneDelegate.openNewWindow(for: article, sourceSession: session)
             }
-            cell.onBookmarkToggle = { isBookmarked in
-                print("🔖 Bookmark: \(article.word): \(isBookmarked)")
-                // TODO: Implement bookmark persistence
+            cell.onBookmarkToggle = { _ in
+                BookmarkService.shared.toggleBookmark(
+                    word: article.word, dictId: article.dictId, dictName: article.dictName
+                )
+            }
+            cell.onBookmarkRemoveRequested = { [weak self] in
+                self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
             }
             cell.onWillPresentFind = { [weak self] in
                 self?.dismissAllFindsExcept(cell)
@@ -501,6 +511,30 @@ class ArticlesViewController: UIViewController {
         collectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: true)
     }
     
+    @objc private func bookmarksDidChange() {
+        // Directly update bookmark icon on visible cells.
+        // Avoids reconfigureItems which re-runs the full cell registration
+        // closure (including setZoomLevel), causing a subtle reflow glitch.
+        for cell in collectionView.visibleCells {
+            if let articleCell = cell as? ArticleCell {
+                articleCell.refreshBookmarkState()
+            }
+        }
+    }
+
+    private func confirmRemoveBookmark(word: String, dictId: String, dictName: String) {
+        let alert = UIAlertController(
+            title: L10n.Bookmarks.removeBookmark,
+            message: L10n.Bookmarks.removeBookmarkMessage(word: word, dictName: dictName),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { _ in
+            BookmarkService.shared.toggleBookmark(word: word, dictId: dictId, dictName: dictName)
+        })
+        present(alert, animated: true)
+    }
+
     private func dismissAllFindsExcept(_ excludeCell: ArticleCell?) {
         guard #available(iOS 16.0, *) else { return }
         
@@ -565,9 +599,16 @@ extension ArticlesViewController: UICollectionViewDelegate {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 
         var actions: [UIAction] = []
-        actions.append(.init(title: L10n.Articles.bookmark, image: UIImage(systemName: "bookmark")) { _ in
-            print("🔖 Bookmark: \(article.word)")
-            // TODO: Implement bookmark persistence
+        let isBM = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        let bmTitle = isBM ? L10n.Articles.removeBookmark : L10n.Articles.bookmark
+        let bmIcon = isBM ? "bookmark.slash" : "bookmark"
+        let bmAttributes: UIMenuElement.Attributes = isBM ? .destructive : []
+        actions.append(.init(title: bmTitle, image: UIImage(systemName: bmIcon), attributes: bmAttributes) { [weak self] _ in
+            if isBM {
+                self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
+            } else {
+                BookmarkService.shared.toggleBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
+            }
         })
         if #available(iOS 16, *) {
             actions.append(.init(title: L10n.Articles.findInPage, image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in

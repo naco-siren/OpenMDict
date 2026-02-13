@@ -19,4 +19,17 @@
             <fetchIndexElement property="lookupContextGroupId" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
+    <entity name="BookmarkRecord" representedClassName="BookmarkRecord" syncable="YES">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="word" optional="YES" attributeType="String" defaultValueString=""/>
+        <fetchIndex name="byCreatedAt">
+            <fetchIndexElement property="createdAt" type="Binary" order="descending"/>
+        </fetchIndex>
+        <fetchIndex name="byWordAndDictId">
+            <fetchIndexElement property="word" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
 </model>

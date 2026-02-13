@@ -192,6 +192,12 @@ nonisolated enum L10n {
         static var dictionaryNotLoaded: String {
             NSLocalizedString("sidebar.dictionaryNotLoaded", value: "Dictionary not loaded", comment: "Status text for unloaded dictionary")
         }
+        static var bookmarks: String {
+            NSLocalizedString("sidebar.bookmarks", value: "My Bookmarks", comment: "Sidebar management action: bookmarks")
+        }
+        static var lookupHistory: String {
+            NSLocalizedString("sidebar.lookupHistory", value: "My Lookup History", comment: "Sidebar management action: lookup history")
+        }
     }
 
     // MARK: - Word List & Search
@@ -235,6 +241,9 @@ nonisolated enum L10n {
         static var findInPage: String {
             NSLocalizedString("articles.findInPage", value: "Find in Page", comment: "Context menu: find text in article")
         }
+        static var removeBookmark: String {
+            NSLocalizedString("articles.removeBookmark", value: "Remove Bookmark", comment: "Context menu: remove bookmark from article")
+        }
         static var close: String {
             NSLocalizedString("articles.close", value: "Close", comment: "Context menu: close article")
         }
@@ -256,6 +265,12 @@ nonisolated enum L10n {
             String.localizedStringWithFormat(
                 NSLocalizedString("articles.notFound.subtitle", value: "in %@", comment: "Article not found subtitle; %@ is the dictionary name"),
                 dictName
+            )
+        }
+        static func lookupCount(_ count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("articles.lookupCount", value: "You have looked this word up %d times", comment: "Lookup count shown in article header; %d is the number of lookups"),
+                count
             )
         }
     }
@@ -529,6 +544,37 @@ nonisolated enum L10n {
         }
         static var emptyState: String {
             NSLocalizedString("history.emptyState", value: "No lookup history", comment: "Empty state when no lookup history exists")
+        }
+    }
+
+    // MARK: - Bookmarks
+
+    enum Bookmarks {
+        static var title: String {
+            NSLocalizedString("bookmarks.title", value: "My Bookmarks", comment: "Navigation title for bookmarks list")
+        }
+        static var empty: String {
+            NSLocalizedString("bookmarks.empty", value: "No bookmarks yet", comment: "Empty state title for bookmarks")
+        }
+        static var emptySubtitle: String {
+            NSLocalizedString("bookmarks.emptySubtitle", value: "Tap the bookmark icon on any article to save it here", comment: "Empty state subtitle for bookmarks")
+        }
+        static var removeBookmark: String {
+            NSLocalizedString("bookmarks.removeBookmark", value: "Remove Bookmark", comment: "Swipe action to remove a bookmark")
+        }
+        static func removeBookmarkMessage(word: String, dictName: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("bookmarks.removeBookmarkMessage",
+                                  value: "\u{201C}%@\u{201D}\nfrom %@\nwill be removed from your bookmarks.",
+                                  comment: "Alert body confirming bookmark removal; first %@ is the word, second %@ is the dictionary name"),
+                word, dictName
+            )
+        }
+        static var clearAll: String {
+            NSLocalizedString("bookmarks.clearAll", value: "Clear All", comment: "Button to clear all bookmarks")
+        }
+        static var clearAllConfirm: String {
+            NSLocalizedString("bookmarks.clearAllConfirm", value: "Are you sure you want to remove all bookmarks?", comment: "Alert body to confirm clearing all bookmarks")
         }
     }
 

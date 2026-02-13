@@ -22,32 +22,60 @@ class ArticleViewController: UIViewController {
     weak var delegate: ArticleViewControllerDelegate?
     
     // MARK: - State
-    
+
     private var currentArticle: ArticleDisplayItem?
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
+    private var isBookmarked: Bool = false
     
     // MARK: - UI
-    
+
+    private static let headerHeight: CGFloat = 64
+
     private lazy var headerView: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
         v.backgroundColor = .secondarySystemGroupedBackground
         return v
     }()
-    
+
+    private lazy var bookmarkButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "bookmark")
+        config.baseForegroundColor = .secondaryLabel
+        let btn = UIButton(configuration: config)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.configurationUpdateHandler = { [weak self] button in
+            guard let self else { return }
+            var config = button.configuration
+            let imageName = self.isBookmarked ? "bookmark.fill" : "bookmark"
+            config?.image = UIImage(systemName: imageName)
+            config?.baseForegroundColor = self.isBookmarked ? nil : .secondaryLabel
+            button.configuration = config
+        }
+        btn.addTarget(self, action: #selector(bookmarkTapped), for: .touchUpInside)
+        return btn
+    }()
+
     private lazy var titleLabel: UILabel = {
         let l = UILabel()
         l.translatesAutoresizingMaskIntoConstraints = false
-        l.font = .systemFont(ofSize: 24, weight: .bold)
-        l.numberOfLines = 0
+        l.font = .systemFont(ofSize: 17, weight: .semibold)
+        l.lineBreakMode = .byTruncatingTail
         return l
     }()
-    
+
     private lazy var subtitleLabel: UILabel = {
         let l = UILabel()
         l.translatesAutoresizingMaskIntoConstraints = false
-        l.font = .systemFont(ofSize: 14)
+        l.font = .systemFont(ofSize: 11)
         l.textColor = .secondaryLabel
+        return l
+    }()
+
+    private lazy var lookupCountLabel: UILabel = {
+        let l = UILabel()
+        l.translatesAutoresizingMaskIntoConstraints = false
+        l.font = .italicSystemFont(ofSize: 11)
         return l
     }()
     
@@ -104,35 +132,54 @@ class ArticleViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         setupUI()
         showEmpty()
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(bookmarksDidChange),
+            name: BookmarkService.didChangeNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(lookupHistoryDidChange),
+            name: LookupHistoryService.didChangeNotification, object: nil
+        )
     }
     
     private func setupUI() {
         view.addSubview(headerView)
         view.addSubview(webView)
         view.addSubview(emptyView)
-        
-        headerView.addSubview(titleLabel)
-        headerView.addSubview(subtitleLabel)
-        
+
+        // Leading: bookmark button
+        headerView.addSubview(bookmarkButton)
+
+        // Column: title, subtitle, lookup count
+        let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel, lookupCountLabel])
+        titleStack.axis = .vertical
+        titleStack.spacing = 3
+        titleStack.translatesAutoresizingMaskIntoConstraints = false
+        headerView.addSubview(titleStack)
+
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            
-            titleLabel.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 16),
-            titleLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
-            
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            subtitleLabel.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -16),
-            
+            headerView.heightAnchor.constraint(equalToConstant: Self.headerHeight),
+
+            // Bookmark at leading, vertically centered
+            bookmarkButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 4),
+            bookmarkButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            bookmarkButton.widthAnchor.constraint(equalToConstant: 40),
+            bookmarkButton.heightAnchor.constraint(equalToConstant: 40),
+
+            // Title stack after bookmark, vertically centered
+            titleStack.leadingAnchor.constraint(equalTo: bookmarkButton.trailingAnchor, constant: 4),
+            titleStack.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: headerView.trailingAnchor, constant: -12),
+
             webView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
+
             emptyView.topAnchor.constraint(equalTo: view.topAnchor),
             emptyView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             emptyView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -167,10 +214,15 @@ class ArticleViewController: UIViewController {
         emptyView.isHidden = true
         headerView.isHidden = false
         webView.isHidden = false
-        
+
         titleLabel.text = article.word
         subtitleLabel.text = article.dictName
-        
+
+        isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        bookmarkButton.setNeedsUpdateConfiguration()
+
+        updateLookupCount(word: article.word, dictId: article.dictId)
+
         if reload {
             loadContent(for: article)
         }
@@ -204,8 +256,71 @@ class ArticleViewController: UIViewController {
         loadContent(for: article)
     }
     
+    // MARK: - Lookup Count
+
+    private func updateLookupCount(word: String, dictId: String) {
+        let count = LookupHistoryService.shared.totalLookupCount(word: word, dictId: dictId)
+        if count > 0 {
+            lookupCountLabel.text = L10n.Articles.lookupCount(count)
+            lookupCountLabel.textColor = lookupCountColor(for: count)
+            lookupCountLabel.isHidden = false
+        } else {
+            lookupCountLabel.isHidden = true
+        }
+    }
+
+    private func lookupCountColor(for count: Int) -> UIColor {
+        switch count {
+        case 15...:   return .systemRed
+        case 10..<15: return .systemOrange
+        case 6..<10:  return .systemBrown
+        case 3..<6:   return .secondaryLabel
+        default:      return .tertiaryLabel
+        }
+    }
+
+    // MARK: - Bookmark Actions
+
+    @objc private func bookmarkTapped() {
+        guard let article = currentArticle else { return }
+        if isBookmarked {
+            // Removing → show confirmation
+            let alert = UIAlertController(
+                title: L10n.Bookmarks.removeBookmark,
+                message: L10n.Bookmarks.removeBookmarkMessage(word: article.word, dictName: article.dictName),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+            alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+                BookmarkService.shared.toggleBookmark(
+                    word: article.word, dictId: article.dictId, dictName: article.dictName
+                )
+                self?.isBookmarked = false
+                self?.bookmarkButton.setNeedsUpdateConfiguration()
+            })
+            present(alert, animated: true)
+        } else {
+            // Adding → immediate
+            isBookmarked = BookmarkService.shared.toggleBookmark(
+                word: article.word, dictId: article.dictId, dictName: article.dictName
+            )
+            bookmarkButton.setNeedsUpdateConfiguration()
+        }
+    }
+
+    @objc private func bookmarksDidChange() {
+        guard let article = currentArticle else { return }
+        isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        bookmarkButton.setNeedsUpdateConfiguration()
+    }
+
+    @objc private func lookupHistoryDidChange() {
+        guard let article = currentArticle else { return }
+        updateLookupCount(word: article.word, dictId: article.dictId)
+    }
+
     // MARK: - Zoom
-    
+
     func setZoomLevel(_ level: Int) {
         currentZoomLevel = level
         let js = "document.body.style.fontSize = '\(level)%';"

@@ -30,6 +30,7 @@ class MainSplitViewController: UISplitViewController {
     private lazy var dictResourceEditorVC = DictResourceEditorViewController()
     private lazy var groupInfoVC = GroupInfoViewController()
     private lazy var groupDictEditorVC = GroupDictionaryEditorViewController()
+    private lazy var bookmarkListVC = BookmarkListViewController()
     
     // MARK: - State
     
@@ -89,6 +90,7 @@ class MainSplitViewController: UISplitViewController {
         setupChildControllers()
         setupSidebarCallbacks()
         setupManagementCallbacks()
+        setupBookmarkCallbacks()
         applyInitialSelection()
     }
     
@@ -183,6 +185,10 @@ class MainSplitViewController: UISplitViewController {
         
         dictionaryListVC.onAddGroupSelected = { [weak self] in
             self?.enterManagementMode(for: .createGroup)
+        }
+
+        dictionaryListVC.onBookmarksSelected = { [weak self] in
+            self?.showBookmarksList()
         }
 
         dictionaryListVC.onManagePresetsSelected = { [weak self] in
@@ -452,14 +458,22 @@ class MainSplitViewController: UISplitViewController {
     func select(group: MDicts) {
         currentGroup = group
         currentDict = nil
+        // Exit bookmarks column if needed
+        if currentColumnTarget == .bookmarks {
+            configureColumns(for: .lookup)
+        }
         wordListVC.loadWords(for: group)
         dictionaryListVC.setActiveGroup(group)
         show(.supplementary)
     }
-    
+
     func select(dictionary dict: MDict) {
         currentGroup = nil
         currentDict = dict
+        // Exit bookmarks column if needed
+        if currentColumnTarget == .bookmarks {
+            configureColumns(for: .lookup)
+        }
         wordListVC.loadWords(for: dict)
         dictionaryListVC.setActiveDictionary(dict)
         show(.supplementary)
@@ -511,7 +525,35 @@ class MainSplitViewController: UISplitViewController {
         detailContainer.pushArticle(article, animated: animated)
         show(.secondary)
     }
-    
+
+    // MARK: - Bookmarks
+
+    private func showBookmarksList() {
+        // Exit management mode if needed, but stay in lookup mode
+        exitToLookupModeIfNeeded()
+
+        configureColumns(for: .bookmarks)
+        show(.supplementary)
+        debugLog("🔖 Showing bookmarks list")
+    }
+
+    private func setupBookmarkCallbacks() {
+        bookmarkListVC.onBookmarkSelected = { [weak self] bookmark in
+            guard let self else { return }
+            let dict = DictionaryService.shared.dict(id: bookmark.dictId)
+            var article = ArticleDisplayItem(
+                word: bookmark.word,
+                dictId: bookmark.dictId,
+                dictName: bookmark.dictName,
+                contentState: .pending
+            )
+            if let dict, let entry = dict.lookup(bookmark.word) {
+                article.contentState = .loaded(html: entry.article.html, css: nil)
+            }
+            showArticle(article, animated: true)
+        }
+    }
+
     // MARK: - Mode Management
     
     private enum ManagementAction {
@@ -600,6 +642,7 @@ class MainSplitViewController: UISplitViewController {
     
     private enum ColumnTarget {
         case lookup
+        case bookmarks
         case managementDict
         case managementGroup
     }
@@ -619,7 +662,13 @@ class MainSplitViewController: UISplitViewController {
             minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
             setViewController(wordListVC, for: .supplementary)
             setViewController(detailContainer, for: .secondary)
-            
+
+        case .bookmarks:
+            preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
+            minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
+            setViewController(bookmarkListVC, for: .supplementary)
+            setViewController(detailContainer, for: .secondary)
+
         case .managementDict:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin

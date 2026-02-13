@@ -22,6 +22,7 @@ class ArticleCell: UICollectionViewCell {
     var onClose: (() -> Void)?
     var onOpenInNewWindow: (() -> Void)?
     var onBookmarkToggle: ((Bool) -> Void)?
+    var onBookmarkRemoveRequested: (() -> Void)?
     var onWillPresentFind: (() -> Void)?
 
     // MARK: - State
@@ -200,8 +201,8 @@ class ArticleCell: UICollectionViewCell {
         titleLabel.text = article.word
         subtitleLabel.text = article.dictName
         
-        // TODO: Combine ArticleDisplayItem with bookmark state (loaded from persistence)
-        isBookmarked = false
+        // Query bookmark state from persistence
+        isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
         bookmarkButton.setNeedsUpdateConfiguration()
 
         // Disable scroll in Grid mode, due to viewport too small
@@ -230,11 +231,29 @@ class ArticleCell: UICollectionViewCell {
          }
      }
     
+    /// Refresh only the bookmark icon state from persistence.
+    /// Lightweight alternative to full reconfigure — avoids re-running
+    /// setZoomLevel which can cause a visual reflow glitch.
+    func refreshBookmarkState() {
+        guard let article = currentArticle else { return }
+        let newState = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        if newState != isBookmarked {
+            isBookmarked = newState
+            bookmarkButton.setNeedsUpdateConfiguration()
+        }
+    }
+
     // MARK: - Actions
     @objc private func bookmarkTapped() {
-        isBookmarked.toggle()
-        bookmarkButton.setNeedsUpdateConfiguration()
-        onBookmarkToggle?(isBookmarked)
+        if isBookmarked {
+            // Removing bookmark → ask controller to show confirmation
+            onBookmarkRemoveRequested?()
+        } else {
+            // Adding bookmark → immediate
+            isBookmarked = true
+            bookmarkButton.setNeedsUpdateConfiguration()
+            onBookmarkToggle?(true)
+        }
     }
     
     @objc private func findTapped() {
@@ -255,6 +274,7 @@ class ArticleCell: UICollectionViewCell {
         onClose = nil
         onOpenInNewWindow = nil
         onBookmarkToggle = nil
+        onBookmarkRemoveRequested = nil
         onWillPresentFind = nil
         currentArticle = nil
         isBookmarked = false

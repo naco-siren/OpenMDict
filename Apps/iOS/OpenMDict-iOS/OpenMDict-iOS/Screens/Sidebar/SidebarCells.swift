@@ -504,6 +504,9 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .addGroup:
             content.text = L10n.Sidebar.addNewGroup
             content.image = UIImage(systemName: "folder.badge.plus")
+        case .bookmarks:
+            content.text = L10n.Sidebar.bookmarks
+            content.image = UIImage(systemName: "bookmark")
         case .managePresets:
             content.text = L10n.Sidebar.presetDictionaries
             content.image = UIImage(systemName: "books.vertical")

@@ -26,6 +26,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onDictionaryInfoSelected: ((String) -> Void)?  // dictId
     var onGroupInfoSelected: ((String) -> Void)?       // groupId
     var onAddGroupSelected: (() -> Void)?
+    var onBookmarksSelected: (() -> Void)?
     var onManagePresetsSelected: (() -> Void)?
     
     // MARK: - SidebarStateProvider
@@ -354,7 +355,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .importDictionary, .addGroup, .managePresets, .settings:
+            case .importDictionary, .addGroup, .bookmarks, .managePresets, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -414,7 +415,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
         mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.managePresets, .settings], to: mgmtHeader)
+        mgmtSnapshot.append([.bookmarks, .managePresets, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
         dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
     }
@@ -494,6 +495,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Add new group is visible in edit mode or when no user groups, always selectable
             return true
             
+        case .bookmarks:
+            // Bookmarks disabled in edit mode
+            return !isEditing
+
         case .managePresets:
             // Management actions are disabled in edit mode
             return !isEditing
@@ -577,6 +582,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Notify delegate to create and manage new group
             onAddGroupSelected?()
             
+        case .bookmarks:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onBookmarksSelected?()
+
         case .managePresets:
             collectionView.deselectItem(at: indexPath, animated: true)
             onManagePresetsSelected?()

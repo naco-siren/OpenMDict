@@ -137,6 +137,24 @@ final class LookupHistoryService {
         }
     }
 
+    /// Total lookup count for a (word, dictId) pair across all contexts.
+    func totalLookupCount(word: String, dictId: String) -> Int {
+        let ctx = stack.viewContext
+        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "word == %@", word),
+            NSPredicate(format: "dictId == %@", dictId),
+        ])
+
+        do {
+            let records = try ctx.fetch(request)
+            return records.reduce(0) { $0 + Int($1.lookupCount) }
+        } catch {
+            print("❌ LookupHistory totalLookupCount failed: \(error)")
+            return 0
+        }
+    }
+
     // MARK: - Delete
 
     /// Delete a single record by its managed object ID.

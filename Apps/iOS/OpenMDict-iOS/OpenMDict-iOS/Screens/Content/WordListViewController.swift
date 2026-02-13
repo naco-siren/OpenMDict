@@ -94,7 +94,7 @@ class WordListViewController: UIViewController {
         loadHistory()
         updateEmptyState()
         updateTitleView()
-        updateNavigationBarActions()
+
     }
 
     // MARK: - Reactive Binding
@@ -146,7 +146,7 @@ class WordListViewController: UIViewController {
         if !isSearching {
             tableView.reloadData()
             updateEmptyState()
-            updateNavigationBarActions()
+    
         }
     }
 
@@ -230,36 +230,6 @@ class WordListViewController: UIViewController {
         navigationItem.titleView = stack
     }
 
-    // MARK: - Navigation Bar Actions
-
-    private func updateNavigationBarActions() {
-        if !isSearching && !historyGroups.isEmpty {
-            navigationItem.rightBarButtonItem = UIBarButtonItem(
-                title: L10n.History.clearAll,
-                style: .plain,
-                target: self,
-                action: #selector(clearAllTapped)
-            )
-        } else {
-            navigationItem.rightBarButtonItem = nil
-        }
-    }
-
-    @objc private func clearAllTapped() {
-        let alert = UIAlertController(
-            title: L10n.History.clearAllConfirmTitle,
-            message: L10n.History.clearAllConfirmMessage,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        let ctx = lookupContext
-        alert.addAction(UIAlertAction(title: L10n.History.clearAll, style: .destructive) { _ in
-            LookupHistoryService.shared.clearHistory(
-                lookupContextDictId: ctx?.dictId, lookupContextGroupId: ctx?.groupId
-            )
-        })
-        present(alert, animated: true)
-    }
 }
 
 // MARK: - UITableViewDataSource
@@ -416,6 +386,6 @@ extension WordListViewController: UISearchResultsUpdating {
         // When transitioning between modes, reload the table
         tableView.reloadData()
         updateEmptyState()
-        updateNavigationBarActions()
+
     }
 }
