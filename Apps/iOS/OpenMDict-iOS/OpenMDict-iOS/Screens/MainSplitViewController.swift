@@ -702,41 +702,64 @@ class MainSplitViewController: UISplitViewController {
     
     private func configureColumns(for target: ColumnTarget) {
         guard target != currentColumnTarget else { return }
+
+        let previousTarget = currentColumnTarget
         currentColumnTarget = target
 
-        setViewController(nil, for: .supplementary)
-        setViewController(nil, for: .secondary)
+        // Determine new VCs
+        let newSupplementary: UIViewController
+        let newSecondary: UIViewController
 
         switch target {
         case .lookup:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
             minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
-            setViewController(wordListVC, for: .supplementary)
-            setViewController(detailContainer, for: .secondary)
-
+            newSupplementary = wordListVC
+            newSecondary = detailContainer
         case .bookmarks:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
             minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
-            setViewController(bookmarkListVC, for: .supplementary)
-            setViewController(detailContainer, for: .secondary)
-
+            newSupplementary = bookmarkListVC
+            newSecondary = detailContainer
         case .lookupHistory:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
             minimumSupplementaryColumnWidth = ColumnWidth.lookupMin
-            setViewController(lookupHistoryListVC, for: .supplementary)
-            setViewController(detailContainer, for: .secondary)
-
+            newSupplementary = lookupHistoryListVC
+            newSecondary = detailContainer
         case .managementDict:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin
-            setViewController(dictInfoVC, for: .supplementary)
-            setViewController(dictResourceEditorVC, for: .secondary)
-
+            newSupplementary = dictInfoVC
+            newSecondary = dictResourceEditorVC
         case .managementGroup:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin
-            setViewController(groupInfoVC, for: .supplementary)
-            setViewController(groupDictEditorVC, for: .secondary)
+            newSupplementary = groupInfoVC
+            newSecondary = groupDictEditorVC
+        }
+
+        // Swap supplementary — always changes between column targets.
+        setViewController(nil, for: .supplementary)
+        setViewController(newSupplementary, for: .supplementary)
+
+        // Swap secondary — only if the VC actually changes.
+        // On iPadOS 18, nil-then-re-set of a VC whose navigationItem has a
+        // searchController (detailContainer on iOS 16+) crashes: the auto-
+        // wrapped UINavigationController is destroyed and recreated, but the
+        // searchController still references the old nav bar, triggering
+        // "top item belongs to a different navigation bar" in layoutSubviews.
+        // Skipping the redundant swap keeps the wrapper nav controller alive.
+        let previousSecondary: UIViewController? = {
+            switch previousTarget {
+            case .lookup, .bookmarks, .lookupHistory: return detailContainer
+            case .managementDict: return dictResourceEditorVC
+            case .managementGroup: return groupDictEditorVC
+            }
+        }()
+
+        if newSecondary !== previousSecondary {
+            setViewController(nil, for: .secondary)
+            setViewController(newSecondary, for: .secondary)
         }
     }
     
