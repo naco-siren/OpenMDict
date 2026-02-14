@@ -1,0 +1,14 @@
+/* Arabic Localization */
+
+"APPEARANCE_GROUP" = "المظهر";
+"APPEARANCE_MODE" = "وضع المظهر";
+"APPEARANCE_LIGHT" = "فاتح";
+"APPEARANCE_SYSTEM" = "النظام";
+"APPEARANCE_DARK" = "داكن";
+"SEARCH_GROUP" = "البحث";
+"SEARCH_RESULT_VOLUME" = "نتائج البحث";
+"SEARCH_RESULT_A_FEW" = "قليل جدًا";
+"SEARCH_RESULT_LESS" = "أقل";
+"SEARCH_RESULT_DEFAULT" = "الافتراضي";
+"SEARCH_RESULT_MORE" = "أكثر";
+"SEARCH_RESULT_A_LOT" = "كثير جدًا";

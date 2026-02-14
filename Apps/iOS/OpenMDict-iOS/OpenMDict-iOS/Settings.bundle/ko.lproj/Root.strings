@@ -1,0 +1,14 @@
+/* Korean Localization */
+
+"APPEARANCE_GROUP" = "외관";
+"APPEARANCE_MODE" = "외관 모드";
+"APPEARANCE_LIGHT" = "라이트";
+"APPEARANCE_SYSTEM" = "시스템";
+"APPEARANCE_DARK" = "다크";
+"SEARCH_GROUP" = "검색";
+"SEARCH_RESULT_VOLUME" = "검색 결과 수";
+"SEARCH_RESULT_A_FEW" = "매우 적게";
+"SEARCH_RESULT_LESS" = "적게";
+"SEARCH_RESULT_DEFAULT" = "기본값";
+"SEARCH_RESULT_MORE" = "많이";
+"SEARCH_RESULT_A_LOT" = "매우 많이";

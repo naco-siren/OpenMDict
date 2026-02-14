@@ -1,0 +1,14 @@
+/* Simplified Chinese Localization */
+
+"APPEARANCE_GROUP" = "外观";
+"APPEARANCE_MODE" = "外观模式";
+"APPEARANCE_LIGHT" = "浅色";
+"APPEARANCE_SYSTEM" = "系统";
+"APPEARANCE_DARK" = "深色";
+"SEARCH_GROUP" = "搜索";
+"SEARCH_RESULT_VOLUME" = "搜索结果量";
+"SEARCH_RESULT_A_FEW" = "极少";
+"SEARCH_RESULT_LESS" = "较少";
+"SEARCH_RESULT_DEFAULT" = "默认";
+"SEARCH_RESULT_MORE" = "较多";
+"SEARCH_RESULT_A_LOT" = "极多";

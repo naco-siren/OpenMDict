@@ -312,8 +312,13 @@ final class DictionaryService: ObservableObject {
 
         // 2. Load into memory and update groups
         await refreshAfterImport(dictId)
-        
-        // 3. Reset import session
+
+        // 3. Index for Spotlight search
+        if let newDict = dict(id: dictId) {
+            SpotlightIndexingService.shared.indexDictionary(newDict)
+        }
+
+        // 4. Reset import session
         importSession.reset()
 
         return dictId
@@ -327,6 +332,9 @@ final class DictionaryService: ObservableObject {
 
         // 2. Remove from memory and update groups
         refreshAfterDelete(dictId)
+
+        // 3. Remove from Spotlight index
+        SpotlightIndexingService.shared.deindexDictionary(id: dictId)
     }
     
     /// Update display name for a dictionary

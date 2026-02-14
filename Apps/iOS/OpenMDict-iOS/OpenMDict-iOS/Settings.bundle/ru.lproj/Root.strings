@@ -1,0 +1,14 @@
+/* Russian Localization */
+
+"APPEARANCE_GROUP" = "Внешний вид";
+"APPEARANCE_MODE" = "Режим оформления";
+"APPEARANCE_LIGHT" = "Светлая";
+"APPEARANCE_SYSTEM" = "Системная";
+"APPEARANCE_DARK" = "Тёмная";
+"SEARCH_GROUP" = "Поиск";
+"SEARCH_RESULT_VOLUME" = "Объём результатов";
+"SEARCH_RESULT_A_FEW" = "Очень мало";
+"SEARCH_RESULT_LESS" = "Меньше";
+"SEARCH_RESULT_DEFAULT" = "По умолчанию";
+"SEARCH_RESULT_MORE" = "Больше";
+"SEARCH_RESULT_A_LOT" = "Очень много";

@@ -1,0 +1,14 @@
+/* Hindi Localization */
+
+"APPEARANCE_GROUP" = "दिखावट";
+"APPEARANCE_MODE" = "दिखावट मोड";
+"APPEARANCE_LIGHT" = "लाइट";
+"APPEARANCE_SYSTEM" = "सिस्टम";
+"APPEARANCE_DARK" = "डार्क";
+"SEARCH_GROUP" = "खोज";
+"SEARCH_RESULT_VOLUME" = "खोज परिणाम";
+"SEARCH_RESULT_A_FEW" = "बहुत कम";
+"SEARCH_RESULT_LESS" = "कम";
+"SEARCH_RESULT_DEFAULT" = "डिफ़ॉल्ट";
+"SEARCH_RESULT_MORE" = "अधिक";
+"SEARCH_RESULT_A_LOT" = "बहुत अधिक";

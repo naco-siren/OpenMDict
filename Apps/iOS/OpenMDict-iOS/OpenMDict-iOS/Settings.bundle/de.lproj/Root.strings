@@ -1,0 +1,14 @@
+/* German Localization */
+
+"APPEARANCE_GROUP" = "Darstellung";
+"APPEARANCE_MODE" = "Darstellungsmodus";
+"APPEARANCE_LIGHT" = "Hell";
+"APPEARANCE_SYSTEM" = "System";
+"APPEARANCE_DARK" = "Dunkel";
+"SEARCH_GROUP" = "Suche";
+"SEARCH_RESULT_VOLUME" = "Suchergebnisse";
+"SEARCH_RESULT_A_FEW" = "Sehr wenige";
+"SEARCH_RESULT_LESS" = "Weniger";
+"SEARCH_RESULT_DEFAULT" = "Standard";
+"SEARCH_RESULT_MORE" = "Mehr";
+"SEARCH_RESULT_A_LOT" = "Sehr viele";

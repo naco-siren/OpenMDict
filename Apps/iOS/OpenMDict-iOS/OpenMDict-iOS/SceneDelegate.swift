@@ -4,6 +4,7 @@
 //
 
 import UIKit
+import CoreSpotlight
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -97,11 +98,28 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-        guard let splitVC = window?.rootViewController as? MainSplitViewController,
-              let article = ArticleDisplayItem.from(userActivity: userActivity) else {
+        guard let splitVC = window?.rootViewController as? MainSplitViewController else { return }
+
+        // Handle Spotlight search result tap
+        if let dictId = SpotlightIndexingService.parseDictionaryId(from: userActivity) {
+            splitVC.select(dictionaryId: dictId)
             return
         }
-        splitVC.showArticle(article, animated: true)
+
+        // Handle article handoff / drag-and-drop
+        if let article = ArticleDisplayItem.from(userActivity: userActivity) {
+            splitVC.showArticle(article, animated: true)
+        }
+    }
+
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        // Reapply appearance from UserDefaults when returning from background.
+        // On iOS 15 iPhone, view.window may be nil when UserDefaults.didChangeNotification
+        // fires during the background→foreground transition, so DetailContainerVC's handler
+        // silently fails. SceneDelegate.window is a strong reference that remains valid
+        // throughout the scene lifecycle, making this a reliable fallback for all devices.
+        let mode = UserDefaults.standard.appearanceMode
+        window?.overrideUserInterfaceStyle = mode.userInterfaceStyle
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {

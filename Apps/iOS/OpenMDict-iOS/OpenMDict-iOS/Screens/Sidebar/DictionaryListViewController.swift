@@ -617,7 +617,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
 
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)
-            print("⚙️ App Settings - TODO")
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
         }
     }
     

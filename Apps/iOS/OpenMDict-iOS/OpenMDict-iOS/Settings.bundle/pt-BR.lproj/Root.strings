@@ -1,0 +1,14 @@
+/* Brazilian Portuguese Localization */
+
+"APPEARANCE_GROUP" = "Aparência";
+"APPEARANCE_MODE" = "Modo de aparência";
+"APPEARANCE_LIGHT" = "Claro";
+"APPEARANCE_SYSTEM" = "Sistema";
+"APPEARANCE_DARK" = "Escuro";
+"SEARCH_GROUP" = "Pesquisa";
+"SEARCH_RESULT_VOLUME" = "Resultados da pesquisa";
+"SEARCH_RESULT_A_FEW" = "Muito poucos";
+"SEARCH_RESULT_LESS" = "Menos";
+"SEARCH_RESULT_DEFAULT" = "Padrão";
+"SEARCH_RESULT_MORE" = "Mais";
+"SEARCH_RESULT_A_LOT" = "Muitos";

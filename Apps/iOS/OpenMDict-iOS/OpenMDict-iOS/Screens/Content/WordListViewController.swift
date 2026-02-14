@@ -169,6 +169,12 @@ class WordListViewController: UIViewController {
         updateEmptyState()
     }
 
+    /// Activate the search bar and show keyboard (called from keyboard shortcut ⌘L)
+    func focusSearchBar() {
+        searchController.isActive = true
+        searchController.searchBar.becomeFirstResponder()
+    }
+
     // MARK: - UI Updates
 
     private func updateEmptyState() {

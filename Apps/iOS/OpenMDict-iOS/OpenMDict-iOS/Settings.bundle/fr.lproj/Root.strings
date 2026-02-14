@@ -1,0 +1,14 @@
+/* French Localization */
+
+"APPEARANCE_GROUP" = "Apparence";
+"APPEARANCE_MODE" = "Mode d'apparence";
+"APPEARANCE_LIGHT" = "Clair";
+"APPEARANCE_SYSTEM" = "Système";
+"APPEARANCE_DARK" = "Sombre";
+"SEARCH_GROUP" = "Recherche";
+"SEARCH_RESULT_VOLUME" = "Résultats de recherche";
+"SEARCH_RESULT_A_FEW" = "Très peu";
+"SEARCH_RESULT_LESS" = "Moins";
+"SEARCH_RESULT_DEFAULT" = "Par défaut";
+"SEARCH_RESULT_MORE" = "Plus";
+"SEARCH_RESULT_A_LOT" = "Beaucoup";

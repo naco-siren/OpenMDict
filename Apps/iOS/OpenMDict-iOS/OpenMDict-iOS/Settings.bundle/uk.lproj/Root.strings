@@ -1,0 +1,14 @@
+/* Ukrainian Localization */
+
+"APPEARANCE_GROUP" = "Зовнішній вигляд";
+"APPEARANCE_MODE" = "Режим оформлення";
+"APPEARANCE_LIGHT" = "Світла";
+"APPEARANCE_SYSTEM" = "Системна";
+"APPEARANCE_DARK" = "Темна";
+"SEARCH_GROUP" = "Пошук";
+"SEARCH_RESULT_VOLUME" = "Обсяг результатів";
+"SEARCH_RESULT_A_FEW" = "Дуже мало";
+"SEARCH_RESULT_LESS" = "Менше";
+"SEARCH_RESULT_DEFAULT" = "За замовчуванням";
+"SEARCH_RESULT_MORE" = "Більше";
+"SEARCH_RESULT_A_LOT" = "Дуже багато";

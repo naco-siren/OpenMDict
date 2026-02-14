@@ -12,10 +12,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Register Settings.bundle defaults
+        UserDefaults.standard.register(defaults: [
+            "appearanceMode": 1,    // .system
+            "searchResultVolume": 2 // .normal (Default)
+        ])
         // Initialize persistent store (Core Data)
         CoreDataStack.shared.setup()
         // Initialize dictionary service (loads Library dictionaries)
         DictionaryService.shared.setup()
+        // Index dictionaries for Spotlight search
+        SpotlightIndexingService.shared.indexAllDictionaries()
         return true
     }
     

@@ -1,0 +1,14 @@
+/* Japanese Localization */
+
+"APPEARANCE_GROUP" = "外観";
+"APPEARANCE_MODE" = "外観モード";
+"APPEARANCE_LIGHT" = "ライト";
+"APPEARANCE_SYSTEM" = "システム";
+"APPEARANCE_DARK" = "ダーク";
+"SEARCH_GROUP" = "検索";
+"SEARCH_RESULT_VOLUME" = "検索結果の量";
+"SEARCH_RESULT_A_FEW" = "ごく少数";
+"SEARCH_RESULT_LESS" = "少なめ";
+"SEARCH_RESULT_DEFAULT" = "デフォルト";
+"SEARCH_RESULT_MORE" = "多め";
+"SEARCH_RESULT_A_LOT" = "最大";

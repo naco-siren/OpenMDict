@@ -1,0 +1,15 @@
+/* Settings.bundle English strings */
+
+"APPEARANCE_GROUP" = "Appearance";
+"APPEARANCE_MODE" = "Appearance Mode";
+"APPEARANCE_LIGHT" = "Light";
+"APPEARANCE_SYSTEM" = "System";
+"APPEARANCE_DARK" = "Dark";
+
+"SEARCH_GROUP" = "Search";
+"SEARCH_RESULT_VOLUME" = "Search Results";
+"SEARCH_RESULT_A_FEW" = "A Few";
+"SEARCH_RESULT_LESS" = "Less";
+"SEARCH_RESULT_DEFAULT" = "Default";
+"SEARCH_RESULT_MORE" = "More";
+"SEARCH_RESULT_A_LOT" = "A Lot";

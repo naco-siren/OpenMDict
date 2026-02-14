@@ -1,0 +1,14 @@
+/* Traditional Chinese Localization */
+
+"APPEARANCE_GROUP" = "外觀";
+"APPEARANCE_MODE" = "外觀模式";
+"APPEARANCE_LIGHT" = "淺色";
+"APPEARANCE_SYSTEM" = "系統";
+"APPEARANCE_DARK" = "深色";
+"SEARCH_GROUP" = "搜尋";
+"SEARCH_RESULT_VOLUME" = "搜尋結果量";
+"SEARCH_RESULT_A_FEW" = "極少";
+"SEARCH_RESULT_LESS" = "較少";
+"SEARCH_RESULT_DEFAULT" = "預設";
+"SEARCH_RESULT_MORE" = "較多";
+"SEARCH_RESULT_A_LOT" = "極多";

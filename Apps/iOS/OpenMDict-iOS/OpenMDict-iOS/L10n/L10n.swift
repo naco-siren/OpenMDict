@@ -759,4 +759,36 @@ nonisolated enum L10n {
             count
         )
     }
+
+    // MARK: - Keyboard Shortcuts
+
+    enum Shortcuts {
+        static var focusSearch: String {
+            NSLocalizedString("shortcuts.focusSearch", value: "Focus Search", comment: "Keyboard shortcut: focus search bar")
+        }
+        static var showSidebar: String {
+            NSLocalizedString("shortcuts.showSidebar", value: "Show Sidebar", comment: "Keyboard shortcut: show sidebar column")
+        }
+        static var showWordList: String {
+            NSLocalizedString("shortcuts.showWordList", value: "Show Word List", comment: "Keyboard shortcut: show word list column")
+        }
+        static var showBookmarks: String {
+            NSLocalizedString("shortcuts.showBookmarks", value: "Show Bookmarks", comment: "Keyboard shortcut: show bookmarks")
+        }
+        static var showHistory: String {
+            NSLocalizedString("shortcuts.showHistory", value: "Show History", comment: "Keyboard shortcut: show lookup history")
+        }
+        static var openSettings: String {
+            NSLocalizedString("shortcuts.openSettings", value: "Open Settings", comment: "Keyboard shortcut: open system settings")
+        }
+        static var newWindow: String {
+            NSLocalizedString("shortcuts.newWindow", value: "New Window", comment: "Keyboard shortcut: open new window")
+        }
+        static var closeWindow: String {
+            NSLocalizedString("shortcuts.closeWindow", value: "Close Window", comment: "Keyboard shortcut: close current window")
+        }
+        static var dismiss: String {
+            NSLocalizedString("shortcuts.dismiss", value: "Dismiss", comment: "Keyboard shortcut: dismiss modal or cancel search")
+        }
+    }
 }

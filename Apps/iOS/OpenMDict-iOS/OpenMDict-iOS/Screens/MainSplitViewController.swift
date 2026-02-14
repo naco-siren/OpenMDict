@@ -703,10 +703,10 @@ class MainSplitViewController: UISplitViewController {
     private func configureColumns(for target: ColumnTarget) {
         guard target != currentColumnTarget else { return }
         currentColumnTarget = target
-        
+
         setViewController(nil, for: .supplementary)
         setViewController(nil, for: .secondary)
-        
+
         switch target {
         case .lookup:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.lookupFraction
@@ -731,7 +731,7 @@ class MainSplitViewController: UISplitViewController {
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin
             setViewController(dictInfoVC, for: .supplementary)
             setViewController(dictResourceEditorVC, for: .secondary)
-            
+
         case .managementGroup:
             preferredSupplementaryColumnWidthFraction = ColumnWidth.managementFraction
             minimumSupplementaryColumnWidth = ColumnWidth.managementMin
@@ -740,8 +740,92 @@ class MainSplitViewController: UISplitViewController {
         }
     }
     
+    // MARK: - Keyboard Shortcuts
+
+    override var keyCommands: [UIKeyCommand]? {
+        [
+            UIKeyCommand(title: L10n.Shortcuts.focusSearch,
+                         action: #selector(focusSearchShortcut),
+                         input: "l", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.showSidebar,
+                         action: #selector(showSidebarShortcut),
+                         input: "1", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.showWordList,
+                         action: #selector(showWordListShortcut),
+                         input: "2", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.showBookmarks,
+                         action: #selector(showBookmarksShortcut),
+                         input: "b", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.showHistory,
+                         action: #selector(showHistoryShortcut),
+                         input: "y", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.openSettings,
+                         action: #selector(openSettingsShortcut),
+                         input: ",", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.newWindow,
+                         action: #selector(newWindowShortcut),
+                         input: "n", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.closeWindow,
+                         action: #selector(closeWindowShortcut),
+                         input: "w", modifierFlags: .command),
+            UIKeyCommand(title: L10n.Shortcuts.dismiss,
+                         action: #selector(dismissShortcut),
+                         input: UIKeyCommand.inputEscape, modifierFlags: []),
+        ]
+    }
+
+    @objc private func focusSearchShortcut() {
+        exitToLookupModeIfNeeded()
+        if currentColumnTarget != .lookup {
+            configureColumns(for: .lookup)
+        }
+        show(.supplementary)
+        wordListVC.focusSearchBar()
+    }
+
+    @objc private func showSidebarShortcut() {
+        show(.primary)
+    }
+
+    @objc private func showWordListShortcut() {
+        show(.supplementary)
+    }
+
+    @objc private func showBookmarksShortcut() {
+        showBookmarksList()
+    }
+
+    @objc private func showHistoryShortcut() {
+        showLookupHistoryList()
+    }
+
+    @objc private func openSettingsShortcut() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+
+    @objc private func newWindowShortcut() {
+        UIApplication.shared.requestSceneSessionActivation(
+            nil, userActivity: nil, options: nil, errorHandler: nil
+        )
+    }
+
+    @objc private func closeWindowShortcut() {
+        guard let session = view.window?.windowScene?.session else { return }
+        UIApplication.shared.requestSceneSessionDestruction(
+            session, options: nil, errorHandler: nil
+        )
+    }
+
+    @objc private func dismissShortcut() {
+        if let presented = presentedViewController {
+            presented.dismiss(animated: true)
+        }
+    }
+
     // MARK: - State Restoration
-    
+
     func currentStateActivity() -> NSUserActivity? {
         let articles = detailContainer.allArticles
         let groupId = currentGroup?.id ?? ""

@@ -206,6 +206,7 @@ class DetailContainerViewController: UIViewController {
     }
 
     private func subscribeToAppearanceChanges() {
+        // Cross-window sync via NotificationCenter (when user changes appearance in-app)
         NotificationCenter.default.addObserver(
             forName: .appearanceModeDidChange,
             object: nil,
@@ -213,10 +214,26 @@ class DetailContainerViewController: UIViewController {
         ) { [weak self] notif in
             guard let self else { return }
             let mode = notif.object as? AppearanceMode
-            
+
             Task { @MainActor in
                 guard let mode else { return }
                 self.appearanceMode = mode
+                self.applyAppearance()
+                self.updateNavigationBar(for: self.traitCollection)
+            }
+        }
+
+        // Settings.bundle sync: detect UserDefaults changes when returning from system Settings
+        NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                let stored = UserDefaults.standard.appearanceMode
+                guard stored != self.appearanceMode else { return }
+                self.appearanceMode = stored
                 self.applyAppearance()
                 self.updateNavigationBar(for: self.traitCollection)
             }
