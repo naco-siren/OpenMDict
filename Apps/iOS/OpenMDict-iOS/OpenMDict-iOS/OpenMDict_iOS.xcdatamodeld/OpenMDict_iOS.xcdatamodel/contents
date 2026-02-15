@@ -13,6 +13,32 @@
             <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
+    <entity name="DictionaryGroupRecord" representedClassName="DictionaryGroupRecord" syncable="YES">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="groupId" attributeType="String" defaultValueString=""/>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="modifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="sortOrder" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <fetchIndex name="byGroupId">
+            <fetchIndexElement property="groupId" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="bySortOrder">
+            <fetchIndexElement property="sortOrder" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
+    <entity name="GroupEntryRecord" representedClassName="GroupEntryRecord" syncable="YES">
+        <attribute name="dictId" attributeType="String" defaultValueString=""/>
+        <attribute name="groupId" attributeType="String" defaultValueString=""/>
+        <attribute name="sortOrder" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <fetchIndex name="byGroupId">
+            <fetchIndexElement property="groupId" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byGroupIdAndSortOrder">
+            <fetchIndexElement property="groupId" type="Binary" order="ascending"/>
+            <fetchIndexElement property="sortOrder" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
     <entity name="LookupCountRecord" representedClassName="LookupCountRecord" syncable="YES">
         <attribute name="contextKey" attributeType="String" defaultValueString=""/>
         <attribute name="count" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>

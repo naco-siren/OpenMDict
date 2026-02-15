@@ -101,6 +101,7 @@ final class DictionaryService: ObservableObject {
         allDictionaries.first { $0.id == id }
     }
     
+    // TODO: [Phase 3] Read from DictionaryMetadataRecord instead of manifest.
     /// Get the import date for a dictionary (from manifest)
     func importedDate(_ dictId: String) -> Date? {
         storage.manifest.dictionaries.first(where: { $0.id == dictId })?.importedAt
@@ -150,6 +151,7 @@ final class DictionaryService: ObservableObject {
         await loadAllDictionaries()
     }
     
+    // TODO: [Phase 3] Read dictionary list from DictionaryMetadataRecord instead of manifest.
     private func loadUserDictionaries() {
         let importedDicts: [MDict] = storage.manifest.dictionaries.compactMap { entry -> MDict? in
             // Load dict manifest to get actual MDX filename
@@ -188,55 +190,46 @@ final class DictionaryService: ObservableObject {
         print("📚 Found \(importedDicts.count) dictionaries in Library")
     }
     
+    private let groupPersistence = GroupPersistenceService.shared
+
     private func setupGroups() {
-        let manifest = storage.manifest
+        let loadedGroups = groupPersistence.loadGroups()
 
-        // Create default group with all dictionaries
-        // Use persisted order if available, otherwise all in current order
-        let defaultOrder: [String]
-        if !manifest.groups.defaultOrder.isEmpty {
-            defaultOrder = manifest.groups.defaultOrder
-        } else {
-            // First time: use order from manifest dictionaries array
-            defaultOrder = allDictionaries.map { $0.id }
-        }
-
-        // Stamp default group creation date on first setup
-        if manifest.groups.defaultGroupCreatedAt == nil && !allDictionaries.isEmpty {
-            storage.setDefaultGroupCreatedAt(Date())
-        }
-
-        // Filter to only IDs that exist in allDictionaries
-        let validOrder = defaultOrder.filter { id in
-            allDictionaries.contains { $0.id == id }
-        }
-
-        let allGroup = MDicts(
-            id: "all",
-            name: L10n.GroupInfo.allDictionaries,
-            isDefault: true,
-            dictionaryIds: validOrder,
-            createdAt: storage.manifest.groups.defaultGroupCreatedAt
-        )
-        allGroup.populate(from: allDictionaries)
-
-        groups = [allGroup]
-
-        // Restore user groups from manifest
-        for userGroup in manifest.groups.userGroups {
-            let validGroupOrder = userGroup.dictionaryIds.filter { id in
-                allDictionaries.contains { $0.id == id }
+        if !loadedGroups.isEmpty {
+            // Restore from CoreData
+            groups = loadedGroups.map { loaded in
+                // Filter to only IDs that exist in allDictionaries
+                let validIds = loaded.dictionaryIds.filter { id in
+                    allDictionaries.contains { $0.id == id }
+                }
+                let group = MDicts(
+                    id: loaded.groupId,
+                    name: loaded.isDefault ? L10n.GroupInfo.allDictionaries : loaded.name,
+                    isDefault: loaded.isDefault,
+                    dictionaryIds: validIds,
+                    createdAt: loaded.createdAt,
+                    modifiedAt: loaded.modifiedAt
+                )
+                group.populate(from: allDictionaries)
+                return group
             }
-            let group = MDicts(
-                id: userGroup.id,
-                name: userGroup.name,
-                isDefault: false,
-                dictionaryIds: validGroupOrder,
-                createdAt: userGroup.createdAt,
-                modifiedAt: userGroup.modifiedAt
+        } else {
+            // First launch (no CoreData records) — create default group
+            let now = Date()
+            let allGroup = MDicts(
+                id: "all",
+                name: L10n.GroupInfo.allDictionaries,
+                isDefault: true,
+                dictionaryIds: allDictionaries.map { $0.id },
+                createdAt: now
             )
-            group.populate(from: allDictionaries)
-            groups.append(group)
+            allGroup.populate(from: allDictionaries)
+            groups = [allGroup]
+
+            // Persist the newly created default group
+            if !allDictionaries.isEmpty {
+                persistGroups()
+            }
         }
 
         print("📂 Setup \(groups.count) groups")
@@ -358,7 +351,7 @@ final class DictionaryService: ObservableObject {
         guard let defaultGroup = defaultGroup else { return }
         defaultGroup.dictionaryIds = newOrder
         defaultGroup.populate(from: allDictionaries)
-        try? persistGroups()
+        persistGroups()
     }
     
     // MARK: - Internal Refresh (called by methods above)
@@ -395,6 +388,7 @@ final class DictionaryService: ObservableObject {
         
         let newDict = MDict(path: mdxPath, id: id, mddPaths: mddPaths)
         
+        // TODO: [Phase 3] Read display name from DictionaryMetadataRecord.
         // Inject user display name from manifest
         if let entry = storage.manifest.dictionary(id: id) {
             newDict.userDisplayName = entry.displayName
@@ -418,7 +412,7 @@ final class DictionaryService: ObservableObject {
         }
         
         // 4. Persist updated default order
-        try? persistGroups()
+        persistGroups()
         
         // 5. Load metadata + full reader
         await newDict.loadMetadata()
@@ -450,33 +444,24 @@ final class DictionaryService: ObservableObject {
         }
         
         // 3. Persist updated groups
-        try? persistGroups()
+        persistGroups()
         
         print("🗑️ Removed dictionary from service: \(id)")
     }
     
-    /// Persist current group configuration to manifest
-    func persistGroups() throws {
-        // Update default order (IDs are SHA256 hashes, no prefix conversion needed)
-        if let defaultGroup = defaultGroup {
-            storage.updateDefaultOrder(defaultGroup.dictionaryIds)
+    /// Persist current group configuration to CoreData.
+    func persistGroups() {
+        let savedGroups = groups.map { group in
+            GroupPersistenceService.SavedGroup(
+                groupId: group.id,
+                name: group.name,
+                isDefault: group.isDefault,
+                createdAt: group.createdAt,
+                modifiedAt: group.modifiedAt,
+                dictionaryIds: group.dictionaryIds
+            )
         }
-
-        // Update user groups
-        let userGroupsData = groups
-            .filter { !$0.isDefault }
-            .map { group in
-                DictionaryManifest.UserGroup(
-                    id: group.id,
-                    name: group.name,
-                    createdAt: group.createdAt ?? Date(),
-                    modifiedAt: group.modifiedAt ?? Date(),
-                    dictionaryIds: group.dictionaryIds
-                )
-            }
-        storage.updateUserGroups(userGroupsData)
-
-        try storage.saveManifest()
+        groupPersistence.saveAllGroups(savedGroups)
     }
     
     // MARK: - Group CRUD
@@ -485,7 +470,7 @@ final class DictionaryService: ObservableObject {
     /// - Parameter name: Display name for the group (auto-deduplicated if conflict)
     /// - Returns: The new MDicts group instance (already added to `groups` and persisted)
     @discardableResult
-    func createGroup(name: String = L10n.GroupInfo.newGroup) throws -> MDicts {
+    func createGroup(name: String = L10n.GroupInfo.newGroup) -> MDicts {
         let finalName = uniqueGroupName(from: name)
         
         let now = Date()
@@ -499,7 +484,7 @@ final class DictionaryService: ObservableObject {
         )
         groups.append(group)
         
-        try persistGroups()
+        persistGroups()
         
         print("➕ Created group: \(finalName) (\(group.id.prefix(8))...)")
         return group
@@ -522,7 +507,7 @@ final class DictionaryService: ObservableObject {
         group.name = trimmedName
         group.modifiedAt = Date()
         
-        try persistGroups()
+        persistGroups()
         print("✏️ Renamed group \(id.prefix(8))... to: \(trimmedName)")
     }
     
@@ -552,30 +537,30 @@ final class DictionaryService: ObservableObject {
     }
     
     /// Delete a user group (does NOT delete dictionaries)
-    func deleteGroup(id: String) throws {
+    func deleteGroup(id: String) {
         groups.removeAll { $0.id == id && !$0.isDefault }
-        
-        // Persist all groups (will sync to manifest, removing the deleted group)
-        try persistGroups()
+
+        // Persist all groups (removing the deleted group from CoreData)
+        persistGroups()
         
         print("🗑️ Deleted group: \(id.prefix(8))...")
     }
     
     /// Reorder user groups (default group is excluded from reordering).
     /// `newOrder` contains user group IDs in the desired order.
-    func reorderUserGroups(newOrder: [String]) throws {
+    func reorderUserGroups(newOrder: [String]) {
         let defaultGroups = groups.filter { $0.isDefault }
         let reordered = newOrder.compactMap { id in groups.first { $0.id == id } }
         
         // Default group(s) first, then reordered user groups
         groups = defaultGroups + reordered
         
-        try persistGroups()
+        persistGroups()
         print("🔄 Reordered \(newOrder.count) user groups")
     }
     
     /// Add a dictionary to a user group
-    func addDictionaryToGroup(groupId: String, dictId: String) throws {
+    func addDictionaryToGroup(groupId: String, dictId: String) {
         guard let group = groups.first(where: { $0.id == groupId && !$0.isDefault }) else {
             print("⚠️ User group not found: \(groupId)")
             return
@@ -589,12 +574,12 @@ final class DictionaryService: ObservableObject {
         group.populate(from: allDictionaries)
         group.modifiedAt = Date()
         
-        try persistGroups()
+        persistGroups()
         print("➕ Added dict \(dictId.prefix(8))... to group \(groupId.prefix(8))...")
     }
     
     /// Remove a dictionary from a user group (does NOT delete dictionary)
-    func removeDictionaryFromGroup(groupId: String, dictId: String) throws {
+    func removeDictionaryFromGroup(groupId: String, dictId: String) {
         guard let group = groups.first(where: { $0.id == groupId && !$0.isDefault }) else {
             print("⚠️ User group not found: \(groupId)")
             return
@@ -604,12 +589,12 @@ final class DictionaryService: ObservableObject {
         group.populate(from: allDictionaries)
         group.modifiedAt = Date()
         
-        try persistGroups()
+        persistGroups()
         print("➖ Removed dict \(dictId.prefix(8))... from group \(groupId.prefix(8))...")
     }
     
     /// Reorder dictionaries within a user group
-    func reorderDictionariesInGroup(groupId: String, newOrder: [String]) throws {
+    func reorderDictionariesInGroup(groupId: String, newOrder: [String]) {
         guard let group = groups.first(where: { $0.id == groupId }) else {
             print("⚠️ Group not found: \(groupId)")
             return
@@ -619,7 +604,7 @@ final class DictionaryService: ObservableObject {
         group.populate(from: allDictionaries)
         group.modifiedAt = Date()
         
-        try persistGroups()
+        persistGroups()
         print("🔄 Reordered \(newOrder.count) dicts in group \(groupId.prefix(8))...")
     }
     

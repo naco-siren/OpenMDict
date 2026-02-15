@@ -449,11 +449,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         case .creating:
             session.pendingDictionaryIds = newOrder
         case .managing(let groupId):
-            do {
-                try DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
-            } catch {
-                debugLog("❌ Failed to reorder dicts: \(error)")
-            }
+            DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
         default:
             break
         }
@@ -468,11 +464,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         
         guard !newOrder.isEmpty, case .reorderOnly(let groupId) = mode else { return }
         
-        do {
-            try DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
-        } catch {
-            debugLog("❌ Failed to reorder dicts in default group: \(error)")
-        }
+        DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
     }
     
     private func addDictionary(_ dictId: String) {
@@ -481,12 +473,8 @@ class GroupDictionaryEditorViewController: UIViewController {
             session.pendingDictionaryIds.append(dictId)
             applyFullSnapshot()
         case .managing(let groupId):
-            do {
-                try DictionaryService.shared.addDictionaryToGroup(groupId: groupId, dictId: dictId)
-                applyFullSnapshot()
-            } catch {
-                debugLog("❌ Failed to add dict to group: \(error)")
-            }
+            DictionaryService.shared.addDictionaryToGroup(groupId: groupId, dictId: dictId)
+            applyFullSnapshot()
         default:
             break
         }
@@ -498,12 +486,8 @@ class GroupDictionaryEditorViewController: UIViewController {
             session.pendingDictionaryIds.removeAll { $0 == dictId }
             applyFullSnapshot()
         case .managing(let groupId):
-            do {
-                try DictionaryService.shared.removeDictionaryFromGroup(groupId: groupId, dictId: dictId)
-                applyFullSnapshot()
-            } catch {
-                debugLog("❌ Failed to remove dict from group: \(error)")
-            }
+            DictionaryService.shared.removeDictionaryFromGroup(groupId: groupId, dictId: dictId)
+            applyFullSnapshot()
         default:
             break
         }

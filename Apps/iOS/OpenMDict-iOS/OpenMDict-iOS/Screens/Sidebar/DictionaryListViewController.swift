@@ -824,12 +824,8 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         
         userGroupIds.swapAt(index, targetIndex)
         
-        do {
-            try DictionaryService.shared.reorderUserGroups(newOrder: userGroupIds)
-            applySnapshot(animated: true)
-        } catch {
-            print("❌ Failed to reorder groups: \(error)")
-        }
+        DictionaryService.shared.reorderUserGroups(newOrder: userGroupIds)
+        applySnapshot(animated: true)
     }
     
     // MARK: - Group Deletion
@@ -851,11 +847,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
     }
     
     private func performDeleteGroup(id: String) {
-        do {
-            try DictionaryService.shared.deleteGroup(id: id)
-            applySnapshot(animated: true)
-        } catch {
-            print("❌ Failed to delete group: \(error)")
-        }
+        DictionaryService.shared.deleteGroup(id: id)
+        applySnapshot(animated: true)
     }
 }

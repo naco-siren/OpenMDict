@@ -302,32 +302,7 @@ final class DictionaryStorageService {
     
     static let shared = DictionaryStorageService()
 
-    private init() {
-        // Lifecycle flush for deferred manifest saves
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(handleManifestFlushTrigger),
-            name: UIScene.didEnterBackgroundNotification, object: nil
-        )
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(handleManifestFlushTrigger),
-            name: UIApplication.didReceiveMemoryWarningNotification, object: nil
-        )
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(handleManifestFlushTrigger),
-            name: UIApplication.willTerminateNotification, object: nil
-        )
-    }
-
-    @objc private func handleManifestFlushTrigger() {
-        guard deferredSaveWorkItem != nil else { return }
-        deferredSaveWorkItem?.cancel()
-        deferredSaveWorkItem = nil
-        do {
-            try saveManifest()
-        } catch {
-            print("❌ Lifecycle manifest flush failed: \(error)")
-        }
-    }
+    private init() {}
 
     // MARK: - Paths
     
@@ -388,9 +363,12 @@ final class DictionaryStorageService {
     }
     
     // MARK: - Root Manifest
-    
+    // TODO: [Phase 3] Replace root manifest.json with DictionaryMetadataRecord in CoreData.
+    //       After Phase 3, DictionaryStorageService will only manage per-dict manifest.json
+    //       (local file layout) and directory operations.
+
     private(set) var manifest: DictionaryManifest = DictionaryManifest()
-    
+
     /// Load manifest from disk
     func loadManifest() {
         guard FileManager.default.fileExists(atPath: manifestURL.path) else {
@@ -403,7 +381,7 @@ final class DictionaryStorageService {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             manifest = try decoder.decode(DictionaryManifest.self, from: data)
-            print("📄 Loaded manifest: \(manifest.dictionaries.count) dictionaries, \(manifest.groups.userGroups.count) user groups")
+            print("📄 Loaded manifest: \(manifest.dictionaries.count) dictionaries")
         } catch {
             print("❌ Failed to load manifest: \(error)")
         }
@@ -505,22 +483,6 @@ final class DictionaryStorageService {
     }
     
     // MARK: - Root Manifest Mutation
-    
-    /// Update the default group order
-    func updateDefaultOrder(_ order: [String]) {
-        manifest.groups.defaultOrder = order
-    }
-
-    /// Stamp the default group creation date (called once on first setup)
-    func setDefaultGroupCreatedAt(_ date: Date) {
-        manifest.groups.defaultGroupCreatedAt = date
-        scheduleDeferredManifestSave()
-    }
-    
-    /// Update user groups
-    func updateUserGroups(_ groups: [DictionaryManifest.UserGroup]) {
-        manifest.groups.userGroups = groups
-    }
 
     /// Add a dictionary entry to the root manifest (used by PresetDictionaryService)
     func addDictionaryEntry(_ entry: DictionaryManifest.DictionaryEntry) {
@@ -875,25 +837,6 @@ final class DictionaryStorageService {
         print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
     }
     
-    // MARK: - Deferred Manifest Save
-
-    private var deferredSaveWorkItem: DispatchWorkItem?
-
-    /// Schedule a deferred manifest save (coalesces rapid increments)
-    private func scheduleDeferredManifestSave() {
-        deferredSaveWorkItem?.cancel()
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            do {
-                try self.saveManifest()
-            } catch {
-                print("❌ Deferred manifest save failed: \(error)")
-            }
-        }
-        deferredSaveWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: workItem)
-    }
-
     // MARK: - Resource Management (Hash-based)
     
     /// Calculate SHA256 hash of a file (for resource naming)

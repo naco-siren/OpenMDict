@@ -771,30 +771,26 @@ class GroupInfoViewController: UIViewController {
         let pendingDicts = session.pendingDictionaryIds
         
         // Create the group and set its dictionaries in one go
-        do {
-            let group = try DictionaryService.shared.createGroup(name: finalName)
-            
-            if !pendingDicts.isEmpty {
-                try DictionaryService.shared.reorderDictionariesInGroup(
-                    groupId: group.id,
-                    newOrder: pendingDicts
-                )
-            }
-            
-            session.reset()
-            
-            dictCountCancellable = nil
-            editedName = nil
-            hasUnsavedChanges = false
-            hasNameConflict = false
-            hasEmptyName = false
-            hasNoDictionaries = true
-            nameTextView = nil
-            
-            onCreateComplete?(group.id)
-        } catch {
-            debugLog("❌ Failed to create group: \(error)")
+        let group = DictionaryService.shared.createGroup(name: finalName)
+
+        if !pendingDicts.isEmpty {
+            DictionaryService.shared.reorderDictionariesInGroup(
+                groupId: group.id,
+                newOrder: pendingDicts
+            )
         }
+
+        session.reset()
+
+        dictCountCancellable = nil
+        editedName = nil
+        hasUnsavedChanges = false
+        hasNameConflict = false
+        hasEmptyName = false
+        hasNoDictionaries = true
+        nameTextView = nil
+
+        onCreateComplete?(group.id)
     }
     
     private func performSaveEdit(groupId: String) {
@@ -821,23 +817,13 @@ class GroupInfoViewController: UIViewController {
     }
     
     private func performDelete(groupId: String) {
-        do {
-            try DictionaryService.shared.deleteGroup(id: groupId)
-            
-            editedName = nil
-            hasUnsavedChanges = false
-            currentMode = nil
-            
-            onDeleteComplete?(groupId)
-        } catch {
-            let alert = UIAlertController(
-                title: L10n.DictInfo.deleteFailed,
-                message: error.localizedDescription,
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
-            present(alert, animated: true)
-        }
+        DictionaryService.shared.deleteGroup(id: groupId)
+
+        editedName = nil
+        hasUnsavedChanges = false
+        currentMode = nil
+
+        onDeleteComplete?(groupId)
     }
     
     private func findSplitViewController() -> UISplitViewController? {

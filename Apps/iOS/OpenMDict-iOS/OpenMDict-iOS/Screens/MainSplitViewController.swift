@@ -397,6 +397,7 @@ class MainSplitViewController: UISplitViewController {
     /// Present the first-install onboarding flow if manifest.json doesn't exist.
     /// Uses file existence (not array emptiness) so that users who delete all
     /// dictionaries don't see the setup flow again.
+    // TODO: [Phase 3] Replace manifest.json existence check with CoreData query.
     private func presentSetupIfNeeded() {
         guard !hasAttemptedSetup else { return }
         hasAttemptedSetup = true
