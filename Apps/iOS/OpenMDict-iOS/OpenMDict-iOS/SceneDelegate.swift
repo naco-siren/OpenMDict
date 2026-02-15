@@ -114,9 +114,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             return
         }
 
-        // Handle article handoff / drag-and-drop
+        // Handle article handoff / drag-and-drop / Siri Suggestion (viewArticle)
         if let article = ArticleDisplayItem.from(userActivity: userActivity) {
             splitVC.showArticle(article, animated: true)
+            return
+        }
+
+        // Handle lookupWord (from Siri Suggestions, Shortcuts, etc.)
+        if userActivity.activityType == AppIdentifiers.Activity.lookupWord,
+           let word = userActivity.userInfo?["word"] as? String {
+            splitVC.focusSearchAndLookup(word: word)
         }
     }
 

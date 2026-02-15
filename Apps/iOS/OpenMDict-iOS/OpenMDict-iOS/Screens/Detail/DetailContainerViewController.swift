@@ -609,6 +609,9 @@ class DetailContainerViewController: UIViewController {
         } else {
             articleVC.configure(article: article)
         }
+
+        // Donate the activity for Siri Suggestions, Spotlight search, and Handoff.
+        self.userActivity = article.userActivity
     }
     
     func preloadArticle(_ article: ArticleDisplayItem) {
@@ -785,6 +788,10 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
     
     func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleDisplayItem) {
         print("📖 Selected: \(article.word)")
+
+        // Donate the activity for Siri Suggestions, Spotlight search, and Handoff.
+        // Setting userActivity on the VC lets UIKit manage becomeCurrent/resignCurrent.
+        self.userActivity = article.userActivity
     }
     
     func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleDisplayItem) {

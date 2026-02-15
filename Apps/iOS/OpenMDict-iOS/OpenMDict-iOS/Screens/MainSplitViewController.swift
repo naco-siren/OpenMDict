@@ -509,7 +509,15 @@ class MainSplitViewController: UISplitViewController {
         exitToLookupModeIfNeeded()
         select(group: group)
     }
-    
+
+    /// Focus search bar and type the given word to trigger lookup.
+    /// Used by URL Scheme, Siri Suggestions (lookupWord), Share Extension, etc.
+    func focusSearchAndLookup(word: String) {
+        exitToLookupModeIfNeeded()
+        show(.supplementary)
+        wordListVC.focusSearchBar(withInitialText: word)
+    }
+
     func select(word: WordDisplayItem) {
         let dict = DictionaryService.shared.dict(id: word.dictId)
         

@@ -16,9 +16,12 @@ nonisolated enum AppIdentifiers {
     enum Activity {
         /// Activity type for full scene state restoration
         static let sceneState = "io.github.naco-siren.OpenMDict.sceneState"
-        
+
         /// Activity type for single article (drag & drop, handoff)
         static let viewArticle = "io.github.naco-siren.OpenMDict.viewArticle"
+
+        /// Activity type for word lookup (Siri suggestions, Shortcuts)
+        static let lookupWord = "io.github.naco-siren.OpenMDict.lookupWord"
     }
     
     enum ResourceType {

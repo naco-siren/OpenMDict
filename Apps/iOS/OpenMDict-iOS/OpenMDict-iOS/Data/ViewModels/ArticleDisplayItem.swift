@@ -5,9 +5,10 @@
 //  ViewModel for article cells with support for pending/loaded states
 //
 
+import CoreSpotlight
 import Foundation
-import UIKit
 import OpenMDictKit
+import UIKit
 
 // MARK: - Content State
 
@@ -57,6 +58,17 @@ extension ArticleDisplayItem {
         activity.title = word
         activity.userInfo = ["id": id, "word": word, "dictId": dictId, "dictName": dictName]
         activity.isEligibleForHandoff = true
+        activity.isEligibleForSearch = true
+        activity.isEligibleForPrediction = true
+        activity.persistentIdentifier = id
+
+        // Rich attributes for Spotlight search results and Siri suggestions
+        let attributes = CSSearchableItemAttributeSet(contentType: .text)
+        attributes.title = word
+        attributes.contentDescription = dictName
+        attributes.keywords = [word, dictName]
+        activity.contentAttributeSet = attributes
+
         return activity
     }
     

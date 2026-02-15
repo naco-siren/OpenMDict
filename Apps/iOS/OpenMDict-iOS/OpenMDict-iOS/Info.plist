@@ -6,6 +6,7 @@
 	<array>
 		<string>io.github.naco-siren.OpenMDict.sceneState</string>
 		<string>io.github.naco-siren.OpenMDict.viewArticle</string>
+		<string>io.github.naco-siren.OpenMDict.lookupWord</string>
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
