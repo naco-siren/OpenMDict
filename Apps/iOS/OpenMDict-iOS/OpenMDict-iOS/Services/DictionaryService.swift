@@ -101,29 +101,25 @@ final class DictionaryService: ObservableObject {
         allDictionaries.first { $0.id == id }
     }
     
-    // TODO: [Phase 3] Read from DictionaryMetadataRecord instead of manifest.
-    /// Get the import date for a dictionary (from manifest)
+    /// Get the import date for a dictionary (from CoreData metadata)
     func importedDate(_ dictId: String) -> Date? {
-        storage.manifest.dictionaries.first(where: { $0.id == dictId })?.importedAt
+        DictMetadataService.shared.find(dictId: dictId)?.importedAt
     }
     
     // MARK: - Setup
     
     /// Call from AppDelegate on launch.
-    /// Loads Library manifest → user dictionaries → groups → background loading.
-    /// If manifest doesn't exist (fresh install), dictionaries will be empty until
+    /// Loads dictionary metadata from CoreData → user dictionaries → groups → background loading.
+    /// If no metadata exists (fresh install), dictionaries will be empty until
     /// SetupViewController imports preset dictionaries and calls `reloadAfterSetup()`.
     func setup() {
-        // 1. Load manifest (dictionary metadata + group config)
-        storage.loadManifest()
-
-        // 2. Load dictionaries from Library/Dictionaries/
+        // 1. Load dictionaries from CoreData metadata + per-dict manifests
         loadUserDictionaries()
 
-        // 3. Setup groups from manifest (or create defaults)
+        // 2. Setup groups from CoreData (or create defaults)
         setupGroups()
 
-        // 4. Background loading
+        // 3. Background loading
         Task {
             await loadAllMetadata()
             await loadAllDictionaries()
@@ -131,61 +127,58 @@ final class DictionaryService: ObservableObject {
     }
 
     /// Called after SetupViewController finishes importing preset dictionaries.
-    /// Re-loads the manifest and all dictionaries from scratch.
+    /// Re-loads all dictionaries from scratch.
     /// Awaits full loading so dictionaries are ready for search immediately.
     func reloadAfterSetup() async {
         allDictionaries = []
         groups = []
 
-        // 1. Load manifest (dictionary metadata + group config)
-        storage.loadManifest()
-
-        // 2. Load dictionaries from Library/Dictionaries/
+        // 1. Load dictionaries from CoreData metadata + per-dict manifests
         loadUserDictionaries()
 
-        // 3. Setup groups from manifest (or create defaults)
+        // 2. Setup groups from CoreData (or create defaults)
         setupGroups()
 
-        // 4. Await full loading (metadata + readers) so search works immediately
+        // 3. Await full loading (metadata + readers) so search works immediately
         await loadAllMetadata()
         await loadAllDictionaries()
     }
     
-    // TODO: [Phase 3] Read dictionary list from DictionaryMetadataRecord instead of manifest.
     private func loadUserDictionaries() {
-        let importedDicts: [MDict] = storage.manifest.dictionaries.compactMap { entry -> MDict? in
+        let metadataList = DictMetadataService.shared.loadAll()
+
+        let importedDicts: [MDict] = metadataList.compactMap { metadata -> MDict? in
             // Load dict manifest to get actual MDX filename
-            guard let dictManifest = storage.loadDictManifest(id: entry.id) else {
-                print("⚠️ Dict manifest not found for: \(entry.displayName) (id: \(entry.id))")
+            guard let dictManifest = storage.loadDictManifest(id: metadata.dictId) else {
+                print("⚠️ Dict manifest not found for: \(metadata.displayName) (id: \(metadata.dictId))")
                 return nil
             }
 
             // Use MDX filename from dict manifest
-            let mdxPath = storage.mdxURL(id: entry.id, fileName: dictManifest.mdx.fileName).path
+            let mdxPath = storage.mdxURL(id: metadata.dictId, fileName: dictManifest.mdx.fileName).path
             guard FileManager.default.fileExists(atPath: mdxPath) else {
-                print("⚠️ Imported dictionary MDX not found: \(entry.displayName) at \(mdxPath)")
-
+                print("⚠️ Imported dictionary MDX not found: \(metadata.displayName) at \(mdxPath)")
                 return nil
             }
-            
+
             // Build MDD paths from dict manifest
-            let mddDir = storage.mddDirectoryURL(id: entry.id)
+            let mddDir = storage.mddDirectoryURL(id: metadata.dictId)
             let mddPaths: [String] = dictManifest.mdd.map { mddEntry in
                 mddDir.appendingPathComponent(mddEntry.fileName).path
             }
-            
-            // Use manifest's entry.id (SHA256) as the MDict id
-            let dict = MDict(path: mdxPath, id: entry.id, mddPaths: mddPaths)
-            // Inject user display name from manifest
-            dict.userDisplayName = entry.displayName
-            
+
+            // Use metadata's dictId (SHA256) as the MDict id
+            let dict = MDict(path: mdxPath, id: metadata.dictId, mddPaths: mddPaths)
+            // Inject user display name from CoreData
+            dict.userDisplayName = metadata.displayName
+
             if !mddPaths.isEmpty {
-                print("📦 Loaded \(entry.displayName) with \(mddPaths.count) MDD files")
+                print("📦 Loaded \(metadata.displayName) with \(mddPaths.count) MDD files")
             }
-            
+
             return dict
         }
-        
+
         allDictionaries.append(contentsOf: importedDicts)
         print("📚 Found \(importedDicts.count) dictionaries in Library")
     }
@@ -334,16 +327,16 @@ final class DictionaryService: ObservableObject {
     /// - Parameters:
     ///   - dictId: Dictionary ID
     ///   - newName: New display name
-    func updateDisplayName(dictId: String, newName: String) throws {
+    func updateDisplayName(dictId: String, newName: String) {
         // 1. Update in-memory MDict instance
         guard let dict = dict(id: dictId) else {
-            throw NSError(domain: "DictionaryService", code: 404,
-                          userInfo: [NSLocalizedDescriptionKey: "Dictionary not found: \(dictId)"])
+            print("⚠️ Dictionary not found for rename: \(dictId)")
+            return
         }
         dict.userDisplayName = newName
 
-        // 2. Persist to storage
-        try storage.updateDisplayName(id: dictId, newName: newName)
+        // 2. Persist to CoreData
+        storage.updateDisplayName(id: dictId, newName: newName)
     }
     
     /// Update default group order (e.g., after reordering in sidebar)
@@ -388,10 +381,9 @@ final class DictionaryService: ObservableObject {
         
         let newDict = MDict(path: mdxPath, id: id, mddPaths: mddPaths)
         
-        // TODO: [Phase 3] Read display name from DictionaryMetadataRecord.
-        // Inject user display name from manifest
-        if let entry = storage.manifest.dictionary(id: id) {
-            newDict.userDisplayName = entry.displayName
+        // Inject user display name from CoreData metadata
+        if let metadata = DictMetadataService.shared.find(dictId: id) {
+            newDict.userDisplayName = metadata.displayName
         }
         
         // 2. Add to dictionary list

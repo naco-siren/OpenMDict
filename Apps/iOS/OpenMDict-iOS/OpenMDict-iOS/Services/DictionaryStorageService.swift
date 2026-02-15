@@ -3,7 +3,7 @@
 //  OpenMDict-iOS
 //
 //  Manages dictionary file storage in Library/Dictionaries/
-//  Handles manifest.json persistence, file import/export, and directory operations.
+//  Handles file import/export, directory operations, and per-dict manifest.json.
 //
 //  ⚠️ INTERNAL SERVICE - Do not call from UI layer!
 //  UI should use DictionaryService which wraps these methods
@@ -231,17 +231,16 @@ struct ImportFormState {
         return state
     }
     
-    /// Create from existing manifest entry (for Edit mode)
-    /// Note: This uses the old index-based naming for backward compatibility during import
-    static func fromManifestEntry(
-        _ entry: DictionaryManifest.DictionaryEntry,
+    /// Create from existing metadata (for Edit mode)
+    static func fromMetadata(
+        _ metadata: DictMetadata,
         storage: DictionaryStorageService
     ) -> ImportFormState {
         var state = ImportFormState()
-        state.displayName = entry.displayName
-        
+        state.displayName = metadata.displayName
+
         // MDX file
-        let mdxURL = storage.mdxURL(id: entry.id)
+        let mdxURL = storage.mdxURL(id: metadata.dictId)
         if let mdxURL = mdxURL, FileManager.default.fileExists(atPath: mdxURL.path) {
             state.mdxFile = SelectedFile(url: mdxURL, isAutoDiscovered: false)
         }
@@ -249,17 +248,17 @@ struct ImportFormState {
         // For resources, we now iterate directory instead of using count
         // This supports both old index-based and new hash-based naming
         state.mddFiles = storage.listFilesInDirectory(
-            storage.mddDirectoryURL(id: entry.id),
+            storage.mddDirectoryURL(id: metadata.dictId),
             extension: "mdd"
         ).map { SelectedFile(url: $0, isAutoDiscovered: false) }
-        
+
         state.cssFiles = storage.listFilesInDirectory(
-            storage.cssDirectoryURL(id: entry.id),
+            storage.cssDirectoryURL(id: metadata.dictId),
             extension: "css"
         ).map { SelectedFile(url: $0, isAutoDiscovered: false) }
-        
+
         state.jsFiles = storage.listFilesInDirectory(
-            storage.jsDirectoryURL(id: entry.id),
+            storage.jsDirectoryURL(id: metadata.dictId),
             extension: "js"
         ).map { SelectedFile(url: $0, isAutoDiscovered: false) }
         
@@ -312,11 +311,6 @@ final class DictionaryStorageService {
             .appendingPathComponent("Dictionaries", isDirectory: true)
     }
     
-    /// Path to root manifest.json
-    var manifestURL: URL {
-        rootDirectoryURL.appendingPathComponent("manifest.json")
-    }
-    
     /// Directory for a specific dictionary
     func dictionaryDirectoryURL(id: String) -> URL {
         rootDirectoryURL.appendingPathComponent(id, isDirectory: true)
@@ -362,44 +356,10 @@ final class DictionaryStorageService {
         dictionaryDirectoryURL(id: id).appendingPathComponent("fonts", isDirectory: true)
     }
     
-    // MARK: - Root Manifest
-    // TODO: [Phase 3] Replace root manifest.json with DictionaryMetadataRecord in CoreData.
-    //       After Phase 3, DictionaryStorageService will only manage per-dict manifest.json
-    //       (local file layout) and directory operations.
+    // MARK: - Dict Metadata (CoreData)
 
-    private(set) var manifest: DictionaryManifest = DictionaryManifest()
+    private var metadataService: DictMetadataService { DictMetadataService.shared }
 
-    /// Load manifest from disk
-    func loadManifest() {
-        guard FileManager.default.fileExists(atPath: manifestURL.path) else {
-            print("📄 No manifest.json found, starting fresh")
-            return
-        }
-        
-        do {
-            let data = try Data(contentsOf: manifestURL)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            manifest = try decoder.decode(DictionaryManifest.self, from: data)
-            print("📄 Loaded manifest: \(manifest.dictionaries.count) dictionaries")
-        } catch {
-            print("❌ Failed to load manifest: \(error)")
-        }
-    }
-    
-    /// Save manifest to disk
-    func saveManifest() throws {
-        try ensureRootDirectoryExists()
-        
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        
-        let data = try encoder.encode(manifest)
-        try data.write(to: manifestURL, options: .atomic)
-        print("📄 Saved manifest")
-    }
-    
     // MARK: - Dict Manifest (per-dictionary)
     
     /// Cache of loaded dict manifests (avoid repeated disk reads)
@@ -447,8 +407,8 @@ final class DictionaryStorageService {
         // Update cache
         dictManifestCache[dictManifest.id] = dictManifest
         
-        // Sync counts to root manifest
-        syncDictManifestToRootManifest(dictManifest)
+        // Sync counts to CoreData metadata
+        syncDictManifestToMetadata(dictManifest)
         
         print("📄 Saved dict manifest for \(dictManifest.id.prefix(8))...")
     }
@@ -467,26 +427,21 @@ final class DictionaryStorageService {
         dictManifestCache.removeValue(forKey: id)
     }
     
-    /// Sync dict manifest counts to root manifest
-    private func syncDictManifestToRootManifest(_ dictManifest: DictManifest) {
-        guard let index = manifest.dictionaries.firstIndex(where: { $0.id == dictManifest.id }) else {
-            return
-        }
-        
-        manifest.dictionaries[index].mddCount = dictManifest.mdd.count
-        manifest.dictionaries[index].cssCount = dictManifest.css.count
-        manifest.dictionaries[index].jsCount = dictManifest.js.count
-        manifest.dictionaries[index].totalSizeKB = dictManifest.totalSizeKB
-        manifest.dictionaries[index].updatedAt = Date()
-        
-        try? saveManifest()
+    /// Sync dict manifest resource counts to CoreData metadata.
+    private func syncDictManifestToMetadata(_ dictManifest: DictManifest) {
+        metadataService.syncResourceCounts(
+            dictId: dictManifest.id,
+            mddCount: dictManifest.mdd.count,
+            cssCount: dictManifest.css.count,
+            jsCount: dictManifest.js.count,
+            totalSizeKB: dictManifest.totalSizeKB
+        )
     }
-    
-    // MARK: - Root Manifest Mutation
 
-    /// Add a dictionary entry to the root manifest (used by PresetDictionaryService)
-    func addDictionaryEntry(_ entry: DictionaryManifest.DictionaryEntry) {
-        manifest.addDictionary(entry)
+    /// Insert a new dictionary metadata record into CoreData.
+    /// Used by PresetDictionaryService and importDictionary().
+    func addDictionaryMetadata(_ metadata: DictMetadata) {
+        metadataService.insert(metadata)
     }
     
     // MARK: - Directory Management
@@ -661,26 +616,21 @@ final class DictionaryStorageService {
             throw DictionaryImportError.manifestSaveFailed(error)
         }
         
-        // 8. Update root manifest
-        let entry = DictionaryManifest.DictionaryEntry(
-            id: id,
+        // 8. Save metadata to CoreData
+        let now = Date()
+        let metadata = DictMetadata(
+            dictId: id,
             displayName: displayName,
             originalFileName: mdxFile.fileName,
+            importedAt: now,
+            updatedAt: now,
             totalSizeKB: totalSizeBytes / 1024,
-            mddCount: mddFiles.count,
-            cssCount: cssFiles.count,
-            jsCount: jsFiles.count,
-            fontsCount: fontFiles.count
+            mddCount: Int32(mddFiles.count),
+            cssCount: Int32(cssFiles.count),
+            jsCount: Int32(jsFiles.count),
+            fontsCount: Int32(fontFiles.count)
         )
-        manifest.addDictionary(entry)
-        
-        do {
-            try saveManifest()
-        } catch {
-            // Rollback: delete the directory we just created
-            try? FileManager.default.removeItem(at: dictionaryDirectoryURL(id: id))
-            throw DictionaryImportError.manifestSaveFailed(error)
-        }
+        addDictionaryMetadata(metadata)
         
         print("✅ Imported dictionary: \(displayName) (id: \(id.prefix(16))..., \(totalSizeBytes / 1024) KB)")
         return id
@@ -750,8 +700,7 @@ final class DictionaryStorageService {
         // Invalidate cache
         invalidateDictManifestCache(id: id)
         
-        manifest.removeDictionary(id: id)
-        try saveManifest()
+        metadataService.delete(dictId: id)
         
         print("🗑️ Deleted dictionary: \(id)")
     }
@@ -813,12 +762,13 @@ final class DictionaryStorageService {
     
     /// Get all user-imported dictionary IDs
     var importedDictionaryIds: [String] {
-        manifest.dictionaries.map { $0.id }
+        metadataService.importedDictionaryIds
     }
-    
-    /// Check if a dictionary with this original filename exists
-    func isAlreadyImported(originalFileName: String) -> DictionaryManifest.DictionaryEntry? {
-        manifest.dictionary(originalFileName: originalFileName)
+
+    /// Check if a dictionary with this original filename exists.
+    /// Returns the matching metadata, or nil if not imported.
+    func isAlreadyImported(originalFileName: String) -> DictMetadata? {
+        metadataService.find(originalFileName: originalFileName)
     }
     
     /// Check if a dictionary with this SHA256 hash is already imported
@@ -831,9 +781,8 @@ final class DictionaryStorageService {
     // MARK: - Update
     
     /// Update the display name for a dictionary
-    func updateDisplayName(id: String, newName: String) throws {
-        manifest.updateDisplayName(id: id, newName: newName)
-        try saveManifest()
+    func updateDisplayName(id: String, newName: String) {
+        metadataService.updateDisplayName(dictId: id, newName: newName)
         print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
     }
     
@@ -873,7 +822,7 @@ final class DictionaryStorageService {
     /// - Throws: ResourceError.duplicateContent if file with same hash exists
     /// - Throws: ResourceError.fileNameConflict if file with same name but different content exists
     func addMDDResource(dictId: String, sourceURL: URL) async throws -> String {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -934,7 +883,7 @@ final class DictionaryStorageService {
     
     /// Add MDD with overwrite if filename conflicts (called after user confirmation)
     func addMDDResourceWithOverwrite(dictId: String, sourceURL: URL) async throws -> String {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -976,7 +925,7 @@ final class DictionaryStorageService {
     
     /// Remove an MDD file by fileName
     func removeMDDResource(dictId: String, fileName: String) throws {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -1027,7 +976,7 @@ final class DictionaryStorageService {
     
     /// Add a CSS file to a dictionary (preserving original filename)
     func addCSSResource(dictId: String, sourceURL: URL) async throws -> String {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -1072,7 +1021,7 @@ final class DictionaryStorageService {
     
     /// Add CSS with overwrite if filename conflicts
     func addCSSResourceWithOverwrite(dictId: String, sourceURL: URL) async throws -> String {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -1112,7 +1061,7 @@ final class DictionaryStorageService {
     
     /// Remove a CSS file by fileName
     func removeCSSResource(dictId: String, fileName: String) throws {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -1147,7 +1096,7 @@ final class DictionaryStorageService {
     
     /// Add a JS file to a dictionary (preserving original filename)
     func addJSResource(dictId: String, sourceURL: URL) async throws -> String {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -1192,7 +1141,7 @@ final class DictionaryStorageService {
     
     /// Add JS with overwrite if filename conflicts
     func addJSResourceWithOverwrite(dictId: String, sourceURL: URL) async throws -> String {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         
@@ -1232,7 +1181,7 @@ final class DictionaryStorageService {
     
     /// Remove a JS file by fileName
     func removeJSResource(dictId: String, fileName: String) throws {
-        guard manifest.dictionary(id: dictId) != nil else {
+        guard metadataService.find(dictId: dictId) != nil else {
             throw ResourceError.dictionaryNotFound(id: dictId)
         }
         

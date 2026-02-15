@@ -394,17 +394,15 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Setup Flow
 
-    /// Present the first-install onboarding flow if manifest.json doesn't exist.
-    /// Uses file existence (not array emptiness) so that users who delete all
-    /// dictionaries don't see the setup flow again.
-    // TODO: [Phase 3] Replace manifest.json existence check with CoreData query.
+    /// Present the first-install onboarding flow if no dictionaries are imported.
+    /// Uses CoreData record existence so that users who delete all dictionaries
+    /// don't see the setup flow again (the records are deleted but the SQLite file remains).
     private func presentSetupIfNeeded() {
         guard !hasAttemptedSetup else { return }
         hasAttemptedSetup = true
 
-        let manifestURL = DictionaryStorageService.shared.manifestURL
-        guard !FileManager.default.fileExists(atPath: manifestURL.path) else {
-            debugLog("📱 Setup not needed: manifest.json exists")
+        guard !DictMetadataService.shared.hasAnyDictionaries else {
+            debugLog("📱 Setup not needed: dictionaries exist in CoreData")
             return
         }
 

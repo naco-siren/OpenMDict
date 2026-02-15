@@ -1143,12 +1143,8 @@ class DictInfoViewController: UIViewController {
         
         // Save display name if changed
         if let newName = editedDisplayName {
-            do {
-                try DictionaryService.shared.updateDisplayName(dictId: dictId, newName: newName)
-                print("💾 Saved display name: \(newName)")
-            } catch {
-                print("❌ Failed to save display name: \(error)")
-            }
+            DictionaryService.shared.updateDisplayName(dictId: dictId, newName: newName)
+            print("💾 Saved display name: \(newName)")
         }
         
         // Reset state

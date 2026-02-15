@@ -275,18 +275,18 @@ final class PresetDictionaryService {
 
     // MARK: - Import Status
 
-    /// Refresh import status for all preset dictionaries by checking Library manifest.
-    /// Matches by originalFileName in Library's root manifest.
+    /// Refresh import status for all preset dictionaries by checking CoreData metadata.
+    /// Matches by originalFileName.
     func refreshImportStatus() {
-        let libraryEntries = storage.manifest.dictionaries
+        let metadataList = DictMetadataService.shared.loadAll()
 
         for preset in catalog {
             // Skip if already in a transient state (importing/failed)
             if case .importing = importStatus[preset.id] { continue }
 
             // Check if this preset's .mdx filename matches any imported dictionary's originalFileName
-            if let existingEntry = libraryEntries.first(where: { $0.originalFileName == preset.filename }) {
-                importStatus[preset.id] = .imported(libraryId: existingEntry.id)
+            if let existing = metadataList.first(where: { $0.originalFileName == preset.filename }) {
+                importStatus[preset.id] = .imported(libraryId: existing.dictId)
             } else {
                 importStatus[preset.id] = .notImported
             }
@@ -582,21 +582,21 @@ final class PresetDictionaryService {
             throw PresetImportError.manifestSaveFailed(error)
         }
 
-        // 7. Add entry to root manifest
-        let entry = DictionaryManifest.DictionaryEntry(
-            id: dictId,
+        // 7. Save metadata to CoreData
+        let now = Date()
+        let metadata = DictMetadata(
+            dictId: dictId,
             displayName: preset.displayName,
             originalFileName: preset.filename,
-            totalSizeKB: fileSize / 1024
+            importedAt: now,
+            updatedAt: now,
+            totalSizeKB: fileSize / 1024,
+            mddCount: 0,
+            cssCount: 0,
+            jsCount: 0,
+            fontsCount: 0
         )
-        storage.addDictionaryEntry(entry)
-
-        do {
-            try storage.saveManifest()
-        } catch {
-            try? fm.removeItem(at: dictDir)
-            throw PresetImportError.manifestSaveFailed(error)
-        }
+        storage.addDictionaryMetadata(metadata)
 
         return dictId
     }

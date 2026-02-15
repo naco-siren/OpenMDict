@@ -23,7 +23,7 @@ final class SetupViewController: UIViewController {
     // MARK: - Mode
 
     enum Mode {
-        /// First launch: manifest.json does not exist. Full flow, non-dismissible.
+        /// First launch: no dictionaries in CoreData. Full flow, non-dismissible.
         case firstInstall
         /// From sidebar management: skip welcome, pageSheet, can cancel.
         case management

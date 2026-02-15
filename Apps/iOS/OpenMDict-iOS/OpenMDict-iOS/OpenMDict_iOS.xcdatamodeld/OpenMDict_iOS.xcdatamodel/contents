@@ -13,6 +13,24 @@
             <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
+    <entity name="DictionaryMetadataRecord" representedClassName="DictionaryMetadataRecord" syncable="YES">
+        <attribute name="cssCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="dictId" attributeType="String" defaultValueString=""/>
+        <attribute name="displayName" attributeType="String" defaultValueString=""/>
+        <attribute name="fontsCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="importedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="jsCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="mddCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="originalFileName" attributeType="String" defaultValueString=""/>
+        <attribute name="totalSizeKB" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <fetchIndex name="byDictId">
+            <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byOriginalFileName">
+            <fetchIndexElement property="originalFileName" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
     <entity name="DictionaryGroupRecord" representedClassName="DictionaryGroupRecord" syncable="YES">
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="groupId" attributeType="String" defaultValueString=""/>

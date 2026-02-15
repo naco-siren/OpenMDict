@@ -18,11 +18,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         // Block new windows during first-install onboarding.
-        // If manifest.json doesn't exist, the primary scene runs the setup flow.
+        // If no dictionaries are imported, the primary scene runs the setup flow.
         // Any additional scene opened during that time is immediately destroyed.
-        // TODO: [Phase 3] Replace manifest.json existence check with CoreData query.
-        let manifestURL = DictionaryStorageService.shared.manifestURL
-        let isFirstInstall = !FileManager.default.fileExists(atPath: manifestURL.path)
+        let isFirstInstall = !DictMetadataService.shared.hasAnyDictionaries
         let hasOtherScene = UIApplication.shared.connectedScenes
             .contains { $0.activationState != .unattached && $0 !== scene }
 
