@@ -61,6 +61,8 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIPrefersShowingLanguageSettings</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

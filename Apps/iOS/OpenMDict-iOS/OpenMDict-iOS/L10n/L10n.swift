@@ -159,8 +159,8 @@ nonisolated enum L10n {
         static var addNewGroup: String {
             NSLocalizedString("sidebar.addNewGroup", value: "Add New Group", comment: "Sidebar management action")
         }
-        static var presetDictionaries: String {
-            NSLocalizedString("sidebar.presetDictionaries", value: "Preset Dictionaries", comment: "Sidebar management action")
+        static var downloadPresets: String {
+            NSLocalizedString("sidebar.downloadPresets", value: "Download Presets", comment: "Sidebar management action: download preset dictionaries")
         }
         static var appSettings: String {
             NSLocalizedString("sidebar.appSettings", value: "App Settings", comment: "Sidebar management action")
@@ -763,32 +763,123 @@ nonisolated enum L10n {
     // MARK: - Keyboard Shortcuts
 
     enum Shortcuts {
-        static var focusSearch: String {
-            NSLocalizedString("shortcuts.focusSearch", value: "Focus Search", comment: "Keyboard shortcut: focus search bar")
+
+        // MARK: Category Labels (6 categories for HUD)
+
+        static var categoryQuery: String {
+            NSLocalizedString("shortcuts.category.query", value: "Query", comment: "Keyboard shortcut HUD category: query/lookup")
         }
-        static var showSidebar: String {
-            NSLocalizedString("shortcuts.showSidebar", value: "Show Sidebar", comment: "Keyboard shortcut: show sidebar column")
+        static var categoryHistory: String {
+            NSLocalizedString("shortcuts.category.history", value: "History", comment: "Keyboard shortcut HUD category: lookup history")
         }
-        static var showWordList: String {
-            NSLocalizedString("shortcuts.showWordList", value: "Show Word List", comment: "Keyboard shortcut: show word list column")
+        static var categoryBookmarks: String {
+            NSLocalizedString("shortcuts.category.bookmarks", value: "Bookmarks", comment: "Keyboard shortcut HUD category: bookmarks")
         }
+        static var categoryUtilities: String {
+            NSLocalizedString("shortcuts.category.utilities", value: "Utilities", comment: "Keyboard shortcut HUD category: utilities")
+        }
+
+        // MARK: Query Category
+
+        static var focusLookup: String {
+            NSLocalizedString("shortcuts.focusLookup", value: "Focus on Query Input", comment: "Keyboard shortcut: focus on the query/lookup search bar")
+        }
+        /// "Select "All Dictionaries"" — default group (⌥⌘`)
+        static var selectAllDictionaries: String {
+            NSLocalizedString("shortcuts.selectAllDictionaries", value: "Select \"All Dictionaries\"", comment: "Keyboard shortcut: select the default group (all dictionaries)")
+        }
+        /// "Select My 1st Group" … "Select My 9th Group" — user groups (⌥⌘1~9)
+        static func group(_ n: Int) -> String {
+            let ordinal = ordinalString(n)
+            return String.localizedStringWithFormat(
+                NSLocalizedString("shortcuts.selectMyGroup", value: "Select My %@ Group", comment: "Keyboard shortcut: select Nth user group; %@ is an ordinal like 1st, 2nd, 3rd"),
+                ordinal
+            )
+        }
+        /// "Select 1st Dictionary" … "Select 9th Dictionary" (⌃⌥⌘1~9)
+        static func dictionary(_ n: Int) -> String {
+            let ordinal = ordinalString(n)
+            return String.localizedStringWithFormat(
+                NSLocalizedString("shortcuts.selectDictionary", value: "Select %@ Dictionary", comment: "Keyboard shortcut: select Nth dictionary in default group; %@ is an ordinal like 1st, 2nd, 3rd"),
+                ordinal
+            )
+        }
+
+        /// Returns the English ordinal string for a number (1→"1st", 2→"2nd", …).
+        /// For localized builds the format strings handle this differently.
+        private static func ordinalString(_ n: Int) -> String {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .ordinal
+            return formatter.string(from: NSNumber(value: n)) ?? "\(n)"
+        }
+
+        // MARK: View Category (appended to system .view)
+
+        static var columnsLayout: String {
+            NSLocalizedString("shortcuts.columnsLayout", value: "Switch to Columns Layout", comment: "Keyboard shortcut: switch to columns layout")
+        }
+        static var gridLayout: String {
+            NSLocalizedString("shortcuts.gridLayout", value: "Switch to Grid Layout", comment: "Keyboard shortcut: switch to grid layout")
+        }
+        static var listLayout: String {
+            NSLocalizedString("shortcuts.listLayout", value: "Switch to List Layout", comment: "Keyboard shortcut: switch to list layout")
+        }
+        static var toggleAppearance: String {
+            NSLocalizedString("shortcuts.toggleAppearance", value: "Toggle Appearance", comment: "Keyboard shortcut: cycle light/system/dark")
+        }
+        static var zoomIn: String {
+            NSLocalizedString("shortcuts.zoomIn", value: "Zoom In", comment: "Keyboard shortcut: zoom in")
+        }
+        static var zoomOut: String {
+            NSLocalizedString("shortcuts.zoomOut", value: "Zoom Out", comment: "Keyboard shortcut: zoom out")
+        }
+        static var actualSize: String {
+            NSLocalizedString("shortcuts.actualSize", value: "Actual Size", comment: "Keyboard shortcut: reset zoom to 100%")
+        }
+        static var findInPage: String {
+            NSLocalizedString("shortcuts.findInPage", value: "Find in Page", comment: "Keyboard shortcut: find text in current page")
+        }
+
+        // MARK: Bookmarks & History Category
+
         static var showBookmarks: String {
-            NSLocalizedString("shortcuts.showBookmarks", value: "Show Bookmarks", comment: "Keyboard shortcut: show bookmarks")
+            NSLocalizedString("shortcuts.showBookmarks", value: "Show Bookmarks", comment: "Keyboard shortcut: show bookmarks list")
         }
         static var showHistory: String {
-            NSLocalizedString("shortcuts.showHistory", value: "Show History", comment: "Keyboard shortcut: show lookup history")
+            NSLocalizedString("shortcuts.showHistory", value: "Show History", comment: "Keyboard shortcut: show lookup history list")
         }
-        static var openSettings: String {
-            NSLocalizedString("shortcuts.openSettings", value: "Open Settings", comment: "Keyboard shortcut: open system settings")
+
+        // MARK: Window Category (appended to system .window)
+
+        static var closeArticle: String {
+            NSLocalizedString("shortcuts.closeArticle", value: "Close Article", comment: "Keyboard shortcut: close most recent article (辞条)")
+        }
+        static var previousPage: String {
+            NSLocalizedString("shortcuts.previousPage", value: "Previous Page", comment: "Keyboard shortcut: previous article in list layout")
+        }
+        static var nextPage: String {
+            NSLocalizedString("shortcuts.nextPage", value: "Next Page", comment: "Keyboard shortcut: next article in list layout")
+        }
+        static var previousSource: String {
+            NSLocalizedString("shortcuts.previousSource", value: "Previous Source", comment: "Keyboard shortcut: cycle to previous query source (group or dictionary)")
+        }
+        static var nextSource: String {
+            NSLocalizedString("shortcuts.nextSource", value: "Next Source", comment: "Keyboard shortcut: cycle to next query source (group or dictionary)")
         }
         static var newWindow: String {
             NSLocalizedString("shortcuts.newWindow", value: "New Window", comment: "Keyboard shortcut: open new window")
         }
-        static var closeWindow: String {
-            NSLocalizedString("shortcuts.closeWindow", value: "Close Window", comment: "Keyboard shortcut: close current window")
-        }
         static var dismiss: String {
             NSLocalizedString("shortcuts.dismiss", value: "Dismiss", comment: "Keyboard shortcut: dismiss modal or cancel search")
+        }
+
+        // MARK: Utilities Category
+
+        static var downloadPresets: String {
+            NSLocalizedString("shortcuts.downloadPresets", value: "Download Presets", comment: "Keyboard shortcut: download preset dictionaries")
+        }
+        static var openSettings: String {
+            NSLocalizedString("shortcuts.openSettings", value: "Open Settings", comment: "Keyboard shortcut: open system settings")
         }
     }
 }

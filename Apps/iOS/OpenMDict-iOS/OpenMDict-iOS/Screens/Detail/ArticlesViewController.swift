@@ -343,6 +343,14 @@ class ArticlesViewController: UIViewController {
         collectionView.scrollToItem(at: indexPath, at: scrollPosition, animated: animated)
     }
     
+    /// Current scroll offset of the collection view (used for page navigation)
+    var currentScrollOffset: CGPoint { collectionView.contentOffset }
+
+    /// Scroll to a specific item by index path (used for ⌘[/] page navigation)
+    func scrollToItem(at indexPath: IndexPath, animated: Bool) {
+        collectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: animated)
+    }
+
     func setZoomLevel(_ level: Int) {
         zoomLevel = level
 

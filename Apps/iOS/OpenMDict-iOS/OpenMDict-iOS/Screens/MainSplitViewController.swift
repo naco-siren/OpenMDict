@@ -540,6 +540,7 @@ class MainSplitViewController: UISplitViewController {
 
         configureColumns(for: .bookmarks)
         bookmarkListVC.reload()
+        dictionaryListVC.selectBookmarksItem()
         show(.supplementary)
         debugLog("🔖 Showing bookmarks list")
     }
@@ -576,6 +577,7 @@ class MainSplitViewController: UISplitViewController {
 
         configureColumns(for: .lookupHistory)
         lookupHistoryListVC.reload()
+        dictionaryListVC.selectLookupHistoryItem()
         show(.supplementary)
         debugLog("🕐 Showing lookup history list")
     }
@@ -763,41 +765,11 @@ class MainSplitViewController: UISplitViewController {
         }
     }
     
-    // MARK: - Keyboard Shortcuts
+    // MARK: - Keyboard Shortcut Handlers (registered via AppDelegate.buildMenu)
 
-    override var keyCommands: [UIKeyCommand]? {
-        [
-            UIKeyCommand(title: L10n.Shortcuts.focusSearch,
-                         action: #selector(focusSearchShortcut),
-                         input: "l", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.showSidebar,
-                         action: #selector(showSidebarShortcut),
-                         input: "1", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.showWordList,
-                         action: #selector(showWordListShortcut),
-                         input: "2", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.showBookmarks,
-                         action: #selector(showBookmarksShortcut),
-                         input: "b", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.showHistory,
-                         action: #selector(showHistoryShortcut),
-                         input: "y", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.openSettings,
-                         action: #selector(openSettingsShortcut),
-                         input: ",", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.newWindow,
-                         action: #selector(newWindowShortcut),
-                         input: "n", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.closeWindow,
-                         action: #selector(closeWindowShortcut),
-                         input: "w", modifierFlags: .command),
-            UIKeyCommand(title: L10n.Shortcuts.dismiss,
-                         action: #selector(dismissShortcut),
-                         input: UIKeyCommand.inputEscape, modifierFlags: []),
-        ]
-    }
+    // MARK: Query Category
 
-    @objc private func focusSearchShortcut() {
+    @objc func focusLookupShortcut() {
         exitToLookupModeIfNeeded()
         if currentColumnTarget != .lookup {
             configureColumns(for: .lookup)
@@ -806,45 +778,207 @@ class MainSplitViewController: UISplitViewController {
         wordListVC.focusSearchBar()
     }
 
-    @objc private func showSidebarShortcut() {
-        show(.primary)
+    @objc func selectAllDictionaries() { selectNthGroup(0) }
+    @objc func selectGroup1() { selectNthGroup(1) }
+    @objc func selectGroup2() { selectNthGroup(2) }
+    @objc func selectGroup3() { selectNthGroup(3) }
+    @objc func selectGroup4() { selectNthGroup(4) }
+    @objc func selectGroup5() { selectNthGroup(5) }
+    @objc func selectGroup6() { selectNthGroup(6) }
+    @objc func selectGroup7() { selectNthGroup(7) }
+    @objc func selectGroup8() { selectNthGroup(8) }
+    @objc func selectGroup9() { selectNthGroup(9) }
+
+    private func selectNthGroup(_ index: Int) {
+        let groups = DictionaryService.shared.groups
+        guard index < groups.count else { return }
+        exitToLookupModeIfNeeded()
+        select(group: groups[index])
     }
 
-    @objc private func showWordListShortcut() {
-        show(.supplementary)
+    @objc func selectDictionary1() { selectNthDictionaryInDefaultGroup(0) }
+    @objc func selectDictionary2() { selectNthDictionaryInDefaultGroup(1) }
+    @objc func selectDictionary3() { selectNthDictionaryInDefaultGroup(2) }
+    @objc func selectDictionary4() { selectNthDictionaryInDefaultGroup(3) }
+    @objc func selectDictionary5() { selectNthDictionaryInDefaultGroup(4) }
+    @objc func selectDictionary6() { selectNthDictionaryInDefaultGroup(5) }
+    @objc func selectDictionary7() { selectNthDictionaryInDefaultGroup(6) }
+    @objc func selectDictionary8() { selectNthDictionaryInDefaultGroup(7) }
+    @objc func selectDictionary9() { selectNthDictionaryInDefaultGroup(8) }
+
+    private func selectNthDictionaryInDefaultGroup(_ index: Int) {
+        guard let defaultGroup = DictionaryService.shared.defaultGroup,
+              index < defaultGroup.items.count else { return }
+        exitToLookupModeIfNeeded()
+        select(dictionary: defaultGroup.items[index])
     }
 
-    @objc private func showBookmarksShortcut() {
+    // MARK: View Category
+
+    @objc func switchToColumnsLayout() { detailContainer.switchLayout(to: .columns) }
+    @objc func switchToGridLayout() { detailContainer.switchLayout(to: .grid) }
+    @objc func switchToListLayout() { detailContainer.switchLayout(to: .list) }
+
+    @objc func zoomInShortcut() { detailContainer.zoomIn() }
+    @objc func zoomOutShortcut() { detailContainer.zoomOut() }
+    @objc func actualSizeShortcut() { detailContainer.resetZoom() }
+
+    @objc func toggleAppearanceShortcut() { detailContainer.toggleAppearance() }
+
+    // MARK: Bookmarks & History Category
+
+    @objc func showBookmarksShortcut() {
         showBookmarksList()
     }
 
-    @objc private func showHistoryShortcut() {
+    @objc func showHistoryShortcut() {
         showLookupHistoryList()
     }
 
-    @objc private func openSettingsShortcut() {
-        if let url = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(url)
+    // MARK: Window Category
+
+    @objc func closeArticleShortcut() {
+        let articles = detailContainer.allArticles
+        guard !articles.isEmpty else {
+            // No articles — in multi-window scenario, close the window
+            if UIApplication.shared.openSessions.count > 1,
+               let session = view.window?.windowScene?.session {
+                UIApplication.shared.requestSceneSessionDestruction(
+                    session, options: nil, errorHandler: nil
+                )
+            }
+            return
         }
+        detailContainer.closeArticle(articles[0])  // Close most recent (index 0)
     }
 
-    @objc private func newWindowShortcut() {
+    @objc func newWindowShortcut() {
         UIApplication.shared.requestSceneSessionActivation(
             nil, userActivity: nil, options: nil, errorHandler: nil
         )
     }
 
-    @objc private func closeWindowShortcut() {
-        guard let session = view.window?.windowScene?.session else { return }
-        UIApplication.shared.requestSceneSessionDestruction(
-            session, options: nil, errorHandler: nil
-        )
-    }
-
-    @objc private func dismissShortcut() {
+    @objc func dismissShortcut() {
+        // 1. Search bar active → dismiss search bar
+        if wordListVC.isSearchBarFirstResponder {
+            wordListVC.dismissSearchBar()
+            return
+        }
+        // 2. Find in page active → dismiss find
+        if detailContainer.isSearchActive {
+            detailContainer.dismissSearch()
+            return
+        }
+        // 3. Modal presented → dismiss modal
         if let presented = presentedViewController {
             presented.dismiss(animated: true)
+            return
         }
+    }
+
+    // MARK: Context Cycling (⌥⌘[/])
+
+    @objc func previousContextShortcut() { cycleContext(direction: -1) }
+    @objc func nextContextShortcut() { cycleContext(direction: 1) }
+
+    private func cycleContext(direction: Int) {
+        exitToLookupModeIfNeeded()
+        let groups = DictionaryService.shared.groups
+        guard !groups.isEmpty else { return }
+
+        if let currentGroup {
+            // Group mode: cycle within the groups array
+            guard let idx = groups.firstIndex(where: { $0.id == currentGroup.id }) else {
+                if let dg = DictionaryService.shared.defaultGroup { select(group: dg) }
+                return
+            }
+            select(group: groups[(idx + direction + groups.count) % groups.count])
+
+        } else if let currentDict {
+            // Dictionary mode: cycle within the containing group's dictionary list
+            let containingGroup = groups.first { $0.items.contains { $0.id == currentDict.id } }
+            guard let containingGroup,
+                  let idx = containingGroup.items.firstIndex(where: { $0.id == currentDict.id }) else {
+                if let dg = DictionaryService.shared.defaultGroup { select(group: dg) }
+                return
+            }
+            let items = containingGroup.items
+            select(dictionary: items[(idx + direction + items.count) % items.count])
+
+        } else {
+            // No context — select default group
+            if let dg = DictionaryService.shared.defaultGroup { select(group: dg) }
+        }
+    }
+
+    // MARK: Utilities Category
+
+    @objc func openSettingsShortcut() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+
+    @objc func importPresetsShortcut() {
+        presentPresetManager()
+    }
+
+    // MARK: canPerformAction
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // ⌥⌘`: Select "All Dictionaries" — always available
+        if action == #selector(selectAllDictionaries) {
+            return true
+        }
+
+        // ⌥⌘1~9: User group selection — index 1…9 (groups[1]…groups[9])
+        let groupSelectors: [Selector] = [
+            #selector(selectGroup1), #selector(selectGroup2), #selector(selectGroup3),
+            #selector(selectGroup4), #selector(selectGroup5), #selector(selectGroup6),
+            #selector(selectGroup7), #selector(selectGroup8), #selector(selectGroup9),
+        ]
+        if let idx = groupSelectors.firstIndex(of: action) {
+            return (idx + 1) < DictionaryService.shared.groups.count
+        }
+
+        // ⌃⌥⌘N: Dictionary selection — only enable if dict exists at that index in default group
+        let dictSelectors: [Selector] = [
+            #selector(selectDictionary1), #selector(selectDictionary2), #selector(selectDictionary3),
+            #selector(selectDictionary4), #selector(selectDictionary5), #selector(selectDictionary6),
+            #selector(selectDictionary7), #selector(selectDictionary8), #selector(selectDictionary9),
+        ]
+        if let idx = dictSelectors.firstIndex(of: action) {
+            return idx < (DictionaryService.shared.defaultGroup?.items.count ?? 0)
+        }
+
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    // MARK: Auto-focus Search on Typing
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        guard currentMode == .lookup,
+              currentColumnTarget == .lookup,
+              !wordListVC.isSearchBarFirstResponder,
+              let key = presses.first?.key else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
+        // Only intercept letter keys without command/control/option modifiers
+        let forbidden: UIKeyModifierFlags = [.command, .control, .alternate]
+        guard key.modifierFlags.intersection(forbidden).isEmpty,
+              let char = key.charactersIgnoringModifiers.first,
+              char.isLetter else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
+        // Focus search bar and forward the first typed character
+        exitToLookupModeIfNeeded()
+        if currentColumnTarget != .lookup {
+            configureColumns(for: .lookup)
+        }
+        show(.supplementary)
+        wordListVC.focusSearchBar(withInitialText: String(char))
     }
 
     // MARK: - State Restoration

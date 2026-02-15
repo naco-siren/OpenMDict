@@ -668,17 +668,17 @@ class DetailContainerViewController: UIViewController {
     
     // MARK: - Zoom
 
-    private func zoomIn() {
+    func zoomIn() {
         zoom.zoomIn()
         applyZoom()
     }
 
-    private func zoomOut() {
+    func zoomOut() {
         zoom.zoomOut()
         applyZoom()
     }
 
-    private func resetZoom() {
+    func resetZoom() {
         zoom.reset()
         applyZoom()
     }
@@ -698,26 +698,21 @@ class DetailContainerViewController: UIViewController {
 
     private func presentFind() {
         guard #available(iOS 16.0, *) else { return }
-        
+
         if activeChild === articleVC {
             articleVC.toggleFind()
         }
     }
-    
-    // MARK: - Keyboard Shortcuts
 
-    override var keyCommands: [UIKeyCommand]? {
-        guard #available(iOS 16.0, *) else { return nil }
-        
-        // Only intercept ⌘F in Regular mode (ArticlesVC)
-        // In Compact mode (ArticleVC), let WebView handle it natively
-        if traitCollection.horizontalSizeClass == .regular {
-            return [UIKeyCommand(title: L10n.Detail.find, action: #selector(handleFindShortcut), input: "f", modifierFlags: .command)]
-        }
-        return nil
-    }
+    /// Whether the search bar (find/highlight) is currently active
+    var isSearchActive: Bool { searchController.isActive }
 
-    @objc private func handleFindShortcut() {
+    /// Dismiss the search bar (called by Esc smart dismiss)
+    func dismissSearch() { searchController.isActive = false }
+
+    // MARK: - Keyboard Shortcut Handlers (called via responder chain from buildMenu)
+
+    @objc func handleFindShortcut() {
         // Toggle search bar focus in Regular mode
         if searchController.isActive {
             searchController.isActive = false
@@ -725,6 +720,59 @@ class DetailContainerViewController: UIViewController {
             searchController.isActive = true
             searchController.searchBar.becomeFirstResponder()
         }
+    }
+
+    @objc func previousPageShortcut() { navigatePage(direction: -1) }
+    @objc func nextPageShortcut() { navigatePage(direction: 1) }
+
+    private func navigatePage(direction: Int) {
+        guard layoutMode == .list, !articles.isEmpty else { return }
+        let pageHeight = articlesVC.view.bounds.height
+        guard pageHeight > 0 else { return }
+        let currentPage = Int(round(articlesVC.currentScrollOffset.y / pageHeight))
+        let targetPage = currentPage + direction
+        guard targetPage >= 0, targetPage < articles.count else { return }
+        articlesVC.scrollToItem(at: IndexPath(item: targetPage, section: 0), animated: true)
+    }
+
+    // MARK: - Appearance Toggle (⇧⌘A)
+
+    /// Cycle appearance: light → system → dark → light
+    func toggleAppearance() {
+        let next: AppearanceMode
+        switch appearanceMode {
+        case .light: next = .system
+        case .system: next = .dark
+        case .dark: next = .light
+        }
+        setAppearanceMode(next)
+    }
+
+    // MARK: - Layout Switching (⌘1/2/3)
+
+    /// Switch to a specific layout mode (called by keyboard shortcut)
+    func switchLayout(to mode: ArticleLayoutMode) {
+        guard mode != layoutMode else { return }
+        layoutMode = mode
+        articlesVC.applyLayout(mode, animated: true)
+        updateNavigationBar(for: traitCollection)
+    }
+
+    // MARK: - canPerformAction
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // ⌘F: Find — iOS 16+ regular only
+        if action == #selector(handleFindShortcut) {
+            if #available(iOS 16.0, *) {
+                return traitCollection.horizontalSizeClass == .regular
+            }
+            return false
+        }
+        // ⌘[/]: Page nav — regular + list layout only
+        if action == #selector(previousPageShortcut) || action == #selector(nextPageShortcut) {
+            return traitCollection.horizontalSizeClass == .regular && layoutMode == .list
+        }
+        return super.canPerformAction(action, withSender: sender)
     }
 }
 

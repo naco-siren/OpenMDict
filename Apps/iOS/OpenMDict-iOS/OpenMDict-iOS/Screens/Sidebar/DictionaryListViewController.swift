@@ -356,7 +356,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                         using: userDictReg, for: indexPath, item: (dictId, groupId)
                     )
                 
-            case .importDictionary, .addGroup, .bookmarks, .lookupHistory, .managePresets, .settings:
+            case .importDictionary, .addGroup, .bookmarks, .lookupHistory,
+                 .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -416,7 +417,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
         let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
         mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.bookmarks, .lookupHistory, .managePresets, .settings], to: mgmtHeader)
+        mgmtSnapshot.append([.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
         dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
     }
@@ -432,6 +433,38 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
     }
     
+    /// Programmatically select the Bookmarks sidebar item (called by keyboard shortcut)
+    func selectBookmarksItem() {
+        guard isViewLoaded,
+              let indexPath = dataSource.indexPath(for: .bookmarks) else { return }
+        // Deselect all other items
+        for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+            if selectedIndexPath != indexPath {
+                collectionView.deselectItem(at: selectedIndexPath, animated: false)
+            }
+        }
+        collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        activeGroupId = nil
+        activeDict = nil
+        invalidateVisibleCellConfigurations()
+    }
+
+    /// Programmatically select the Lookup History sidebar item (called by keyboard shortcut)
+    func selectLookupHistoryItem() {
+        guard isViewLoaded,
+              let indexPath = dataSource.indexPath(for: .lookupHistory) else { return }
+        // Deselect all other items
+        for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+            if selectedIndexPath != indexPath {
+                collectionView.deselectItem(at: selectedIndexPath, animated: false)
+            }
+        }
+        collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        activeGroupId = nil
+        activeDict = nil
+        invalidateVisibleCellConfigurations()
+    }
+
     /// Deselect the import item (called when switching back to lookup mode)
     func deselectImportItem() {
         if let indexPath = dataSource.indexPath(for: .importDictionary) {
@@ -504,12 +537,20 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Lookup history disabled in edit mode
             return !isEditing
 
+        case .mgmtAddGroup:
+            // Management section redundant "Add New Group" — disabled in edit mode
+            return !isEditing
+
+        case .mgmtImportDictionary:
+            // Management section redundant "Import Dictionary" — disabled in edit mode
+            return !isEditing
+
         case .managePresets:
             // Management actions are disabled in edit mode
             return !isEditing
 
         case .settings:
-            // Management actions (except importDictionary) are disabled in edit mode
+            // Management actions are disabled in edit mode
             return !isEditing
         }
     }
@@ -549,7 +590,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .importDictionary:
             // Exit edit mode first
             setEditing(false, animated: true)
-            
+
             // Clear active state so other cells don't show as active
             activeGroupId = nil
             activeDict = nil
@@ -564,26 +605,32 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Trigger cell updates to remove active styling from other cells
             invalidateVisibleCellConfigurations()
 
+            // Deselect self (action cell, not a navigation destination)
+            collectionView.deselectItem(at: indexPath, animated: true)
+
             // Notify delegate to switch to management mode
             onImportDictionarySelected?()
-            
+
         case .addGroup:
             // Exit edit mode first
             setEditing(false, animated: true)
-            
+
             // Clear active state
             activeGroupId = nil
             activeDict = nil
-            
+
             // Deselect all other items except this one
             for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
                 if selectedIndexPath != indexPath {
                     collectionView.deselectItem(at: selectedIndexPath, animated: true)
                 }
             }
-            
+
             invalidateVisibleCellConfigurations()
-            
+
+            // Deselect self (action cell, not a navigation destination)
+            collectionView.deselectItem(at: indexPath, animated: true)
+
             // Notify delegate to create and manage new group
             onAddGroupSelected?()
             
@@ -610,6 +657,16 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             }
             invalidateVisibleCellConfigurations()
             onLookupHistorySelected?()
+
+        case .mgmtAddGroup:
+            // Redundant "Add New Group" in management section
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onAddGroupSelected?()
+
+        case .mgmtImportDictionary:
+            // Redundant "Import Dictionary" in management section
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onImportDictionarySelected?()
 
         case .managePresets:
             collectionView.deselectItem(at: indexPath, animated: true)

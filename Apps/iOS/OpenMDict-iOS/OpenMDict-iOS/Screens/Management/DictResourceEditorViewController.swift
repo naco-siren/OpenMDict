@@ -207,7 +207,7 @@ class DictResourceEditorViewController: UIViewController {
             var content = cell.defaultContentConfiguration()
             content.text = L10n.ResourceEditor.addFile(ext: section.resourceType.fileExtension.uppercased())
             content.textProperties.color = .systemBlue
-            content.image = UIImage(systemName: "plus.circle.fill")
+            content.image = UIImage(systemName: "plus.circle")
             content.imageProperties.tintColor = .systemBlue
             
             cell.contentConfiguration = content

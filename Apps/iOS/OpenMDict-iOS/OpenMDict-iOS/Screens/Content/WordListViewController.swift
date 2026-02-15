@@ -175,6 +175,30 @@ class WordListViewController: UIViewController {
         searchController.searchBar.becomeFirstResponder()
     }
 
+    /// Activate the search bar, inject initial text, and trigger search update.
+    /// Used by pressesBegan auto-focus to forward the first typed character.
+    func focusSearchBar(withInitialText text: String) {
+        searchController.isActive = true
+        searchController.searchBar.becomeFirstResponder()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            searchController.searchBar.text = text
+            searchController.searchBar.delegate?.searchBar?(
+                searchController.searchBar, textDidChange: text
+            )
+        }
+    }
+
+    /// Whether the search bar currently has keyboard focus
+    var isSearchBarFirstResponder: Bool {
+        searchController.searchBar.isFirstResponder
+    }
+
+    /// Deactivate the search bar (used by Esc smart dismiss)
+    func dismissSearchBar() {
+        searchController.isActive = false
+    }
+
     // MARK: - UI Updates
 
     private func updateEmptyState() {
@@ -208,7 +232,7 @@ class WordListViewController: UIViewController {
 
         switch context {
         case .group(let group):
-            iconName = group.isDefault ? "books.vertical.fill" : "books.vertical"
+            iconName = group.isDefault ? "books.vertical.fill" : "folder"
             titleText = group.name
         case .dictionary(let dict):
             iconName = "book.fill"

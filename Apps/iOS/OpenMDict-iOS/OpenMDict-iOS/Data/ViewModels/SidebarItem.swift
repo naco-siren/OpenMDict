@@ -14,13 +14,15 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     case header(String, isBold: Bool)
     case group(id: String, isDefault: Bool)
     case dictionary(id: String, groupId: String)
-    case importDictionary  // Child of All Dictionaries, visible only in Edit mode
-    case addGroup          // Child of My Groups, visible in Edit mode or when no user groups
-    case bookmarks         // Management section: bookmarks list
-    case lookupHistory     // Management section: lookup history list
-    case managePresets     // Management section: add/remove preset dictionaries
+    case importDictionary      // Child of All Dictionaries, visible only in Edit mode
+    case addGroup              // Child of My Groups, visible in Edit mode or when no user groups
+    case bookmarks             // Management section: bookmarks list
+    case lookupHistory         // Management section: lookup history list
+    case mgmtAddGroup          // Management section: redundant "Add New Group" (always visible)
+    case mgmtImportDictionary  // Management section: redundant "Import Dictionary" (always visible)
+    case managePresets         // Management section: add/remove preset dictionaries
     case settings
-    
+
     var itemId: String {
         switch self {
         case .header(let t, _): return "header:\(t)"
@@ -30,6 +32,8 @@ nonisolated enum SidebarItem: Hashable, Sendable {
         case .addGroup: return "action:addGroup"
         case .bookmarks: return "action:bookmarks"
         case .lookupHistory: return "action:lookupHistory"
+        case .mgmtAddGroup: return "action:mgmtAddGroup"
+        case .mgmtImportDictionary: return "action:mgmtImport"
         case .managePresets: return "action:managePresets"
         case .settings: return "action:settings"
         }

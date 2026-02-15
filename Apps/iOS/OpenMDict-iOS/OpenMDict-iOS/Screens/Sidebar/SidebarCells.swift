@@ -130,7 +130,7 @@ final class UserGroupCell: UICollectionViewListCell {
         
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
-        content.image = UIImage(systemName: isSelected ? "books.vertical.fill" : "books.vertical")
+        content.image = UIImage(systemName: isSelected ? "folder.fill" : "folder")
         
         var bg = UIBackgroundConfiguration.listSidebarCell()
         
@@ -491,8 +491,8 @@ final class ManagementActionCell: UICollectionViewListCell {
         let isActive = state.isSelected || state.isHighlighted
         let isEditing = stateProvider?.isEditingMode ?? false
         
-        // Import Dictionary is only visible in edit mode, but other management
-        // actions (Settings, etc.) should be disabled during edit mode
+        // Import Dictionary and Add Group (edit-mode versions) are always enabled.
+        // Management section items are disabled during edit mode.
         let isDisabled = isEditing && item != .importDictionary && item != .addGroup
         
         var content = UIListContentConfiguration.sidebarCell()
@@ -501,7 +501,7 @@ final class ManagementActionCell: UICollectionViewListCell {
         switch item {
         case .importDictionary:
             content.text = L10n.Sidebar.importDictionary
-            content.image = UIImage(systemName: "plus.circle.fill")
+            content.image = UIImage(systemName: "plus.circle")
         case .addGroup:
             content.text = L10n.Sidebar.addNewGroup
             content.image = UIImage(systemName: "folder.badge.plus")
@@ -511,9 +511,15 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .lookupHistory:
             content.text = L10n.Sidebar.lookupHistory
             content.image = UIImage(systemName: "clock.arrow.circlepath")
+        case .mgmtAddGroup:
+            content.text = L10n.Sidebar.addNewGroup
+            content.image = UIImage(systemName: "folder.badge.plus")
+        case .mgmtImportDictionary:
+            content.text = L10n.Sidebar.importDictionary
+            content.image = UIImage(systemName: "plus.circle")
         case .managePresets:
-            content.text = L10n.Sidebar.presetDictionaries
-            content.image = UIImage(systemName: "books.vertical")
+            content.text = L10n.Sidebar.downloadPresets
+            content.image = UIImage(systemName: "icloud.and.arrow.down")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

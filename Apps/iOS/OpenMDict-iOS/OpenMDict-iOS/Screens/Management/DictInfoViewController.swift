@@ -210,7 +210,7 @@ class DictInfoViewController: UIViewController {
         
         let button = UIButton(type: .system)
         button.setTitle(L10n.DictInfo.selectMdxFile, for: .normal)
-        button.setImage(UIImage(systemName: "folder"), for: .normal)
+        button.setImage(UIImage(systemName: "folder.circle"), for: .normal)
         button.addTarget(self, action: #selector(selectFileTapped), for: .touchUpInside)
         
         stack.addArrangedSubview(imageView)
