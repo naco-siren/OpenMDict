@@ -465,10 +465,43 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         invalidateVisibleCellConfigurations()
     }
 
-    /// Deselect the import item (called when switching back to lookup mode)
-    func deselectImportItem() {
-        if let indexPath = dataSource.indexPath(for: .importDictionary) {
-            collectionView.deselectItem(at: indexPath, animated: true)
+    /// Programmatically select the management "Add New Group" sidebar item
+    func selectMgmtAddGroupItem() {
+        guard isViewLoaded,
+              let indexPath = dataSource.indexPath(for: .mgmtAddGroup) else { return }
+        for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+            if selectedIndexPath != indexPath {
+                collectionView.deselectItem(at: selectedIndexPath, animated: false)
+            }
+        }
+        collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        activeGroupId = nil
+        activeDict = nil
+        invalidateVisibleCellConfigurations()
+    }
+
+    /// Programmatically select the management "Import Dictionary" sidebar item
+    func selectMgmtImportItem() {
+        guard isViewLoaded,
+              let indexPath = dataSource.indexPath(for: .mgmtImportDictionary) else { return }
+        for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+            if selectedIndexPath != indexPath {
+                collectionView.deselectItem(at: selectedIndexPath, animated: false)
+            }
+        }
+        collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        activeGroupId = nil
+        activeDict = nil
+        invalidateVisibleCellConfigurations()
+    }
+
+    /// Deselect management-related items (called when switching back to lookup mode)
+    func deselectManagementItems() {
+        let items: [SidebarItem] = [.importDictionary, .mgmtImportDictionary, .mgmtAddGroup]
+        for item in items {
+            if let indexPath = dataSource.indexPath(for: item) {
+                collectionView.deselectItem(at: indexPath, animated: true)
+            }
         }
     }
     
@@ -659,13 +692,27 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             onLookupHistorySelected?()
 
         case .mgmtAddGroup:
-            // Redundant "Add New Group" in management section
-            collectionView.deselectItem(at: indexPath, animated: true)
+            // Management "Add New Group" — keep selected, deselect others
+            activeGroupId = nil
+            activeDict = nil
+            for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                if selectedIndexPath != indexPath {
+                    collectionView.deselectItem(at: selectedIndexPath, animated: true)
+                }
+            }
+            invalidateVisibleCellConfigurations()
             onAddGroupSelected?()
 
         case .mgmtImportDictionary:
-            // Redundant "Import Dictionary" in management section
-            collectionView.deselectItem(at: indexPath, animated: true)
+            // Management "Import Dictionary" — keep selected, deselect others
+            activeGroupId = nil
+            activeDict = nil
+            for selectedIndexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                if selectedIndexPath != indexPath {
+                    collectionView.deselectItem(at: selectedIndexPath, animated: true)
+                }
+            }
+            invalidateVisibleCellConfigurations()
             onImportDictionarySelected?()
 
         case .managePresets:

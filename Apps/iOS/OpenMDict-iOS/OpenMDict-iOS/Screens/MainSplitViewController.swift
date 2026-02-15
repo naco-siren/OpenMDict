@@ -257,7 +257,7 @@ class MainSplitViewController: UISplitViewController {
                     currentMode = .lookup
                     dictionaryListVC.appMode = .lookup
                     dictionaryListVC.setNeedsUpdateAllCells()
-                    dictionaryListVC.deselectImportItem()
+                    dictionaryListVC.deselectManagementItems()
 
                     // Select the new dictionary in sidebar
                     if let dict = DictionaryService.shared.dict(id: dictId) {
@@ -288,7 +288,7 @@ class MainSplitViewController: UISplitViewController {
                 currentMode = .lookup
                 dictionaryListVC.appMode = .lookup
                 dictionaryListVC.setNeedsUpdateAllCells()
-                dictionaryListVC.deselectImportItem()
+                dictionaryListVC.deselectManagementItems()
 
                 // Select the edited dictionary in sidebar
                 if let dict = DictionaryService.shared.dict(id: dictId) {
@@ -629,26 +629,31 @@ class MainSplitViewController: UISplitViewController {
             configureColumns(for: .managementDict)
             dictInfoVC.showImportMode()
             dictResourceEditorVC.showEmptyState()
+            dictionaryListVC.selectMgmtImportItem()
         case .editDict(let dictId):
             configureColumns(for: .managementDict)
             dictInfoVC.showEditMode(for: dictId)
             dictResourceEditorVC.showEditor(for: dictId)
+            // editDict is triggered via info button — no persistent sidebar selection
         case .editGroup(let groupId):
             let session = DictionaryService.shared.groupSession
             session.beginManaging(groupId: groupId)
             configureColumns(for: .managementGroup)
             groupInfoVC.showManagingMode(for: groupId)
             groupDictEditorVC.showEditor(for: groupId)
+            // editGroup is triggered via info button — no persistent sidebar selection
         case .createGroup:
             let session = DictionaryService.shared.groupSession
             session.beginCreate()
             configureColumns(for: .managementGroup)
             groupInfoVC.showCreatingMode(pendingName: session.pendingName ?? L10n.GroupInfo.newGroup)
             groupDictEditorVC.showCreatingEditor()
+            dictionaryListVC.selectMgmtAddGroupItem()
         case .viewDefaultGroup(let groupId):
             configureColumns(for: .managementGroup)
             groupInfoVC.showViewingDefaultMode(for: groupId)
             groupDictEditorVC.showReorderEditor(for: groupId)
+            // viewDefaultGroup is triggered via info button — no persistent sidebar selection
         }
         
         show(.supplementary)
@@ -687,7 +692,7 @@ class MainSplitViewController: UISplitViewController {
             show(.supplementary)
         }
         
-        dictionaryListVC.deselectImportItem()
+        dictionaryListVC.deselectManagementItems()
         
         debugLog("🔍 Exited to Lookup mode")
     }
