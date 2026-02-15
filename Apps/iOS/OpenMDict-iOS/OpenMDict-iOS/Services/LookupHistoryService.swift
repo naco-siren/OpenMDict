@@ -193,12 +193,12 @@ final class LookupHistoryService {
     ///
     /// Context tuple: exactly one of `lookupContextDictId` / `lookupContextGroupId` should be non-nil.
     ///
-    /// Also increments the manifest-based per-context trophy counter (monotonically increasing,
-    /// independent of history deletion).
+    /// Also increments the per-context trophy counter via LookupCountService (monotonically
+    /// increasing, independent of history deletion).
     func recordLookup(word: String, dictId: String, dictName: String,
                       lookupContextDictId: String?, lookupContextGroupId: String?) {
-        // Increment the manifest-based trophy counter (deferred save)
-        DictionaryStorageService.shared.incrementLookupCount(
+        // Increment the CoreData-based trophy counter (deferred save)
+        LookupCountService.shared.incrementLookupCount(
             contextDictId: lookupContextDictId, contextGroupId: lookupContextGroupId
         )
 

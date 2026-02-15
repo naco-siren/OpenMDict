@@ -12,6 +12,7 @@
 
 import Foundation
 import OpenMDictKit
+import UIKit
 import UniformTypeIdentifiers
 import CryptoKit
 
@@ -300,7 +301,34 @@ enum DictionaryImportError: LocalizedError {
 final class DictionaryStorageService {
     
     static let shared = DictionaryStorageService()
-    
+
+    private init() {
+        // Lifecycle flush for deferred manifest saves
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleManifestFlushTrigger),
+            name: UIScene.didEnterBackgroundNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleManifestFlushTrigger),
+            name: UIApplication.didReceiveMemoryWarningNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleManifestFlushTrigger),
+            name: UIApplication.willTerminateNotification, object: nil
+        )
+    }
+
+    @objc private func handleManifestFlushTrigger() {
+        guard deferredSaveWorkItem != nil else { return }
+        deferredSaveWorkItem?.cancel()
+        deferredSaveWorkItem = nil
+        do {
+            try saveManifest()
+        } catch {
+            print("❌ Lifecycle manifest flush failed: \(error)")
+        }
+    }
+
     // MARK: - Paths
     
     /// Root directory for user dictionaries: Library/Dictionaries/
@@ -847,18 +875,6 @@ final class DictionaryStorageService {
         print("📝 Updated display name for \(id.prefix(16))...: \(newName)")
     }
     
-    /// Increment per-context lookup count (trophy counter).
-    /// Batches saves to avoid excessive disk I/O.
-    func incrementLookupCount(contextDictId: String?, contextGroupId: String?) {
-        manifest.incrementLookupCount(contextDictId: contextDictId, contextGroupId: contextGroupId)
-        scheduleDeferredManifestSave()
-    }
-
-    /// Per-context lookup count (from manifest)
-    func lookupCount(contextDictId: String?, contextGroupId: String?) -> Int {
-        manifest.lookupCount(contextDictId: contextDictId, contextGroupId: contextGroupId)
-    }
-
     // MARK: - Deferred Manifest Save
 
     private var deferredSaveWorkItem: DispatchWorkItem?

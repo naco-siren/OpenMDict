@@ -866,8 +866,8 @@ class DictInfoViewController: UIViewController {
                     basicItems.append(.entryCount(count))
                 }
 
-                // Lookup count (per-dict-context trophy counter from manifest)
-                let lookups = DictionaryStorageService.shared.lookupCount(contextDictId: dictId, contextGroupId: nil)
+                // Lookup count (per-dict-context trophy counter)
+                let lookups = LookupCountService.shared.lookupCount(contextDictId: dictId, contextGroupId: nil)
                 basicItems.append(.lookupCount(lookups))
 
                 snapshot.appendItems(basicItems, toSection: .basicMetadata)

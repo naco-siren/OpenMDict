@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="true" userDefinedModelVersionIdentifier="">
+    <entity name="BookmarkRecord" representedClassName="BookmarkRecord" syncable="YES">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="word" optional="YES" attributeType="String" defaultValueString=""/>
+        <fetchIndex name="byCreatedAt">
+            <fetchIndexElement property="createdAt" type="Binary" order="descending"/>
+        </fetchIndex>
+        <fetchIndex name="byWordAndDictId">
+            <fetchIndexElement property="word" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
+    <entity name="LookupCountRecord" representedClassName="LookupCountRecord" syncable="YES">
+        <attribute name="contextKey" attributeType="String" defaultValueString=""/>
+        <attribute name="count" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <fetchIndex name="byContextKey">
+            <fetchIndexElement property="contextKey" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
     <entity name="LookupRecord" representedClassName="LookupRecord" syncable="YES">
         <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
@@ -17,19 +38,6 @@
             <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
             <fetchIndexElement property="lookupContextDictId" type="Binary" order="ascending"/>
             <fetchIndexElement property="lookupContextGroupId" type="Binary" order="ascending"/>
-        </fetchIndex>
-    </entity>
-    <entity name="BookmarkRecord" representedClassName="BookmarkRecord" syncable="YES">
-        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
-        <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
-        <attribute name="word" optional="YES" attributeType="String" defaultValueString=""/>
-        <fetchIndex name="byCreatedAt">
-            <fetchIndexElement property="createdAt" type="Binary" order="descending"/>
-        </fetchIndex>
-        <fetchIndex name="byWordAndDictId">
-            <fetchIndexElement property="word" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
 </model>

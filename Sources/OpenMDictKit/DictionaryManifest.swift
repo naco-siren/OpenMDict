@@ -18,20 +18,14 @@ public struct DictionaryManifest: Codable {
     public var dictionaries: [DictionaryEntry] = []
     public var groups: GroupsConfig = GroupsConfig()
 
-    /// Per-context lookup counts (trophy — never decreases when history is deleted).
-    /// Key format: "d:{dictId}" for single-dict context, "g:{groupId}" for group context.
-    public var lookupCounts: [String: Int] = [:]
-
     public init(
         version: Int = 1,
         dictionaries: [DictionaryEntry] = [],
-        groups: GroupsConfig = GroupsConfig(),
-        lookupCounts: [String: Int] = [:]
+        groups: GroupsConfig = GroupsConfig()
     ) {
         self.version = version
         self.dictionaries = dictionaries
         self.groups = groups
-        self.lookupCounts = lookupCounts
     }
 }
 
@@ -372,27 +366,6 @@ extension DictionaryManifest {
         }
     }
 
-    // MARK: - Per-Context Lookup Count (Trophy)
-
-    /// Build the lookup count key from a context tuple.
-    /// Exactly one of the two parameters should be non-nil.
-    private static func lookupCountKey(contextDictId: String?, contextGroupId: String?) -> String? {
-        if let dictId = contextDictId { return "d:\(dictId)" }
-        if let groupId = contextGroupId { return "g:\(groupId)" }
-        return nil
-    }
-
-    /// Increment lookup count for a context (trophy — monotonically increasing).
-    public mutating func incrementLookupCount(contextDictId: String?, contextGroupId: String?) {
-        guard let key = Self.lookupCountKey(contextDictId: contextDictId, contextGroupId: contextGroupId) else { return }
-        lookupCounts[key, default: 0] += 1
-    }
-
-    /// Get lookup count for a context.
-    public func lookupCount(contextDictId: String?, contextGroupId: String?) -> Int {
-        guard let key = Self.lookupCountKey(contextDictId: contextDictId, contextGroupId: contextGroupId) else { return 0 }
-        return lookupCounts[key] ?? 0
-    }
 }
 
 // MARK: - DictManifest (Per-dictionary detailed manifest)

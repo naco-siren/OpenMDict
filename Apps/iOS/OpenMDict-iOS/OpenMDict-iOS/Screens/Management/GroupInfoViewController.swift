@@ -592,8 +592,8 @@ class GroupInfoViewController: UIViewController {
                 statsItems.append(.modifiedDate(fmt.string(from: modified)))
             }
 
-            // Lookup count (per-group-context trophy counter from manifest)
-            let lookups = DictionaryStorageService.shared.lookupCount(contextDictId: nil, contextGroupId: group.id)
+            // Lookup count (per-group-context trophy counter)
+            let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: group.id)
             statsItems.append(.lookupCount(lookups))
 
             if !statsItems.isEmpty {
@@ -631,7 +631,7 @@ class GroupInfoViewController: UIViewController {
         if let created = group.createdAt {
             statsItems.append(.createdDate(fmt.string(from: created)))
         }
-        let lookups = DictionaryStorageService.shared.lookupCount(contextDictId: nil, contextGroupId: groupId)
+        let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: groupId)
         statsItems.append(.lookupCount(lookups))
         snapshot.appendSections([.stats])
         snapshot.appendItems(statsItems, toSection: .stats)
