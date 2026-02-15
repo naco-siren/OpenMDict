@@ -3,8 +3,9 @@
 //  OpenMDict-iOS
 //
 
-import UIKit
 import CoreSpotlight
+import OpenMDictKit
+import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -87,6 +88,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 ]
             )
         }
+
+        // Handle Quick Action if app was cold-launched from Home Screen shortcut.
+        // When the app is already running, windowScene(_:performActionFor:) is called instead.
+        if let shortcutItem = connectionOptions.shortcutItem {
+            DispatchQueue.main.async {
+                Self.handleQuickAction(shortcutItem, in: window)
+            }
+        }
     }
 
     func stateRestorationActivity(for scene: UIScene) -> NSUserActivity? {
@@ -127,10 +136,69 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // since stateRestorationActivity(for:) may not be called in time.
         guard let splitVC = window?.rootViewController as? MainSplitViewController else { return }
         scene.userActivity = splitVC.currentStateActivity()
+
+        // Update Home Screen Quick Actions with the most-used groups.
+        Self.updateQuickActions()
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
         // Scene released by system. Resources cleaned up automatically.
+    }
+
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        performActionFor shortcutItem: UIApplicationShortcutItem,
+        completionHandler: @escaping (Bool) -> Void
+    ) {
+        let handled = Self.handleQuickAction(shortcutItem, in: window)
+        completionHandler(handled)
+    }
+}
+
+// MARK: - Quick Actions
+
+extension SceneDelegate {
+
+    /// Shortcut item type prefix for group selection.
+    private static let groupShortcutPrefix = "selectGroup:"
+
+    /// Update `UIApplication.shared.shortcutItems` with top groups by lookup count.
+    static func updateQuickActions() {
+        let topGroups = LookupCountService.shared.topGroups(limit: 3)
+        let groups = DictionaryService.shared.groups
+        print("🏠 Quick Actions: topGroups = \(topGroups.map { "\($0.groupId):\($0.count)" })")
+
+        var items: [UIApplicationShortcutItem] = []
+        for entry in topGroups {
+            guard let group = groups.first(where: { $0.id == entry.groupId }) else { continue }
+            let icon = group.isDefault
+                ? UIApplicationShortcutIcon(systemImageName: "books.vertical")
+                : UIApplicationShortcutIcon(systemImageName: "folder")
+            let item = UIApplicationShortcutItem(
+                type: "\(groupShortcutPrefix)\(group.id)",
+                localizedTitle: group.name,
+                localizedSubtitle: nil,
+                icon: icon,
+                userInfo: nil
+            )
+            items.append(item)
+        }
+
+        // iOS displays Quick Actions with array[0] closest to the app icon.
+        // topGroups is already sorted by count descending, so the most-used
+        // group naturally appears in the top position.
+        UIApplication.shared.shortcutItems = items
+    }
+
+    /// Handle a Quick Action shortcut tap. Returns `true` if handled.
+    @discardableResult
+    static func handleQuickAction(_ shortcutItem: UIApplicationShortcutItem, in window: UIWindow?) -> Bool {
+        guard shortcutItem.type.hasPrefix(groupShortcutPrefix) else { return false }
+        let groupId = String(shortcutItem.type.dropFirst(groupShortcutPrefix.count))
+
+        guard let splitVC = window?.rootViewController as? MainSplitViewController else { return false }
+        splitVC.select(groupId: groupId)
+        return true
     }
 }
 

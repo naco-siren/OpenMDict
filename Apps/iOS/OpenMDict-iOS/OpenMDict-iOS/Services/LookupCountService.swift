@@ -111,6 +111,34 @@ final class LookupCountService {
         return Int(cache[key] ?? 0)
     }
 
+    /// Return the top N groups by trophy count, sorted descending by count.
+    /// Each entry is `(groupId: String, count: Int64)`.
+    /// The "all" (default) group is always included (even if count is 0),
+    /// competing fairly with user groups for ranking position.
+    func topGroups(limit: Int) -> [(groupId: String, count: Int64)] {
+        ensureCachePopulated()
+
+        // Collect all group entries from cache (keys with "g:" prefix)
+        var allGroups: [(groupId: String, count: Int64)] = []
+        var hasAllGroup = false
+
+        for (key, count) in cache where key.hasPrefix("g:") {
+            let groupId = String(key.dropFirst(2))
+            allGroups.append((groupId, count))
+            if groupId == "all" { hasAllGroup = true }
+        }
+
+        // Ensure the "all" group is always present
+        if !hasAllGroup {
+            allGroups.append(("all", 0))
+        }
+
+        // Sort by count descending; stable sort preserves insertion order for ties
+        allGroups.sort { $0.count > $1.count }
+
+        return Array(allGroups.prefix(limit))
+    }
+
     // MARK: - Key Building
 
     /// Build the context key from dict/group IDs.

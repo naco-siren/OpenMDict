@@ -496,6 +496,19 @@ class MainSplitViewController: UISplitViewController {
         exitToLookupModeIfNeeded()
         select(dictionary: dict)
     }
+
+    func select(groupId: String) {
+        guard let group = DictionaryService.shared.group(id: groupId) else {
+            debugLog("⚠️ Group not found: \(groupId), falling back to default group")
+            if let defaultGroup = DictionaryService.shared.defaultGroup {
+                exitToLookupModeIfNeeded()
+                select(group: defaultGroup)
+            }
+            return
+        }
+        exitToLookupModeIfNeeded()
+        select(group: group)
+    }
     
     func select(word: WordDisplayItem) {
         let dict = DictionaryService.shared.dict(id: word.dictId)
