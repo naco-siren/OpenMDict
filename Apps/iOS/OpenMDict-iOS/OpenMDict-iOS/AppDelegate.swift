@@ -20,9 +20,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Initialize persistent store (Core Data)
         CoreDataStack.shared.setup()
         // Initialize dictionary service (loads Library dictionaries)
+        // Spotlight indexing is triggered after metadata loads (inside setup's Task)
         DictionaryService.shared.setup()
-        // Index dictionaries for Spotlight search
-        SpotlightIndexingService.shared.indexAllDictionaries()
 
         // iPadOS 26+: use UIMainMenuSystem.Configuration to declaratively
         // configure the menu bar. The build handler replaces buildMenu(with:).

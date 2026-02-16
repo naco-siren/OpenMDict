@@ -111,7 +111,7 @@ final class DictionaryService: ObservableObject {
     /// Call from AppDelegate on launch.
     /// Loads dictionary metadata from CoreData → user dictionaries → groups → background loading.
     /// If no metadata exists (fresh install), dictionaries will be empty until
-    /// SetupViewController imports preset dictionaries and calls `reloadAfterSetup()`.
+    /// SetupViewController imports preset dictionaries.
     func setup() {
         // 1. Load dictionaries from CoreData metadata + per-dict manifests
         loadUserDictionaries()
@@ -122,28 +122,12 @@ final class DictionaryService: ObservableObject {
         // 3. Background loading
         Task {
             await loadAllMetadata()
+            // Re-index Spotlight now that metadata (entry count, file size, author) is available
             await loadAllDictionaries()
+            SpotlightIndexingService.shared.indexAllDictionaries()
         }
     }
 
-    /// Called after SetupViewController finishes importing preset dictionaries.
-    /// Re-loads all dictionaries from scratch.
-    /// Awaits full loading so dictionaries are ready for search immediately.
-    func reloadAfterSetup() async {
-        allDictionaries = []
-        groups = []
-
-        // 1. Load dictionaries from CoreData metadata + per-dict manifests
-        loadUserDictionaries()
-
-        // 2. Setup groups from CoreData (or create defaults)
-        setupGroups()
-
-        // 3. Await full loading (metadata + readers) so search works immediately
-        await loadAllMetadata()
-        await loadAllDictionaries()
-    }
-    
     private func loadUserDictionaries() {
         let metadataList = DictMetadataService.shared.loadAll()
 

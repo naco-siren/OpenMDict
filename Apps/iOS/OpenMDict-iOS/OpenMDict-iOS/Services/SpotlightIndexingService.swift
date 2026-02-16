@@ -6,7 +6,8 @@
 //  Users can find their dictionaries from Spotlight and jump into the app.
 //
 
-import CoreSpotlight
+@preconcurrency import CoreSpotlight
+import Foundation
 import OpenMDictKit
 
 final class SpotlightIndexingService {
@@ -76,13 +77,61 @@ final class SpotlightIndexingService {
     private func searchableItem(for dict: MDict) -> CSSearchableItem {
         let attrs = CSSearchableItemAttributeSet(contentType: .content)
         attrs.title = dict.preferredTitle
-        attrs.contentDescription = dict.originalFileName
-        attrs.keywords = [dict.preferredTitle, dict.originalFileName]
+
+        // Build a rich content description from available metadata
+        var descParts: [String] = []
+        if let count = dict.metadata?.entryCount, count > 0 {
+            descParts.append(Self.formatEntryCount(count))
+        }
+        if let author = dict.extractedAuthor, !author.isEmpty {
+            descParts.append(author)
+        }
+        if let importDate = DictionaryService.shared.importedDate(dict.id) {
+            descParts.append(Self.formatImportDate(importDate))
+        }
+        if descParts.isEmpty {
+            descParts.append(dict.originalFileName)
+        }
+        attrs.contentDescription = descParts.joined(separator: " · ")
+
+        // Keywords: title variants + filename + cleaned description excerpt
+        var keywords = [dict.preferredTitle, dict.originalFileName]
+        if let metaTitle = dict.metadata?.title, metaTitle != dict.preferredTitle {
+            keywords.append(metaTitle)
+        }
+        if let displayName = dict.userDisplayName, !displayName.isEmpty, displayName != dict.preferredTitle {
+            keywords.append(displayName)
+        }
+        attrs.keywords = keywords
+
+        // Ranking hint: dictionaries with more lookups rank higher (0.0–1.0 scale)
+        let lookups = LookupCountService.shared.lookupCount(contextDictId: dict.id, contextGroupId: nil)
+        // Sigmoid-like curve: 50 lookups → ~0.5, 200 lookups → ~0.9
+        attrs.rankingHint = NSNumber(value: Double(lookups) / (Double(lookups) + 50.0))
 
         return CSSearchableItem(
             uniqueIdentifier: "dict:\(dict.id)",
             domainIdentifier: domainId,
             attributeSet: attrs
         )
+    }
+
+    // MARK: - Formatting
+
+    private static func formatEntryCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.1fM entries", Double(count) / 1_000_000.0)
+        } else if count >= 1_000 {
+            return String(format: "%.1fK entries", Double(count) / 1_000.0)
+        }
+        return "\(count) entries"
+    }
+
+    /// Format import date: "Imported on Feb 15" (same year) or "Imported on Feb 15, 2024" (different year).
+    private static func formatImportDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        let isSameYear = Calendar.current.isDate(date, equalTo: Date(), toGranularity: .year)
+        formatter.dateFormat = isSameYear ? "MMM d" : "MMM d, yyyy"
+        return "Imported on \(formatter.string(from: date))"
     }
 }
