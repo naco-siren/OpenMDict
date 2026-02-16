@@ -127,6 +127,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        guard let splitVC = window?.rootViewController as? MainSplitViewController else { return }
+
+        for context in URLContexts {
+            let url = context.url
+
+            // Handle URL Scheme: openmdict://lookup?word=xxx
+            if url.scheme == AppIdentifiers.URLScheme.scheme {
+                if url.host == "lookup",
+                   let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                   let word = components.queryItems?.first(where: { $0.name == "word" })?.value,
+                   !word.isEmpty {
+                    splitVC.focusSearchAndLookup(word: word)
+                }
+                return
+            }
+
+            // Handle .mdx file open (from Files, AirDrop, etc.)
+            if url.pathExtension.lowercased() == "mdx" {
+                splitVC.importMDXFile(url: url)
+                return
+            }
+        }
+    }
+
     func sceneWillEnterForeground(_ scene: UIScene) {
         // Reapply appearance from UserDefaults when returning from background.
         // On iOS 15 iPhone, view.window may be nil when UserDefaults.didChangeNotification

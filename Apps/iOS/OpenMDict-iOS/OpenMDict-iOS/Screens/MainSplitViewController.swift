@@ -518,6 +518,13 @@ class MainSplitViewController: UISplitViewController {
         wordListVC.focusSearchBar(withInitialText: word)
     }
 
+    /// Open an external .mdx file for import.
+    /// Enters management/import mode and pre-fills the selected file.
+    func importMDXFile(url: URL) {
+        enterManagementMode(for: .importNew)
+        dictInfoVC.handleMDXFile(at: url)
+    }
+
     func select(word: WordDisplayItem) {
         let dict = DictionaryService.shared.dict(id: word.dictId)
         

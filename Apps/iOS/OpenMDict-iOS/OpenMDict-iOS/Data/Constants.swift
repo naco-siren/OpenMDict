@@ -2,15 +2,18 @@
 // Constants.swift
 // OpenMDict-iOS
 //
-// ⚠️ Must match Info.plist UTImportedTypeDeclarations
-//
 
 import UniformTypeIdentifiers
 
 nonisolated enum AppIdentifiers {
     enum UTTypeValue {
-        static let mdx = "io.github.naco-siren.OpenMDict.mdx"
-        static let mdd = "io.github.naco-siren.OpenMDict.mdd"
+        /// ⚠️ Must match Info.plist UTImportedTypeDeclarations
+        static let mdx = "io.github.naco-siren.openmdict.mdx"
+        static let mdd = "io.github.naco-siren.openmdict.mdd"
+    }
+
+    enum URLScheme {
+        static let scheme = "openmdict"
     }
     
     enum Activity {

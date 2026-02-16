@@ -1323,7 +1323,12 @@ extension DictInfoViewController: UIDocumentPickerDelegate {
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
-        
+        handleMDXFile(at: url)
+    }
+
+    /// Process an MDX file URL (from document picker or external file open).
+    /// Loads metadata, checks for duplicates, and enters import mode.
+    func handleMDXFile(at url: URL) {
         selectedMDXURL = url
         
         // Load metadata preview from selected MDX (need security scope)
