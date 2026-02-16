@@ -17,15 +17,35 @@ final class CoreDataStack {
 
     /// Persistent container for the OpenMDict_iOS data model.
     /// Lazily loaded — the store is created on first access.
+    /// Store is placed in the App Group shared container for extension access.
     private lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "OpenMDict_iOS")
+
+        // Place the store in the App Group shared container so that
+        // extensions (Action Extension, etc.) can access the same data.
+        guard let groupURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AppIdentifiers.appGroupIdentifier
+        ) else {
+            fatalError("App Group container unavailable — check Signing & Capabilities → App Groups")
+        }
+        let storeDir = groupURL.appendingPathComponent(
+            "Library/Application Support", isDirectory: true
+        )
+        try? FileManager.default.createDirectory(
+            at: storeDir, withIntermediateDirectories: true
+        )
+        let storeURL = storeDir.appendingPathComponent("OpenMDict_iOS.sqlite")
+        container.persistentStoreDescriptions = [
+            NSPersistentStoreDescription(url: storeURL)
+        ]
+
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
                 // In a shipping app we log and continue rather than crash.
                 // An uninitialized store simply means history won't persist.
-                print("❌ CoreData failed to load: \(error), \(error.userInfo)")
+                debugLog("❌ CoreData failed to load: \(error), \(error.userInfo)")
             } else {
-                print("✅ CoreData store loaded: \(description.url?.lastPathComponent ?? "?")")
+                debugLog("✅ CoreData store loaded: \(description.url?.path ?? "?")")
             }
         }
         // Automatically merge background-context saves into the viewContext.
@@ -63,7 +83,7 @@ final class CoreDataStack {
         do {
             try ctx.save()
         } catch {
-            print("❌ CoreData viewContext save failed: \(error)")
+            debugLog("❌ CoreData viewContext save failed: \(error)")
         }
     }
 }

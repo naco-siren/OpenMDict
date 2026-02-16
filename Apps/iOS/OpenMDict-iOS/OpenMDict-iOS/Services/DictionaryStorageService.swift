@@ -304,13 +304,19 @@ final class DictionaryStorageService {
     private init() {}
 
     // MARK: - Paths
-    
-    /// Root directory for user dictionaries: Library/Dictionaries/
-    var rootDirectoryURL: URL {
-        FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Dictionaries", isDirectory: true)
-    }
-    
+
+    /// Root directory for user dictionaries inside the App Group shared container.
+    let rootDirectoryURL: URL = {
+        guard let groupURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AppIdentifiers.appGroupIdentifier
+        ) else {
+            fatalError("App Group container unavailable — check Signing & Capabilities → App Groups")
+        }
+        let root = groupURL.appendingPathComponent("Library/Dictionaries", isDirectory: true)
+        debugLog("📂 Dictionaries root: \(root.path)")
+        return root
+    }()
+
     /// Directory for a specific dictionary
     func dictionaryDirectoryURL(id: String) -> URL {
         rootDirectoryURL.appendingPathComponent(id, isDirectory: true)
@@ -465,8 +471,9 @@ final class DictionaryStorageService {
         try fm.createDirectory(at: cssDirectoryURL(id: id), withIntermediateDirectories: true)
         try fm.createDirectory(at: jsDirectoryURL(id: id), withIntermediateDirectories: true)
         try fm.createDirectory(at: fontsDirectoryURL(id: id), withIntermediateDirectories: true)
-        
-        // Exclude from iCloud backup
+
+        // Exclude from iCloud backup — large dictionary files should not
+        // consume the user's backup quota; future sync uses CloudKit instead.
         var mutableBaseDir = baseDir
         var resourceValues = URLResourceValues()
         resourceValues.isExcludedFromBackup = true

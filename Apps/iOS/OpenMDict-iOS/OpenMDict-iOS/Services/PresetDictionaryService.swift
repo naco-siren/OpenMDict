@@ -534,7 +534,8 @@ final class PresetDictionaryService {
             try fm.createDirectory(at: storage.jsDirectoryURL(id: dictId), withIntermediateDirectories: true)
             try fm.createDirectory(at: storage.fontsDirectoryURL(id: dictId), withIntermediateDirectories: true)
 
-            // Exclude from iCloud backup
+            // Exclude from iCloud backup — large dictionary files should not
+            // consume the user's backup quota; future sync uses CloudKit instead.
             var mutableDir = dictDir
             var resourceValues = URLResourceValues()
             resourceValues.isExcludedFromBackup = true

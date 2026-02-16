@@ -6,6 +6,9 @@
 import UniformTypeIdentifiers
 
 nonisolated enum AppIdentifiers {
+    /// App Group identifier shared between main app and extensions.
+    static let appGroupIdentifier = "group.io.github.naco-siren.openmdict"
+
     enum UTTypeValue {
         /// ⚠️ Must match Info.plist UTImportedTypeDeclarations
         static let mdx = "io.github.naco-siren.openmdict.mdx"
