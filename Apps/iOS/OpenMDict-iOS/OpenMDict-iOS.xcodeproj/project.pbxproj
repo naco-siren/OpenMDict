@@ -54,6 +54,9 @@
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
 		F8F795592F42C4D700D47B41 /* OpenMDict-ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F8F797382F42EBB600D47B41 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F8F797372F42EBB600D47B41 /* UniformTypeIdentifiers.framework */; };
+		F8F797442F42EBB700D47B41 /* OpenMDict-ActionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F8F7974C2F42EBEE00D47B41 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8F7974B2F42EBEE00D47B41 /* OpenMDict */; };
 		FA145F7E660FC1A610954238 /* WikDict-EN-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 09C3AB550582DB27ED5C0CEC /* WikDict-EN-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-pt", ); }; };
 /* End PBXBuildFile section */
 
@@ -65,6 +68,13 @@
 			remoteGlobalIDString = F8F7954E2F42C4D700D47B41;
 			remoteInfo = "OpenMDict-ShareExtension";
 		};
+		F8F797422F42EBB700D47B41 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A5AB7E302F0E15A000B554E0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F8F797352F42EBB600D47B41;
+			remoteInfo = "OpenMDict-ActionExtension";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -74,6 +84,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				F8F797442F42EBB700D47B41 /* OpenMDict-ActionExtension.appex in Embed Foundation Extensions */,
 				F8F795592F42C4D700D47B41 /* OpenMDict-ShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
@@ -129,6 +140,8 @@
 		F835C46D2F399C2200A22FB5 /* preset-dictionaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "preset-dictionaries.json"; path = "/path/to/open-mdict/bundled-dicts/preset-dictionaries.json"; sourceTree = "<absolute>"; };
 		F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = OpenMDict.icon; path = "/path/to/open-mdict/OpenMDict.icon"; sourceTree = "<absolute>"; };
 		F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ShareExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ActionExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F8F797372F42EBB600D47B41 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -146,6 +159,31 @@
 			);
 			target = F8F7954E2F42C4D700D47B41 /* OpenMDict-ShareExtension */;
 		};
+		F8F797492F42EBB700D47B41 /* Exceptions for "OpenMDict-ActionExtension" folder in "OpenMDict-ActionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F8F797352F42EBB600D47B41 /* OpenMDict-ActionExtension */;
+		};
+		F8F797F82F42F58500D47B41 /* Exceptions for "OpenMDict-iOS" folder in "OpenMDict-ActionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Data/Constants.swift,
+				Data/MDictURL.swift,
+				L10n/L10n.swift,
+				L10n/Localizable.xcstrings,
+				OpenMDict_iOS.xcdatamodeld,
+				Services/Persistence/CoreDataStack.swift,
+				"Services/Persistence/DictionaryGroupRecord+CoreDataClass.swift",
+				"Services/Persistence/DictionaryMetadataRecord+CoreDataClass.swift",
+				"Services/Persistence/GroupEntryRecord+CoreDataClass.swift",
+				Services/Utils/ArticleHTMLRenderer.swift,
+				Services/Utils/HTMLResourceRewriter.swift,
+				Utils/DebugLog.swift,
+			);
+			target = F8F797352F42EBB600D47B41 /* OpenMDict-ActionExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -153,6 +191,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				A5AB7E4E2F0E15A200B554E0 /* Exceptions for "OpenMDict-iOS" folder in "OpenMDict-iOS" target */,
+				F8F797F82F42F58500D47B41 /* Exceptions for "OpenMDict-iOS" folder in "OpenMDict-ActionExtension" target */,
 			);
 			path = "OpenMDict-iOS";
 			sourceTree = "<group>";
@@ -163,6 +202,14 @@
 				F8F7955F2F42C4D700D47B41 /* Exceptions for "OpenMDict-ShareExtension" folder in "OpenMDict-ShareExtension" target */,
 			);
 			path = "OpenMDict-ShareExtension";
+			sourceTree = "<group>";
+		};
+		F8F797392F42EBB700D47B41 /* OpenMDict-ActionExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F8F797492F42EBB700D47B41 /* Exceptions for "OpenMDict-ActionExtension" folder in "OpenMDict-ActionExtension" target */,
+			);
+			path = "OpenMDict-ActionExtension";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -184,6 +231,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F8F797332F42EBB600D47B41 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F8F7974C2F42EBEE00D47B41 /* OpenMDict in Frameworks */,
+				F8F797382F42EBB600D47B41 /* UniformTypeIdentifiers.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -193,6 +249,7 @@
 				F8E12DAD2F1D73D100D8E524 /* Resources */,
 				A5AB7E3A2F0E15A000B554E0 /* OpenMDict-iOS */,
 				F8F795502F42C4D700D47B41 /* OpenMDict-ShareExtension */,
+				F8F797392F42EBB700D47B41 /* OpenMDict-ActionExtension */,
 				F8E12D972F1CA93800D8E524 /* Frameworks */,
 				A5AB7E392F0E15A000B554E0 /* Products */,
 				F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */,
@@ -204,6 +261,7 @@
 			children = (
 				A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */,
 				F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */,
+				F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -211,6 +269,7 @@
 		F8E12D972F1CA93800D8E524 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				F8F797372F42EBB600D47B41 /* UniformTypeIdentifiers.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -290,6 +349,7 @@
 			);
 			dependencies = (
 				F8F795582F42C4D700D47B41 /* PBXTargetDependency */,
+				F8F797432F42EBB700D47B41 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A5AB7E3A2F0E15A000B554E0 /* OpenMDict-iOS */,
@@ -323,6 +383,29 @@
 			);
 			productName = "OpenMDict-ShareExtension";
 			productReference = F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F8F797352F42EBB600D47B41 /* OpenMDict-ActionExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F8F797452F42EBB700D47B41 /* Build configuration list for PBXNativeTarget "OpenMDict-ActionExtension" */;
+			buildPhases = (
+				F8F797322F42EBB600D47B41 /* Sources */,
+				F8F797332F42EBB600D47B41 /* Frameworks */,
+				F8F797342F42EBB600D47B41 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F8F797392F42EBB700D47B41 /* OpenMDict-ActionExtension */,
+			);
+			name = "OpenMDict-ActionExtension";
+			packageProductDependencies = (
+				F8F7974B2F42EBEE00D47B41 /* OpenMDict */,
+			);
+			productName = "OpenMDict-ActionExtension";
+			productReference = F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -383,6 +466,9 @@
 					F8F7954E2F42C4D700D47B41 = {
 						CreatedOnToolsVersion = 26.2;
 					};
+					F8F797352F42EBB600D47B41 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 				};
 			};
 			buildConfigurationList = A5AB7E332F0E15A000B554E0 /* Build configuration list for PBXProject "OpenMDict-iOS" */;
@@ -416,6 +502,7 @@
 			targets = (
 				A5AB7E372F0E15A000B554E0 /* OpenMDict-iOS */,
 				F8F7954E2F42C4D700D47B41 /* OpenMDict-ShareExtension */,
+				F8F797352F42EBB600D47B41 /* OpenMDict-ActionExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -480,6 +567,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F8F797342F42EBB600D47B41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -497,6 +591,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F8F797322F42EBB600D47B41 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -504,6 +605,11 @@
 			isa = PBXTargetDependency;
 			target = F8F7954E2F42C4D700D47B41 /* OpenMDict-ShareExtension */;
 			targetProxy = F8F795572F42C4D700D47B41 /* PBXContainerItemProxy */;
+		};
+		F8F797432F42EBB700D47B41 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F8F797352F42EBB600D47B41 /* OpenMDict-ActionExtension */;
+			targetProxy = F8F797422F42EBB700D47B41 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -534,7 +640,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG VERBOSE_LOGGING";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -570,6 +676,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -637,7 +744,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG VERBOSE_LOGGING";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -749,6 +856,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG VERBOSE_LOGGING";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -783,7 +891,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				STRIP_INSTALLED_PRODUCT = NO;
 				STRIP_SWIFT_SYMBOLS = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "PERF VERBOSE_LOGGING";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -808,12 +916,14 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
@@ -836,12 +946,14 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
@@ -864,15 +976,113 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Perf;
+		};
+		F8F797462F42EBB700D47B41 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F8F797472F42EBB700D47B41 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F8F797482F42EBB700D47B41 /* Perf */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Perf;
@@ -910,6 +1120,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		F8F797452F42EBB700D47B41 /* Build configuration list for PBXNativeTarget "OpenMDict-ActionExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F8F797462F42EBB700D47B41 /* Debug */,
+				F8F797472F42EBB700D47B41 /* Release */,
+				F8F797482F42EBB700D47B41 /* Perf */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -926,6 +1146,11 @@
 			productName = OpenMDictKit;
 		};
 		F8E12D9A2F1CA97800D8E524 /* OpenMDict */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
+			productName = OpenMDict;
+		};
+		F8F7974B2F42EBEE00D47B41 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
 			productName = OpenMDict;

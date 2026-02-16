@@ -19,7 +19,7 @@ enum ArticleHTMLRenderer {
         dictId: String,
         traitCollection: UITraitCollection
     ) -> String {
-        let rewrittenHTML = MDictSchemeHandler.rewriteResourcePaths(in: html, dictId: dictId)
+        let rewrittenHTML = HTMLResourceRewriter.rewriteResourcePaths(in: html, dictId: dictId)
         
         return """
         <!DOCTYPE html>

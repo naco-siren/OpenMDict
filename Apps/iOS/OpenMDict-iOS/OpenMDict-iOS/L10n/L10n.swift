@@ -882,4 +882,30 @@ nonisolated enum L10n {
             NSLocalizedString("shortcuts.openSettings", value: "Open Settings", comment: "Keyboard shortcut: open system settings")
         }
     }
+
+    // MARK: - Action Extension
+
+    enum ActionExtension {
+        static var openInApp: String {
+            NSLocalizedString("actionExtension.openInApp", value: "Open in OpenMDict", comment: "Action Extension: button to open main app for full lookup")
+        }
+        /// No definitions found message with word and dict count. Use with String(format:, word, dictCount).
+        static var noResults: String {
+            NSLocalizedString("actionExtension.noResults", value: "No definitions found for \u{201C}%1$@\u{201D}\nin your top %2$d dictionaries.", comment: "Action Extension: no results (%1$@ = word, %2$d = number of dictionaries searched)")
+        }
+        /// Loading message with word and dictionary name. Use with String(format:, word, dictName).
+        static var loadingWithName: String {
+            NSLocalizedString("actionExtension.loadingWithName", value: "Looking up \u{201C}%1$@\u{201D} in\n\u{201C}%2$@\u{201D}", comment: "Action Extension: loading state (%1$@ = word, %2$@ = dictionary display name)")
+        }
+        static var loading: String {
+            NSLocalizedString("actionExtension.loading", value: "Loading dictionaries\u{2026}", comment: "Action Extension: loading dictionaries state")
+        }
+        static var noDictionaries: String {
+            NSLocalizedString("actionExtension.noDictionaries", value: "No dictionaries available", comment: "Action Extension: no dictionaries imported in the app")
+        }
+        /// Prompt to open the main app for searching across all dictionaries.
+        static var searchMoreInApp: String {
+            NSLocalizedString("actionExtension.searchMoreInApp", value: "Search in full app", comment: "Action Extension: filled button to open main app when word not found")
+        }
+    }
 }
