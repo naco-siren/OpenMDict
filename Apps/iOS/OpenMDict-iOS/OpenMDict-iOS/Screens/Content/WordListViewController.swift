@@ -80,6 +80,7 @@ class WordListViewController: UIViewController {
         view.backgroundColor = .systemBackground
         view.addSubview(tableView)
         view.addSubview(emptyLabel)
+        view.addInteraction(UIDropInteraction(delegate: self))
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -419,5 +420,27 @@ extension WordListViewController: UISearchResultsUpdating {
         tableView.reloadData()
         updateEmptyState()
 
+    }
+}
+
+// MARK: - UIDropInteractionDelegate (iPad text drag → look up)
+
+extension WordListViewController: UIDropInteractionDelegate {
+
+    func dropInteraction(_ interaction: UIDropInteraction, canHandle session: UIDropSession) -> Bool {
+        session.canLoadObjects(ofClass: NSString.self)
+    }
+
+    func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
+        UIDropProposal(operation: .copy)
+    }
+
+    func dropInteraction(_ interaction: UIDropInteraction, performDrop session: UIDropSession) {
+        session.loadObjects(ofClass: NSString.self) { [weak self] items in
+            guard let text = (items.first as? String)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !text.isEmpty else { return }
+            self?.focusSearchBar(withInitialText: text)
+        }
     }
 }
