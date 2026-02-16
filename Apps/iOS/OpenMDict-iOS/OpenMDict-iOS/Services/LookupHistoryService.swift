@@ -197,10 +197,17 @@ final class LookupHistoryService {
     /// increasing, independent of history deletion).
     func recordLookup(word: String, dictId: String, dictName: String,
                       lookupContextDictId: String?, lookupContextGroupId: String?) {
-        // Increment the CoreData-based trophy counter (deferred save)
+        // Increment the CoreData-based trophy counter (deferred save).
+        // When searching within a group, bump both the group AND the
+        // specific dictionary that produced this result.
         LookupCountService.shared.incrementLookupCount(
             contextDictId: lookupContextDictId, contextGroupId: lookupContextGroupId
         )
+        if lookupContextGroupId != nil {
+            LookupCountService.shared.incrementLookupCount(
+                contextDictId: dictId, contextGroupId: nil
+            )
+        }
 
         // Ensure cache is ready
         ensureCachePopulated()
