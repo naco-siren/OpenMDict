@@ -9,8 +9,9 @@
 //  - Scans all user dictionaries sequentially (one MDX reader at a time)
 //  - Extracts article HTML into Sendable value types, releases reader immediately
 //  - Streams results into a horizontal pager (UIScrollView + WKWebViews)
-//  - No MDD resources loaded (pure HTML text rendering)
-//  - All link clicks open the main app
+//  - MDD resources pre-extracted to disk cache, served via scheme handler
+//  - Audio playback via AVAudioPlayer (on-demand MDD extraction)
+//  - Entry links show confirmation alert → open main app with direct article URL
 //
 
 import AVFoundation
@@ -105,6 +106,9 @@ class ActionViewController: UIViewController {
     /// Page indicator (hidden when only 1 result).
     private var pageControl: UIPageControl?
 
+    /// Translucent backdrop behind page control dots.
+    private var pageControlBackdrop: UIVisualEffectView?
+
     /// Spinner shown next to page control while scan is in progress.
     private var scanSpinner: UIActivityIndicatorView?
 
@@ -186,11 +190,10 @@ class ActionViewController: UIViewController {
     private func configureNavigationBar() {
         title = "OpenMDict"
 
-        let openAllDicts = UIBarButtonItem(
-            image: UIImage(systemName: "books.vertical"),
-            style: .plain,
+        let dismissItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
             target: self,
-            action: #selector(openAllDictsTapped)
+            action: #selector(dismissTapped)
         )
 
         // Appearance: representativeItem (collapsed fallback / iOS 15 plain button)
@@ -207,8 +210,9 @@ class ActionViewController: UIViewController {
             navigationItem.style = .browser
 
             navigationItem.leadingItemGroups = [
-                .fixedGroup(items: [openAllDicts]),
-                .fixedGroup(
+                .fixedGroup(items: [dismissItem]),
+                .optionalGroup(
+                    customizationIdentifier: "appearance",
                     representativeItem: appearance,
                     items: [
                         .init(customView: appearanceMode.segmentedControl(
@@ -242,7 +246,7 @@ class ActionViewController: UIViewController {
             ]
 
         } else {
-            navigationItem.leftBarButtonItems = [openAllDicts, appearance]
+            navigationItem.leftBarButtonItems = [dismissItem, appearance]
 
             // iOS 15: Two separate zoom buttons (no reset — too narrow)
             let zIn = UIBarButtonItem(
@@ -268,8 +272,8 @@ class ActionViewController: UIViewController {
         }
     }
 
-    @objc private func openAllDictsTapped() {
-        openInApp(word: selectedText)
+    @objc private func dismissTapped() {
+        extensionContext?.completeRequest(returningItems: nil)
     }
 
     // MARK: - Appearance Mode
@@ -303,6 +307,11 @@ class ActionViewController: UIViewController {
 
         // Re-apply appearance when window becomes available
         applyAppearance()
+
+        // Capsule shape for page control backdrop (height-dependent)
+        if let backdrop = pageControlBackdrop, backdrop.bounds.height > 0 {
+            backdrop.layer.cornerRadius = backdrop.bounds.height / 2
+        }
 
         guard let sv = scrollView, !pageWebViews.isEmpty else { return }
 
@@ -785,6 +794,7 @@ class ActionViewController: UIViewController {
             addPage(for: result)
             pageControl?.numberOfPages = results.count
             pageControl?.isHidden = false
+            pageControlBackdrop?.isHidden = false
         }
     }
 
@@ -830,10 +840,19 @@ class ActionViewController: UIViewController {
         view.addSubview(sv)
         self.scrollView = sv
 
-        // Bottom bar: page control (center) + scan spinner (trailing)
-        let bottomBar = UIView()
-        bottomBar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(bottomBar)
+        // Floating page control with translucent backdrop (centered bottom, overlays scroll view)
+        let effect: UIVisualEffect
+        if #available(iOS 26, *) {
+            effect = UIGlassEffect(style: .regular)
+        } else {
+            effect = UIBlurEffect(style: .systemUltraThinMaterial)
+        }
+        let backdrop = UIVisualEffectView(effect: effect)
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        backdrop.clipsToBounds = true
+        backdrop.isHidden = true  // shown together with page control
+        view.addSubview(backdrop)
+        self.pageControlBackdrop = backdrop
 
         let pc = UIPageControl()
         pc.translatesAutoresizingMaskIntoConstraints = false
@@ -843,14 +862,14 @@ class ActionViewController: UIViewController {
         pc.pageIndicatorTintColor = .tertiaryLabel
         pc.currentPageIndicatorTintColor = .label
         pc.addTarget(self, action: #selector(pageControlValueChanged(_:)), for: .valueChanged)
-        bottomBar.addSubview(pc)
+        backdrop.contentView.addSubview(pc)
         self.pageControl = pc
 
+        // Floating scan spinner (bottom-right, overlays scroll view)
         let spinner = UIActivityIndicatorView(style: .medium)
         spinner.translatesAutoresizingMaskIntoConstraints = false
-        spinner.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
         spinner.startAnimating()
-        bottomBar.addSubview(spinner)
+        view.addSubview(spinner)
         self.scanSpinner = spinner
 
         NSLayoutConstraint.activate([
@@ -869,25 +888,25 @@ class ActionViewController: UIViewController {
             titleStack.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
             titleStack.trailingAnchor.constraint(lessThanOrEqualTo: headerView.trailingAnchor, constant: -12),
 
-            // Pager
+            // Pager — extends to safe area bottom (page control floats on top)
             sv.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             sv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             sv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            sv.bottomAnchor.constraint(equalTo: bottomBar.topAnchor),
+            sv.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
-            // Bottom bar
-            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            bottomBar.heightAnchor.constraint(equalToConstant: 30),
+            // Page control backdrop — floating, centered at bottom
+            backdrop.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
 
-            // Page control centered
-            pc.centerXAnchor.constraint(equalTo: bottomBar.centerXAnchor),
-            pc.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            // Page control — fills backdrop content view
+            pc.topAnchor.constraint(equalTo: backdrop.contentView.topAnchor, constant: 4),
+            pc.bottomAnchor.constraint(equalTo: backdrop.contentView.bottomAnchor, constant: -4),
+            pc.leadingAnchor.constraint(equalTo: backdrop.contentView.leadingAnchor, constant: 4),
+            pc.trailingAnchor.constraint(equalTo: backdrop.contentView.trailingAnchor, constant: -4),
 
-            // Scan spinner right next to page control dots
-            spinner.leadingAnchor.constraint(equalTo: pc.trailingAnchor, constant: 2),
-            spinner.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            // Scan spinner — floating, bottom-right, vertically aligned with page control
+            spinner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            spinner.centerYAnchor.constraint(equalTo: backdrop.centerYAnchor),
         ])
 
         // Populate header for first result
