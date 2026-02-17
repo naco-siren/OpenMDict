@@ -1112,12 +1112,40 @@ class ActionViewController: UIViewController {
 
     // MARK: - Open Containing App
 
+    /// Presents an alert asking the user to confirm opening an entry link in the main app.
+    private func confirmOpenInApp(word: String, from webView: WKWebView) {
+        let result: ArticleResult? = {
+            guard let idx = pageWebViews.firstIndex(of: webView), idx < results.count else { return nil }
+            return results[idx]
+        }()
+        let title = String(format: L10n.ActionExtension.browseEntryTitle, word)
+        let message = result.map { String(format: L10n.ActionExtension.browseEntryMessage, $0.dictName) }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.ActionExtension.openInApp, style: .default) { [weak self] _ in
+            self?.openInApp(word: word, dictId: result?.dictId, dictName: result?.dictName)
+        })
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        present(alert, animated: true)
+    }
+
     /// Opens the main app with a lookup URL for the given word.
-    private func openInApp(word: String) {
+    /// When dictId is provided, the main app opens the article directly instead of searching.
+    private func openInApp(word: String, dictId: String? = nil, dictName: String? = nil) {
         let trimmed = word.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
-              let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "openmdict://lookup?word=\(encoded)") else {
+              let encodedWord = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            extensionContext?.completeRequest(returningItems: nil)
+            return
+        }
+
+        var urlString = "openmdict://lookup?word=\(encodedWord)"
+        if let dictId, let encodedId = dictId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            urlString += "&dictId=\(encodedId)"
+        }
+        if let dictName, let encodedName = dictName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            urlString += "&dictName=\(encodedName)"
+        }
+        guard let url = URL(string: urlString) else {
             extensionContext?.completeRequest(returningItems: nil)
             return
         }
@@ -1175,7 +1203,7 @@ extension ActionViewController: WKNavigationDelegate {
         case "entry":
             decisionHandler(.cancel)
             if let mdictURL = MDictURL(url), mdictURL.isEntryLink {
-                openInApp(word: mdictURL.resourcePath)
+                confirmOpenInApp(word: mdictURL.resourcePath, from: webView)
             }
 
         case "sound":
@@ -1184,7 +1212,6 @@ extension ActionViewController: WKNavigationDelegate {
 
         case "http", "https":
             decisionHandler(.cancel)
-            openInApp(word: selectedText)
 
         default:
             if navigationAction.navigationType == .other {

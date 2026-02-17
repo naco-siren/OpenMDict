@@ -133,13 +133,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         for context in URLContexts {
             let url = context.url
 
-            // Handle URL Scheme: openmdict://lookup?word=xxx
+            // Handle URL Scheme: openmdict://lookup?word=xxx[&dictId=yyy&dictName=zzz]
             if url.scheme == AppIdentifiers.URLScheme.scheme {
                 if url.host == "lookup",
                    let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                    let word = components.queryItems?.first(where: { $0.name == "word" })?.value,
                    !word.isEmpty {
-                    splitVC.focusSearchAndLookup(word: word)
+                    let dictId = components.queryItems?.first(where: { $0.name == "dictId" })?.value
+                    let dictName = components.queryItems?.first(where: { $0.name == "dictName" })?.value
+                    if let dictId, !dictId.isEmpty {
+                        // Direct article open: jump straight to the entry
+                        let item = WordDisplayItem(word: word, dictId: dictId, dictName: dictName ?? dictId)
+                        splitVC.select(word: item)
+                    } else {
+                        // Fallback: search for the word
+                        splitVC.focusSearchAndLookup(word: word)
+                    }
                 }
                 return
             }

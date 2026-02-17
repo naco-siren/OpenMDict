@@ -19,10 +19,12 @@ nonisolated enum HTMLResourceRewriter {
     static func rewriteResourcePaths(in html: String, dictId: String) -> String {
         var result = html
 
-        // Patterns to match: src="...", href="...", url(...)
+        // Patterns to match: src="...", <a>/<link> href="...", url(...)
+        // Note: href is restricted to <a> and <link> tags to avoid matching
+        // non-standard href on <span> etc. (e.g. MDict cross-reference metadata).
         let patterns: [(pattern: String, groupIndex: Int)] = [
             (#"(src\s*=\s*")([^"]+)(")"#, 2),
-            (#"(href\s*=\s*")([^"]+)(")"#, 2),
+            (#"(<(?:a|link)\b[^>]*?href\s*=\s*")([^"]+)(")"#, 2),
             (#"(url\s*\(\s*'?)([^')]+)('?\s*\))"#, 2)
         ]
 
@@ -85,7 +87,7 @@ nonisolated enum HTMLResourceRewriter {
 
         let patterns: [(pattern: String, groupIndex: Int)] = [
             (#"(src\s*=\s*")([^"]+)(")"#, 2),
-            (#"(href\s*=\s*")([^"]+)(")"#, 2),
+            (#"(<(?:a|link)\b[^>]*?href\s*=\s*")([^"]+)(")"#, 2),
             (#"(url\s*\(\s*'?)([^')]+)('?\s*\))"#, 2)
         ]
 

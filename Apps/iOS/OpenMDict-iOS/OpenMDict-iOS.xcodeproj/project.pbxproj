@@ -1008,7 +1008,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Look up word";
+				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1040,7 +1040,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Look up word";
+				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1072,7 +1072,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Look up word";
+				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (

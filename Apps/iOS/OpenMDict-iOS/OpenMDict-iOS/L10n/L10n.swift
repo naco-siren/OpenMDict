@@ -908,5 +908,17 @@ nonisolated enum L10n {
         static var setupDictionaries: String {
             NSLocalizedString("actionExtension.setupDictionaries", value: "Setup your dictionaries", comment: "Action Extension: filled button to open main app when no dictionaries are available")
         }
+        /// Alert title for confirming navigation to an entry link in the main app.
+        static var browseEntryTitle: String {
+            NSLocalizedString("actionExtension.browseEntryTitle", value: "Browse \u{201C}%@\u{201D} in the app?", comment: "Action Extension: alert title for entry link (%@ = target word)")
+        }
+        /// Alert message showing the dictionary name for entry link confirmation.
+        static var browseEntryMessage: String {
+            NSLocalizedString("actionExtension.browseEntryMessage", value: "Go to OpenMDict and view its full definition in \u{201C}%@\u{201D}.", comment: "Action Extension: alert message for entry link (%@ = dictionary display name)")
+        }
+        /// Alert button to open the entry in the main app.
+        static var openInApp: String {
+            NSLocalizedString("actionExtension.openInApp", value: "Proceed", comment: "Action Extension: alert button to open entry link in the main app")
+        }
     }
 }
