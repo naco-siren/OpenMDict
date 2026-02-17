@@ -185,6 +185,65 @@ class ActionViewController: UIViewController {
         }
     }
 
+    // MARK: - Keyboard Shortcuts
+
+    override var keyCommands: [UIKeyCommand]? {
+        var commands: [UIKeyCommand] = [
+            UIKeyCommand(input: UIKeyCommand.inputEscape, modifierFlags: [],
+                         action: #selector(dismissTapped)),
+            UIKeyCommand(input: "d", modifierFlags: .command,
+                         action: #selector(bookmarkTapped)),
+            UIKeyCommand(input: "=", modifierFlags: .command,
+                         action: #selector(zoomInTapped)),
+            UIKeyCommand(input: "-", modifierFlags: .command,
+                         action: #selector(zoomOutTapped)),
+            UIKeyCommand(input: "0", modifierFlags: .command,
+                         action: #selector(resetZoomTapped)),
+            UIKeyCommand(input: "a", modifierFlags: [.shift, .command],
+                         action: #selector(toggleAppearanceShortcut)),
+        ]
+        if results.count > 1 {
+            commands.append(contentsOf: [
+                UIKeyCommand(input: "[", modifierFlags: .command,
+                             action: #selector(previousPageShortcut)),
+                UIKeyCommand(input: "]", modifierFlags: .command,
+                             action: #selector(nextPageShortcut)),
+            ])
+        }
+        return commands
+    }
+
+    @objc private func resetZoomTapped() { resetZoom() }
+
+    @objc private func toggleAppearanceShortcut() {
+        let next = AppearanceMode(rawValue: (appearanceMode.rawValue + 1) % 3) ?? .system
+        setAppearanceMode(next)
+    }
+
+    @objc private func previousPageShortcut() {
+        guard currentPageIndex > 0 else { return }
+        navigateToPage(currentPageIndex - 1)
+    }
+
+    @objc private func nextPageShortcut() {
+        guard currentPageIndex < results.count - 1 else { return }
+        navigateToPage(currentPageIndex + 1)
+    }
+
+    /// Navigate to a specific page. Keyboard shortcuts use `animated: false`
+    /// to avoid race conditions when pressing shortcuts in quick succession;
+    /// page control tap uses `animated: true` for a smooth swipe feel.
+    private func navigateToPage(_ page: Int, animated: Bool = false) {
+        guard let sv = scrollView else { return }
+        sv.setContentOffset(
+            CGPoint(x: CGFloat(page) * sv.bounds.width, y: 0),
+            animated: animated
+        )
+        currentPageIndex = page
+        pageControl?.currentPage = page
+        updateHeaderForCurrentPage()
+    }
+
     // MARK: - Navigation Bar
     
     private func configureNavigationBar() {
@@ -965,14 +1024,7 @@ class ActionViewController: UIViewController {
     }
 
     @objc private func pageControlValueChanged(_ sender: UIPageControl) {
-        guard let sv = scrollView else { return }
-        let page = sender.currentPage
-        sv.setContentOffset(
-            CGPoint(x: CGFloat(page) * sv.bounds.width, y: 0),
-            animated: true
-        )
-        currentPageIndex = page
-        updateHeaderForCurrentPage()
+        navigateToPage(sender.currentPage, animated: true)
     }
 
     // MARK: - Status Display
