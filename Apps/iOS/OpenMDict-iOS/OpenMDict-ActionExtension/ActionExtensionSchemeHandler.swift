@@ -3,28 +3,27 @@
 //  OpenMDict-ActionExtension
 //
 //  Lightweight WKURLSchemeHandler for the Action Extension.
-//  Loads MDD resources directly via MDictReader instances instead of
-//  going through the main app's DictionaryService / DictionaryStorageService singletons.
+//  Serves resources from disk: dictionary directory, MDD cache, and css/js subdirs.
+//  MDD resources are pre-extracted by MDDResourceExtractor during the scan loop.
 //
 //  URL format: mdict://dictId/path/to/resource
 //
 
 import WebKit
-import OpenMDict
 
 final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
 
     nonisolated static let scheme = "mdict"
 
-    /// dictId → MDictReader mapping, injected at init time.
-    private let readers: [String: MDictReader]
-
     /// Root URL for dictionary storage in the App Group container.
     private let dictionariesRoot: URL
 
-    init(readers: [String: MDictReader], dictionariesRoot: URL) {
-        self.readers = readers
+    /// Root URL for MDD resource cache: AppGroup/Library/Caches/MDD/
+    private let mddCacheRoot: URL
+
+    init(dictionariesRoot: URL, mddCacheRoot: URL) {
         self.dictionariesRoot = dictionariesRoot
+        self.mddCacheRoot = mddCacheRoot
         super.init()
     }
 
@@ -49,29 +48,29 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         let filename = String(resourcePath.dropFirst()) // Remove leading /
         let fileExtension = (filename as NSString).pathExtension.lowercased()
 
-        // 1. Try MDD via MDictReader with multiple path variations
-        if let reader = readers[dictId] {
-            let pathsToTry = [
-                resourcePath,                           // /1.png
-                String(resourcePath.dropFirst()),       // 1.png (without leading /)
-                "\\" + String(resourcePath.dropFirst()) // \1.png (MDD format)
-            ]
-
-            for path in pathsToTry {
-                if let data = reader.resource(for: path) {
-                    resourceData = data
-                    break
-                }
-            }
-        }
-
-        // 2. Fall back to dictionary directory on disk
+        // 1. Check dictionary directory on disk (e.g., extracted files at root level)
         if resourceData == nil {
             let dictDir = dictionariesRoot.appendingPathComponent(dictId)
             let filePath = dictDir.appendingPathComponent(filename).path
 
             if FileManager.default.fileExists(atPath: filePath) {
                 resourceData = try? Data(contentsOf: URL(fileURLWithPath: filePath))
+                if resourceData != nil {
+                    print("🌐 scheme[\(dictId)] HIT tier1 (dictDir): '\(filename)'")
+                }
+            }
+        }
+
+        // 2. Check MDD cache (resources extracted during scan by MDDResourceExtractor)
+        if resourceData == nil {
+            let cachedPath = mddCacheRoot
+                .appendingPathComponent(dictId)
+                .appendingPathComponent(filename).path
+            if FileManager.default.fileExists(atPath: cachedPath) {
+                resourceData = try? Data(contentsOf: URL(fileURLWithPath: cachedPath))
+                if resourceData != nil {
+                    print("🌐 scheme[\(dictId)] HIT tier2 (cache): '\(filename)'")
+                }
             }
         }
 
@@ -113,6 +112,7 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         }
 
         guard let data = resourceData else {
+            print("🌐 scheme[\(dictId)] MISS all tiers: '\(filename)'")
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
             return
         }

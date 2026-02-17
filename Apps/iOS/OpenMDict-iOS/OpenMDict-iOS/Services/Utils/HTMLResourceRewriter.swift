@@ -66,4 +66,53 @@ nonisolated enum HTMLResourceRewriter {
 
         return result
     }
+
+    // MARK: - Resource Path Extraction
+
+    /// Schemes and prefixes to skip (same list as rewriteResourcePaths)
+    private static let skippedPrefixes = [
+        "http://", "https://", "mdict://", "data:",
+        "#", "entry://", "sound://", "javascript:"
+    ]
+
+    /// Extract all relative resource paths referenced in HTML.
+    /// Inverse of `rewriteResourcePaths`: uses the same regex patterns and skip list,
+    /// but collects paths instead of rewriting them.
+    /// - Parameter html: Original HTML content (before rewriting)
+    /// - Returns: Deduplicated set of relative resource paths
+    static func extractResourcePaths(from html: String) -> Set<String> {
+        var paths = Set<String>()
+
+        let patterns: [(pattern: String, groupIndex: Int)] = [
+            (#"(src\s*=\s*")([^"]+)(")"#, 2),
+            (#"(href\s*=\s*")([^"]+)(")"#, 2),
+            (#"(url\s*\(\s*'?)([^')]+)('?\s*\))"#, 2)
+        ]
+
+        for (pattern, groupIndex) in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+                continue
+            }
+
+            let range = NSRange(html.startIndex..., in: html)
+            let matches = regex.matches(in: html, range: range)
+
+            for match in matches {
+                guard let pathRange = Range(match.range(at: groupIndex), in: html) else {
+                    continue
+                }
+
+                let path = String(html[pathRange])
+
+                // Skip paths that already have a scheme or are special
+                if skippedPrefixes.contains(where: { path.hasPrefix($0) }) {
+                    continue
+                }
+
+                paths.insert(path)
+            }
+        }
+
+        return paths
+    }
 }

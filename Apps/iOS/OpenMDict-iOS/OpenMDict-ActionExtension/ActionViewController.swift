@@ -642,10 +642,8 @@ class ActionViewController: UIViewController {
                 }
 
                 let mdxPath = dictDir.appendingPathComponent(manifest.mdx.fileName).path
-
-                guard FileManager.default.fileExists(atPath: mdxPath),
-                      let reader = try? MDictReader(path: mdxPath) else {
-                    print("📖 Dict[\(index)] '\(record.displayName)' — MDictReader init failed, skip")
+                guard FileManager.default.fileExists(atPath: mdxPath) else {
+                    print("📖 Dict[\(index)] '\(record.displayName)' — MDX file missing, skip")
                     continue
                 }
 
@@ -656,29 +654,94 @@ class ActionViewController: UIViewController {
                     }
                 }
 
-                // Multi-entry discovery
-                let candidates = reader.search(prefix: word, limit: 10)
-                let exactMatches = candidates.filter {
-                    $0.caseInsensitiveCompare(word) == .orderedSame
+                // ── Phase 1: MDX only (no MDD loaded) ──────────────────────
+                // Load MDX index, lookup articles, collect HTML, then release.
+                var articleHTMLs: [(keyword: String, html: String)] = []
+                do {
+                    guard let reader = try? MDictReader(path: mdxPath) else {
+                        print("📖 Dict[\(index)] '\(record.displayName)' — MDictReader init failed, skip")
+                        continue
+                    }
+
+                    let candidates = reader.search(prefix: word, limit: 10)
+                    let exactMatches = candidates.filter {
+                        $0.caseInsensitiveCompare(word) == .orderedSame
+                    }
+
+                    for keyword in exactMatches {
+                        if let entry = reader.lookup(keyword) {
+                            articleHTMLs.append((keyword: keyword, html: entry.article.html))
+                        }
+                    }
+
+                    if exactMatches.isEmpty {
+                        print("📖 Dict[\(index)] '\(record.displayName)' — not found")
+                    }
+                    // reader deinit here → MDX index freed
                 }
 
-                for keyword in exactMatches {
-                    if let entry = reader.lookup(keyword) {
-                        print("📖 Dict[\(index)] '\(record.displayName)' — FOUND '\(keyword)'")
-                        let result = ArticleResult(
-                            dictId: dictId,
-                            dictName: record.displayName,
-                            keyword: keyword,
-                            html: entry.article.html
+                // ── Phase 2: MDD only (MDX already freed) ─────────────────
+                // Extract MDD resources BEFORE streaming HTML to WKWebView,
+                // so the scheme handler can serve them when the WebView requests them.
+                if !manifest.mdd.isEmpty && !articleHTMLs.isEmpty {
+                    // Collect all resource paths from all articles for this dict
+                    var allResourcePaths = Set<String>()
+                    for (_, html) in articleHTMLs {
+                        allResourcePaths.formUnion(
+                            HTMLResourceRewriter.extractResourcePaths(from: html)
                         )
-                        await MainActor.run { self.appendArticle(result) }
+                    }
+
+                    print("📖 Dict[\(index)] MDD Phase 2: \(allResourcePaths.count) resource paths extracted from HTML")
+                    for p in allResourcePaths.sorted().prefix(20) {
+                        print("📖   path: '\(p)'")
+                    }
+
+                    if !allResourcePaths.isEmpty {
+                        // Create MDD parsers (MDX is already released)
+                        let mddDir = dictDir.appendingPathComponent("mdd", isDirectory: true)
+                        print("📖 Dict[\(index)] MDD dir: \(mddDir.path)")
+                        print("📖 Dict[\(index)] manifest.mdd count: \(manifest.mdd.count)")
+                        for entry in manifest.mdd {
+                            let mddPath = mddDir.appendingPathComponent(entry.fileName).path
+                            let exists = FileManager.default.fileExists(atPath: mddPath)
+                            print("📖   MDD file: '\(entry.fileName)' exists=\(exists)")
+                        }
+
+                        let mddParsers: [MDDParser] = manifest.mdd.compactMap { entry in
+                            let path = mddDir.appendingPathComponent(entry.fileName).path
+                            return try? MDDParser(path: path)
+                        }
+
+                        print("📖 Dict[\(index)] MDDParsers created: \(mddParsers.count)")
+                        for (pi, parser) in mddParsers.enumerated() {
+                            print("📖   parser[\(pi)] resourceCount=\(parser.resourceCount)")
+                        }
+
+                        if !mddParsers.isEmpty {
+                            let count = MDDResourceExtractor.extractAndCache(
+                                resourcePaths: allResourcePaths,
+                                mddParsers: mddParsers,
+                                dictId: dictId
+                            )
+                            print("📖 Dict[\(index)] — extracted \(count) MDD resources (of \(allResourcePaths.count) paths)")
+                        }
+                        // mddParsers deinit here → MDD index freed
                     }
                 }
 
-                if exactMatches.isEmpty {
-                    print("📖 Dict[\(index)] '\(record.displayName)' — not found, releasing reader")
+                // ── Phase 3: Stream articles to UI ─────────────────────────
+                // MDD resources are now cached; WKWebView can load them via scheme handler.
+                for (keyword, html) in articleHTMLs {
+                    print("📖 Dict[\(index)] '\(record.displayName)' — FOUND '\(keyword)'")
+                    let result = ArticleResult(
+                        dictId: dictId,
+                        dictName: record.displayName,
+                        keyword: keyword,
+                        html: html
+                    )
+                    await MainActor.run { self.appendArticle(result) }
                 }
-                // reader goes out of scope → deinit
             }
 
             // 3. Scan complete
@@ -740,13 +803,13 @@ class ActionViewController: UIViewController {
         titleStack.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(titleStack)
 
-        // Create shared WKWebView configuration with scheme handler for CSS/JS on disk.
-        // Empty readers dict: MDD tier is skipped, falls through to disk lookup (css/, js/).
+        // Create shared WKWebView configuration with scheme handler.
+        // MDD resources are pre-extracted to Caches/MDD/ during scan; scheme handler serves from disk.
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         let handler = ActionExtensionSchemeHandler(
-            readers: [:],
-            dictionariesRoot: Self.dictionariesRoot
+            dictionariesRoot: Self.dictionariesRoot,
+            mddCacheRoot: MDDResourceExtractor.cacheRootURL
         )
         config.setURLSchemeHandler(handler, forURLScheme: ActionExtensionSchemeHandler.scheme)
         self.webViewConfiguration = config
