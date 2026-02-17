@@ -339,7 +339,7 @@ class ActionViewController: UIViewController {
         guard !results.isEmpty else { return }
         let result = results[currentPageIndex]
         let nowBookmarked = BookmarkService.shared.toggleBookmark(
-            word: selectedText, dictId: result.dictId, dictName: result.dictName
+            word: result.keyword, dictId: result.dictId, dictName: result.dictName
         )
         isBookmarked = nowBookmarked
         bookmarkButton.setNeedsUpdateConfiguration()
@@ -348,7 +348,7 @@ class ActionViewController: UIViewController {
     private func updateBookmarkState() {
         guard !results.isEmpty else { return }
         let result = results[currentPageIndex]
-        isBookmarked = BookmarkService.shared.isBookmarked(word: selectedText, dictId: result.dictId)
+        isBookmarked = BookmarkService.shared.isBookmarked(word: result.keyword, dictId: result.dictId)
         bookmarkButton.setNeedsUpdateConfiguration()
     }
 
