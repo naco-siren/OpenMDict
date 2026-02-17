@@ -5,7 +5,7 @@
 //  Zoom level management for article content
 //
 
-import Foundation
+import UIKit
 
 struct ZoomLevel {
     /// Available zoom levels (percentage)
@@ -60,5 +60,48 @@ struct ZoomLevel {
     /// Reset to default
     mutating func reset() {
         current = Self.defaultLevel
+    }
+}
+
+// MARK: - UI Factory
+
+extension ZoomLevel {
+
+    /// Pull-down menu with zoom-in, reset, zoom-out actions.
+    /// On iOS 16+ uses `.small` preferredElementSize for inline icon buttons.
+    func menu(
+        onZoomIn: @escaping () -> Void,
+        onReset: @escaping () -> Void,
+        onZoomOut: @escaping () -> Void
+    ) -> UIMenu {
+        let title = L10n.Detail.currentZoomLevel(displayString)
+
+        let zoomInAction = UIAction(
+            title: L10n.Detail.zoomIn,
+            image: UIImage(systemName: "plus.magnifyingglass"),
+            attributes: canZoomIn ? [] : .disabled
+        ) { _ in onZoomIn() }
+
+        let resetAction = UIAction(
+            title: L10n.Detail.reset,
+            image: UIImage(systemName: "1.magnifyingglass"),
+            attributes: isDefault ? .disabled : []
+        ) { _ in onReset() }
+
+        let zoomOutAction = UIAction(
+            title: L10n.Detail.zoomOut,
+            image: UIImage(systemName: "minus.magnifyingglass"),
+            attributes: canZoomOut ? [] : .disabled
+        ) { _ in onZoomOut() }
+
+        if #available(iOS 16.0, *) {
+            return UIMenu(title: title, preferredElementSize: .small, children: [
+                zoomOutAction, resetAction, zoomInAction
+            ])
+        } else {
+            return UIMenu(title: title, children: [
+                zoomInAction, resetAction, zoomOutAction
+            ])
+        }
     }
 }

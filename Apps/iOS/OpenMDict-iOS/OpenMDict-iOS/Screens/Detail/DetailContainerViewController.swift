@@ -66,29 +66,10 @@ class DetailContainerViewController: UIViewController {
         return seg
     }
     
-    private var appearanceSegment: UISegmentedControl {
-        let seg = UISegmentedControl(items: [
-            UIImage(systemName: "sun.max")!,
-            UIImage(systemName: "circle.lefthalf.filled")!,
-            UIImage(systemName: "moon")!,
-        ])
-        seg.selectedSegmentIndex = appearanceMode.rawValue
-        seg.addTarget(self, action: #selector(appearanceChanged), for: .valueChanged)
-        return seg
-    }
-    
-    private var appearanceIcon: UIImage {
-        switch appearanceMode {
-        case .light: UIImage(systemName: "sun.max")!
-        case .system: UIImage(systemName: "circle.lefthalf.filled")!
-        case .dark: UIImage(systemName: "moon")!
-        }
-    }
-    
     private let searchController = UISearchController()
-    
+
     // MARK: - Navigation Bar Items (Compact mode - Menus)
-    
+
     private lazy var layoutMenu: UIMenu = {
         UIMenu(title: L10n.Detail.layout, children:
            ArticleLayoutMode.allCases.map { mode in
@@ -96,60 +77,14 @@ class DetailContainerViewController: UIViewController {
            }
         )
     }()
-    
-    private var appearanceMenu: UIMenu {
-        UIMenu(title: L10n.Detail.appearance, children: [
-            UIAction(title: L10n.Detail.light, image: .init(systemName: "sun.max"),
-                     state: appearanceMode == .light ? .on : .off) { [weak self] _ in
-                self?.setAppearanceMode(.light)
-            },
-            UIAction(title: L10n.Detail.auto, image: .init(systemName: "circle.lefthalf.filled"),
-                     state: appearanceMode == .system ? .on : .off) { [weak self] _ in
-                self?.setAppearanceMode(.system)
-            },
-            UIAction(title: L10n.Detail.dark, image: .init(systemName: "moon"),
-                     state: appearanceMode == .dark ? .on : .off) { [weak self] _ in
-                self?.setAppearanceMode(.dark)
-            },
-        ])
-    }
-    
-    private var zoomMenu: UIMenu {
-        let title = L10n.Detail.currentZoomLevel(zoom.displayString)
-        
-        let zoomInAction = UIAction(
-            title: L10n.Detail.zoomIn,
-            image: UIImage(systemName: "plus.magnifyingglass"),
-            attributes: zoom.canZoomIn ? [] : .disabled
-        ) { [weak self] _ in
-            self?.zoomIn()
-        }
-        
-        let resetAction = UIAction(
-            title: L10n.Detail.reset,
-            image: UIImage(systemName: "1.magnifyingglass"),
-            attributes: zoom.isDefault ? .disabled : []
-        ) { [weak self] _ in
-            self?.resetZoom()
-        }
-        
-        let zoomOutAction = UIAction(
-            title: L10n.Detail.zoomOut,
-            image: UIImage(systemName: "minus.magnifyingglass"),
-            attributes: zoom.canZoomOut ? [] : .disabled
-        ) { [weak self] _ in
-            self?.zoomOut()
-        }
-        
-        if #available(iOS 16.0, *) {
-            return UIMenu(title: title, preferredElementSize: .small, children: [
-                zoomOutAction, resetAction, zoomInAction
-            ])
-        } else {
-            return UIMenu(title: title, children: [
-                zoomInAction, resetAction, zoomOutAction
-            ])
-        }
+
+    /// Thin adapter: bridges shared ZoomLevel.menu factory to this VC's zoom methods.
+    private var currentZoomMenu: UIMenu {
+        zoom.menu(
+            onZoomIn:  { [weak self] in self?.zoomIn() },
+            onReset:   { [weak self] in self?.resetZoom() },
+            onZoomOut: { [weak self] in self?.zoomOut() }
+        )
     }
     
     // MARK: - Lifecycle
@@ -449,7 +384,7 @@ class DetailContainerViewController: UIViewController {
     private func setupRegularNavigationBar() {
         if #available(iOS 16, *) {
             navigationItem.style = .browser
-            
+
             navigationItem.leadingItemGroups = [
                 .fixedGroup(
                     representativeItem: .init(
@@ -463,10 +398,10 @@ class DetailContainerViewController: UIViewController {
                     customizationIdentifier: "appearance",
                     representativeItem: .init(
                         title: L10n.Detail.appearance,
-                        image: appearanceIcon,
-                        menu: appearanceMenu
+                        image: appearanceMode.icon,
+                        menu: appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }
                     ),
-                    items: [.init(customView: appearanceSegment)]
+                    items: [.init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))]
                 ),
             ]
 
@@ -476,7 +411,7 @@ class DetailContainerViewController: UIViewController {
                     representativeItem: .init(
                         title: L10n.Detail.zoom,
                         image: .init(systemName: "textformat.size"),
-                        menu: zoomMenu
+                        menu: currentZoomMenu
                     ),
                     items: [
                         .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
@@ -493,14 +428,14 @@ class DetailContainerViewController: UIViewController {
             ]
 
             navigationItem.trailingItemGroups = []
-            
+
         } else {
             // iOS 15: Best effort with standard items
             navigationItem.leftBarButtonItems = [
                 .init(customView: layoutSegment),
-                .init(customView: appearanceSegment)
+                .init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))
             ]
-            
+
             navigationItem.rightBarButtonItems = [
                 .init(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
                     self?.zoomIn()
@@ -525,17 +460,17 @@ class DetailContainerViewController: UIViewController {
                     customizationIdentifier: "appearance",
                     representativeItem: .init(
                         title: L10n.Detail.appearance,
-                        image: appearanceIcon,
-                        menu: appearanceMenu
+                        image: appearanceMode.icon,
+                        menu: appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }
                     ),
-                    items: [.init(customView: appearanceSegment)]
+                    items: [.init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))]
                 ),
                 .optionalGroup(
                     customizationIdentifier: "zoom",
                     representativeItem: .init(
                         title: L10n.Detail.currentLevel(zoom.displayString),
                         image: .init(systemName: "textformat.size"),
-                        menu: zoomMenu
+                        menu: currentZoomMenu
                     ),
                     items: [
                         .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
@@ -560,8 +495,9 @@ class DetailContainerViewController: UIViewController {
         } else {
             navigationItem.leftBarButtonItems = []
             navigationItem.rightBarButtonItems = [
-                .init(title: L10n.Detail.appearance, image: .init(systemName: "circle.lefthalf.filled"), menu: appearanceMenu),
-                .init(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: zoomMenu),
+                .init(title: L10n.Detail.appearance, image: .init(systemName: "circle.lefthalf.filled"),
+                      menu: appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }),
+                .init(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu),
             ]
         }
     }

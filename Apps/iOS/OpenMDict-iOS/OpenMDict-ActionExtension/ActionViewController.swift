@@ -113,7 +113,8 @@ class ActionViewController: UIViewController {
     // MARK: - Nav Bar Items
 
     private var appearanceButton: UIBarButtonItem?
-    private var zoomButton: UIBarButtonItem?
+    private var zoomInButton: UIBarButtonItem?       // iOS 15 individual zoom-in
+    private var zoomOutButton: UIBarButtonItem?      // iOS 15 individual zoom-out
 
     // MARK: - State
 
@@ -130,7 +131,7 @@ class ActionViewController: UIViewController {
     private var searchedDictCount: Int = 0
 
     /// Zoom level for article text.
-    private var zoomLevel = ZoomLevel()
+    private var zoom = ZoomLevel()
 
     /// Appearance mode (light/dark/auto).
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
@@ -176,39 +177,90 @@ class ActionViewController: UIViewController {
     }
 
     // MARK: - Navigation Bar
-
+    
     private func configureNavigationBar() {
-        // Left: books.vertical → open main app "all dictionaries" with the current word
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
+        title = "OpenMDict"
+
+        let openAllDicts = UIBarButtonItem(
             image: UIImage(systemName: "books.vertical"),
             style: .plain,
             target: self,
             action: #selector(openAllDictsTapped)
         )
 
-        // Right: Appearance + Zoom (disabled until results arrive)
+        // Appearance: representativeItem (collapsed fallback / iOS 15 plain button)
         let appearance = UIBarButtonItem(
-            image: appearanceIcon,
+            image: appearanceMode.icon,
             style: .plain,
             target: self,
             action: nil
         )
-        appearance.menu = buildAppearanceMenu()
+        appearance.menu = appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }
         self.appearanceButton = appearance
 
-        let zoom = UIBarButtonItem(
-            image: UIImage(systemName: "textformat.size"),
-            style: .plain,
-            target: self,
-            action: nil
-        )
-        zoom.isEnabled = false
-        zoom.menu = buildZoomMenu()
-        self.zoomButton = zoom
+        if #available(iOS 16, *) {
+            navigationItem.style = .browser
 
-        navigationItem.rightBarButtonItems = [zoom, appearance]
+            navigationItem.leadingItemGroups = [
+                .fixedGroup(items: [openAllDicts]),
+                .fixedGroup(
+                    representativeItem: appearance,
+                    items: [
+                        .init(customView: appearanceMode.segmentedControl(
+                            target: self, action: #selector(appearanceChanged(_:))
+                        ))
+                    ]
+                ),
+            ]
 
-        title = "OpenMDict"
+            navigationItem.centerItemGroups = []
+
+            navigationItem.trailingItemGroups = [
+                .fixedGroup(
+                    representativeItem: .init(
+                        title: L10n.Detail.currentLevel(zoom.displayString),
+                        image: .init(systemName: "textformat.size"),
+                        menu: currentZoomMenu
+                    ),
+                    items: [
+                        .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.zoomOut()
+                        }),
+                        .init(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.resetZoom()
+                        }),
+                        .init(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                            self?.zoomIn()
+                        }),
+                    ]
+                )
+            ]
+
+        } else {
+            navigationItem.leftBarButtonItems = [openAllDicts, appearance]
+
+            // iOS 15: Two separate zoom buttons (no reset — too narrow)
+            let zIn = UIBarButtonItem(
+                image: UIImage(systemName: "plus.magnifyingglass"),
+                style: .plain,
+                target: self,
+                action: #selector(zoomInTapped)
+            )
+            zIn.isEnabled = false
+
+            let zOut = UIBarButtonItem(
+                image: UIImage(systemName: "minus.magnifyingglass"),
+                style: .plain,
+                target: self,
+                action: #selector(zoomOutTapped)
+            )
+            zOut.isEnabled = false
+
+            self.zoomInButton = zIn
+            self.zoomOutButton = zOut
+
+            navigationItem.rightBarButtonItems = [zIn, zOut]
+        }
     }
 
     @objc private func openAllDictsTapped() {
@@ -217,40 +269,22 @@ class ActionViewController: UIViewController {
 
     // MARK: - Appearance Mode
 
-    private var appearanceIcon: UIImage {
-        switch appearanceMode {
-        case .light: return UIImage(systemName: "sun.max")!
-        case .system: return UIImage(systemName: "circle.lefthalf.filled")!
-        case .dark:   return UIImage(systemName: "moon")!
-        }
-    }
-
-    private func buildAppearanceMenu() -> UIMenu {
-        UIMenu(title: L10n.Detail.appearance, children: [
-            UIAction(
-                title: L10n.Detail.light,
-                image: UIImage(systemName: "sun.max"),
-                state: appearanceMode == .light ? .on : .off
-            ) { [weak self] _ in self?.setAppearanceMode(.light) },
-            UIAction(
-                title: L10n.Detail.auto,
-                image: UIImage(systemName: "circle.lefthalf.filled"),
-                state: appearanceMode == .system ? .on : .off
-            ) { [weak self] _ in self?.setAppearanceMode(.system) },
-            UIAction(
-                title: L10n.Detail.dark,
-                image: UIImage(systemName: "moon"),
-                state: appearanceMode == .dark ? .on : .off
-            ) { [weak self] _ in self?.setAppearanceMode(.dark) },
-        ])
+    @objc private func appearanceChanged(_ sender: UISegmentedControl) {
+        let mode = AppearanceMode(rawValue: sender.selectedSegmentIndex) ?? .system
+        setAppearanceMode(mode)
     }
 
     private func setAppearanceMode(_ mode: AppearanceMode) {
         appearanceMode = mode
         UserDefaults.standard.appearanceMode = mode
         applyAppearance()
-        appearanceButton?.image = appearanceIcon
-        appearanceButton?.menu = buildAppearanceMenu()
+        // Update representativeItem's icon and menu for collapsed state
+        appearanceButton?.image = appearanceMode.icon
+        appearanceButton?.menu = appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }
+        // On iOS 16+ rebuild nav bar to update segmented control's selectedSegmentIndex
+        if #available(iOS 16, *) {
+            configureNavigationBar()
+        }
     }
 
     private func applyAppearance() {
@@ -337,62 +371,59 @@ class ActionViewController: UIViewController {
 
     // MARK: - Zoom
 
-    private func buildZoomMenu() -> UIMenu {
-        let zoomIn = UIAction(
-            title: L10n.Detail.zoomIn,
-            image: UIImage(systemName: "plus.magnifyingglass"),
-            attributes: zoomLevel.canZoomIn ? [] : .disabled
-        ) { [weak self] _ in
-            self?.performZoomIn()
-        }
-
-        let zoomOut = UIAction(
-            title: L10n.Detail.zoomOut,
-            image: UIImage(systemName: "minus.magnifyingglass"),
-            attributes: zoomLevel.canZoomOut ? [] : .disabled
-        ) { [weak self] _ in
-            self?.performZoomOut()
-        }
-
-        let reset = UIAction(
-            title: L10n.Detail.reset,
-            image: UIImage(systemName: "arrow.counterclockwise"),
-            attributes: zoomLevel.isDefault ? .disabled : []
-        ) { [weak self] _ in
-            self?.performZoomReset()
-        }
-
-        return UIMenu(title: zoomLevel.displayString, children: [zoomIn, zoomOut, reset])
+    /// Thin adapter: bridges shared ZoomLevel.menu factory to this VC's zoom methods.
+    private var currentZoomMenu: UIMenu {
+        zoom.menu(
+            onZoomIn:  { [weak self] in self?.zoomIn() },
+            onReset:   { [weak self] in self?.resetZoom() },
+            onZoomOut: { [weak self] in self?.zoomOut() }
+        )
     }
 
-    private func performZoomIn() {
-        zoomLevel.zoomIn()
+    @objc private func zoomInTapped() { zoomIn() }
+    @objc private func zoomOutTapped() { zoomOut() }
+
+    private func zoomIn() {
+        zoom.zoomIn()
         applyZoomToAllPages()
-        zoomButton?.menu = buildZoomMenu()
+        refreshZoomUI()
     }
 
-    private func performZoomOut() {
-        zoomLevel.zoomOut()
+    private func zoomOut() {
+        zoom.zoomOut()
         applyZoomToAllPages()
-        zoomButton?.menu = buildZoomMenu()
+        refreshZoomUI()
     }
 
-    private func performZoomReset() {
-        zoomLevel.reset()
+    private func resetZoom() {
+        zoom.reset()
         applyZoomToAllPages()
-        zoomButton?.menu = buildZoomMenu()
+        refreshZoomUI()
+    }
+
+    private func refreshZoomUI() {
+        if #available(iOS 16, *) {
+            configureNavigationBar()
+        } else {
+            updateZoomButtonStates()
+        }
+    }
+
+    private func updateZoomButtonStates() {
+        zoomInButton?.isEnabled = zoom.canZoomIn
+        zoomOutButton?.isEnabled = zoom.canZoomOut
     }
 
     private func applyZoomToAllPages() {
-        let js = "document.body.style.fontSize = '\(zoomLevel.current)%';"
+        let js = "document.body.style.fontSize = '\(zoom.current)%';"
         for webView in pageWebViews {
             webView.evaluateJavaScript(js, completionHandler: nil)
         }
     }
 
     private func applyZoom(to webView: WKWebView) {
-        guard !zoomLevel.isDefault else { return }
-        let js = "document.body.style.fontSize = '\(zoomLevel.current)%';"
+        guard !zoom.isDefault else { return }
+        let js = "document.body.style.fontSize = '\(zoom.current)%';"
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
@@ -695,8 +726,9 @@ class ActionViewController: UIViewController {
 
         let result = results[0]
 
-        // Enable nav bar buttons
-        zoomButton?.isEnabled = true
+        // Enable iOS 15 zoom buttons (iOS 16+ buttons are always enabled via fixedGroup)
+        zoomInButton?.isEnabled = zoom.canZoomIn
+        zoomOutButton?.isEnabled = zoom.canZoomOut
 
         // Setup header
         view.addSubview(headerView)

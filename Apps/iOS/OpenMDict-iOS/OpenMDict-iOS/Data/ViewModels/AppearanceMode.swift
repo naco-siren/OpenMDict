@@ -22,6 +22,45 @@ enum AppearanceMode: Int {
     }
 }
 
+// MARK: - UI Factories
+
+extension AppearanceMode {
+
+    /// SF Symbol icon for the current mode.
+    var icon: UIImage {
+        switch self {
+        case .light: UIImage(systemName: "sun.max")!
+        case .system: UIImage(systemName: "circle.lefthalf.filled")!
+        case .dark:   UIImage(systemName: "moon")!
+        }
+    }
+
+    /// Pull-down menu showing all three modes with a checkmark on the current one.
+    /// - Parameter handler: Called with the selected mode.
+    func menu(handler: @escaping (AppearanceMode) -> Void) -> UIMenu {
+        UIMenu(title: L10n.Detail.appearance, children: [
+            UIAction(title: L10n.Detail.light, image: .init(systemName: "sun.max"),
+                     state: self == .light ? .on : .off) { _ in handler(.light) },
+            UIAction(title: L10n.Detail.auto, image: .init(systemName: "circle.lefthalf.filled"),
+                     state: self == .system ? .on : .off) { _ in handler(.system) },
+            UIAction(title: L10n.Detail.dark, image: .init(systemName: "moon"),
+                     state: self == .dark ? .on : .off) { _ in handler(.dark) },
+        ])
+    }
+
+    /// Three-segment control (sun / half-circle / moon) with the current mode selected.
+    func segmentedControl(target: AnyObject, action: Selector) -> UISegmentedControl {
+        let seg = UISegmentedControl(items: [
+            UIImage(systemName: "sun.max")!,
+            UIImage(systemName: "circle.lefthalf.filled")!,
+            UIImage(systemName: "moon")!,
+        ])
+        seg.selectedSegmentIndex = rawValue
+        seg.addTarget(target, action: action, for: .valueChanged)
+        return seg
+    }
+}
+
 // MARK: - UserDefaults Extension
 
 extension UserDefaults {
