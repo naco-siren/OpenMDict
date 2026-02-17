@@ -283,6 +283,21 @@ class ActionViewController: UIViewController {
 
             navigationItem.centerItemGroups = []
 
+            let zoomOutItem = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                self?.zoomOut()
+            })
+            zoomOutItem.isEnabled = zoom.canZoomOut
+
+            let resetItem = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                self?.resetZoom()
+            })
+            resetItem.isEnabled = !zoom.isDefault
+
+            let zoomInItem = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
+                self?.zoomIn()
+            })
+            zoomInItem.isEnabled = zoom.canZoomIn
+
             navigationItem.trailingItemGroups = [
                 .fixedGroup(
                     representativeItem: .init(
@@ -290,17 +305,7 @@ class ActionViewController: UIViewController {
                         image: .init(systemName: "textformat.size"),
                         menu: currentZoomMenu
                     ),
-                    items: [
-                        .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.zoomOut()
-                        }),
-                        .init(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.resetZoom()
-                        }),
-                        .init(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.zoomIn()
-                        }),
-                    ]
+                    items: [zoomOutItem, resetItem, zoomInItem]
                 )
             ]
 
@@ -397,11 +402,30 @@ class ActionViewController: UIViewController {
     @objc private func bookmarkTapped() {
         guard !results.isEmpty else { return }
         let result = results[currentPageIndex]
-        let nowBookmarked = BookmarkService.shared.toggleBookmark(
-            word: result.keyword, dictId: result.dictId, dictName: result.dictName
-        )
-        isBookmarked = nowBookmarked
-        bookmarkButton.setNeedsUpdateConfiguration()
+
+        if isBookmarked {
+            // Removing → show confirmation alert (same as main app)
+            let alert = UIAlertController(
+                title: L10n.Bookmarks.removeBookmark,
+                message: L10n.Bookmarks.removeBookmarkMessage(word: result.keyword, dictName: result.dictName),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+            alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+                BookmarkService.shared.toggleBookmark(
+                    word: result.keyword, dictId: result.dictId, dictName: result.dictName
+                )
+                self?.isBookmarked = false
+                self?.bookmarkButton.setNeedsUpdateConfiguration()
+            })
+            present(alert, animated: true)
+        } else {
+            // Adding → immediate
+            isBookmarked = BookmarkService.shared.toggleBookmark(
+                word: result.keyword, dictId: result.dictId, dictName: result.dictName
+            )
+            bookmarkButton.setNeedsUpdateConfiguration()
+        }
     }
 
     private func updateBookmarkState() {

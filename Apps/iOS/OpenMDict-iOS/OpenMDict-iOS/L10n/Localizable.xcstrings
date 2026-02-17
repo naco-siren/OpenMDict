@@ -1412,7 +1412,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ブックマークを解除"
+            "value" : "ブックマークを削除"
           }
         },
         "ko" : {
@@ -1442,13 +1442,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "取消书签"
+            "value" : "移除书签"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "取消書籤"
+            "value" : "移除書籤"
           }
         }
       }
@@ -1916,7 +1916,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ブックマークを解除"
+            "value" : "ブックマークを削除"
           }
         },
         "ko" : {
@@ -1946,13 +1946,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "取消书签"
+            "value" : "移除书签"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "取消書籤"
+            "value" : "移除書籤"
           }
         }
       }
