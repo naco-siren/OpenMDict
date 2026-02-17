@@ -171,13 +171,22 @@
 			membershipExceptions = (
 				Data/Constants.swift,
 				Data/MDictURL.swift,
+				Data/ViewModels/AppearanceMode.swift,
+				Data/ViewModels/ZoomLevel.swift,
 				L10n/L10n.swift,
 				L10n/Localizable.xcstrings,
 				OpenMDict_iOS.xcdatamodeld,
+				Services/BookmarkService.swift,
+				Services/DateGroupingHelper.swift,
+				Services/LookupCountService.swift,
+				Services/LookupHistoryService.swift,
+				"Services/Persistence/BookmarkRecord+CoreDataClass.swift",
 				Services/Persistence/CoreDataStack.swift,
 				"Services/Persistence/DictionaryGroupRecord+CoreDataClass.swift",
 				"Services/Persistence/DictionaryMetadataRecord+CoreDataClass.swift",
 				"Services/Persistence/GroupEntryRecord+CoreDataClass.swift",
+				"Services/Persistence/LookupCountRecord+CoreDataClass.swift",
+				"Services/Persistence/LookupRecord+CoreDataClass.swift",
 				Services/Utils/ArticleHTMLRenderer.swift,
 				Services/Utils/HTMLResourceRewriter.swift,
 				Utils/DebugLog.swift,
@@ -999,7 +1008,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
+				INFOPLIST_KEY_CFBundleDisplayName = "Look up word";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1031,7 +1040,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
+				INFOPLIST_KEY_CFBundleDisplayName = "Look up word";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1063,7 +1072,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
+				INFOPLIST_KEY_CFBundleDisplayName = "Look up word";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
