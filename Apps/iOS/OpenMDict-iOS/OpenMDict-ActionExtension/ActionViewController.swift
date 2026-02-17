@@ -740,9 +740,15 @@ class ActionViewController: UIViewController {
         titleStack.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(titleStack)
 
-        // Create shared WKWebView configuration (no scheme handler)
+        // Create shared WKWebView configuration with scheme handler for CSS/JS on disk.
+        // Empty readers dict: MDD tier is skipped, falls through to disk lookup (css/, js/).
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = true
+        let handler = ActionExtensionSchemeHandler(
+            readers: [:],
+            dictionariesRoot: Self.dictionariesRoot
+        )
+        config.setURLSchemeHandler(handler, forURLScheme: ActionExtensionSchemeHandler.scheme)
         self.webViewConfiguration = config
 
         // Scroll View (paging)
