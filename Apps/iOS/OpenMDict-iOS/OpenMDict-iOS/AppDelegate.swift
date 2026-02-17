@@ -12,11 +12,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // Register Settings.bundle defaults
-        UserDefaults.standard.register(defaults: [
+        // Register Settings.bundle defaults for standard (Settings.app reads/writes here)
+        // and shared (Extension reads/writes here) suites.
+        let defaults: [String: Any] = [
             "appearanceMode": 1,    // .system
             "searchResultVolume": 2 // .normal (Default)
-        ])
+        ]
+        UserDefaults.standard.register(defaults: defaults)
+        UserDefaults.shared.register(defaults: defaults)
+
+        // Merge appearance mode between standard (Settings.bundle) and shared (Extension).
+        // Both may have changed while the app was killed:
+        //   - Extension writes to shared with a timestamp via setAppearanceModeStamped()
+        //   - Settings.app writes to standard without any timestamp
+        //   - Main app dual-writes both and stamps shared
+        //
+        // On launch, compare shared's timestamp against the last time main app synced.
+        // If shared is newer → Extension wrote after our last sync → shared wins.
+        // Otherwise → standard wins (Settings.app change or no change).
+        let lastSyncTime = UserDefaults.standard.appearanceModeTimestamp  // our last dual-write
+        let sharedStamp  = UserDefaults.shared.appearanceModeTimestamp
+        if sharedStamp > lastSyncTime {
+            // Extension wrote after main app's last sync → shared wins
+            let mode = UserDefaults.shared.appearanceMode
+            UserDefaults.standard.appearanceMode = mode
+            UserDefaults.standard.appearanceModeTimestamp = sharedStamp
+        } else {
+            // Standard wins (Settings.app changed, or both are in sync)
+            let mode = UserDefaults.standard.appearanceMode
+            UserDefaults.shared.setAppearanceModeStamped(mode)
+            UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
+        }
+
         // Initialize persistent store (Core Data)
         CoreDataStack.shared.setup()
         // Initialize dictionary service (loads Library dictionaries)

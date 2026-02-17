@@ -133,8 +133,8 @@ class ActionViewController: UIViewController {
     /// Zoom level for article text.
     private var zoom = ZoomLevel()
 
-    /// Appearance mode (light/dark/auto).
-    private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
+    /// Appearance mode (light/dark/auto) — reads from App Group shared defaults.
+    private var appearanceMode: AppearanceMode = UserDefaults.shared.appearanceMode
 
     /// Lookup count Combine subscription.
     private var lookupCountCancellable: AnyCancellable?
@@ -276,7 +276,7 @@ class ActionViewController: UIViewController {
 
     private func setAppearanceMode(_ mode: AppearanceMode) {
         appearanceMode = mode
-        UserDefaults.standard.appearanceMode = mode
+        UserDefaults.shared.setAppearanceModeStamped(mode)
         applyAppearance()
         // Update representativeItem's icon and menu for collapsed state
         appearanceButton?.image = appearanceMode.icon

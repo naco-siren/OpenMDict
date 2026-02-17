@@ -158,7 +158,8 @@ class DetailContainerViewController: UIViewController {
             }
         }
 
-        // Settings.bundle sync: detect UserDefaults changes when returning from system Settings
+        // Settings.bundle sync: detect UserDefaults changes when returning from system Settings.
+        // Settings.bundle writes to standard, so bridge the value to shared for Extension visibility.
         NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
@@ -169,6 +170,8 @@ class DetailContainerViewController: UIViewController {
                 let stored = UserDefaults.standard.appearanceMode
                 guard stored != self.appearanceMode else { return }
                 self.appearanceMode = stored
+                UserDefaults.shared.setAppearanceModeStamped(stored)
+                UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
                 self.applyAppearance()
                 self.updateNavigationBar(for: self.traitCollection)
             }
@@ -592,9 +595,13 @@ class DetailContainerViewController: UIViewController {
         setAppearanceMode(appearanceMode)
     }
 
-    /// Set appearance mode and broadcast to all windows
+    /// Set appearance mode and broadcast to all windows.
+    /// Dual-write: standard (Settings.bundle consistency) + shared (Extension visibility).
+    /// Both sides are stamped so the merge logic in AppDelegate knows which is newer.
     private func setAppearanceMode(_ mode: AppearanceMode) {
+        UserDefaults.shared.setAppearanceModeStamped(mode)
         UserDefaults.standard.appearanceMode = mode
+        UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
         NotificationCenter.default.post(name: .appearanceModeDidChange, object: mode)
     }
     

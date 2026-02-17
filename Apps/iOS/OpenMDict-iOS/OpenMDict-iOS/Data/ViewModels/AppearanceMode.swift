@@ -64,10 +64,28 @@ extension AppearanceMode {
 // MARK: - UserDefaults Extension
 
 extension UserDefaults {
+    /// App Group shared defaults visible to both main app and extensions.
+    static let shared = UserDefaults(suiteName: AppIdentifiers.appGroupIdentifier)!
+
     private static let appearanceModeKey = "appearanceMode"
+    private static let appearanceModeTimestampKey = "appearanceModeTimestamp"
 
     var appearanceMode: AppearanceMode {
         get { AppearanceMode(rawValue: integer(forKey: Self.appearanceModeKey)) ?? .system }
         set { set(newValue.rawValue, forKey: Self.appearanceModeKey) }
+    }
+
+    /// Timestamp of the last appearance mode write (only meaningful on shared suite).
+    var appearanceModeTimestamp: Double {
+        get { double(forKey: Self.appearanceModeTimestampKey) }
+        set { set(newValue, forKey: Self.appearanceModeTimestampKey) }
+    }
+
+    /// Write appearance mode to this suite and stamp the current time.
+    /// Use this instead of the raw setter when the write should be
+    /// visible to the merge logic in AppDelegate.
+    func setAppearanceModeStamped(_ mode: AppearanceMode) {
+        appearanceMode = mode
+        appearanceModeTimestamp = Date().timeIntervalSince1970
     }
 }

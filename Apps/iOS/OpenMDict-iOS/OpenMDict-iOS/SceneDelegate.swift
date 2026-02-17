@@ -153,12 +153,24 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
-        // Reapply appearance from UserDefaults when returning from background.
-        // On iOS 15 iPhone, view.window may be nil when UserDefaults.didChangeNotification
-        // fires during the background→foreground transition, so DetailContainerVC's handler
-        // silently fails. SceneDelegate.window is a strong reference that remains valid
-        // throughout the scene lifecycle, making this a reliable fallback for all devices.
-        let mode = UserDefaults.standard.appearanceMode
+        // Merge appearance mode from shared (Extension) vs standard (Settings.app).
+        // Compare timestamps to determine which write is newer.
+        let lastSyncTime = UserDefaults.standard.appearanceModeTimestamp
+        let sharedStamp  = UserDefaults.shared.appearanceModeTimestamp
+        let mode: AppearanceMode
+        if sharedStamp > lastSyncTime {
+            // Extension wrote after our last sync → shared wins
+            mode = UserDefaults.shared.appearanceMode
+            UserDefaults.standard.appearanceMode = mode
+            UserDefaults.standard.appearanceModeTimestamp = sharedStamp
+        } else {
+            // Standard wins (Settings.app changed, or both are in sync)
+            mode = UserDefaults.standard.appearanceMode
+            if mode != UserDefaults.shared.appearanceMode {
+                UserDefaults.shared.setAppearanceModeStamped(mode)
+                UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
+            }
+        }
         window?.overrideUserInterfaceStyle = mode.userInterfaceStyle
     }
 
