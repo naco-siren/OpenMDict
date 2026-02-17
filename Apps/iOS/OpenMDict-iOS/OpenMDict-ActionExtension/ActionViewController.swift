@@ -13,6 +13,7 @@
 //  - All link clicks open the main app
 //
 
+import AVFoundation
 import Combine
 import UIKit
 import WebKit
@@ -139,6 +140,9 @@ class ActionViewController: UIViewController {
     /// Lookup count Combine subscription.
     private var lookupCountCancellable: AnyCancellable?
 
+    /// Audio player — kept alive for the duration of playback.
+    private var audioPlayer: AVAudioPlayer?
+
     /// Root URL for dictionaries in the App Group shared container.
     private nonisolated static let dictionariesRoot: URL = {
         guard let groupURL = FileManager.default.containerURL(
@@ -159,6 +163,7 @@ class ActionViewController: UIViewController {
         configureNavigationBar()
         configureLoadingUI()
         applyAppearance()
+        configureAudioSession()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -995,6 +1000,116 @@ class ActionViewController: UIViewController {
         )
     }
 
+    // MARK: - Audio Playback
+
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        } catch {
+            print("⚠️ Audio session setup failed: \(error)")
+        }
+    }
+
+    /// Play audio from a sound:// URL tapped in a WKWebView page.
+    /// - Parameters:
+    ///   - url: The `sound://` URL intercepted from WKNavigationDelegate
+    ///   - webView: The WKWebView that triggered the navigation
+    private func playAudio(url: URL, from webView: WKWebView) {
+        guard let mdictURL = MDictURL(url), mdictURL.isAudio else { return }
+
+        // Determine which dictionary this page belongs to
+        guard let pageIndex = pageWebViews.firstIndex(of: webView),
+              pageIndex < results.count else { return }
+        let dictId = results[pageIndex].dictId
+
+        let resourcePath = mdictURL.resourcePath          // e.g. "uk/word.mp3"
+        let pathVariations = mdictURL.pathVariations       // [as-is, /prefixed, \backslash]
+
+        // Try loading audio data from multiple sources
+        if let audioData = loadAudioData(resourcePath: resourcePath,
+                                         pathVariations: pathVariations,
+                                         dictId: dictId) {
+            do {
+                audioPlayer?.stop()
+                audioPlayer = try AVAudioPlayer(data: audioData)
+                audioPlayer?.prepareToPlay()
+                audioPlayer?.play()
+                print("🔊 Playing '\(resourcePath)' from dict '\(dictId)'")
+            } catch {
+                print("⚠️ Audio playback failed: \(error)")
+            }
+        } else {
+            print("⚠️ Audio not found: '\(resourcePath)' in dict '\(dictId)'")
+        }
+    }
+
+    /// Load audio data from available sources.
+    ///
+    /// 1. MDD cache on disk (pre-extracted during Phase 2 or previous runs)
+    /// 2. Dictionary directory (loose audio files)
+    /// 3. On-demand MDD extraction (creates temporary MDDParser, extracts, caches)
+    private func loadAudioData(resourcePath: String,
+                               pathVariations: [String],
+                               dictId: String) -> Data? {
+        let dictDir = Self.dictionariesRoot.appendingPathComponent(dictId)
+        let cacheDir = MDDResourceExtractor.cacheRootURL.appendingPathComponent(dictId)
+
+        // ── Tier 1: MDD cache on disk ──────────────────────────────
+        for variation in pathVariations {
+            let clean = variation.hasPrefix("/") ? String(variation.dropFirst()) : variation
+            let cachedURL = cacheDir.appendingPathComponent(clean)
+            if let data = try? Data(contentsOf: cachedURL) {
+                print("🔊 tier1 (cache) HIT: '\(clean)'")
+                return data
+            }
+        }
+
+        // ── Tier 2: Loose files in dictionary directory ────────────
+        for variation in pathVariations {
+            let clean = variation.hasPrefix("/") ? String(variation.dropFirst()) : variation
+            let fileURL = dictDir.appendingPathComponent(clean)
+            if let data = try? Data(contentsOf: fileURL) {
+                print("🔊 tier2 (dictDir) HIT: '\(clean)'")
+                return data
+            }
+        }
+
+        // ── Tier 3: On-demand MDD extraction ──────────────────────
+        // Parse manifest to find MDD files, create parsers, look up audio.
+        let manifestURL = dictDir.appendingPathComponent("manifest.json")
+        guard let manifestData = try? Data(contentsOf: manifestURL),
+              let manifest = try? JSONDecoder.isoDate.decode(DictManifestLite.self, from: manifestData),
+              !manifest.mdd.isEmpty else {
+            return nil
+        }
+
+        let mddDir = dictDir.appendingPathComponent("mdd", isDirectory: true)
+        let mddParsers: [MDDParser] = manifest.mdd.compactMap { entry in
+            let path = mddDir.appendingPathComponent(entry.fileName).path
+            return try? MDDParser(path: path)
+        }
+        guard !mddParsers.isEmpty else { return nil }
+
+        // Try all path variations against all MDD parsers
+        for parser in mddParsers {
+            for variation in pathVariations {
+                if let data = parser.lookup(variation) {
+                    // Cache to disk for future requests
+                    let clean = resourcePath.hasPrefix("/") ? String(resourcePath.dropFirst()) : resourcePath
+                    let destURL = cacheDir.appendingPathComponent(clean)
+                    let parentDir = destURL.deletingLastPathComponent()
+                    try? FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+                    try? data.write(to: destURL, options: .atomic)
+                    print("🔊 tier3 (MDD on-demand) HIT: '\(variation)' → cached '\(clean)'")
+                    return data
+                }
+            }
+        }
+        // mddParsers deinit here → MDD index freed
+
+        return nil
+    }
+
     // MARK: - Open Containing App
 
     /// Opens the main app with a lookup URL for the given word.
@@ -1065,8 +1180,7 @@ extension ActionViewController: WKNavigationDelegate {
 
         case "sound":
             decisionHandler(.cancel)
-            // TODO: try MDD first, and decide to show a warning or silent consume as fallback
-            openInApp(word: selectedText)
+            playAudio(url: url, from: webView)
 
         case "http", "https":
             decisionHandler(.cancel)
