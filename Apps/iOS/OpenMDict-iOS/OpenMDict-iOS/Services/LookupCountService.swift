@@ -126,7 +126,11 @@ final class LookupCountService {
         do {
             let records = try ctx.fetch(request)
             for record in records {
-                cache[record.contextKey] = record.count
+                // Trophy counters are monotonically increasing: if the
+                // cache already has a higher value (e.g. from a local
+                // write that hasn't flushed yet), keep the higher one.
+                let existing = cache[record.contextKey] ?? 0
+                cache[record.contextKey] = max(existing, record.count)
             }
             debugLog("📊 LookupCountService: loaded \(records.count) trophy counters from CoreData")
         } catch {

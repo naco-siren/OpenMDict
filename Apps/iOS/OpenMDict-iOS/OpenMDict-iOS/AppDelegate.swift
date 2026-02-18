@@ -46,6 +46,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         // Initialize persistent store (Core Data + CloudKit sync)
         CoreDataStack.shared.setup()
+        // Install deduplication as the remote-change preprocessor.
+        // Runs on a background context before downstream caches refresh,
+        // ensuring they see clean, deduplicated data after CloudKit sync.
+        CoreDataStack.shared.remoteChangePreprocessor = {
+            await DeduplicationService.shared.deduplicateAll()
+        }
         // Register for remote notifications (CloudKit uses silent push for sync)
         application.registerForRemoteNotifications()
         // Initialize dictionary service (loads Library dictionaries)

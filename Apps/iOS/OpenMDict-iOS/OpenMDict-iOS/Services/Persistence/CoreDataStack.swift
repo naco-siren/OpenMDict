@@ -26,6 +26,11 @@ final class CoreDataStack {
     /// Each Service subscribes with its own `.debounce()` to refresh caches.
     let remoteChangePublisher = PassthroughSubject<Void, Never>()
 
+    /// Optional async hook called before `remoteChangePublisher.send()`.
+    /// The main app installs DeduplicationService here; extensions leave
+    /// it nil so they don't need to link the dedup code.
+    var remoteChangePreprocessor: (() async -> Void)?
+
     private var remoteChangeObserver: Any?
 
     // MARK: - Container
@@ -110,13 +115,24 @@ final class CoreDataStack {
         // can only be received via NotificationCenter; we immediately
         // relay it to the Combine publisher so all consumers subscribe
         // via remoteChangePublisher instead.
+        //
+        // Pipeline: remote change → preprocessor (dedup) → publish
+        // The preprocessor is installed by the main app (AppDelegate)
+        // and runs deduplication before downstream caches refresh.
         remoteChangeObserver = NotificationCenter.default.addObserver(
             forName: .NSPersistentStoreRemoteChange,
             object: persistentContainer.persistentStoreCoordinator,
             queue: .main
         ) { [weak self] _ in
             debugLog("☁️ Remote change detected")
-            self?.remoteChangePublisher.send()
+            if let preprocessor = self?.remoteChangePreprocessor {
+                Task { @MainActor in
+                    await preprocessor()
+                    self?.remoteChangePublisher.send()
+                }
+            } else {
+                self?.remoteChangePublisher.send()
+            }
         }
     }
 
