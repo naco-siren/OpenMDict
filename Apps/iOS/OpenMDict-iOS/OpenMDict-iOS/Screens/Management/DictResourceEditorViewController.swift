@@ -313,6 +313,19 @@ class DictResourceEditorViewController: UIViewController {
             resources = DictionaryService.shared.resources(for: dictId)
             cancellables.removeAll()
             applySnapshot()
+
+            // Subscribe to resource changes (e.g. remote CloudKit update adds MDD)
+            DictionaryService.shared.$resourceRevision
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard let self,
+                          case .editing(let currentDictId) = self.mode else { return }
+                    self.resources = DictionaryService.shared.resources(for: currentDictId)
+                    self.applySnapshot(animated: true)
+                    debugLog("📋 ResourceEditor: refreshed after resourceRevision change")
+                }
+                .store(in: &cancellables)
             
         case .importing:
             emptyStateView.isHidden = true
@@ -371,7 +384,7 @@ class DictResourceEditorViewController: UIViewController {
     private func applyImportingSnapshot(animated: Bool = false) {
         let session = DictionaryService.shared.importSession
         
-        print("📋 applyImportingSnapshot: mdxPendingFile=\(session.mdxPendingFile?.fileName ?? "nil"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count)")
+        debugLog("📋 applyImportingSnapshot: mdxPendingFile=\(session.mdxPendingFile?.fileName ?? "nil"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count)")
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases)
@@ -539,9 +552,9 @@ class DictResourceEditorViewController: UIViewController {
             if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                let size = attrs[.size] as? Int64 {
                 fileSize = size
-                print("📋 addResource: fileSize=\(fileSize)")
+                debugLog("📋 addResource: fileSize=\(fileSize)")
             } else {
-                print("⚠️ addResource: failed to get file size for \(url.path)")
+                debugLog("⚠️ addResource: failed to get file size for \(url.path)")
             }
             
             // Add to session (PendingFile.init will capture bookmark while scope is active)
@@ -588,11 +601,11 @@ class DictResourceEditorViewController: UIViewController {
         // Check if this dictId corresponds to an already-imported dictionary
         if DictionaryService.shared.dict(id: dictId) != nil {
             // Imported dictionary - use editing mode
-            print("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> editing mode")
+            debugLog("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> editing mode")
             mode = .editing(dictId: dictId)
         } else {
             // Not imported yet - use importing mode (dictId = headerSHA256 from ImportSession)
-            print("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> importing mode")
+            debugLog("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> importing mode")
             mode = .importing(dictId: dictId)
         }
     }

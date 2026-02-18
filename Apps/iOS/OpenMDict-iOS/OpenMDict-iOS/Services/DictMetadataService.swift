@@ -29,6 +29,7 @@ struct DictMetadata {
     var cssCount: Int32
     var jsCount: Int32
     var fontsCount: Int32
+    var cloudSyncStatus: Int16
 }
 
 // MARK: - Service
@@ -221,7 +222,8 @@ extension DictionaryMetadataRecord {
             mddCount: mddCount,
             cssCount: cssCount,
             jsCount: jsCount,
-            fontsCount: fontsCount
+            fontsCount: fontsCount,
+            cloudSyncStatus: cloudSyncStatus
         )
     }
 }

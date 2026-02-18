@@ -125,6 +125,9 @@ nonisolated enum L10n {
         static var confirmSelection: String {
             NSLocalizedString("picker.confirmSelection", value: "Confirm Selection", comment: "Button to confirm selection (no count)")
         }
+        static var skipPresets: String {
+            NSLocalizedString("picker.skipPresets", value: "Skip", comment: "Button to skip preset dictionary selection")
+        }
     }
 
     // MARK: - Import Progress

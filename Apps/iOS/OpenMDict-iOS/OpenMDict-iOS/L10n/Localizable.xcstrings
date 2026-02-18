@@ -1,90 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "actionExtension.browseEntryTitle" : {
-      "comment" : "Action Extension: alert title asking user to open a dictionary entry link in the main app (%@ = target word)",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تصفّح \u201c%@\u201d في التطبيق؟"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u201e%@\u201c in der App nachschlagen?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Browse \u201c%@\u201d in the app?"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u00bfVer \u00ab%@\u00bb en la app?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consulter \u00ab\u00a0%@\u00a0\u00bb dans l\u2019app ?"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u201c%@\u201d \u0915\u094b \u0910\u092a \u092e\u0947\u0902 \u0916\u094b\u0932\u0947\u0902?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u201c%@\u201d\u3092\u30a2\u30d7\u30ea\u3067\u958b\u304d\u307e\u3059\u304b\uff1f"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u201c%@\u201d\uc744(\ub97c) \uc571\uc5d0\uc11c \uc5f4\uae4c\uc694?"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consultar \u201c%@\u201d no app?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u00ab%@\u00bb \u0432 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438?"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u041f\u0435\u0440\u0435\u0433\u043b\u044f\u043d\u0443\u0442\u0438 \u00ab%@\u00bb \u0443 \u0437\u0430\u0441\u0442\u043e\u0441\u0443\u043d\u043a\u0443?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u5728\u5e94\u7528\u4e2d\u67e5\u770b\u201c%@\u201d\uff1f"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u5728\u61c9\u7528\u4e2d\u700f\u89bd\u300c%@\u300d\uff1f"
-          }
-        }
-      }
-    },
     "actionExtension.browseEntryMessage" : {
       "comment" : "Action Extension: alert message for entry link (%@ = dictionary display name)",
       "extractionState" : "manual",
@@ -92,79 +8,163 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649 OpenMDict \u0648\u0627\u0639\u0631\u0636 \u0627\u0644\u062a\u0639\u0631\u064a\u0641 \u0627\u0644\u0643\u0627\u0645\u0644 \u0641\u064a \u201c%@\u201d."
+            "value" : "انتقل إلى OpenMDict واعرض التعريف الكامل في “%@”."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u00d6ffne OpenMDict und zeige die vollst\u00e4ndige Definition in \u201e%@\u201c."
+            "value" : "Öffne OpenMDict und zeige die vollständige Definition in „%@“."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Go to OpenMDict and view its full definition in \u201c%@\u201d."
+            "value" : "Go to OpenMDict and view its full definition in “%@”."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ir a OpenMDict y ver la definici\u00f3n completa en \u00ab%@\u00bb."
+            "value" : "Ir a OpenMDict y ver la definición completa en «%@»."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrir OpenMDict et consulter la d\u00e9finition compl\u00e8te dans \u00ab\u00a0%@\u00a0\u00bb."
+            "value" : "Ouvrir OpenMDict et consulter la définition complète dans « %@ »."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OpenMDict \u092e\u0947\u0902 \u091c\u093e\u0915\u0930 \u201c%@\u201d \u092e\u0947\u0902 \u092a\u0942\u0930\u0940 \u092a\u0930\u093f\u092d\u093e\u0937\u093e \u0926\u0947\u0916\u0947\u0902\u0964"
+            "value" : "OpenMDict में जाकर “%@” में पूरी परिभाषा देखें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OpenMDict \u3092\u958b\u3044\u3066\u201c%@\u201d\u3067\u5b8c\u5168\u306a\u5b9a\u7fa9\u3092\u8868\u793a\u3057\u307e\u3059\u3002"
+            "value" : "OpenMDict を開いて“%@”で完全な定義を表示します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OpenMDict\ub85c \uc774\ub3d9\ud558\uc5ec \u201c%@\u201d\uc5d0\uc11c \uc804\uccb4 \uc815\uc758\ub97c \ud655\uc778\ud569\ub2c8\ub2e4."
+            "value" : "OpenMDict로 이동하여 “%@”에서 전체 정의를 확인합니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ir para o OpenMDict e ver a defini\u00e7\u00e3o completa em \u201c%@\u201d."
+            "value" : "Ir para o OpenMDict e ver a definição completa em “%@”."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 OpenMDict \u0438 \u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043f\u043e\u043b\u043d\u043e\u0435 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0432 \u00ab%@\u00bb."
+            "value" : "Перейти в OpenMDict и посмотреть полное определение в «%@»."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0434\u043e OpenMDict \u0456 \u043f\u0435\u0440\u0435\u0433\u043b\u044f\u043d\u0443\u0442\u0438 \u043f\u043e\u0432\u043d\u0435 \u0432\u0438\u0437\u043d\u0430\u0447\u0435\u043d\u043d\u044f \u0443 \u00ab%@\u00bb."
+            "value" : "Перейти до OpenMDict і переглянути повне визначення у «%@»."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u524d\u5f80 OpenMDict\uff0c\u5728\u201c%@\u201d\u4e2d\u67e5\u770b\u5b8c\u6574\u91ca\u4e49\u3002"
+            "value" : "前往 OpenMDict，在“%@”中查看完整释义。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u524d\u5f80 OpenMDict\uff0c\u5728\u300c%@\u300d\u4e2d\u67e5\u770b\u5b8c\u6574\u91cb\u7fa9\u3002"
+            "value" : "前往 OpenMDict，在「%@」中查看完整釋義。"
+          }
+        }
+      }
+    },
+    "actionExtension.browseEntryTitle" : {
+      "comment" : "Action Extension: alert title asking user to open a dictionary entry link in the main app (%@ = target word)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصفّح “%@” في التطبيق؟"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ in der App nachschlagen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse “%@” in the app?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Ver «%@» en la app?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consulter « %@ » dans l’app ?"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” को ऐप में खोलें?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”をアプリで開きますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”을(를) 앱에서 열까요?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultar “%@” no app?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть «%@» в приложении?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переглянути «%@» у застосунку?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在应用中查看“%@”？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在應用中瀏覽「%@」？"
           }
         }
       }
@@ -524,7 +524,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u0645\u062a\u0627\u0628\u0639\u0629"
+            "value" : "متابعة"
           }
         },
         "de" : {
@@ -554,19 +554,19 @@
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u0906\u0917\u0947 \u092c\u0922\u093c\u0947\u0902"
+            "value" : "आगे बढ़ें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u7d9a\u884c"
+            "value" : "続行"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\uacc4\uc18d"
+            "value" : "계속"
           }
         },
         "pt-BR" : {
@@ -578,25 +578,25 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c"
+            "value" : "Продолжить"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u041f\u0440\u043e\u0434\u043e\u0432\u0436\u0438\u0442\u0438"
+            "value" : "Продовжити"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u7ee7\u7eed"
+            "value" : "继续"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u7e7c\u7e8c"
+            "value" : "繼續"
           }
         }
       }
@@ -11857,6 +11857,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全選"
+          }
+        }
+      }
+    },
+    "picker.skipPresets" : {
+      "comment" : "Button to skip preset dictionary selection",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Skip"
           }
         }
       }

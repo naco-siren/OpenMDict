@@ -17,7 +17,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
     // MARK: - Mode
 
     enum Mode {
-        /// First install: bundle dicts are locked (pre-checked, cannot uncheck)
+        /// First install: tier 0 dicts are pre-selected (but user can uncheck)
         case firstInstall
         /// Sidebar management: everything optional, imported dicts badged
         case management
@@ -197,18 +197,12 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         for group in languageGroups {
             for preset in group.presets {
-                // Rule 1: First install — always select bundle assets (locked)
-                if mode == .firstInstall && preset.isBundleAsset {
-                    selectedIds.insert(preset.id)
-                    continue
-                }
-
-                // Rule 2: Management — skip already-imported
+                // Rule 1: Management — skip already-imported
                 if mode == .management && service.isImported(preset.id) {
                     continue
                 }
 
-                // Rule 3: Pre-select tier 0 only if BOTH src AND at least one dest
+                // Rule 2: Pre-select tier 0 only if BOTH src AND at least one dest
                 // are in the user's preferred languages.
                 // This ensures we only recommend dictionaries the user can fully use:
                 //   - They speak the headword language (src)
@@ -217,6 +211,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
                 //   EN-only user → WordNet (EN→EN), Moby (EN→EN). NOT EN→DE (user has no DE).
                 //   EN+ZH user  → WordNet, Moby, CEDICT (ZH→EN). NOT EN→DE.
                 //   EN+DE user  → WordNet, Moby, FreeDict DE→EN, FreeDict EN→DE.
+                //
+                // Bundle assets are also pre-selected via this rule (no longer locked).
                 let destLangs = Set(preset.direction.dest)
                 if preset.tier == 0
                     && preferredLangs.contains(preset.direction.src)
@@ -340,7 +336,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let service = PresetDictionaryService.shared
         let isSelected = selectedIds.contains(preset.id)
         let isImported = service.isImported(preset.id)
-        let isLocked = (mode == .firstInstall && preset.isBundleAsset)
 
         // Content configuration
         var content = UIListContentConfiguration.subtitleCell()
@@ -376,16 +371,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
                 customView: checkImage, placement: .trailing(displayed: .always)
             )))
 
-        } else if isLocked {
-            // Checkmark icon (leading) — pre-checked and cannot be unchecked
-            let lockImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-            lockImage.tintColor = .systemGray
-            accessories.append(.customView(configuration: .init(
-                customView: lockImage, placement: .leading(displayed: .always)
-            )))
-
         } else {
-            // Normal checkbox (leading)
+            // Normal checkbox (leading) — all items are toggleable
             let imageName = isSelected ? "checkmark.circle.fill" : "circle"
             let imageView = UIImageView(image: UIImage(systemName: imageName))
             imageView.tintColor = isSelected ? .systemBlue : .tertiaryLabel
@@ -416,9 +403,17 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private func updateContinueButton() {
         let count = selectedIds.count
-        let title = count > 0 ? L10n.confirmSelection(count) : L10n.Picker.confirmSelection
-        continueButton.configuration?.title = title
-        continueButton.isEnabled = count > 0
+        if count > 0 {
+            continueButton.configuration?.title = L10n.confirmSelection(count)
+            continueButton.configuration?.baseBackgroundColor = nil  // system default (filled blue)
+        } else if mode == .firstInstall {
+            continueButton.configuration?.title = L10n.Picker.skipPresets
+            continueButton.configuration?.baseBackgroundColor = .systemGray4
+        } else {
+            continueButton.configuration?.title = L10n.Picker.confirmSelection
+            continueButton.configuration?.baseBackgroundColor = nil
+        }
+        continueButton.isEnabled = true
     }
 
     // MARK: - Actions
@@ -458,7 +453,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
         var ids = Set<String>()
         for group in languageGroups {
             for preset in group.presets {
-                if mode == .firstInstall && preset.isBundleAsset { continue }
                 if mode == .management && service.isImported(preset.id) { continue }
                 ids.insert(preset.id)
             }
@@ -502,9 +496,6 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
               case .dictionary(let presetId) = item,
               let preset = findPreset(id: presetId) else { return }
 
-        // Locked items (bundle on first install) cannot be toggled
-        if mode == .firstInstall && preset.isBundleAsset { return }
-
         // Already-imported items cannot be toggled in management mode
         if mode == .management && PresetDictionaryService.shared.isImported(presetId) { return }
 
@@ -528,9 +519,6 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath),
               case .dictionary(let presetId) = item,
               let preset = findPreset(id: presetId) else { return false }
-
-        // Locked items should not highlight
-        if mode == .firstInstall && preset.isBundleAsset { return false }
 
         // Already-imported items should not highlight in management mode
         if mode == .management && PresetDictionaryService.shared.isImported(presetId) { return false }

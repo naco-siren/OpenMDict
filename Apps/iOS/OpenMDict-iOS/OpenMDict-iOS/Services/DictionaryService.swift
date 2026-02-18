@@ -68,6 +68,10 @@ final class DictionaryService: ObservableObject {
 
     /// All groups (including default + user-defined)
     @Published private(set) var groups: [MDicts] = []
+
+    /// Bumped whenever dictionary resources (MDD/CSS/JS) change.
+    /// DictResourceEditorVC subscribes to this to refresh its UI.
+    @Published private(set) var resourceRevision: UInt = 0
     
     /// Cancellable for CloudKit remote change subscription (groups).
     private var remoteChangeCancellable: AnyCancellable?
@@ -128,14 +132,37 @@ final class DictionaryService: ObservableObject {
             // Re-index Spotlight now that metadata (entry count, file size, author) is available
             await loadAllDictionaries()
             SpotlightIndexingService.shared.indexAllDictionaries()
+
+            // 4. Catch-up upload: any locally-present dictionaries that were never
+            // uploaded to CloudKit (e.g. presets imported before file-sync was added).
+            await uploadPendingDictionaries()
         }
 
-        // 4. CloudKit remote change — download missing dicts, then reload groups
+        // 5. CloudKit remote change — download missing dicts, then reload groups
         remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { [weak self] in
                 self?.handleRemoteChange()
             }
+    }
+
+    /// Upload dictionaries whose `cloudSyncStatus` is still `.pending`.
+    /// This covers presets that were imported before file-sync was added,
+    /// or any dict whose upload was interrupted.  Runs once at launch.
+    private func uploadPendingDictionaries() async {
+        let allMetadata = DictMetadataService.shared.loadAll()
+        let pending = allMetadata.filter {
+            CloudSyncStatus(rawValue: $0.cloudSyncStatus) == .pending
+        }
+
+        guard !pending.isEmpty else { return }
+        debugLog("☁️ Catch-up upload: \(pending.count) pending dictionaries")
+
+        for metadata in pending {
+            let dictDir = storage.dictionaryDirectoryURL(id: metadata.dictId)
+            guard FileManager.default.fileExists(atPath: dictDir.path) else { continue }
+            await DictionaryFileSyncService.shared.uploadDictionary(dictId: metadata.dictId)
+        }
     }
 
     /// Handle a CloudKit remote change.
@@ -182,6 +209,20 @@ final class DictionaryService: ObservableObject {
                     // Files exist but MDict not loaded (race on launch)
                     await refreshAfterImport(dictId)
                 } else {
+                    // Check cloudSyncStatus before attempting download.
+                    // If the originating device hasn't finished uploading yet
+                    // (status == .pending), the CKRecord doesn't exist —
+                    // skip to avoid pointless "Record not found" errors.
+                    let metadata = allMetadata.first { $0.dictId == dictId }
+                    let syncStatus = metadata.flatMap {
+                        CloudSyncStatus(rawValue: $0.cloudSyncStatus)
+                    } ?? .pending
+
+                    guard syncStatus == .synced else {
+                        debugLog("☁️ Skipping download for \(dictId.prefix(16)): cloudSyncStatus=\(syncStatus)")
+                        continue
+                    }
+
                     // Files not on device → download from CloudKit
                     let downloaded = await DictionaryFileSyncService.shared
                         .downloadDictionary(dictId: dictId)
@@ -191,7 +232,50 @@ final class DictionaryService: ObservableObject {
                 }
             }
 
-            // --- 3. Reload groups ---
+            // --- 3. Detect remote updates ---
+            // Already-loaded dictionaries whose files changed on another device
+            // (e.g. MDD added/removed).  Compare local manifest against synced metadata.
+            let existingIds = loadedIds.intersection(metadataIds)
+            for dictId in existingIds {
+                guard let metadata = allMetadata.first(where: { $0.dictId == dictId }) else { continue }
+                let syncStatus = CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+                guard syncStatus == .synced else { continue }
+
+                // Compare local resource counts against metadata from CoreData
+                let localManifest = self.storage.loadDictManifest(id: dictId)
+                let localMddCount = Int32(localManifest?.mdd.count ?? 0)
+                let localCssCount = Int32(localManifest?.css.count ?? 0)
+                let localJsCount  = Int32(localManifest?.js.count ?? 0)
+
+                let changed = localMddCount != metadata.mddCount
+                    || localCssCount != metadata.cssCount
+                    || localJsCount  != metadata.jsCount
+
+                guard changed else { continue }
+
+                debugLog("☁️ Remote update detected for \(dictId.prefix(16)): "
+                    + "mdd \(localMddCount)→\(metadata.mddCount), "
+                    + "css \(localCssCount)→\(metadata.cssCount), "
+                    + "js \(localJsCount)→\(metadata.jsCount)")
+
+                // Re-download the full archive and overwrite local files
+                let dictDir = self.storage.dictionaryDirectoryURL(id: dictId)
+                try? FileManager.default.removeItem(at: dictDir)
+                self.storage.invalidateDictManifestCache(id: dictId)
+
+                let downloaded = await DictionaryFileSyncService.shared
+                    .downloadDictionary(dictId: dictId)
+
+                if downloaded {
+                    // Reload MDD/CSS/JS resources from the fresh files
+                    self.reloadMDDResources(for: dictId)
+                    debugLog("☁️ Remote update applied for \(dictId.prefix(16))")
+                } else {
+                    debugLog("❌ Remote update download failed for \(dictId.prefix(16))")
+                }
+            }
+
+            // --- 4. Reload groups ---
             reloadGroupsFromCoreData()
         }
     }
@@ -373,7 +457,7 @@ final class DictionaryService: ObservableObject {
             headerSHA256: headerSHA256
         )
 
-        // 2. Load into memory and update groups
+        // 2. Load into memory and update groups (also triggers CloudKit upload)
         await refreshAfterImport(dictId)
 
         // 3. Index for Spotlight search
@@ -381,12 +465,7 @@ final class DictionaryService: ObservableObject {
             SpotlightIndexingService.shared.indexDictionary(newDict)
         }
 
-        // 4. Upload to CloudKit in the background (fire-and-forget)
-        Task {
-            await DictionaryFileSyncService.shared.uploadDictionary(dictId: dictId)
-        }
-
-        // 5. Reset import session
+        // 4. Reset import session
         importSession.reset()
 
         return dictId
@@ -440,20 +519,20 @@ final class DictionaryService: ObservableObject {
     /// Called after importing a new dictionary (either from ImportSession or PresetDictionaryService).
     /// - Parameter id: The new dictionary's ID (SHA256 hash)
     func refreshAfterImport(_ id: String) async {
-        print("🔄 refreshAfterImport: \(id.prefix(16))...")
+        debugLog("🔄 refreshAfterImport: \(id.prefix(16))...")
 
         // Safety check: don't add if already exists
         if allDictionaries.contains(where: { $0.id == id }) {
-            print("⚠️ Dictionary already in allDictionaries, skipping")
+            debugLog("⚠️ Dictionary already in allDictionaries, skipping")
             return
         }
-        
+
         // 1. Create MDict instance with MDD paths from dict manifest
         guard let mdxPath = storage.mdxURL(id: id)?.path else {
-            print("⚠️ MDX file not found! skipping")
+            debugLog("⚠️ MDX file not found! skipping")
             return
         }
-        
+
         // Build MDD paths from dict manifest (same as loadImportedDictionaries)
         var mddPaths: [String] = []
         if let dictManifest = storage.loadDictManifest(id: id) {
@@ -462,32 +541,32 @@ final class DictionaryService: ObservableObject {
                 mddDir.appendingPathComponent(mddEntry.fileName).path
             }
             if !mddPaths.isEmpty {
-                print("📦 refreshAfterImport: found \(mddPaths.count) MDD files")
+                debugLog("📦 refreshAfterImport: found \(mddPaths.count) MDD files")
             }
         }
-        
+
         let newDict = MDict(path: mdxPath, id: id, mddPaths: mddPaths)
-        
+
         // Inject user display name from CoreData metadata
         if let metadata = DictMetadataService.shared.find(dictId: id) {
             newDict.userDisplayName = metadata.displayName
         }
-        
+
         // 2. Add to dictionary list
         allDictionaries.append(newDict)
-        print("📚 allDictionaries count: \(allDictionaries.count)")
-        
+        debugLog("📚 allDictionaries count: \(allDictionaries.count)")
+
         // 3. Add to default group
         if let defaultGroup = defaultGroup {
             // Check before append to prevent duplicates
             if !defaultGroup.dictionaryIds.contains(id) {
                 defaultGroup.dictionaryIds.append(id)
-                print("✅ Added to dictionaryIds, count: \(defaultGroup.dictionaryIds.count)")
+                debugLog("✅ Added to dictionaryIds, count: \(defaultGroup.dictionaryIds.count)")
             } else {
-                print("⚠️ ID already in dictionaryIds, skipping")
+                debugLog("⚠️ ID already in dictionaryIds, skipping")
             }
             defaultGroup.populate(from: allDictionaries)
-            print("📋 defaultGroup.items count: \(defaultGroup.items.count)")
+            debugLog("📋 defaultGroup.items count: \(defaultGroup.items.count)")
         }
         
         // 4. Persist updated default order
@@ -495,18 +574,31 @@ final class DictionaryService: ObservableObject {
         
         // 5. Load metadata + full reader
         await newDict.loadMetadata()
-        
+
         do {
             try await newDict.load()
             // Debug: show raw title vs resolved title
             if let meta = newDict.metadata {
-                print("✅ Loaded imported dictionary:")
-                print("  id: \(id.prefix(16))...")
-                print("  loggingTitle: \(newDict.loggingTitle)")
-                print("  description prefix: \(meta.description.prefix(100))...")
+                debugLog("✅ Loaded imported dictionary:")
+                debugLog("  id: \(id.prefix(16))...")
+                debugLog("  loggingTitle: \(newDict.loggingTitle)")
+                debugLog("  description prefix: \(meta.description.prefix(100))...")
             }
         } catch {
-            print("❌ Failed to load imported dictionary \(id): \(error)")
+            debugLog("❌ Failed to load imported dictionary \(id): \(error)")
+        }
+
+        // 6. Upload to CloudKit if not already synced (fire-and-forget).
+        //    Covers both user-imported and preset dictionaries.
+        //    Skipped when the dict was just downloaded from CloudKit
+        //    (cloudSyncStatus already set to .synced before calling this method).
+        if let metadata = DictMetadataService.shared.find(dictId: id) {
+            let status = CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+            if status == .pending {
+                Task {
+                    await DictionaryFileSyncService.shared.uploadDictionary(dictId: id)
+                }
+            }
         }
     }
     
@@ -738,11 +830,13 @@ final class DictionaryService: ObservableObject {
         reloadMDDResources(for: dictId)
     }
     
-    /// Reload MDD resources for a dictionary after add/remove
+    /// Reload MDD resources for a dictionary after add/remove.
+    /// Also bumps `resourceRevision` so DictResourceEditorVC can refresh.
     private func reloadMDDResources(for dictId: String) {
         guard let dict = dict(id: dictId) else { return }
         let mddPaths = storage.listMDDFiles(for: dictId).map { $0.path }
         dict.reloadResources(mddPaths: mddPaths)
+        resourceRevision += 1
     }
 
     /// Add a CSS file to a dictionary

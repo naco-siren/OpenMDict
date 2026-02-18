@@ -635,7 +635,8 @@ final class DictionaryStorageService {
             mddCount: Int32(mddFiles.count),
             cssCount: Int32(cssFiles.count),
             jsCount: Int32(jsFiles.count),
-            fontsCount: Int32(fontFiles.count)
+            fontsCount: Int32(fontFiles.count),
+            cloudSyncStatus: CloudSyncStatus.pending.rawValue
         )
         addDictionaryMetadata(metadata)
         
