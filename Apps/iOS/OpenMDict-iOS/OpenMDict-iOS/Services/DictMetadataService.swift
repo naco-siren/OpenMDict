@@ -159,6 +159,9 @@ final class DictMetadataService {
 
     /// Sync resource counts from a per-dict manifest.
     /// Called after resource CRUD operations (add/remove MDD, CSS, JS).
+    ///
+    /// Also triggers a background re-upload of the dictionary archive
+    /// to CloudKit, since the file contents have changed.
     func syncResourceCounts(dictId: String, mddCount: Int, cssCount: Int,
                             jsCount: Int, totalSizeKB: Int64) {
         let ctx = stack.viewContext
@@ -168,7 +171,14 @@ final class DictMetadataService {
         record.jsCount = Int32(jsCount)
         record.totalSizeKB = totalSizeKB
         record.updatedAt = Date()
+        // Reset sync status so the archive is re-uploaded with new files
+        record.cloudSyncStatus = CloudSyncStatus.pending.rawValue
         save(ctx)
+
+        // Re-upload dictionary archive (fire-and-forget)
+        Task {
+            await DictionaryFileSyncService.shared.uploadDictionary(dictId: dictId)
+        }
     }
 
     // MARK: - Private Helpers

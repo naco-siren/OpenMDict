@@ -140,29 +140,46 @@ final class DictionaryService: ObservableObject {
 
     /// Handle a CloudKit remote change.
     ///
-    /// Order matters: **dictionaries before groups**.  Group entries
-    /// reference dictIds — if the dictionary files haven't been
-    /// downloaded yet, the dictId will be filtered out of the group.
-    /// So we:
-    ///   1. Check for new metadata with no local files → download
-    ///   2. Load the newly downloaded dictionaries into memory
-    ///   3. Reload groups from CoreData
+    /// Three concerns, in order:
+    ///   1. **Remote deletes** — metadata disappeared → clean up local
+    ///      files + unload MDict instance.
+    ///   2. **Remote adds** — new metadata with no local files → download
+    ///      from CloudKit + load into memory.
+    ///   3. **Groups** — reload group membership from CoreData.
+    ///
+    /// Dictionaries must be resolved *before* groups, because group
+    /// entries reference dictIds.
     private func handleRemoteChange() {
         Task {
-            // 1. Find metadata records whose dictionary files aren't loaded
             let allMetadata = DictMetadataService.shared.loadAll()
-            let localIds = Set(allDictionaries.map { $0.id })
-            let missingIds = allMetadata
-                .map { $0.dictId }
-                .filter { !localIds.contains($0) }
+            let metadataIds = Set(allMetadata.map { $0.dictId })
+            let loadedIds = Set(allDictionaries.map { $0.id })
 
-            // 2. Download missing dictionary files
+            // --- 1. Detect remote deletes ---
+            // Dictionaries loaded locally but whose metadata was deleted
+            // on another device.  Clean up files + unload.
+            let deletedIds = loadedIds.subtracting(metadataIds)
+            for dictId in deletedIds {
+                debugLog("☁️ Remote delete detected for \(dictId.prefix(16))")
+                // Remove local files
+                let dictDir = storage.dictionaryDirectoryURL(id: dictId)
+                try? FileManager.default.removeItem(at: dictDir)
+                storage.invalidateDictManifestCache(id: dictId)
+                // Unload from memory + remove from groups
+                refreshAfterDelete(dictId)
+                // De-index from Spotlight
+                SpotlightIndexingService.shared.deindexDictionary(id: dictId)
+            }
+
+            // --- 2. Detect remote adds ---
+            // Metadata records whose dictionary files aren't loaded yet.
+            let missingIds = metadataIds.subtracting(loadedIds)
             for dictId in missingIds {
                 let dictDir = storage.dictionaryDirectoryURL(id: dictId)
                 let hasLocalFiles = FileManager.default.fileExists(atPath: dictDir.path)
 
                 if hasLocalFiles {
-                    // Files exist but MDict not loaded (e.g. race condition on launch)
+                    // Files exist but MDict not loaded (race on launch)
                     await refreshAfterImport(dictId)
                 } else {
                     // Files not on device → download from CloudKit
@@ -174,7 +191,7 @@ final class DictionaryService: ObservableObject {
                 }
             }
 
-            // 3. Now safely reload groups (all dictIds should be resolvable)
+            // --- 3. Reload groups ---
             reloadGroupsFromCoreData()
         }
     }
