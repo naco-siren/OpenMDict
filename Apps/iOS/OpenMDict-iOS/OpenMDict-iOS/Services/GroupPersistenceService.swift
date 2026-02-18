@@ -15,6 +15,10 @@
 //  - On launch, DictionaryService calls `loadGroups()` to populate MDicts from CoreData.
 //  - On every group mutation, DictionaryService calls the appropriate save method.
 //
+//  Save strategy: diff-based update (not delete-all-then-insert).
+//  Only changed records are inserted/updated/deleted, which is safe for
+//  CloudKit sync where every delete propagates to all devices.
+//
 
 import CoreData
 import Foundation
@@ -59,7 +63,7 @@ final class GroupPersistenceService {
         do {
             groupRecords = try ctx.fetch(groupRequest)
         } catch {
-            print("❌ GroupPersistenceService: failed to fetch groups: \(error)")
+            debugLog("❌ GroupPersistenceService: failed to fetch groups: \(error)")
             return []
         }
 
@@ -76,7 +80,7 @@ final class GroupPersistenceService {
         do {
             entryRecords = try ctx.fetch(entryRequest)
         } catch {
-            print("❌ GroupPersistenceService: failed to fetch entries: \(error)")
+            debugLog("❌ GroupPersistenceService: failed to fetch entries: \(error)")
             return []
         }
 
@@ -102,47 +106,89 @@ final class GroupPersistenceService {
         }
     }
 
-    // MARK: - Full Save (replace all)
+    // MARK: - Full Save (diff-based)
 
-    /// Replace all group + entry records with the given data.
+    /// Persist groups by diffing against existing CoreData records.
+    /// Only inserts, updates, or deletes the records that actually changed.
     /// Called by DictionaryService.persistGroups().
-    ///
-    /// Strategy: delete-all then insert.
-    /// This is acceptable because:
-    /// - Group count is tiny (< 20 typical)
-    /// - Mutations are infrequent (user-initiated only)
-    /// - Simpler than diffing, no stale orphan risk
     func saveAllGroups(_ groups: [SavedGroup]) {
         let ctx = stack.viewContext
 
-        // 1. Delete all existing records
-        deleteAllRecords(entity: "DictionaryGroupRecord", in: ctx)
-        deleteAllRecords(entity: "GroupEntryRecord", in: ctx)
+        // 1. Fetch all existing group records → index by groupId
+        let existingGroups: [String: DictionaryGroupRecord]
+        do {
+            let request = DictionaryGroupRecord.fetchRequest()
+            let records = try ctx.fetch(request)
+            existingGroups = Dictionary(uniqueKeysWithValues: records.map { ($0.groupId, $0) })
+        } catch {
+            debugLog("❌ GroupPersistenceService: failed to fetch existing groups: \(error)")
+            return
+        }
 
-        // 2. Insert fresh records
-        for (index, group) in groups.enumerated() {
-            let record = DictionaryGroupRecord(context: ctx)
-            record.groupId = group.groupId
-            record.name = group.name
-            record.isDefault = group.isDefault
-            record.sortOrder = Int32(index)
-            record.createdAt = group.createdAt
-            record.modifiedAt = group.modifiedAt
+        // 2. Fetch all existing entry records → index by groupId
+        let existingEntries: [String: [GroupEntryRecord]]
+        do {
+            let request = GroupEntryRecord.fetchRequest()
+            let records = try ctx.fetch(request)
+            var index: [String: [GroupEntryRecord]] = [:]
+            for record in records {
+                index[record.groupId, default: []].append(record)
+            }
+            existingEntries = index
+        } catch {
+            debugLog("❌ GroupPersistenceService: failed to fetch existing entries: \(error)")
+            return
+        }
 
-            for (dictIndex, dictId) in group.dictionaryIds.enumerated() {
-                let entry = GroupEntryRecord(context: ctx)
-                entry.groupId = group.groupId
-                entry.dictId = dictId
-                entry.sortOrder = Int32(dictIndex)
+        // 3. Compute set differences
+        let incomingIds = Set(groups.map { $0.groupId })
+        let existingIds = Set(existingGroups.keys)
+
+        // 4. Delete groups that no longer exist
+        for groupId in existingIds.subtracting(incomingIds) {
+            if let groupRecord = existingGroups[groupId] {
+                ctx.delete(groupRecord)
+            }
+            for entry in existingEntries[groupId] ?? [] {
+                ctx.delete(entry)
             }
         }
 
-        // 3. Save
+        // 5. Update existing or insert new groups + diff entries
+        for (index, group) in groups.enumerated() {
+            if let existing = existingGroups[group.groupId] {
+                // UPDATE: only touch changed fields
+                existing.name = group.name
+                existing.isDefault = group.isDefault
+                existing.sortOrder = Int32(index)
+                existing.modifiedAt = group.modifiedAt
+            } else {
+                // INSERT: new group
+                let record = DictionaryGroupRecord(context: ctx)
+                record.groupId = group.groupId
+                record.name = group.name
+                record.isDefault = group.isDefault
+                record.sortOrder = Int32(index)
+                record.createdAt = group.createdAt
+                record.modifiedAt = group.modifiedAt
+            }
+
+            // Diff entries for this group
+            diffEntries(
+                ctx: ctx,
+                groupId: group.groupId,
+                incoming: group.dictionaryIds,
+                existing: existingEntries[group.groupId] ?? []
+            )
+        }
+
+        // 6. Save
+        guard ctx.hasChanges else { return }
         do {
             try ctx.save()
-            print("📂 GroupPersistenceService: saved \(groups.count) groups to CoreData")
+            debugLog("📂 GroupPersistenceService: saved \(groups.count) groups to CoreData")
         } catch {
-            print("❌ GroupPersistenceService: save failed: \(error)")
+            debugLog("❌ GroupPersistenceService: save failed: \(error)")
         }
     }
 
@@ -160,22 +206,34 @@ final class GroupPersistenceService {
 
     // MARK: - Private Helpers
 
-    private func deleteAllRecords(entity: String, in ctx: NSManagedObjectContext) {
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entity)
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        deleteRequest.resultType = .resultTypeObjectIDs
+    /// Reconcile entry records for a single group using diff.
+    /// Deletes entries no longer in the group, updates sortOrder for
+    /// existing entries, and inserts new entries.
+    private func diffEntries(
+        ctx: NSManagedObjectContext,
+        groupId: String,
+        incoming: [String],
+        existing: [GroupEntryRecord]
+    ) {
+        // Index existing entries by dictId
+        let existingByDictId = Dictionary(uniqueKeysWithValues: existing.map { ($0.dictId, $0) })
+        let incomingSet = Set(incoming)
 
-        do {
-            let result = try ctx.execute(deleteRequest) as? NSBatchDeleteResult
-            if let objectIDs = result?.result as? [NSManagedObjectID] {
-                let changes = [NSDeletedObjectsKey: objectIDs]
-                NSManagedObjectContext.mergeChanges(
-                    fromRemoteContextSave: changes,
-                    into: [ctx]
-                )
+        // Delete entries no longer in this group
+        for entry in existing where !incomingSet.contains(entry.dictId) {
+            ctx.delete(entry)
+        }
+
+        // Update sortOrder or insert new entries
+        for (index, dictId) in incoming.enumerated() {
+            if let entry = existingByDictId[dictId] {
+                entry.sortOrder = Int32(index)
+            } else {
+                let entry = GroupEntryRecord(context: ctx)
+                entry.groupId = groupId
+                entry.dictId = dictId
+                entry.sortOrder = Int32(index)
             }
-        } catch {
-            print("❌ GroupPersistenceService: batch delete \(entity) failed: \(error)")
         }
     }
 }
