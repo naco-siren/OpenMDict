@@ -130,12 +130,53 @@ final class DictionaryService: ObservableObject {
             SpotlightIndexingService.shared.indexAllDictionaries()
         }
 
-        // 4. CloudKit remote change — reload groups (debounced)
+        // 4. CloudKit remote change — download missing dicts, then reload groups
         remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { [weak self] in
-                self?.reloadGroupsFromCoreData()
+                self?.handleRemoteChange()
             }
+    }
+
+    /// Handle a CloudKit remote change.
+    ///
+    /// Order matters: **dictionaries before groups**.  Group entries
+    /// reference dictIds — if the dictionary files haven't been
+    /// downloaded yet, the dictId will be filtered out of the group.
+    /// So we:
+    ///   1. Check for new metadata with no local files → download
+    ///   2. Load the newly downloaded dictionaries into memory
+    ///   3. Reload groups from CoreData
+    private func handleRemoteChange() {
+        Task {
+            // 1. Find metadata records whose dictionary files aren't loaded
+            let allMetadata = DictMetadataService.shared.loadAll()
+            let localIds = Set(allDictionaries.map { $0.id })
+            let missingIds = allMetadata
+                .map { $0.dictId }
+                .filter { !localIds.contains($0) }
+
+            // 2. Download missing dictionary files
+            for dictId in missingIds {
+                let dictDir = storage.dictionaryDirectoryURL(id: dictId)
+                let hasLocalFiles = FileManager.default.fileExists(atPath: dictDir.path)
+
+                if hasLocalFiles {
+                    // Files exist but MDict not loaded (e.g. race condition on launch)
+                    await refreshAfterImport(dictId)
+                } else {
+                    // Files not on device → download from CloudKit
+                    let downloaded = await DictionaryFileSyncService.shared
+                        .downloadDictionary(dictId: dictId)
+                    if downloaded {
+                        await refreshAfterImport(dictId)
+                    }
+                }
+            }
+
+            // 3. Now safely reload groups (all dictIds should be resolvable)
+            reloadGroupsFromCoreData()
+        }
     }
 
     /// Reload groups from CoreData after a CloudKit remote change.
@@ -323,7 +364,12 @@ final class DictionaryService: ObservableObject {
             SpotlightIndexingService.shared.indexDictionary(newDict)
         }
 
-        // 4. Reset import session
+        // 4. Upload to CloudKit in the background (fire-and-forget)
+        Task {
+            await DictionaryFileSyncService.shared.uploadDictionary(dictId: dictId)
+        }
+
+        // 5. Reset import session
         importSession.reset()
 
         return dictId
@@ -340,6 +386,11 @@ final class DictionaryService: ObservableObject {
 
         // 3. Remove from Spotlight index
         SpotlightIndexingService.shared.deindexDictionary(id: dictId)
+
+        // 4. Remove CloudKit archive in the background (fire-and-forget)
+        Task {
+            await DictionaryFileSyncService.shared.deleteCloudArchive(dictId: dictId)
+        }
     }
     
     /// Update display name for a dictionary

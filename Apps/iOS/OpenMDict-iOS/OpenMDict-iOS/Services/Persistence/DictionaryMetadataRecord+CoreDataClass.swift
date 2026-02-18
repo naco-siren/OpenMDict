@@ -47,4 +47,14 @@ nonisolated public class DictionaryMetadataRecord: NSManagedObject {
 
     /// Number of custom font files (0-N).
     @NSManaged public var fontsCount: Int32
+
+    // MARK: - Cloud Sync Fields
+
+    /// CloudKit sync status for this dictionary's file archive.
+    /// 0 = pending, 1 = synced, 2 = tooLarge, 3 = error
+    @NSManaged public var cloudSyncStatus: Int16
+
+    /// CKRecord.ID.recordName for the manually-managed DictionaryArchive
+    /// CKRecord in CloudKit.  Nil if the archive hasn't been uploaded yet.
+    @NSManaged public var cloudArchiveRecordName: String?
 }
