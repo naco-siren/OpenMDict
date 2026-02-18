@@ -11,6 +11,7 @@
 //  - CoreData viewContext for synchronous reads; writes save immediately
 //
 
+import Combine
 import CoreData
 import Foundation
 
@@ -38,7 +39,22 @@ final class DictMetadataService {
 
     private var stack: CoreDataStack { CoreDataStack.shared }
 
-    private init() {}
+    /// Revision counter — incremented on remote changes so DictionaryService
+    /// can detect new/removed dictionaries synced from other devices.
+    @Published private(set) var revision: UInt = 0
+
+    /// Cancellable for CloudKit remote change subscription.
+    private var remoteChangeCancellable: AnyCancellable?
+
+    private init() {
+        // CloudKit remote change — bump revision so DictionaryService re-reads metadata
+        remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] in
+                debugLog("☁️ DictMetadataService: remote change → revision bump")
+                self?.revision += 1
+            }
+    }
 
     // MARK: - Read
 
@@ -52,7 +68,7 @@ final class DictMetadataService {
             let records = try ctx.fetch(request)
             return records.map { $0.toDTO() }
         } catch {
-            print("❌ DictMetadataService: failed to fetch all: \(error)")
+            debugLog("❌ DictMetadataService: failed to fetch all: \(error)")
             return []
         }
     }
@@ -72,7 +88,7 @@ final class DictMetadataService {
         do {
             return try ctx.fetch(request).first?.toDTO()
         } catch {
-            print("❌ DictMetadataService: failed to find by filename: \(error)")
+            debugLog("❌ DictMetadataService: failed to find by filename: \(error)")
             return nil
         }
     }
@@ -87,7 +103,7 @@ final class DictMetadataService {
             let count = try ctx.count(for: request)
             return count > 0
         } catch {
-            print("❌ DictMetadataService: count failed: \(error)")
+            debugLog("❌ DictMetadataService: count failed: \(error)")
             return false
         }
     }
@@ -105,7 +121,7 @@ final class DictMetadataService {
 
         // Guard against duplicates
         if fetchRecord(dictId: metadata.dictId) != nil {
-            print("⚠️ DictMetadataService: record already exists for \(metadata.dictId.prefix(16))...")
+            debugLog("⚠️ DictMetadataService: record already exists for \(metadata.dictId.prefix(16))...")
             return
         }
 
@@ -166,7 +182,7 @@ final class DictMetadataService {
         do {
             return try ctx.fetch(request).first
         } catch {
-            print("❌ DictMetadataService: fetch by dictId failed: \(error)")
+            debugLog("❌ DictMetadataService: fetch by dictId failed: \(error)")
             return nil
         }
     }
@@ -176,7 +192,7 @@ final class DictMetadataService {
         do {
             try ctx.save()
         } catch {
-            print("❌ DictMetadataService: save failed: \(error)")
+            debugLog("❌ DictMetadataService: save failed: \(error)")
         }
     }
 }

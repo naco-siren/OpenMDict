@@ -128,6 +128,9 @@ final class LookupHistoryService {
     /// Dirty count threshold: flush immediately when reached.
     private let flushThreshold = 10
 
+    /// Cancellable for CloudKit remote change subscription.
+    private var remoteChangeCancellable: AnyCancellable?
+
     // MARK: - Init
 
     private init() {
@@ -146,6 +149,13 @@ final class LookupHistoryService {
             self, selector: #selector(handleFlushTrigger),
             name: UIApplication.willTerminateNotification, object: nil
         )
+
+        // CloudKit remote change — reload cache from CoreData
+        remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.reloadCacheFromCoreData()
+            }
     }
 
     @objc private func handleFlushTrigger() {
@@ -156,6 +166,24 @@ final class LookupHistoryService {
 
     private func ensureCachePopulated() {
         guard !isCachePopulated else { return }
+        populateCacheFromCoreData()
+        isCachePopulated = true
+    }
+
+    /// Reload the entire cache from CoreData.
+    /// Called on CloudKit remote change to pick up records synced from other devices.
+    private func reloadCacheFromCoreData() {
+        guard isCachePopulated else { return }  // not yet populated → skip
+        // Flush pending local writes first so they aren't lost
+        flushDirtyEntriesToCoreData()
+        cache.removeAll()
+        populateCacheFromCoreData()
+        revision += 1
+        debugLog("☁️ LookupHistoryService: cache reloaded from CoreData")
+    }
+
+    /// Fetch all LookupRecords from CoreData into the in-memory cache.
+    private func populateCacheFromCoreData() {
         let ctx = stack.viewContext
         let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
         do {
@@ -180,9 +208,8 @@ final class LookupHistoryService {
                 )
             }
         } catch {
-            print("❌ LookupHistory cache population failed: \(error)")
+            debugLog("❌ LookupHistory cache population failed: \(error)")
         }
-        isCachePopulated = true
     }
 
     // MARK: - Record Lookup (Upsert — synchronous cache + deferred persist)
@@ -339,7 +366,7 @@ final class LookupHistoryService {
         do {
             try ctx.save()
         } catch {
-            print("❌ LookupHistory deleteRecord failed: \(error)")
+            debugLog("❌ LookupHistory deleteRecord failed: \(error)")
         }
 
         revision += 1

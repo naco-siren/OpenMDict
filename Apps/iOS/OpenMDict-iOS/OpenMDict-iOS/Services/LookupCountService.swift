@@ -52,6 +52,9 @@ final class LookupCountService {
     /// Dirty count threshold: flush immediately when reached.
     private let flushThreshold = 10
 
+    /// Cancellable for CloudKit remote change subscription.
+    private var remoteChangeCancellable: AnyCancellable?
+
     // MARK: - Init
 
     private init() {
@@ -67,6 +70,13 @@ final class LookupCountService {
             self, selector: #selector(handleFlushTrigger),
             name: UIApplication.willTerminateNotification, object: nil
         )
+
+        // CloudKit remote change — reload cache from CoreData
+        remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.reloadCacheFromCoreData()
+            }
     }
 
     @objc private func handleFlushTrigger() {
@@ -77,6 +87,40 @@ final class LookupCountService {
 
     private func ensureCachePopulated() {
         guard !isCachePopulated else { return }
+        populateCacheFromCoreData()
+        isCachePopulated = true
+    }
+
+    /// Reload the entire cache from CoreData.
+    /// Called on CloudKit remote change to pick up counters synced from other devices.
+    /// Uses max() merge: if local cache has a higher count, keep it.
+    private func reloadCacheFromCoreData() {
+        guard isCachePopulated else { return }
+        flushDirtyEntriesToCoreData()
+
+        let ctx = stack.viewContext
+        let request = LookupCountRecord.fetchRequest()
+        do {
+            let records = try ctx.fetch(request)
+            // Merge using max() — monotonically increasing counters
+            var merged: [String: Int64] = [:]
+            for record in records {
+                let existing = cache[record.contextKey] ?? 0
+                merged[record.contextKey] = max(existing, record.count)
+            }
+            // Also preserve any cache entries not yet in CoreData
+            for (key, count) in cache where merged[key] == nil {
+                merged[key] = count
+            }
+            cache = merged
+            revision += 1
+            debugLog("☁️ LookupCountService: cache reloaded (\(merged.count) entries)")
+        } catch {
+            debugLog("❌ LookupCountService: reload failed: \(error)")
+        }
+    }
+
+    private func populateCacheFromCoreData() {
         let ctx = stack.viewContext
         let request = LookupCountRecord.fetchRequest()
         do {
@@ -84,11 +128,10 @@ final class LookupCountService {
             for record in records {
                 cache[record.contextKey] = record.count
             }
-            print("📊 LookupCountService: loaded \(records.count) trophy counters from CoreData")
+            debugLog("📊 LookupCountService: loaded \(records.count) trophy counters from CoreData")
         } catch {
-            print("❌ LookupCountService: failed to populate cache: \(error)")
+            debugLog("❌ LookupCountService: failed to populate cache: \(error)")
         }
-        isCachePopulated = true
     }
 
     // MARK: - Public API
@@ -206,7 +249,7 @@ final class LookupCountService {
                 do {
                     try ctx.save()
                 } catch {
-                    print("❌ LookupCountService: background save failed: \(error)")
+                    debugLog("❌ LookupCountService: background save failed: \(error)")
                 }
             }
         }

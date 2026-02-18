@@ -73,7 +73,7 @@ final class GroupManagementSession: ObservableObject {
         let name = DictionaryService.shared.uniqueGroupName(from: L10n.GroupInfo.newGroup)
         pendingDictionaryIds = []
         mode = .creating(pendingName: name)
-        print("📂 GroupSession: beginCreate → pending name \"\(name)\"")
+        debugLog("📂 GroupSession: beginCreate → pending name \"\(name)\"")
     }
     
     /// Begin managing an existing (persisted) group.
@@ -82,7 +82,7 @@ final class GroupManagementSession: ObservableObject {
         let group = DictionaryService.shared.group(id: groupId)
         pendingDictionaryIds = group?.dictionaryIds ?? []
         mode = .managing(groupId: groupId)
-        print("📂 GroupSession: beginManaging → \(groupId.prefix(8))... (\(pendingDictionaryIds.count) dicts)")
+        debugLog("📂 GroupSession: beginManaging → \(groupId.prefix(8))... (\(pendingDictionaryIds.count) dicts)")
     }
     
     // MARK: - Reset
@@ -91,7 +91,7 @@ final class GroupManagementSession: ObservableObject {
     /// Safe to call multiple times (idempotent).
     func reset() {
         if mode != nil {
-            print("📂 GroupSession: reset")
+            debugLog("📂 GroupSession: reset")
         }
         pendingDictionaryIds = []
         mode = nil

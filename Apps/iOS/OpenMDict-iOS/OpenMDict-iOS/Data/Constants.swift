@@ -9,6 +9,9 @@ nonisolated enum AppIdentifiers {
     /// App Group identifier shared between main app and extensions.
     static let appGroupIdentifier = "group.io.github.naco-siren.openmdict"
 
+    /// CloudKit container identifier for iCloud sync.
+    static let cloudKitContainerID = "iCloud.io.github.naco-siren.OpenMDict-iOS"
+
     enum UTTypeValue {
         /// ⚠️ Must match Info.plist UTImportedTypeDeclarations
         static let mdx = "io.github.naco-siren.openmdict.mdx"

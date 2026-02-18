@@ -56,6 +56,19 @@ final class BookmarkService {
 
     private var stack: CoreDataStack { CoreDataStack.shared }
 
+    /// Cancellable for CloudKit remote change subscription.
+    private var remoteChangeCancellable: AnyCancellable?
+
+    private init() {
+        // CloudKit remote change — bump revision so UI re-fetches from CoreData
+        remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] in
+                debugLog("☁️ BookmarkService: remote change → revision bump")
+                self?.revision += 1
+            }
+    }
+
     // MARK: - Toggle (Insert or Delete)
 
     /// Toggle a bookmark. If a record with the same (word, dictId) exists,
@@ -91,7 +104,7 @@ final class BookmarkService {
                 return true
             }
         } catch {
-            print("❌ BookmarkService toggleBookmark failed: \(error)")
+            debugLog("❌ BookmarkService toggleBookmark failed: \(error)")
             return false
         }
     }
@@ -112,7 +125,7 @@ final class BookmarkService {
             let count = try ctx.count(for: request)
             return count > 0
         } catch {
-            print("❌ BookmarkService isBookmarked failed: \(error)")
+            debugLog("❌ BookmarkService isBookmarked failed: \(error)")
             return false
         }
     }
@@ -135,7 +148,7 @@ final class BookmarkService {
                 )
             }
         } catch {
-            print("❌ BookmarkService allBookmarks fetch failed: \(error)")
+            debugLog("❌ BookmarkService allBookmarks fetch failed: \(error)")
             return []
         }
     }
@@ -151,7 +164,7 @@ final class BookmarkService {
             try ctx.save()
             revision += 1
         } catch {
-            print("❌ BookmarkService deleteBookmark failed: \(error)")
+            debugLog("❌ BookmarkService deleteBookmark failed: \(error)")
         }
     }
 

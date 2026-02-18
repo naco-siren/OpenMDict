@@ -69,8 +69,11 @@ final class DictionaryService: ObservableObject {
     /// All groups (including default + user-defined)
     @Published private(set) var groups: [MDicts] = []
     
+    /// Cancellable for CloudKit remote change subscription (groups).
+    private var remoteChangeCancellable: AnyCancellable?
+
     private init() {}
-    
+
     // MARK: - Search Session Factory
     
     /// Create a new search session for a scene
@@ -126,6 +129,38 @@ final class DictionaryService: ObservableObject {
             await loadAllDictionaries()
             SpotlightIndexingService.shared.indexAllDictionaries()
         }
+
+        // 4. CloudKit remote change — reload groups (debounced)
+        remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.reloadGroupsFromCoreData()
+            }
+    }
+
+    /// Reload groups from CoreData after a CloudKit remote change.
+    /// Preserves loaded MDict instances — only group membership changes.
+    private func reloadGroupsFromCoreData() {
+        let loadedGroups = groupPersistence.loadGroups()
+        guard !loadedGroups.isEmpty else { return }
+
+        groups = loadedGroups.map { loaded in
+            let validIds = loaded.dictionaryIds.filter { id in
+                allDictionaries.contains { $0.id == id }
+            }
+            let group = MDicts(
+                id: loaded.groupId,
+                name: loaded.isDefault ? L10n.GroupInfo.allDictionaries : loaded.name,
+                isDefault: loaded.isDefault,
+                dictionaryIds: validIds,
+                createdAt: loaded.createdAt,
+                modifiedAt: loaded.modifiedAt
+            )
+            group.populate(from: allDictionaries)
+            return group
+        }
+
+        debugLog("☁️ DictionaryService: reloaded \(groups.count) groups from CoreData")
     }
 
     private func loadUserDictionaries() {

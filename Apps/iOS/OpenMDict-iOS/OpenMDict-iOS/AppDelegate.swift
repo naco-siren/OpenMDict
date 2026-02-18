@@ -44,8 +44,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
         }
 
-        // Initialize persistent store (Core Data)
+        // Initialize persistent store (Core Data + CloudKit sync)
         CoreDataStack.shared.setup()
+        // Register for remote notifications (CloudKit uses silent push for sync)
+        application.registerForRemoteNotifications()
         // Initialize dictionary service (loads Library dictionaries)
         // Spotlight indexing is triggered after metadata loads (inside setup's Task)
         DictionaryService.shared.setup()
@@ -61,6 +63,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         return true
+    }
+
+    // MARK: - Remote Notifications (CloudKit Sync)
+
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        // NSPersistentCloudKitContainer handles CloudKit push internally.
+        // We just need to call the completion handler.
+        completionHandler(.newData)
     }
 
     // MARK: - UISceneSession Lifecycle
