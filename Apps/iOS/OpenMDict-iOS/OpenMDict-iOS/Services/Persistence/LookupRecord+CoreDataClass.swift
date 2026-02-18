@@ -27,7 +27,6 @@ nonisolated public class LookupRecord: NSManagedObject {
 
     @NSManaged public var word: String?
     @NSManaged public var dictId: String?
-    @NSManaged public var dictName: String?
     @NSManaged public var firstLookedUpAt: Date?
     @NSManaged public var lastLookedUpAt: Date?
     @NSManaged public var lookupCount: Int32

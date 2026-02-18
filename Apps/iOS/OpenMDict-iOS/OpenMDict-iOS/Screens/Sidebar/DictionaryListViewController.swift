@@ -80,6 +80,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private var dictStateCancellables = Set<AnyCancellable>()
     /// Subscriptions to each MDicts.$items (re-created when groups change)
     private var groupItemsCancellables = Set<AnyCancellable>()
+    /// Subscription to dictionary display name changes (remote renames)
+    private var displayNameCancellable: AnyCancellable?
     
     private enum Section: Int, CaseIterable {
         case defaultGroup
@@ -197,6 +199,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         
         // 4. Subscribe to each group's items (dictionaries added/removed within a group)
         subscribeToAllGroupItems()
+
+        // 5. Subscribe to display name changes (remote renames synced from other devices)
+        displayNameCancellable = DictionaryService.shared.$displayNameRevision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.invalidateVisibleCellConfigurations()
+            }
     }
 
     /// Handle dictionary list changes (import/delete)

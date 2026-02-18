@@ -779,10 +779,9 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
         articlesVC.scrollToArticle(articles.first!, animated: true)
 
         // Record lookup history using the current lookup context
-        let historyDictName = DictionaryService.shared.dict(id: dictId)?.metadata?.title ?? dictId
         let ctx = lookupContext ?? (nil, "all")
         LookupHistoryService.shared.recordLookup(
-            word: word, dictId: dictId, dictName: historyDictName,
+            word: word, dictId: dictId,
             lookupContextDictId: ctx.dictId, lookupContextGroupId: ctx.groupId
         )
     }

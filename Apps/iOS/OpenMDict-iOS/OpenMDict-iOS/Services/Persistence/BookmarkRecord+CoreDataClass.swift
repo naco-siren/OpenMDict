@@ -27,6 +27,5 @@ nonisolated public class BookmarkRecord: NSManagedObject {
 
     @NSManaged public var word: String?
     @NSManaged public var dictId: String?
-    @NSManaged public var dictName: String?
     @NSManaged public var createdAt: Date?
 }

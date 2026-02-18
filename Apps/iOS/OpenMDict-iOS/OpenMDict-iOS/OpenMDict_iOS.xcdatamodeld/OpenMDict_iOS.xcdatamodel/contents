@@ -3,7 +3,6 @@
     <entity name="BookmarkRecord" representedClassName="BookmarkRecord" syncable="YES">
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
-        <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="word" optional="YES" attributeType="String" defaultValueString=""/>
         <fetchIndex name="byCreatedAt">
             <fetchIndexElement property="createdAt" type="Binary" order="descending"/>
@@ -69,7 +68,6 @@
     </entity>
     <entity name="LookupRecord" representedClassName="LookupRecord" syncable="YES">
         <attribute name="dictId" optional="YES" attributeType="String" defaultValueString=""/>
-        <attribute name="dictName" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="firstLookedUpAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="lastLookedUpAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="lookupContextDictId" optional="YES" attributeType="String" defaultValueString=""/>

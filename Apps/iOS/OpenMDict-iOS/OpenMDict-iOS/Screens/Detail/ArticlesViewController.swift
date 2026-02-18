@@ -219,7 +219,7 @@ class ArticlesViewController: UIViewController {
             }
             cell.onBookmarkToggle = { _ in
                 BookmarkService.shared.toggleBookmark(
-                    word: article.word, dictId: article.dictId, dictName: article.dictName
+                    word: article.word, dictId: article.dictId
                 )
             }
             cell.onBookmarkRemoveRequested = { [weak self] in
@@ -542,7 +542,7 @@ class ArticlesViewController: UIViewController {
         )
         alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { _ in
-            BookmarkService.shared.toggleBookmark(word: word, dictId: dictId, dictName: dictName)
+            BookmarkService.shared.toggleBookmark(word: word, dictId: dictId)
         })
         present(alert, animated: true)
     }
@@ -619,7 +619,7 @@ extension ArticlesViewController: UICollectionViewDelegate {
             if isBM {
                 self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
             } else {
-                BookmarkService.shared.toggleBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
+                BookmarkService.shared.toggleBookmark(word: article.word, dictId: article.dictId)
             }
         })
         if #available(iOS 16, *) {

@@ -296,7 +296,7 @@ class ArticleViewController: UIViewController {
             alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
             alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
                 BookmarkService.shared.toggleBookmark(
-                    word: article.word, dictId: article.dictId, dictName: article.dictName
+                    word: article.word, dictId: article.dictId
                 )
                 self?.isBookmarked = false
                 self?.bookmarkButton.setNeedsUpdateConfiguration()
@@ -305,7 +305,7 @@ class ArticleViewController: UIViewController {
         } else {
             // Adding → immediate
             isBookmarked = BookmarkService.shared.toggleBookmark(
-                word: article.word, dictId: article.dictId, dictName: article.dictName
+                word: article.word, dictId: article.dictId
             )
             bookmarkButton.setNeedsUpdateConfiguration()
         }

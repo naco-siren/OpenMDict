@@ -122,6 +122,15 @@ class WordListViewController: UIViewController {
                 self?.loadHistory()
             }
             .store(in: &cancellables)
+
+        // React to dictionary metadata changes (e.g., dict renamed locally or on another device)
+        DictMetadataService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.loadHistory()
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - History Data
@@ -142,13 +151,26 @@ class WordListViewController: UIViewController {
 
     private func loadHistory() {
         let ctx = lookupContext
-        historyGroups = LookupHistoryService.shared.groupedHistory(
+        let rawGroups = LookupHistoryService.shared.groupedHistory(
             lookupContextDictId: ctx?.dictId, lookupContextGroupId: ctx?.groupId
         )
+        // Resolve dictName from DictMetadataService (authoritative).
+        historyGroups = rawGroups.map { section in
+            HistorySection(title: section.title, records: section.records.map { item in
+                let metadata = DictMetadataService.shared.find(dictId: item.dictId)
+                return HistoryItem(
+                    objectID: item.objectID,
+                    word: item.word,
+                    dictId: item.dictId,
+                    dictName: metadata?.displayName ?? item.dictId,
+                    isDictAvailable: metadata != nil,
+                    lastLookedUpAt: item.lastLookedUpAt
+                )
+            })
+        }
         if !isSearching {
             tableView.reloadData()
             updateEmptyState()
-    
         }
     }
 

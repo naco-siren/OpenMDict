@@ -40,8 +40,9 @@ final class DictMetadataService {
 
     private var stack: CoreDataStack { CoreDataStack.shared }
 
-    /// Revision counter — incremented on remote changes so DictionaryService
-    /// can detect new/removed dictionaries synced from other devices.
+    /// Revision counter — incremented on remote changes (so DictionaryService
+    /// can detect new/removed dictionaries synced from other devices) and on
+    /// local metadata writes (so bookmark/history VCs re-resolve display names).
     @Published private(set) var revision: UInt = 0
 
     /// Cancellable for CloudKit remote change subscription.
@@ -139,6 +140,7 @@ final class DictMetadataService {
         record.fontsCount = metadata.fontsCount
 
         save(ctx)
+        revision += 1
     }
 
     /// Delete a dictionary metadata record by dictId.
@@ -147,6 +149,7 @@ final class DictMetadataService {
         guard let record = fetchRecord(dictId: dictId) else { return }
         ctx.delete(record)
         save(ctx)
+        revision += 1
     }
 
     /// Update the display name for a dictionary.
@@ -156,6 +159,7 @@ final class DictMetadataService {
         record.displayName = newName
         record.updatedAt = Date()
         save(ctx)
+        revision += 1
     }
 
     /// Sync resource counts from a per-dict manifest.

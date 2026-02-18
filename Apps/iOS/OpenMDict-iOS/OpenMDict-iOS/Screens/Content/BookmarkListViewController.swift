@@ -67,6 +67,7 @@ class BookmarkListViewController: UIViewController {
 
     private var historyCancellable: AnyCancellable?
     private var bookmarkCancellable: AnyCancellable?
+    private var metadataCancellable: AnyCancellable?
 
     private var dataSource: UICollectionViewDiffableDataSource<BookmarkSection, BookmarkItem>!
 
@@ -112,6 +113,14 @@ class BookmarkListViewController: UIViewController {
             .sink { [weak self] _ in
                 self?.reload()
             }
+
+        // React to dictionary metadata changes (e.g., dict renamed locally or on another device)
+        metadataCancellable = DictMetadataService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reload()
+            }
     }
 
     // MARK: - Public Reload
@@ -124,7 +133,18 @@ class BookmarkListViewController: UIViewController {
         // hierarchy triggers loadView), force-load the view first.
         loadViewIfNeeded()
 
-        let bookmarks = BookmarkService.shared.allBookmarks()
+        // Resolve dictName from DictMetadataService (authoritative) and set availability.
+        let bookmarks = BookmarkService.shared.allBookmarks().map { bm -> BookmarkItem in
+            let metadata = DictMetadataService.shared.find(dictId: bm.dictId)
+            return BookmarkItem(
+                objectID: bm.objectID,
+                word: bm.word,
+                dictId: bm.dictId,
+                dictName: metadata?.displayName ?? bm.dictName,
+                isDictAvailable: metadata != nil,
+                createdAt: bm.createdAt
+            )
+        }
 
         // Fetch lookup metadata for modes 2 & 3
         let pairs = bookmarks.map { (word: $0.word, dictId: $0.dictId) }
@@ -144,10 +164,21 @@ class BookmarkListViewController: UIViewController {
 
             var content = cell.defaultContentConfiguration()
             content.text = bookmark.word
-            content.secondaryText = bookmark.dictName
-            content.secondaryTextProperties.color = .secondaryLabel
-            content.image = UIImage(systemName: "bookmark")
-            content.imageProperties.tintColor = .secondaryLabel
+            if bookmark.isDictAvailable {
+                content.secondaryText = bookmark.dictName
+                content.secondaryTextProperties.color = .secondaryLabel
+                content.textProperties.color = .label
+                content.image = UIImage(systemName: "bookmark")
+                content.imageProperties.tintColor = .secondaryLabel
+            } else {
+                content.secondaryText = bookmark.dictName.isEmpty
+                    ? L10n.dictUnavailable
+                    : "\(bookmark.dictName) · \(L10n.dictUnavailable)"
+                content.secondaryTextProperties.color = .tertiaryLabel
+                content.textProperties.color = .secondaryLabel
+                content.image = UIImage(systemName: "bookmark")
+                content.imageProperties.tintColor = .tertiaryLabel
+            }
             cell.contentConfiguration = content
 
             // Mode 3: show lookup count as trailing label

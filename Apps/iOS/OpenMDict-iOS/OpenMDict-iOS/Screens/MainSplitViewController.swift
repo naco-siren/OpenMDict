@@ -549,7 +549,7 @@ class MainSplitViewController: UISplitViewController {
         }
         detailContainer.lookupContext = (dictId: ctxDictId, groupId: ctxGroupId)
         LookupHistoryService.shared.recordLookup(
-            word: word.word, dictId: word.dictId, dictName: word.dictName,
+            word: word.word, dictId: word.dictId,
             lookupContextDictId: ctxDictId, lookupContextGroupId: ctxGroupId
         )
     }
@@ -575,6 +575,7 @@ class MainSplitViewController: UISplitViewController {
     private func setupBookmarkCallbacks() {
         bookmarkListVC.onBookmarkSelected = { [weak self] bookmark in
             guard let self else { return }
+            guard bookmark.isDictAvailable else { return }  // Dict not on this device
             let dict = DictionaryService.shared.dict(id: bookmark.dictId)
             var article = ArticleDisplayItem(
                 word: bookmark.word,
@@ -590,7 +591,7 @@ class MainSplitViewController: UISplitViewController {
             // Record lookup so count stays accurate
             // (bookmarkListVC auto-reloads via $revision subscription)
             LookupHistoryService.shared.recordLookup(
-                word: bookmark.word, dictId: bookmark.dictId, dictName: bookmark.dictName,
+                word: bookmark.word, dictId: bookmark.dictId,
                 lookupContextDictId: nil, lookupContextGroupId: nil
             )
         }
@@ -612,6 +613,7 @@ class MainSplitViewController: UISplitViewController {
     private func setupLookupHistoryCallbacks() {
         lookupHistoryListVC.onHistorySelected = { [weak self] historyItem in
             guard let self else { return }
+            guard historyItem.isDictAvailable else { return }  // Dict not on this device
             let dict = DictionaryService.shared.dict(id: historyItem.dictId)
             var article = ArticleDisplayItem(
                 word: historyItem.word,
@@ -627,7 +629,7 @@ class MainSplitViewController: UISplitViewController {
             // Record lookup so history stays accurate
             // (lookupHistoryListVC auto-reloads via $revision subscription)
             LookupHistoryService.shared.recordLookup(
-                word: historyItem.word, dictId: historyItem.dictId, dictName: historyItem.dictName,
+                word: historyItem.word, dictId: historyItem.dictId,
                 lookupContextDictId: nil, lookupContextGroupId: nil
             )
         }

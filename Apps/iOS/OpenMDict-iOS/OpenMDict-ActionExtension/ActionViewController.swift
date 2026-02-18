@@ -413,7 +413,7 @@ class ActionViewController: UIViewController {
             alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
             alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
                 BookmarkService.shared.toggleBookmark(
-                    word: result.keyword, dictId: result.dictId, dictName: result.dictName
+                    word: result.keyword, dictId: result.dictId
                 )
                 self?.isBookmarked = false
                 self?.bookmarkButton.setNeedsUpdateConfiguration()
@@ -422,7 +422,7 @@ class ActionViewController: UIViewController {
         } else {
             // Adding → immediate
             isBookmarked = BookmarkService.shared.toggleBookmark(
-                word: result.keyword, dictId: result.dictId, dictName: result.dictName
+                word: result.keyword, dictId: result.dictId
             )
             bookmarkButton.setNeedsUpdateConfiguration()
         }
@@ -866,7 +866,6 @@ class ActionViewController: UIViewController {
         LookupHistoryService.shared.recordLookup(
             word: result.keyword,
             dictId: result.dictId,
-            dictName: result.dictName,
             lookupContextDictId: nil,
             lookupContextGroupId: nil
         )

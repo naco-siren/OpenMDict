@@ -151,13 +151,6 @@ final class DeduplicationService {
                 let dupLast = record.value(forKey: "lastLookedUpAt") as? Date ?? Date.distantPast
                 winner.setValue(max(winnerLast, dupLast), forKey: "lastLookedUpAt")
 
-                // Keep the more informative dictName
-                let winnerName = winner.value(forKey: "dictName") as? String ?? ""
-                let dupName = record.value(forKey: "dictName") as? String ?? ""
-                if winnerName.isEmpty && !dupName.isEmpty {
-                    winner.setValue(dupName, forKey: "dictName")
-                }
-
                 ctx.delete(record)
                 deleted += 1
             } else {

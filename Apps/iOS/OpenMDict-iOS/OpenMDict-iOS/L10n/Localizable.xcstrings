@@ -4977,6 +4977,18 @@
         }
       }
     },
+    "dict.unavailable" : {
+      "comment" : "Shown when a referenced dictionary hasn't been synced to this device yet",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not on this device"
+          }
+        }
+      }
+    },
     "dictEditor.allAdded" : {
       "comment" : "Placeholder when all dicts are in group",
       "extractionState" : "manual",

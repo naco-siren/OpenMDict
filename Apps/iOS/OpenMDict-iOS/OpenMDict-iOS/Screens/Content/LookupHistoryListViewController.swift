@@ -21,6 +21,7 @@ class LookupHistoryListViewController: UIViewController {
     // MARK: - State
 
     private var historyCancellable: AnyCancellable?
+    private var metadataCancellable: AnyCancellable?
 
     private var dataSource: UICollectionViewDiffableDataSource<String, HistoryItem>!
 
@@ -58,6 +59,14 @@ class LookupHistoryListViewController: UIViewController {
             .sink { [weak self] _ in
                 self?.reload()
             }
+
+        // React to dictionary metadata changes (e.g., dict renamed locally or on another device)
+        metadataCancellable = DictMetadataService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reload()
+            }
     }
 
     // MARK: - Public Reload
@@ -70,7 +79,21 @@ class LookupHistoryListViewController: UIViewController {
         // hierarchy triggers loadView), force-load the view first.
         loadViewIfNeeded()
 
-        let groups = LookupHistoryService.shared.allGroupedHistory()
+        // Resolve dictName from DictMetadataService (authoritative) and set availability.
+        let rawGroups = LookupHistoryService.shared.allGroupedHistory()
+        let groups = rawGroups.map { section in
+            HistorySection(title: section.title, records: section.records.map { item in
+                let metadata = DictMetadataService.shared.find(dictId: item.dictId)
+                return HistoryItem(
+                    objectID: item.objectID,
+                    word: item.word,
+                    dictId: item.dictId,
+                    dictName: metadata?.displayName ?? item.dictName,
+                    isDictAvailable: metadata != nil,
+                    lastLookedUpAt: item.lastLookedUpAt
+                )
+            })
+        }
         applySnapshot(groups: groups, animated: true)
         updateEmptyState(groups: groups)
         rebuildMenus()
@@ -84,10 +107,21 @@ class LookupHistoryListViewController: UIViewController {
 
             var content = cell.defaultContentConfiguration()
             content.text = item.word
-            content.secondaryText = item.dictName
-            content.secondaryTextProperties.color = .secondaryLabel
-            content.image = UIImage(systemName: "clock")
-            content.imageProperties.tintColor = .secondaryLabel
+            if item.isDictAvailable {
+                content.secondaryText = item.dictName
+                content.secondaryTextProperties.color = .secondaryLabel
+                content.textProperties.color = .label
+                content.image = UIImage(systemName: "clock")
+                content.imageProperties.tintColor = .secondaryLabel
+            } else {
+                content.secondaryText = item.dictName.isEmpty
+                    ? L10n.dictUnavailable
+                    : "\(item.dictName) · \(L10n.dictUnavailable)"
+                content.secondaryTextProperties.color = .tertiaryLabel
+                content.textProperties.color = .secondaryLabel
+                content.image = UIImage(systemName: "clock")
+                content.imageProperties.tintColor = .tertiaryLabel
+            }
             cell.contentConfiguration = content
             cell.accessories = []
         }
@@ -122,6 +156,10 @@ class LookupHistoryListViewController: UIViewController {
             snapshot.appendSections([group.title])
             snapshot.appendItems(group.records, toSection: group.title)
         }
+        // Force cell reconfiguration even when item identity hasn't changed,
+        // because dictName (resolved from DictMetadataService) lives outside
+        // HistoryItem's Hashable identity (word + dictId).
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
 

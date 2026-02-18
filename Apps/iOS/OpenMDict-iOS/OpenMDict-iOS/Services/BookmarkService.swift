@@ -29,6 +29,9 @@ nonisolated struct BookmarkItem: Sendable, Hashable, DateGroupable {
     let word: String
     let dictId: String
     let dictName: String
+    /// Whether the referenced dictionary exists on this device.
+    /// `false` for records synced from another device whose dictionary hasn't been synced yet.
+    let isDictAvailable: Bool
     let createdAt: Date?
 
     var groupingDate: Date? { createdAt }
@@ -76,7 +79,7 @@ final class BookmarkService {
     ///
     /// - Returns: `true` if a bookmark was created, `false` if it was removed.
     @discardableResult
-    func toggleBookmark(word: String, dictId: String, dictName: String) -> Bool {
+    func toggleBookmark(word: String, dictId: String) -> Bool {
         let ctx = stack.viewContext
         let request = NSFetchRequest<BookmarkRecord>(entityName: "BookmarkRecord")
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
@@ -97,7 +100,6 @@ final class BookmarkService {
                 let record = BookmarkRecord(context: ctx)
                 record.word = word
                 record.dictId = dictId
-                record.dictName = dictName
                 record.createdAt = Date()
                 try ctx.save()
                 revision += 1
@@ -131,6 +133,8 @@ final class BookmarkService {
     }
 
     /// Fetch all bookmarks, most recent first.
+    /// Note: `dictName` and `isDictAvailable` are populated with defaults here.
+    /// The UI layer resolves the actual display name from `DictMetadataService`.
     func allBookmarks() -> [BookmarkItem] {
         let ctx = stack.viewContext
         let request = NSFetchRequest<BookmarkRecord>(entityName: "BookmarkRecord")
@@ -143,7 +147,8 @@ final class BookmarkService {
                     objectID: record.objectID,
                     word: record.word ?? "",
                     dictId: record.dictId ?? "",
-                    dictName: record.dictName ?? "",
+                    dictName: "",
+                    isDictAvailable: true,
                     createdAt: record.createdAt
                 )
             }

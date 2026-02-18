@@ -492,17 +492,20 @@ class DictInfoViewController: UIViewController {
                 // We use async to defer execution after current layout pass
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
-                    
+
                     // Double-check we still need to parse this HTML
                     guard self.cachedDescriptionHTML != htmlValue else { return }
-                    
+
                     if let attributed = Self.attributedString(fromHTML: htmlValue) {
                         self.cachedAttributedDescription = attributed
                         self.cachedDescriptionHTML = htmlValue
-                        
-                        // Reconfigure just this cell
+
+                        // Reconfigure just this cell (if still in snapshot — user
+                        // may have switched to editing mode while HTML was parsing)
                         var snapshot = self.dataSource.snapshot()
-                        snapshot.reconfigureItems([.description(htmlValue)])
+                        let descItem = Item.description(htmlValue)
+                        guard snapshot.itemIdentifiers.contains(descItem) else { return }
+                        snapshot.reconfigureItems([descItem])
                         self.dataSource.apply(snapshot, animatingDifferences: false)
                     }
                 }

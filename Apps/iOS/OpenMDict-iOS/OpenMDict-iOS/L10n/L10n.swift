@@ -662,6 +662,13 @@ nonisolated enum L10n {
         }
     }
 
+    // MARK: - Dictionary Availability
+
+    /// Suffix shown after dictName when the dictionary is not on this device.
+    static var dictUnavailable: String {
+        NSLocalizedString("dict.unavailable", value: "Not on this device", comment: "Shown when a referenced dictionary hasn't been synced to this device yet")
+    }
+
     // MARK: - Detail Container (Layout, Appearance, Zoom)
 
     enum Detail {

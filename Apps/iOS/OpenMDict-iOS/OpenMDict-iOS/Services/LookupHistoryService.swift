@@ -48,7 +48,6 @@ nonisolated struct CachedLookupRecord: Sendable {
     var objectID: NSManagedObjectID?
     let word: String
     let dictId: String
-    var dictName: String
     var firstLookedUpAt: Date
     var lastLookedUpAt: Date
     var lookupCount: Int32
@@ -64,6 +63,9 @@ nonisolated struct HistoryItem: Sendable, Hashable, DateGroupable {
     let word: String
     let dictId: String
     let dictName: String
+    /// Whether the referenced dictionary exists on this device.
+    /// `false` for records synced from another device whose dictionary hasn't been synced yet.
+    let isDictAvailable: Bool
     let lastLookedUpAt: Date?
 
     var groupingDate: Date? { lastLookedUpAt }
@@ -199,7 +201,6 @@ final class LookupHistoryService {
                     objectID: record.objectID,
                     word: record.word ?? "",
                     dictId: record.dictId ?? "",
-                    dictName: record.dictName ?? "",
                     firstLookedUpAt: record.firstLookedUpAt ?? Date(),
                     lastLookedUpAt: record.lastLookedUpAt ?? Date(),
                     lookupCount: record.lookupCount,
@@ -222,7 +223,7 @@ final class LookupHistoryService {
     ///
     /// Also increments the per-context trophy counter via LookupCountService (monotonically
     /// increasing, independent of history deletion).
-    func recordLookup(word: String, dictId: String, dictName: String,
+    func recordLookup(word: String, dictId: String,
                       lookupContextDictId: String?, lookupContextGroupId: String?) {
         // Increment the CoreData-based trophy counter (deferred save).
         // When searching within a group, bump both the group AND the
@@ -250,14 +251,12 @@ final class LookupHistoryService {
         if var existing = cache[key] {
             existing.lastLookedUpAt = now
             existing.lookupCount += 1
-            existing.dictName = dictName
             cache[key] = existing
         } else {
             cache[key] = CachedLookupRecord(
                 objectID: nil,
                 word: word,
                 dictId: dictId,
-                dictName: dictName,
                 firstLookedUpAt: now,
                 lastLookedUpAt: now,
                 lookupCount: 1,
@@ -513,12 +512,10 @@ final class LookupHistoryService {
                     if let existing = try ctx.fetch(request).first {
                         existing.lastLookedUpAt = entry.lastLookedUpAt
                         existing.lookupCount = entry.lookupCount
-                        existing.dictName = entry.dictName
                     } else {
                         let record = LookupRecord(context: ctx)
                         record.word = entry.word
                         record.dictId = entry.dictId
-                        record.dictName = entry.dictName
                         record.lookupContextDictId = entry.lookupContextDictId
                         record.lookupContextGroupId = entry.lookupContextGroupId
                         record.firstLookedUpAt = entry.firstLookedUpAt
@@ -569,13 +566,16 @@ final class LookupHistoryService {
     // MARK: - Date Grouping
 
     /// Convert CachedLookupRecords to HistoryItems and group by date using the shared helper.
+    /// Note: `dictName` and `isDictAvailable` are populated with defaults here.
+    /// The UI layer resolves the actual display name from `DictMetadataService`.
     private func groupCachedRecordsByDate(_ records: [CachedLookupRecord]) -> [HistorySection] {
         let items = records.map { record in
             HistoryItem(
                 objectID: record.objectID,
                 word: record.word,
                 dictId: record.dictId,
-                dictName: record.dictName,
+                dictName: "",
+                isDictAvailable: true,
                 lastLookedUpAt: record.lastLookedUpAt
             )
         }

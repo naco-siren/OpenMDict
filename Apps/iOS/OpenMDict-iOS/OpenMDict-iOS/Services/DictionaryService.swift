@@ -72,6 +72,10 @@ final class DictionaryService: ObservableObject {
     /// Bumped whenever dictionary resources (MDD/CSS/JS) change.
     /// DictResourceEditorVC subscribes to this to refresh its UI.
     @Published private(set) var resourceRevision: UInt = 0
+
+    /// Bumped when in-memory MDict display names are synced from remote metadata.
+    /// DictionaryListVC subscribes to refresh sidebar cells after remote renames.
+    @Published private(set) var displayNameRevision: UInt = 0
     
     /// Cancellable for CloudKit remote change subscription (groups).
     private var remoteChangeCancellable: AnyCancellable?
@@ -273,6 +277,22 @@ final class DictionaryService: ObservableObject {
                 } else {
                     debugLog("❌ Remote update download failed for \(dictId.prefix(16))")
                 }
+            }
+
+            // --- 3b. Sync metadata fields (displayName) to live MDict instances ---
+            var anyNameChanged = false
+            for dictId in existingIds {
+                guard let metadata = allMetadata.first(where: { $0.dictId == dictId }),
+                      let dict = self.dict(id: dictId) else { continue }
+                if dict.userDisplayName != metadata.displayName {
+                    debugLog("☁️ displayName updated: \(dictId.prefix(16))… "
+                        + "\"\(dict.userDisplayName ?? "nil")\" → \"\(metadata.displayName)\"")
+                    dict.userDisplayName = metadata.displayName
+                    anyNameChanged = true
+                }
+            }
+            if anyNameChanged {
+                displayNameRevision += 1
             }
 
             // --- 4. Reload groups ---
