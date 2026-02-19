@@ -181,12 +181,13 @@ final class CoreDataStack {
             queue: .main
         ) { [weak self] _ in
             debugLog("☁️ Remote change detected")
-            if let preprocessor = self?.remoteChangePreprocessor {
-                Task { @MainActor in
+            // The closure is @Sendable but dispatched on .main queue.
+            // Route through Task { @MainActor } to satisfy the compiler
+            // for accessing MainActor-isolated properties.
+            Task { @MainActor [weak self] in
+                if let preprocessor = self?.remoteChangePreprocessor {
                     await preprocessor()
-                    self?.remoteChangePublisher.send()
                 }
-            } else {
                 self?.remoteChangePublisher.send()
             }
         }

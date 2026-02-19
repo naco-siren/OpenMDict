@@ -45,8 +45,8 @@ final class DeduplicationService {
 
     /// Deduplicate all entities.  Call from a background context before
     /// forwarding the remote-change event to downstream caches.
-    func deduplicateAll() async {
-        let ctx = stack.newBackgroundContext()
+    nonisolated func deduplicateAll() async {
+        let ctx = await MainActor.run { stack.newBackgroundContext() }
         await ctx.perform {
             var totalDeleted = 0
             totalDeleted += self.deduplicateBookmarks(in: ctx)
@@ -73,7 +73,7 @@ final class DeduplicationService {
 
     // MARK: - BookmarkRecord  (word, dictId) → earliest createdAt
 
-    private func deduplicateBookmarks(in ctx: NSManagedObjectContext) -> Int {
+    private nonisolated func deduplicateBookmarks(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "BookmarkRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "word", ascending: true),
@@ -105,7 +105,7 @@ final class DeduplicationService {
 
     // MARK: - LookupRecord  (word, dictId, contextDictId, contextGroupId) → merge
 
-    private func deduplicateLookupRecords(in ctx: NSManagedObjectContext) -> Int {
+    private nonisolated func deduplicateLookupRecords(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "LookupRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "word", ascending: true),
@@ -163,7 +163,7 @@ final class DeduplicationService {
 
     // MARK: - LookupCountRecord  (contextKey) → max(count)
 
-    private func deduplicateLookupCounts(in ctx: NSManagedObjectContext) -> Int {
+    private nonisolated func deduplicateLookupCounts(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "LookupCountRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "contextKey", ascending: true),
@@ -201,7 +201,7 @@ final class DeduplicationService {
 
     // MARK: - DictionaryMetadataRecord  (dictId) → earliest importedAt
 
-    private func deduplicateDictionaryMetadata(in ctx: NSManagedObjectContext) -> Int {
+    private nonisolated func deduplicateDictionaryMetadata(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "DictionaryMetadataRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "dictId", ascending: true),
@@ -229,7 +229,7 @@ final class DeduplicationService {
 
     // MARK: - DictionaryGroupRecord  (groupId) → latest modifiedAt
 
-    private func deduplicateGroups(in ctx: NSManagedObjectContext) -> Int {
+    private nonisolated func deduplicateGroups(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "DictionaryGroupRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "groupId", ascending: true),
@@ -257,7 +257,7 @@ final class DeduplicationService {
 
     // MARK: - GroupEntryRecord  (groupId, dictId) → keep any one
 
-    private func deduplicateGroupEntries(in ctx: NSManagedObjectContext) -> Int {
+    private nonisolated func deduplicateGroupEntries(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "GroupEntryRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "groupId", ascending: true),
