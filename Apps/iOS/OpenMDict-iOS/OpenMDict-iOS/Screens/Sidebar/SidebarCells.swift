@@ -12,6 +12,20 @@
 import UIKit
 import OpenMDictKit
 
+// MARK: - iCloud Section Status
+
+/// iCloud sync health for section headers and group cells.
+enum ICloudSectionStatus {
+    /// All healthy — `checkmark.icloud` (secondaryLabel)
+    case healthy
+    /// One or more dicts are still syncing — `arrow.trianglehead.clockwise.icloud` (secondaryLabel)
+    case syncing
+    /// Temporary issue (network, account temporarily unavailable) — `bolt.horizontal.icloud` (orange)
+    case temporaryIssue
+    /// Serious issue (no account, restricted) or child dicts have errors — `exclamationmark.icloud` (red)
+    case error
+}
+
 // MARK: - State Provider Protocol
 
 /// Protocol for cells to query the current selection state from the view controller.
@@ -19,15 +33,41 @@ import OpenMDictKit
 protocol SidebarStateProvider: AnyObject {
     var appMode: AppMode { get }
     var isEditingMode: Bool { get }
-    
+
     var activeGroupId: String? { get }
     var activeDict: (id: String, mirrored: Bool)? { get }
-    
+
     /// Called when info button is tapped on a dictionary cell
     func didTapInfoButton(forDictId dictId: String)
-    
+
     /// Called when info button is tapped on a group cell
     func didTapInfoButton(forGroupId groupId: String)
+
+    // MARK: - iCloud Sync Status
+
+    /// Returns the CloudKit sync status for a dictionary, or nil if cloud sync is disabled.
+    func cloudSyncStatus(forDictId dictId: String) -> CloudSyncStatus?
+
+    /// Returns the section-level iCloud status, or nil if cloud sync is disabled.
+    /// Considers both CKAccountStatus and child dict statuses.
+    func iCloudSectionStatus() -> ICloudSectionStatus?
+
+    /// Returns the group-level iCloud status, or nil if cloud sync is disabled.
+    /// Shows warning if any dict in the group has error/tooLarge.
+    func iCloudGroupStatus(forGroupId groupId: String) -> ICloudSectionStatus?
+
+    /// Returns the aggregated iCloud status across all user groups, or nil if disabled.
+    /// Used by the "My Groups" section header.
+    func iCloudMyGroupsSectionStatus() -> ICloudSectionStatus?
+
+    /// Called when sync status button is tapped on a dictionary cell
+    func didTapSyncStatus(forDictId dictId: String)
+
+    /// Called when iCloud status icon is tapped on a section header / group cell
+    func didTapSectionSyncStatus()
+
+    /// Called when iCloud status icon is tapped on a user group cell
+    func didTapGroupSyncStatus(forGroupId groupId: String)
 }
 
 // MARK: - Default Group Cell (All Dictionaries)
@@ -73,9 +113,19 @@ final class DefaultGroupCell: UICollectionViewListCell {
             bg.backgroundColor = .clear
             
             var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .cell))]
-            
-            // Info button in edit mode
+
+            // iCloud status + info button in edit mode
             if isEditing {
+                // iCloud section status (before info button)
+                if let status = stateProvider?.iCloudSectionStatus() {
+                    let syncButton = Self.createSectionSyncButton(status: status, target: self, action: #selector(sectionSyncTapped))
+                    let syncConfig = UICellAccessory.CustomViewConfiguration(
+                        customView: syncButton,
+                        placement: .trailing(displayed: .always)
+                    )
+                    cellAccessories.append(.customView(configuration: syncConfig))
+                }
+
                 let infoButton = createInfoButton(for: group.id)
                 let infoConfig = UICellAccessory.CustomViewConfiguration(
                     customView: infoButton,
@@ -83,14 +133,42 @@ final class DefaultGroupCell: UICollectionViewListCell {
                 )
                 cellAccessories.append(.customView(configuration: infoConfig))
             }
-            
+
             accessories = cellAccessories
         }
-        
+
         contentConfiguration = content
         backgroundConfiguration = bg
     }
-    
+
+    static func createSectionSyncButton(status: ICloudSectionStatus, target: Any, action: Selector) -> UIButton {
+        let button = UIButton(type: .system)
+        let iconName: String
+        let tintColor: UIColor
+        switch status {
+        case .healthy:
+            iconName = "checkmark.icloud"
+            tintColor = .secondaryLabel
+        case .syncing:
+            iconName = "arrow.trianglehead.clockwise.icloud"
+            tintColor = .secondaryLabel
+        case .temporaryIssue:
+            iconName = "bolt.horizontal.icloud"
+            tintColor = .systemOrange
+        case .error:
+            iconName = "exclamationmark.icloud"
+            tintColor = .systemRed
+        }
+        button.setImage(UIImage(systemName: iconName), for: .normal)
+        button.tintColor = tintColor
+        button.addTarget(target, action: action, for: .touchUpInside)
+        return button
+    }
+
+    @objc private func sectionSyncTapped() {
+        stateProvider?.didTapSectionSyncStatus()
+    }
+
     private func createInfoButton(for groupId: String) -> UIButton {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "info.circle"), for: .normal)
@@ -99,7 +177,7 @@ final class DefaultGroupCell: UICollectionViewListCell {
         button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
         return button
     }
-    
+
     @objc private func infoButtonTapped(_ sender: UIButton) {
         guard let groupId = sender.accessibilityIdentifier else { return }
         stateProvider?.didTapInfoButton(forGroupId: groupId)
@@ -150,9 +228,22 @@ final class UserGroupCell: UICollectionViewListCell {
             bg.backgroundColor = .clear
             
             var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .cell))]
-            
-            // Info button in edit mode
+
+            // Sync status + info button in edit mode
             if isEditing {
+                // Group-level sync status (considers child dict issues)
+                if let status = stateProvider?.iCloudGroupStatus(forGroupId: group.id) {
+                    let syncButton = DefaultGroupCell.createSectionSyncButton(
+                        status: status, target: self, action: #selector(groupSyncTapped)
+                    )
+                    syncButton.accessibilityIdentifier = group.id
+                    let syncConfig = UICellAccessory.CustomViewConfiguration(
+                        customView: syncButton,
+                        placement: .trailing(displayed: .always)
+                    )
+                    cellAccessories.append(.customView(configuration: syncConfig))
+                }
+
                 let infoButton = createInfoButton(for: group.id)
                 let infoConfig = UICellAccessory.CustomViewConfiguration(
                     customView: infoButton,
@@ -160,14 +251,19 @@ final class UserGroupCell: UICollectionViewListCell {
                 )
                 cellAccessories.append(.customView(configuration: infoConfig))
             }
-            
+
             accessories = cellAccessories
         }
-        
+
         contentConfiguration = content
         backgroundConfiguration = bg
     }
-    
+
+    @objc private func groupSyncTapped(_ sender: UIButton) {
+        guard let groupId = sender.accessibilityIdentifier else { return }
+        stateProvider?.didTapGroupSyncStatus(forGroupId: groupId)
+    }
+
     private func createInfoButton(for groupId: String) -> UIButton {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "info.circle"), for: .normal)
@@ -176,7 +272,7 @@ final class UserGroupCell: UICollectionViewListCell {
         button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
         return button
     }
-    
+
     @objc private func infoButtonTapped(_ sender: UIButton) {
         guard let groupId = sender.accessibilityIdentifier else { return }
         stateProvider?.didTapInfoButton(forGroupId: groupId)
@@ -315,8 +411,18 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
         
         backgroundConfiguration = bg
         
-        // Add info button in edit mode (for loaded dictionaries)
+        // Add sync status + info button in edit mode (for loaded dictionaries)
         if isEditing && (loadState == .metadataLoaded || loadState == .loaded) {
+            // Per-dict cloud sync status button
+            if let syncStatus = stateProvider?.cloudSyncStatus(forDictId: dict.id) {
+                let syncButton = createSyncStatusButton(for: dict.id, status: syncStatus)
+                let syncConfig = UICellAccessory.CustomViewConfiguration(
+                    customView: syncButton,
+                    placement: .trailing(displayed: .always)
+                )
+                cellAccessories.append(.customView(configuration: syncConfig))
+            }
+
             let infoButton = createInfoButton(for: dict.id)
             let infoConfig = UICellAccessory.CustomViewConfiguration(
                 customView: infoButton,
@@ -324,23 +430,50 @@ final class DefaultGroupDictCell: UICollectionViewListCell {
             )
             cellAccessories.append(.customView(configuration: infoConfig))
         }
-        
+
         accessories = cellAccessories
         contentConfiguration = content
     }
-    
+
+    private func createSyncStatusButton(for dictId: String, status: CloudSyncStatus) -> UIButton {
+        let button = UIButton(type: .system)
+        let iconName: String
+        let tintColor: UIColor
+        switch status {
+        case .synced:
+            iconName = "checkmark.icloud"
+            tintColor = .secondaryLabel
+        case .pending:
+            iconName = "arrow.clockwise.icloud"
+            tintColor = .secondaryLabel
+        case .tooLarge:
+            iconName = "xmark.icloud"
+            tintColor = .systemOrange
+        case .error:
+            iconName = "exclamationmark.icloud"
+            tintColor = .systemRed
+        }
+        button.setImage(UIImage(systemName: iconName), for: .normal)
+        button.tintColor = tintColor
+        button.accessibilityIdentifier = dictId
+        button.addTarget(self, action: #selector(syncStatusTapped(_:)), for: .touchUpInside)
+        return button
+    }
+
+    @objc private func syncStatusTapped(_ sender: UIButton) {
+        guard let dictId = sender.accessibilityIdentifier else { return }
+        stateProvider?.didTapSyncStatus(forDictId: dictId)
+    }
+
     private func createInfoButton(for dictId: String) -> UIButton {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "info.circle"), for: .normal)
         button.tintColor = .systemBlue
-        
-        // Store dictId for action handler
         button.accessibilityIdentifier = dictId
         button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
-        
         return button
     }
-    
+
     @objc private func infoButtonTapped(_ sender: UIButton) {
         guard let dictId = sender.accessibilityIdentifier else { return }
         stateProvider?.didTapInfoButton(forDictId: dictId)
@@ -456,22 +589,45 @@ final class UserGroupDictCell: UICollectionViewListCell {
 
 /// Cell for section headers ("My Groups", "Management").
 final class SidebarHeaderCell: UICollectionViewListCell {
-    
+
     var title: String?
     var isBold: Bool = false
-    
+    /// When true, this header shows an iCloud status trailing icon in edit mode.
+    var showsSyncStatus: Bool = false
+    weak var stateProvider: SidebarStateProvider?
+
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
         guard let title = title else { return }
-        
+
         var content = UIListContentConfiguration.sidebarHeader()
         content.text = title
         if isBold {
             content.textProperties.font = .systemFont(ofSize: 13, weight: .bold)
         }
-        
+
         contentConfiguration = content
-        accessories = [.outlineDisclosure(options: .init(style: .header))]
+
+        var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .header))]
+
+        // iCloud status icon in edit mode (only for "My Groups" header)
+        let isEditing = stateProvider?.isEditingMode ?? false
+        if isEditing && showsSyncStatus, let status = stateProvider?.iCloudMyGroupsSectionStatus() {
+            let button = DefaultGroupCell.createSectionSyncButton(
+                status: status, target: self, action: #selector(syncStatusTapped)
+            )
+            let config = UICellAccessory.CustomViewConfiguration(
+                customView: button,
+                placement: .trailing(displayed: .always)
+            )
+            cellAccessories.append(.customView(configuration: config))
+        }
+
+        accessories = cellAccessories
+    }
+
+    @objc private func syncStatusTapped() {
+        stateProvider?.didTapSectionSyncStatus()
     }
 }
 

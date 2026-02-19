@@ -66,8 +66,10 @@ final class DictionaryFileSyncService {
     private let recordType = "DictionaryArchive"
 
     /// Maximum archive size we are willing to upload (bytes).
-    /// CKAsset allows up to 250 MB per asset.
-    private let maxAssetBytes: Int64 = 250 * 1024 * 1024
+    /// CKAsset technically allows ~50 GB per asset, but we cap uploads to
+    /// protect the user's iCloud storage quota.  Very large dictionaries
+    /// (> 500 MB compressed) are kept local-only.
+    private let maxAssetBytes: Int64 = 500 * 1024 * 1024
 
     // MARK: - Published State
 
@@ -223,6 +225,13 @@ final class DictionaryFileSyncService {
             record = try await database.record(for: recordID)
         } catch {
             debugLog("❌ CloudKit fetch failed for \(dictId.prefix(16)): \(error)")
+
+            // If the CKRecord doesn't exist, mark as error so the progress
+            // dashboard doesn't count it as "downloadable" forever.
+            if let ckError = error as? CKError, ckError.code == .unknownItem {
+                updateSyncStatus(dictId: dictId, status: .error)
+            }
+
             syncProgress.removeValue(forKey: dictId)
             return false
         }
@@ -233,6 +242,7 @@ final class DictionaryFileSyncService {
         guard let asset = record["archiveAsset"] as? CKAsset,
               let assetURL = asset.fileURL else {
             debugLog("❌ No archive asset in CKRecord for \(dictId.prefix(16))")
+            updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
@@ -258,6 +268,7 @@ final class DictionaryFileSyncService {
 
         } catch {
             debugLog("❌ Extract failed for \(dictId.prefix(16)): \(error)")
+            updateSyncStatus(dictId: dictId, status: .error)
             // Clean up partial directory
             try? FileManager.default.removeItem(at: dictDir)
             syncProgress.removeValue(forKey: dictId)

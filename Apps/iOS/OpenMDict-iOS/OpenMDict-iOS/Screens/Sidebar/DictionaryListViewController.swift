@@ -12,9 +12,10 @@
 //  4. No reloadItems/reconfigureItems needed - cells update themselves
 //
 
-import UIKit
+import CloudKit
 import Combine
 import OpenMDictKit
+import UIKit
 
 class DictionaryListViewController: UIViewController, SidebarStateProvider {
     
@@ -66,7 +67,171 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         // Then notify to show group info
         onGroupInfoSelected?(groupId)
     }
-    
+
+    // MARK: - iCloud Sync Status (SidebarStateProvider)
+
+    func cloudSyncStatus(forDictId dictId: String) -> CloudSyncStatus? {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
+        guard let metadata = DictMetadataService.shared.find(dictId: dictId) else { return nil }
+        return CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+    }
+
+    func iCloudSectionStatus() -> ICloudSectionStatus? {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
+        guard let accountStatus = cachedAccountStatus else { return nil }
+
+        // Start with account-level baseline.
+        // Priority: error > temporaryIssue > syncing > healthy
+        // More severe dict-level issues can escalate the baseline.
+        var worst: ICloudSectionStatus
+        switch accountStatus {
+        case .noAccount, .restricted:
+            return .error
+        case .temporarilyUnavailable, .couldNotDetermine:
+            worst = .temporaryIssue
+        case .available:
+            worst = .healthy
+        @unknown default:
+            worst = .temporaryIssue
+        }
+
+        // Check child dict statuses — may escalate to .error
+        let allMetadata = DictMetadataService.shared.loadAll()
+        for metadata in allMetadata {
+            let s = CloudSyncStatus(rawValue: metadata.cloudSyncStatus)
+            if s == .error || s == .tooLarge { return .error }
+            if s == .pending && worst == .healthy { worst = .syncing }
+        }
+        return worst
+    }
+
+    func iCloudGroupStatus(forGroupId groupId: String) -> ICloudSectionStatus? {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
+
+        // Check child dicts in this group.
+        // Priority: error/tooLarge > pending (syncing) > healthy
+        guard let group = DictionaryService.shared.group(id: groupId) else { return .healthy }
+        var hasPending = false
+        for dict in group.items {
+            guard let metadata = DictMetadataService.shared.find(dictId: dict.id) else { continue }
+            let s = CloudSyncStatus(rawValue: metadata.cloudSyncStatus)
+            if s == .error || s == .tooLarge { return .error }
+            if s == .pending { hasPending = true }
+        }
+        return hasPending ? .syncing : .healthy
+    }
+
+    func iCloudMyGroupsSectionStatus() -> ICloudSectionStatus? {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
+
+        // Start with account-level baseline.
+        // Priority: error > temporaryIssue > syncing > healthy
+        var worst: ICloudSectionStatus = .healthy
+        if let accountStatus = cachedAccountStatus {
+            switch accountStatus {
+            case .noAccount, .restricted:
+                return .error
+            case .temporarilyUnavailable, .couldNotDetermine:
+                worst = .temporaryIssue
+            case .available:
+                break
+            @unknown default:
+                worst = .temporaryIssue
+            }
+        }
+
+        // Aggregate per-group statuses — may escalate the baseline.
+        let userGroups = DictionaryService.shared.groups.dropFirst() // skip default group
+        for group in userGroups {
+            guard let groupStatus = iCloudGroupStatus(forGroupId: group.id) else { continue }
+            switch groupStatus {
+            case .error:       return .error
+            case .syncing:
+                if worst == .healthy { worst = .syncing }
+            case .temporaryIssue, .healthy:
+                break
+            }
+        }
+        return worst
+    }
+
+    func didTapSyncStatus(forDictId dictId: String) {
+        guard let status = cloudSyncStatus(forDictId: dictId) else { return }
+        let dict = DictionaryService.shared.dict(id: dictId)
+        let dictName = dict?.preferredTitle ?? dictId.prefix(16).description
+        let metadata = DictMetadataService.shared.find(dictId: dictId)
+
+        let title: String
+        let message: String
+        switch status {
+        case .synced:
+            title = L10n.SyncStatus.syncedTitle
+            message = L10n.SyncStatus.syncedDictMessage(name: dictName)
+        case .pending:
+            title = L10n.SyncStatus.syncingTitle
+            message = L10n.SyncStatus.syncingMessage(name: dictName)
+        case .tooLarge:
+            title = L10n.SyncStatus.cannotSyncTitle
+            let sizeString = Self.formattedSize(kb: metadata?.totalSizeKB ?? 0)
+            message = L10n.SyncStatus.cannotSyncTooLargeMessage(name: dictName, size: sizeString)
+        case .error:
+            title = L10n.SyncStatus.syncErrorTitle
+            message = L10n.SyncStatus.syncErrorMessage(name: dictName)
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
+        present(alert, animated: true)
+    }
+
+    func didTapSectionSyncStatus() {
+        guard let status = iCloudSectionStatus() else { return }
+        let title: String
+        let message: String
+        switch status {
+        case .healthy, .syncing:
+            title = L10n.SyncStatus.iCloudHealthyTitle
+            message = L10n.SyncStatus.iCloudHealthyMessage
+        case .temporaryIssue, .error:
+            title = L10n.SyncStatus.iCloudIssueTitle
+            message = L10n.SyncStatus.iCloudIssueMessage
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
+        present(alert, animated: true)
+    }
+
+    func didTapGroupSyncStatus(forGroupId groupId: String) {
+        let group = DictionaryService.shared.group(id: groupId)
+        let groupName = group?.name ?? groupId.prefix(16).description
+        let status = iCloudGroupStatus(forGroupId: groupId) ?? .healthy
+
+        let title: String
+        let message: String
+        switch status {
+        case .healthy:
+            title = L10n.SyncStatus.syncedTitle
+            message = L10n.SyncStatus.syncedGroupMessage(name: groupName)
+        case .syncing:
+            title = L10n.SyncStatus.iCloudHealthyTitle
+            message = L10n.SyncStatus.iCloudHealthyMessage
+        case .temporaryIssue, .error:
+            title = L10n.SyncStatus.iCloudIssueTitle
+            message = L10n.SyncStatus.iCloudIssueMessage
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
+        present(alert, animated: true)
+    }
+
+    /// Format KB size into a human-readable string (e.g. "323.76 MB")
+    private static func formattedSize(kb: Int64) -> String {
+        let bytes = Double(kb) * 1024
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+
     // MARK: - Data
     
     private var groups: [MDicts] { DictionaryService.shared.groups }
@@ -82,7 +247,16 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private var groupItemsCancellables = Set<AnyCancellable>()
     /// Subscription to dictionary display name changes (remote renames)
     private var displayNameCancellable: AnyCancellable?
-    
+    /// Subscription to DictMetadataService revision (cloudSyncStatus changes)
+    private var metadataRevisionCancellable: AnyCancellable?
+
+    /// Cached CKAccountStatus for iCloud health indicator on section headers.
+    /// Defaults to `.available` (optimistic) so the first cell render already
+    /// shows an iCloud icon; `refreshCKAccountStatus()` corrects it async.
+    private var cachedAccountStatus: CKAccountStatus? = {
+        SyncModeService.shared.isCloudSyncEnabled ? .available : nil
+    }()
+
     private enum Section: Int, CaseIterable {
         case defaultGroup
         case userGroups
@@ -207,6 +381,37 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             .sink { [weak self] _ in
                 self?.invalidateVisibleCellConfigurations()
             }
+
+        // 6. Subscribe to metadata revision (cloudSyncStatus changes after upload/download)
+        metadataRevisionCancellable = DictMetadataService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.invalidateVisibleCellConfigurations()
+            }
+
+        // 7. Refresh CKAccountStatus when returning from Settings
+        if SyncModeService.shared.isCloudSyncEnabled {
+            refreshCKAccountStatus()
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(handleDidBecomeActive),
+                name: UIScene.didActivateNotification, object: nil
+            )
+        }
+    }
+
+    @objc private func handleDidBecomeActive() {
+        refreshCKAccountStatus()
+    }
+
+    /// Async-check CKAccountStatus and cache the result.
+    private func refreshCKAccountStatus() {
+        Task {
+            let container = CKContainer(identifier: AppIdentifiers.cloudKitContainerID)
+            let status = try? await container.accountStatus()
+            self.cachedAccountStatus = status ?? .couldNotDetermine
+            self.invalidateVisibleCellConfigurations()
+        }
     }
 
     /// Handle dictionary list changes (import/delete)
@@ -322,11 +527,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
         
         // Section Header Cell
-        let headerReg = UICollectionView.CellRegistration<SidebarHeaderCell, (String, Bool)> {
-            cell, indexPath, tuple in
-            let (title, isBold) = tuple
+        let headerReg = UICollectionView.CellRegistration<SidebarHeaderCell, (String, Bool, Bool)> {
+            [weak self] cell, indexPath, tuple in
+            let (title, isBold, showsSyncStatus) = tuple
             cell.title = title
             cell.isBold = isBold
+            cell.showsSyncStatus = showsSyncStatus
+            cell.stateProvider = self
         }
         
         // Management Action Cell
@@ -342,8 +549,10 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             
             switch item {
             case .header(let title, let isBold):
+                // "My Groups" header shows iCloud sync status; "Management" does not.
+                let showsSyncStatus = (title == L10n.Sidebar.myGroups)
                 return collectionView.dequeueConfiguredReusableCell(
-                    using: headerReg, for: indexPath, item: (title, isBold)
+                    using: headerReg, for: indexPath, item: (title, isBold, showsSyncStatus)
                 )
                 
             case .group(let id, let isDefault):

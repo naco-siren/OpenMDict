@@ -346,6 +346,15 @@ final class CloudSyncProgressViewController: UIViewController {
 
         Task {
             for metadata in allMetadata {
+                // Only attempt download for dicts whose archive is already in CloudKit.
+                // If the originating device hasn't finished uploading (status == .pending)
+                // or the dict is too large / errored, skip — the CKRecord doesn't exist.
+                let syncStatus = CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+                guard syncStatus == .synced else {
+                    debugLog("☁️ CloudSyncProgress: skip \(metadata.dictId.prefix(16)) — cloudSyncStatus=\(syncStatus)")
+                    continue
+                }
+
                 let dictDir = DictionaryStorageService.shared.dictionaryDirectoryURL(id: metadata.dictId)
                 if FileManager.default.fileExists(atPath: dictDir.path) {
                     continue // Already present
@@ -375,13 +384,27 @@ final class CloudSyncProgressViewController: UIViewController {
     private func refreshCounts() {
         let stack = CoreDataStack.shared
 
-        // Dictionaries: count metadata records with local files
+        // Dictionaries: count metadata records with local files.
+        // Adjust the effective target to only count dicts whose archive
+        // is actually in CloudKit (.synced).  Dicts that are still .pending
+        // on the originating device, .tooLarge, or .error cannot be downloaded.
         let allMetadata = DictMetadataService.shared.loadAll()
         let dictsWithFiles = allMetadata.filter { metadata in
             let dictDir = DictionaryStorageService.shared.dictionaryDirectoryURL(id: metadata.dictId)
             return FileManager.default.fileExists(atPath: dictDir.path)
         }
         categoryStates[.dictionaries]?.current = dictsWithFiles.count
+
+        // Adjust target to only downloadable dicts (avoid stalling on un-uploaded dicts)
+        if syncPhase == .downloadingFiles || syncPhase == .complete {
+            let downloadableDicts = allMetadata.filter {
+                CloudSyncStatus(rawValue: $0.cloudSyncStatus) == .synced
+            }
+            categoryStates[.dictionaries]?.target = max(
+                downloadableDicts.count,
+                dictsWithFiles.count
+            )
+        }
 
         // Groups: CoreData count
         let groupRequest = NSFetchRequest<NSNumber>(entityName: "DictionaryGroupRecord")

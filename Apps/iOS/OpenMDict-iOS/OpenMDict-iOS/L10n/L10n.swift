@@ -1076,4 +1076,81 @@ nonisolated enum L10n {
             NSLocalizedString("syncProgress.syncing", value: "Syncing\u{2026}", comment: "Cloud sync progress: syncing button (disabled)")
         }
     }
+
+    // MARK: - Sidebar Sync Status
+
+    enum SyncStatus {
+        // -- Per-dictionary statuses --
+
+        /// Alert title when dictionary is synced
+        static var syncedTitle: String {
+            NSLocalizedString("syncStatus.synced.title", value: "Synced", comment: "Sidebar sync status alert: synced title")
+        }
+        /// Alert message when dictionary is synced — includes dict name
+        static func syncedDictMessage(name: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncStatus.synced.dictMessage", value: "\u{201C}%@\u{201D} has been synced to your iCloud.", comment: "Sidebar sync status alert: dictionary synced message. %@ = dictionary name"),
+                name
+            )
+        }
+        /// Alert message when group is synced — includes group name
+        static func syncedGroupMessage(name: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncStatus.synced.groupMessage", value: "\u{201C}%@\u{201D} has been synced to your iCloud.", comment: "Sidebar sync status alert: group synced message. %@ = group name"),
+                name
+            )
+        }
+        /// Alert title when dictionary is pending upload
+        static var syncingTitle: String {
+            NSLocalizedString("syncStatus.syncing.title", value: "Syncing", comment: "Sidebar sync status alert: syncing title")
+        }
+        /// Alert message when dictionary is pending upload — includes dict name
+        static func syncingMessage(name: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncStatus.syncing.message", value: "\u{201C}%@\u{201D} is waiting to be synced to your iCloud.", comment: "Sidebar sync status alert: syncing message. %@ = dictionary name"),
+                name
+            )
+        }
+        /// Alert title when dictionary is too large
+        static var cannotSyncTitle: String {
+            NSLocalizedString("syncStatus.cannotSync.title", value: "Cannot Sync", comment: "Sidebar sync status alert: cannot sync title")
+        }
+        /// Alert message when dictionary is too large — includes dict name and size
+        static func cannotSyncTooLargeMessage(name: String, size: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncStatus.cannotSync.tooLargeMessage", value: "\u{201C}%1$@\u{201D} (%2$@) exceeds the current sync size limit (500 MB) and cannot be synced to iCloud. It is stored locally on this device only.", comment: "Sidebar sync status alert: too large message. %1$@ = dictionary name, %2$@ = file size"),
+                name, size
+            )
+        }
+        /// Alert title when dictionary sync failed
+        static var syncErrorTitle: String {
+            NSLocalizedString("syncStatus.error.title", value: "Sync Error", comment: "Sidebar sync status alert: error title")
+        }
+        /// Alert message when dictionary sync failed — includes dict name
+        static func syncErrorMessage(name: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncStatus.error.message", value: "\u{201C}%@\u{201D} could not be synced to your iCloud. It will be retried automatically.", comment: "Sidebar sync status alert: error message. %@ = dictionary name"),
+                name
+            )
+        }
+
+        // -- Section-level iCloud account status --
+
+        /// Alert title when iCloud is healthy
+        static var iCloudHealthyTitle: String {
+            NSLocalizedString("syncStatus.iCloudHealthy.title", value: "iCloud Sync Active", comment: "Sidebar sync status alert: iCloud healthy title")
+        }
+        /// Alert message when iCloud is healthy
+        static var iCloudHealthyMessage: String {
+            NSLocalizedString("syncStatus.iCloudHealthy.message", value: "Your data is being synced to iCloud.", comment: "Sidebar sync status alert: iCloud healthy message")
+        }
+        /// Alert title when iCloud has issues
+        static var iCloudIssueTitle: String {
+            NSLocalizedString("syncStatus.iCloudIssue.title", value: "iCloud Sync Unavailable", comment: "Sidebar sync status alert: iCloud issue title")
+        }
+        /// Alert message when iCloud has issues
+        static var iCloudIssueMessage: String {
+            NSLocalizedString("syncStatus.iCloudIssue.message", value: "iCloud sync is currently unavailable. Please check your iCloud settings and network connection.", comment: "Sidebar sync status alert: iCloud issue message")
+        }
+    }
 }
