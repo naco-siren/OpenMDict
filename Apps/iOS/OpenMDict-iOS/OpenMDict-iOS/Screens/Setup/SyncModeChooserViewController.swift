@@ -5,14 +5,15 @@
 //  Setup step: choose between iCloud sync and offline mode.
 //
 //  Two-zone layout (matches WelcomePageViewController):
-//    - Upper zone: cloud icon + title + description text
+//    - Upper zone: Column { icon, title, message }
 //    - Lower zone: CTA1 (filled) + CTA2 (plain)
 //
-//  Three UI states:
-//    .loading       — spinner + "Checking iCloud..."
-//    .available     — CTA1 = "Restore from iCloud" or "Use iCloud Sync"
-//    .unavailable   — error message + CTA1 = "Retry"
+//  State communicated through icon + message color:
+//    .loading / .available  — "icloud" (blue) + description (secondaryLabel)
+//    .unavailable(noNetwork)— "wifi.exclamationmark" (blue) + reason (systemRed)
+//    .unavailable(other)    — "exclamationmark.icloud" (blue) + reason (systemRed)
 //
+//  CTA1 during loading: disabled + Row { spinner, "Checking iCloud..." }
 //  CTA2 ("Don't Use iCloud") is always visible.
 //
 
@@ -69,11 +70,8 @@ final class SyncModeChooserViewController: UIViewController {
         return stack
     }()
 
-    private let cloudImageView: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
-            .applying(UIImage.SymbolConfiguration(paletteColors: [.systemBlue]))
-        let image = UIImage(systemName: "icloud", withConfiguration: config)
-        let iv = UIImageView(image: image)
+    private let iconImageView: UIImageView = {
+        let iv = UIImageView()
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -93,45 +91,13 @@ final class SyncModeChooserViewController: UIViewController {
         return label
     }()
 
-    private let descriptionLabel: UILabel = {
+    /// Shows description (normal) or error reason (red) depending on state.
+    private let messageLabel: UILabel = {
         let label = UILabel()
-        label.text = L10n.SyncChooser.description
         label.font = .preferredFont(forTextStyle: .body)
-        label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
-        return label
-    }()
-
-    /// Shown in `.loading` state.
-    private let spinner: UIActivityIndicatorView = {
-        let s = UIActivityIndicatorView(style: .medium)
-        s.translatesAutoresizingMaskIntoConstraints = false
-        s.hidesWhenStopped = true
-        return s
-    }()
-
-    /// Shown in `.loading` state.
-    private let checkingLabel: UILabel = {
-        let label = UILabel()
-        label.text = L10n.SyncChooser.checkingICloud
-        label.font = .preferredFont(forTextStyle: .subheadline)
-        label.textColor = .tertiaryLabel
-        label.textAlignment = .center
-        label.adjustsFontForContentSizeCategory = true
-        return label
-    }()
-
-    /// Shown in `.unavailable` state — describes the error.
-    private let errorLabel: UILabel = {
-        let label = UILabel()
-        label.font = .preferredFont(forTextStyle: .callout)
-        label.textColor = .systemRed
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.adjustsFontForContentSizeCategory = true
-        label.isHidden = true
         return label
     }()
 
@@ -233,28 +199,13 @@ final class SyncModeChooserViewController: UIViewController {
             contentStack.widthAnchor.constraint(lessThanOrEqualToConstant: maxWidth),
         ])
 
-        // Cloud icon
-        contentStack.addArrangedSubview(cloudImageView)
-        contentStack.setCustomSpacing(12, after: cloudImageView)
+        contentStack.addArrangedSubview(iconImageView)
+        contentStack.setCustomSpacing(12, after: iconImageView)
 
-        // Title
         contentStack.addArrangedSubview(titleLabel)
         contentStack.setCustomSpacing(8, after: titleLabel)
 
-        // Description
-        contentStack.addArrangedSubview(descriptionLabel)
-        contentStack.setCustomSpacing(24, after: descriptionLabel)
-
-        // Spinner + checking label (hidden by default via applyState)
-        let loadingStack = UIStackView(arrangedSubviews: [spinner, checkingLabel])
-        loadingStack.axis = .horizontal
-        loadingStack.spacing = 8
-        loadingStack.alignment = .center
-        loadingStack.tag = 100  // for lookup in applyState
-        contentStack.addArrangedSubview(loadingStack)
-
-        // Error label (hidden by default)
-        contentStack.addArrangedSubview(errorLabel)
+        contentStack.addArrangedSubview(messageLabel)
     }
 
     private func setupFooterZone() {
@@ -288,22 +239,28 @@ final class SyncModeChooserViewController: UIViewController {
     private func applyState() {
         guard isViewLoaded else { return }
 
-        let loadingStack = contentStack.viewWithTag(100)
-
         switch state {
         case .loading:
-            spinner.startAnimating()
-            loadingStack?.isHidden = false
-            errorLabel.isHidden = true
+            let iconConfig = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
+                .applying(UIImage.SymbolConfiguration(paletteColors: [.systemBlue]))
+            iconImageView.image = UIImage(systemName: "icloud", withConfiguration: iconConfig)
+            titleLabel.text = L10n.SyncChooser.title
+            messageLabel.text = L10n.SyncChooser.description
+            messageLabel.textColor = .secondaryLabel
+
             primaryButton.isEnabled = false
-            primaryButton.configuration?.title = L10n.SyncChooser.checkingICloud
             primaryButton.configuration?.showsActivityIndicator = true
+            primaryButton.configuration?.title = L10n.SyncChooser.checkingICloud
 
         case .available(let hasData):
             self.hasData = hasData
-            spinner.stopAnimating()
-            loadingStack?.isHidden = true
-            errorLabel.isHidden = true
+            let iconConfig = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
+                .applying(UIImage.SymbolConfiguration(paletteColors: [.systemBlue]))
+            iconImageView.image = UIImage(systemName: "icloud", withConfiguration: iconConfig)
+            titleLabel.text = L10n.SyncChooser.title
+            messageLabel.text = L10n.SyncChooser.description
+            messageLabel.textColor = .secondaryLabel
+
             primaryButton.isEnabled = true
             primaryButton.configuration?.showsActivityIndicator = false
             primaryButton.configuration?.title = hasData
@@ -311,10 +268,16 @@ final class SyncModeChooserViewController: UIViewController {
                 : L10n.SyncChooser.useICloudSync
 
         case .unavailable(let reason):
-            spinner.stopAnimating()
-            loadingStack?.isHidden = true
-            errorLabel.isHidden = false
-            errorLabel.text = errorMessage(for: reason)
+            let iconConfig = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
+                .applying(UIImage.SymbolConfiguration(paletteColors: [.systemRed]))
+            let iconName = reason == .noNetwork ? "wifi.exclamationmark" : "exclamationmark.icloud"
+            iconImageView.image = UIImage(systemName: iconName, withConfiguration: iconConfig)
+            titleLabel.text = reason == .noNetwork
+                ? L10n.SyncChooser.errorNoNetworkTitle
+                : L10n.SyncChooser.errorICloudNotAvailableTitle
+            messageLabel.text = errorMessage(for: reason)
+            messageLabel.textColor = .secondaryLabel
+
             primaryButton.isEnabled = true
             primaryButton.configuration?.showsActivityIndicator = false
             primaryButton.configuration?.title = L10n.SyncChooser.retry

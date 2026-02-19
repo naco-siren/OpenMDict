@@ -937,11 +937,11 @@ nonisolated enum L10n {
     enum SyncChooser {
         /// Screen title
         static var title: String {
-            NSLocalizedString("syncChooser.title", value: "iCloud Sync", comment: "Sync chooser: screen title")
+            NSLocalizedString("syncChooser.title", value: "Sync with iCloud", comment: "Sync chooser: screen title")
         }
         /// Description text below the title
         static var description: String {
-            NSLocalizedString("syncChooser.description", value: "Sync your dictionaries, bookmarks, and lookup history across all your devices.", comment: "Sync chooser: description text")
+            NSLocalizedString("syncChooser.description", value: "Sync your dictionaries, groups, bookmarks, and lookup history across all your devices.", comment: "Sync chooser: description text")
         }
         /// Shown while checking iCloud availability
         static var checkingICloud: String {
@@ -963,25 +963,33 @@ nonisolated enum L10n {
         static var dontUseICloud: String {
             NSLocalizedString("syncChooser.dontUseICloud", value: "Don\u{2019}t Use iCloud", comment: "Sync chooser: button to skip iCloud sync")
         }
-        /// Error: no network
+        /// Error title: no network (replaces main title)
+        static var errorNoNetworkTitle: String {
+            NSLocalizedString("syncChooser.errorNoNetworkTitle", value: "No Network", comment: "Sync chooser: title shown when no network is available")
+        }
+        /// Error title: iCloud not available (replaces main title)
+        static var errorICloudNotAvailableTitle: String {
+            NSLocalizedString("syncChooser.errorICloudNotAvailableTitle", value: "iCloud Not Available", comment: "Sync chooser: title shown when iCloud is not available")
+        }
+        /// Error reason: no network
         static var errorNoNetwork: String {
-            NSLocalizedString("syncChooser.errorNoNetwork", value: "No network connection. Check your internet and try again.", comment: "Sync chooser: error when no network is available")
+            NSLocalizedString("syncChooser.errorNoNetwork", value: "Check your internet connection and try again.", comment: "Sync chooser: reason text when no network is available")
         }
-        /// Error: not signed in to iCloud
+        /// Error reason: iCloud not available (covers both "not signed in" and "app toggle off")
         static var errorNotSignedIn: String {
-            NSLocalizedString("syncChooser.errorNotSignedIn", value: "You are not signed in to iCloud. Sign in from Settings to use iCloud sync.", comment: "Sync chooser: error when iCloud account is not signed in")
+            NSLocalizedString("syncChooser.errorNotSignedIn", value: "Make sure you are signed in to iCloud and that OpenMDict is enabled in iCloud settings.", comment: "Sync chooser: reason text when iCloud account is not available")
         }
-        /// Error: iCloud restricted (e.g. MDM)
+        /// Error reason: iCloud restricted (e.g. MDM)
         static var errorRestricted: String {
-            NSLocalizedString("syncChooser.errorRestricted", value: "iCloud access is restricted on this device.", comment: "Sync chooser: error when iCloud is restricted by MDM or parental controls")
+            NSLocalizedString("syncChooser.errorRestricted", value: "iCloud access is restricted on this device.", comment: "Sync chooser: reason text when iCloud is restricted by MDM or parental controls")
         }
-        /// Error: iCloud temporarily unavailable
+        /// Error reason: iCloud temporarily unavailable
         static var errorTemporarilyUnavailable: String {
-            NSLocalizedString("syncChooser.errorTemporarilyUnavailable", value: "iCloud is temporarily unavailable. Please try again later.", comment: "Sync chooser: error when iCloud is temporarily unavailable")
+            NSLocalizedString("syncChooser.errorTemporarilyUnavailable", value: "iCloud is temporarily unavailable. Please try again later.", comment: "Sync chooser: reason text when iCloud is temporarily unavailable")
         }
-        /// Error: unknown reason
+        /// Error reason: unknown
         static var errorUnknown: String {
-            NSLocalizedString("syncChooser.errorUnknown", value: "Unable to check iCloud availability.", comment: "Sync chooser: generic error when iCloud check fails")
+            NSLocalizedString("syncChooser.errorUnknown", value: "Unable to determine iCloud availability.", comment: "Sync chooser: reason text when iCloud check fails for unknown reason")
         }
         /// Alert title for offline choice confirmation
         static var offlineAlertTitle: String {

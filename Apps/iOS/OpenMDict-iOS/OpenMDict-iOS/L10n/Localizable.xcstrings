@@ -17932,79 +17932,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "زامن قواميسك وإشاراتك المرجعية وسجل البحث عبر جميع أجهزتك."
+            "value": "مزامنة القواميس والمجموعات والإشارات المرجعية وسجل البحث عبر جميع أجهزتك."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synchronisiere Wörterbücher, Lesezeichen und Suchverlauf auf all deinen Geräten."
+            "value": "Synchronisiere Wörterbücher, Gruppen, Lesezeichen und Suchverlauf auf all deinen Geräten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sync your dictionaries, bookmarks, and lookup history across all your devices."
+            "value": "Sync your dictionaries, groups, bookmarks, and lookup history across all your devices."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sincroniza tus diccionarios, marcadores e historial de búsqueda en todos tus dispositivos."
+            "value": "Sincroniza tus diccionarios, grupos, marcadores e historial de búsqueda en todos tus dispositivos."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synchronisez vos dictionnaires, signets et historique de recherche sur tous vos appareils."
+            "value": "Synchronisez vos dictionnaires, groupes, signets et historique de recherche sur tous vos appareils."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "अपने सभी उपकरणों पर अपने शब्दकोश, बुकमार्क और खोज इतिहास को सिंक करें।"
+            "value": "अपने सभी उपकरणों पर शब्दकोश, समूह, बुकमार्क और खोज इतिहास सिंक करें।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "すべてのデバイスで辞書、ブックマーク、検索履歴を同期します。"
+            "value": "すべてのデバイスで辞書、グループ、ブックマーク、検索履歴を同期します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "모든 기기에서 사전, 북마크 및 검색 기록을 동기화합니다."
+            "value": "모든 기기에서 사전, 그룹, 북마크 및 검색 기록을 동기화합니다."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sincronize seus dicionários, favoritos e histórico de consultas em todos os seus dispositivos."
+            "value": "Sincronize seus dicionários, grupos, favoritos e histórico de consultas em todos os seus dispositivos."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронизируйте словари, закладки и историю поиска на всех ваших устройствах."
+            "value": "Синхронизируйте словари, группы, закладки и историю поиска на всех ваших устройствах."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронізуйте словники, закладки та історію пошуку на всіх ваших пристроях."
+            "value": "Синхронізуйте словники, групи, закладки та історію пошуку на всіх ваших пристроях."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在所有设备上同步你的词典、书签和查询历史。"
+            "value": "在所有设备间同步词典、分组、书签和查词历史。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在所有裝置上同步你的辭典、書籤和查詢歷史。"
+            "value": "在所有裝置間同步辭典、群組、書籤和查詞紀錄。"
           }
         }
       }
@@ -18100,79 +18100,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لا يوجد اتصال بالشبكة. تحقق من الإنترنت وحاول مرة أخرى."
+            "value": "تحقق من اتصالك بالإنترنت وحاول مرة أخرى."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Netzwerkverbindung. Überprüfe deine Internetverbindung und versuche es erneut."
+            "value": "Überprüfe deine Internetverbindung und versuche es erneut."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No network connection. Check your internet and try again."
+            "value": "Check your internet connection and try again."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sin conexión de red. Comprueba tu conexión a internet e inténtalo de nuevo."
+            "value": "Comprueba tu conexión a internet e inténtalo de nuevo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune connexion réseau. Vérifiez votre connexion Internet et réessayez."
+            "value": "Vérifiez votre connexion internet et réessayez."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कोई नेटवर्क कनेक्शन नहीं। अपना इंटरनेट जाँचें और पुनः प्रयास करें।"
+            "value": "अपना इंटरनेट कनेक्शन जाँचें और पुनः प्रयास करें।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ネットワーク接続がありません。インターネット接続を確認して再試行してください。"
+            "value": "インターネット接続を確認して、もう一度お試しください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "네트워크 연결이 없습니다. 인터넷 연결을 확인하고 다시 시도하세요."
+            "value": "인터넷 연결을 확인하고 다시 시도하세요."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sem conexão de rede. Verifique sua internet e tente novamente."
+            "value": "Verifique sua conexão com a internet e tente novamente."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нет сетевого подключения. Проверьте интернет и попробуйте снова."
+            "value": "Проверьте подключение к интернету и повторите попытку."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Немає мережевого з’єднання. Перевірте інтернет та спробуйте знову."
+            "value": "Перевірте підключення до інтернету та спробуйте знову."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无网络连接。请检查网络后重试。"
+            "value": "请检查网络连接后重试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "沒有網路連線。請檢查網路後重試。"
+            "value": "請檢查網路連線後重試。"
           }
         }
       }
@@ -18184,79 +18184,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لم يتم تسجيل الدخول إلى iCloud. سجّل الدخول من الإعدادات لاستخدام مزامنة iCloud."
+            "value": "تأكد من تسجيل الدخول إلى iCloud ومن تفعيل OpenMDict في إعدادات iCloud."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Du bist nicht bei iCloud angemeldet. Melde dich in den Einstellungen an, um iCloud-Sync zu nutzen."
+            "value": "Stelle sicher, dass du bei iCloud angemeldet bist und OpenMDict in den iCloud-Einstellungen aktiviert ist."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are not signed in to iCloud. Sign in from Settings to use iCloud sync."
+            "value": "Make sure you are signed in to iCloud and that OpenMDict is enabled in iCloud settings."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No has iniciado sesión en iCloud. Inicia sesión desde Ajustes para usar la sincronización de iCloud."
+            "value": "Asegúrate de haber iniciado sesión en iCloud y de que OpenMDict esté activado en los ajustes de iCloud."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous n’êtes pas connecté à iCloud. Connectez-vous depuis Réglages pour utiliser la synchronisation iCloud."
+            "value": "Assurez-vous d'être connecté à iCloud et que OpenMDict est activé dans les réglages iCloud."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आप iCloud में साइन इन नहीं हैं। iCloud सिंक का उपयोग करने के लिए सेटिंग्स से साइन इन करें।"
+            "value": "सुनिश्चित करें कि आप iCloud में साइन इन हैं और iCloud सेटिंग्स में OpenMDict सक्षम है।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud にサインインしていません。iCloud 同期を使用するには、設定からサインインしてください。"
+            "value": "iCloud にサインインしていること、および iCloud 設定で OpenMDict が有効になっていることを確認してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud에 로그인되어 있지 않습니다. iCloud 동기화를 사용하려면 설정에서 로그인하세요."
+            "value": "iCloud에 로그인되어 있고 iCloud 설정에서 OpenMDict가 활성화되어 있는지 확인하세요."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Você não está conectado ao iCloud. Inicie sessão em Ajustes para usar a sincronização do iCloud."
+            "value": "Certifique-se de que você está conectado ao iCloud e que o OpenMDict está ativado nos ajustes do iCloud."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Вы не вошли в iCloud. Войдите через Настройки, чтобы использовать синхронизацию iCloud."
+            "value": "Убедитесь, что вы вошли в iCloud и OpenMDict включён в настройках iCloud."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ви не увійшли в iCloud. Увійдіть через Параметри, щоб використовувати синхронізацію iCloud."
+            "value": "Переконайтеся, що ви увійшли в iCloud і OpenMDict увімкнено в налаштуваннях iCloud."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你尚未登录 iCloud。请前往“设置”登录以使用 iCloud 同步。"
+            "value": "请确保已登录 iCloud，且在 iCloud 设置中已启用 OpenMDict。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你尚未登入 iCloud。請前往「設定」登入以使用 iCloud 同步。"
+            "value": "請確保已登入 iCloud，且在 iCloud 設定中已啟用 OpenMDict。"
           }
         }
       }
@@ -18436,43 +18436,43 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تعذر التحقق من توفر iCloud."
+            "value": "تعذر تحديد توفر iCloud."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud-Verfügbarkeit konnte nicht überprüft werden."
+            "value": "Die iCloud-Verfügbarkeit konnte nicht ermittelt werden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unable to check iCloud availability."
+            "value": "Unable to determine iCloud availability."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo comprobar la disponibilidad de iCloud."
+            "value": "No se pudo determinar la disponibilidad de iCloud."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de vérifier la disponibilité d’iCloud."
+            "value": "Impossible de déterminer la disponibilité d'iCloud."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud की उपलब्धता जाँचने में असमर्थ।"
+            "value": "iCloud उपलब्धता निर्धारित करने में असमर्थ।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud の利用状況を確認できません。"
+            "value": "iCloud の利用可否を確認できませんでした。"
           }
         },
         "ko": {
@@ -18490,25 +18490,25 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не удалось проверить доступность iCloud."
+            "value": "Не удалось определить доступность iCloud."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не вдалося перевірити доступність iCloud."
+            "value": "Не вдалося визначити доступність iCloud."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法检查 iCloud 可用性。"
+            "value": "无法确定 iCloud 可用性。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "無法檢查 iCloud 可用性。"
+            "value": "無法確定 iCloud 可用性。"
           }
         }
       }
@@ -18856,79 +18856,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "مزامنة iCloud"
+            "value": "المزامنة مع iCloud"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud-Synchronisierung"
+            "value": "Mit iCloud synchronisieren"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud Sync"
+            "value": "Sync with iCloud"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sincronización de iCloud"
+            "value": "Sincronizar con iCloud"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synchronisation iCloud"
+            "value": "Synchroniser avec iCloud"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud सिंक"
+            "value": "iCloud के साथ सिंक करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud 同期"
+            "value": "iCloudと同期"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud 동기화"
+            "value": "iCloud와 동기화"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sincronização do iCloud"
+            "value": "Sincronizar com o iCloud"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронизация iCloud"
+            "value": "Синхронизация с iCloud"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронізація iCloud"
+            "value": "Синхронізація з iCloud"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud 同步"
+            "value": "使用 iCloud 同步"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud 同步"
+            "value": "使用 iCloud 同步"
           }
         }
       }
@@ -20609,6 +20609,174 @@
           "stringUnit": {
             "state": "translated",
             "value": "查詞"
+          }
+        }
+      }
+    },
+    "syncChooser.errorNoNetworkTitle": {
+      "comment": "Sync chooser: title for no-network error alert",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد شبكة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Netzwerk"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Network"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin red"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas de réseau"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नेटवर्क नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークなし"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "네트워크 없음"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem rede"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет сети"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає мережі"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无网络"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有網路"
+          }
+        }
+      }
+    },
+    "syncChooser.errorICloudNotAvailableTitle": {
+      "comment": "Sync chooser: title for iCloud-not-available error alert",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud غير متوفر"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud nicht verfügbar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Not Available"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud no disponible"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud non disponible"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud उपलब्ध नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud を利用できません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 사용 불가"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud indisponível"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud недоступен"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud недоступний"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 不可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 不可用"
           }
         }
       }
