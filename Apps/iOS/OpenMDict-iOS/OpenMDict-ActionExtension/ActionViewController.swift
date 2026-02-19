@@ -162,6 +162,9 @@ class ActionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Extensions are short-lived, read-only — never need CloudKit sync.
+        CoreDataStack.shared.setup(enableCloudKit: false)
+
         view.backgroundColor = .systemBackground
 
         configureNavigationBar()

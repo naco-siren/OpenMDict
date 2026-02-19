@@ -6,10 +6,15 @@
 //  Provides a main-queue viewContext for reads and
 //  background contexts for writes.
 //
-//  Uses NSPersistentCloudKitContainer for iCloud sync.
-//  When the user is not signed in to iCloud or has iCloud Drive
-//  disabled, the container falls back to local-only storage
-//  automatically — no crash, just no sync.
+//  Uses NSPersistentCloudKitContainer.  CloudKit sync is enabled
+//  or disabled based on the `enableCloudKit` parameter passed to
+//  `setup(enableCloudKit:)`.  When disabled, the container still
+//  uses NSPersistentCloudKitContainer (for uniform API) but omits
+//  `cloudKitContainerOptions` — making it a local-only store.
+//
+//  Persistent history tracking is ALWAYS enabled, even in offline
+//  mode.  This allows a future offline → cloud transition to export
+//  pre-existing records to CloudKit automatically.
 //
 
 import CloudKit
@@ -35,11 +40,84 @@ final class CoreDataStack {
 
     // MARK: - Container
 
-    /// Persistent container for the OpenMDict_iOS data model.
-    /// Lazily loaded — the store is created on first access.
-    /// Store is placed in the App Group shared container for extension access.
-    /// Uses NSPersistentCloudKitContainer to enable iCloud sync.
-    private lazy var persistentContainer: NSPersistentContainer = {
+    /// Backing storage — set by `setup(enableCloudKit:)` or
+    /// `reloadWithCloudKit()`.  Accessing before `setup()` is a
+    /// programmer error.
+    private var _persistentContainer: NSPersistentContainer?
+
+    private var persistentContainer: NSPersistentContainer {
+        guard let c = _persistentContainer else {
+            fatalError("CoreDataStack.setup(enableCloudKit:) must be called before accessing the container")
+        }
+        return c
+    }
+
+    // MARK: - Contexts
+
+    /// Main-queue context for reads and lightweight UI-driven writes.
+    var viewContext: NSManagedObjectContext {
+        persistentContainer.viewContext
+    }
+
+    /// Create a new private-queue context for background writes.
+    func newBackgroundContext() -> NSManagedObjectContext {
+        let ctx = persistentContainer.newBackgroundContext()
+        ctx.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        return ctx
+    }
+
+    // MARK: - Lifecycle
+
+    /// Initialise the persistent store.
+    /// Call once, early in the app lifecycle (AppDelegate).
+    ///
+    /// - Parameter enableCloudKit: When `true`, the store description
+    ///   includes `cloudKitContainerOptions` and CloudKit sync begins
+    ///   immediately.  When `false`, the store is local-only.
+    func setup(enableCloudKit: Bool) {
+        guard _persistentContainer == nil else { return }
+        _persistentContainer = createContainer(enableCloudKit: enableCloudKit)
+        installRemoteChangeObserver()
+    }
+
+    /// Tear down the current (local-only) container and recreate it
+    /// with CloudKit sync enabled.
+    ///
+    /// **Safety**: Only call during first-launch setup, when the store
+    /// is empty and no Service has cached a viewContext reference.
+    /// `DictionaryService.setup()` must NOT have been called yet.
+    func reloadWithCloudKit() {
+        // Remove existing observer
+        if let obs = remoteChangeObserver {
+            NotificationCenter.default.removeObserver(obs)
+            remoteChangeObserver = nil
+        }
+
+        // Recreate container with CloudKit
+        _persistentContainer = createContainer(enableCloudKit: true)
+        installRemoteChangeObserver()
+
+        debugLog("☁️ CoreDataStack: reloaded with CloudKit enabled")
+    }
+
+    /// Save the viewContext if it has changes.
+    func saveViewContext() {
+        let ctx = viewContext
+        guard ctx.hasChanges else { return }
+        do {
+            try ctx.save()
+        } catch {
+            debugLog("❌ CoreData viewContext save failed: \(error)")
+        }
+    }
+
+    // MARK: - Private
+
+    /// Build and load a persistent container.
+    ///
+    /// - Parameter enableCloudKit: Whether to attach CloudKit sync
+    ///   options to the store description.
+    private func createContainer(enableCloudKit: Bool) -> NSPersistentContainer {
         let container = NSPersistentCloudKitContainer(name: "OpenMDict_iOS")
 
         // Place the store in the App Group shared container so that
@@ -59,12 +137,16 @@ final class CoreDataStack {
 
         let description = NSPersistentStoreDescription(url: storeURL)
 
-        // CloudKit configuration
-        description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-            containerIdentifier: AppIdentifiers.cloudKitContainerID
-        )
+        // CloudKit configuration — only when user opted in
+        if enableCloudKit {
+            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                containerIdentifier: AppIdentifiers.cloudKitContainerID
+            )
+        }
 
-        // Persistent history tracking (required by CloudKit sync)
+        // Persistent history tracking — ALWAYS enabled.
+        // Required by CloudKit sync, and also allows a future
+        // offline → cloud transition to export existing records.
         description.setOption(true as NSNumber,
                               forKey: NSPersistentHistoryTrackingKey)
         description.setOption(true as NSNumber,
@@ -76,7 +158,7 @@ final class CoreDataStack {
             if let error = error as NSError? {
                 debugLog("❌ CoreData failed to load: \(error), \(error.userInfo)")
             } else {
-                debugLog("✅ CoreData store loaded: \(description.url?.path ?? "?")")
+                debugLog("✅ CoreData store loaded (CloudKit=\(enableCloudKit)): \(description.url?.path ?? "?")")
             }
         }
 
@@ -86,39 +168,13 @@ final class CoreDataStack {
         container.viewContext.name = "viewContext"
 
         return container
-    }()
-
-    // MARK: - Contexts
-
-    /// Main-queue context for reads and lightweight UI-driven writes.
-    var viewContext: NSManagedObjectContext {
-        persistentContainer.viewContext
     }
 
-    /// Create a new private-queue context for background writes.
-    func newBackgroundContext() -> NSManagedObjectContext {
-        let ctx = persistentContainer.newBackgroundContext()
-        ctx.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        return ctx
-    }
-
-    // MARK: - Lifecycle
-
-    /// Trigger lazy initialisation of the persistent store.
-    /// Call early in the app lifecycle (AppDelegate).
-    func setup() {
-        _ = persistentContainer
-
-        // Listen for remote store changes (CloudKit sync arrivals)
-        // and forward to Combine publisher for downstream Services.
-        // NSPersistentStoreRemoteChange is a system notification that
-        // can only be received via NotificationCenter; we immediately
-        // relay it to the Combine publisher so all consumers subscribe
-        // via remoteChangePublisher instead.
-        //
-        // Pipeline: remote change → preprocessor (dedup) → publish
-        // The preprocessor is installed by the main app (AppDelegate)
-        // and runs deduplication before downstream caches refresh.
+    /// Subscribe to NSPersistentStoreRemoteChange and relay via
+    /// `remoteChangePublisher`.
+    ///
+    /// Pipeline: remote change → preprocessor (dedup) → publish.
+    private func installRemoteChangeObserver() {
         remoteChangeObserver = NotificationCenter.default.addObserver(
             forName: .NSPersistentStoreRemoteChange,
             object: persistentContainer.persistentStoreCoordinator,
@@ -133,17 +189,6 @@ final class CoreDataStack {
             } else {
                 self?.remoteChangePublisher.send()
             }
-        }
-    }
-
-    /// Save the viewContext if it has changes.
-    func saveViewContext() {
-        let ctx = viewContext
-        guard ctx.hasChanges else { return }
-        do {
-            try ctx.save()
-        } catch {
-            debugLog("❌ CoreData viewContext save failed: \(error)")
         }
     }
 }

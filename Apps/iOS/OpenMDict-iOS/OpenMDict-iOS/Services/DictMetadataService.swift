@@ -176,13 +176,17 @@ final class DictMetadataService {
         record.jsCount = Int32(jsCount)
         record.totalSizeKB = totalSizeKB
         record.updatedAt = Date()
-        // Reset sync status so the archive is re-uploaded with new files
-        record.cloudSyncStatus = CloudSyncStatus.pending.rawValue
+        if SyncModeService.shared.isCloudSyncEnabled {
+            // Reset sync status so the archive is re-uploaded with new files
+            record.cloudSyncStatus = CloudSyncStatus.pending.rawValue
+        }
         save(ctx)
 
-        // Re-upload dictionary archive (fire-and-forget)
-        Task {
-            await DictionaryFileSyncService.shared.uploadDictionary(dictId: dictId)
+        if SyncModeService.shared.isCloudSyncEnabled {
+            // Re-upload dictionary archive (fire-and-forget)
+            Task {
+                await DictionaryFileSyncService.shared.uploadDictionary(dictId: dictId)
+            }
         }
     }
 

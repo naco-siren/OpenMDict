@@ -94,7 +94,10 @@ final class DictionaryFileSyncService {
     ///
     /// Call this after a successful local import.
     func uploadDictionary(dictId: String) async {
-        // 0. Pre-flight: check iCloud account
+        // 0a. Pre-flight: sync mode gate
+        guard SyncModeService.shared.isCloudSyncEnabled else { return }
+
+        // 0b. Pre-flight: check iCloud account
         guard await isCloudAvailable() else {
             debugLog("☁️↑ Upload skipped — iCloud not available")
             return
@@ -194,7 +197,10 @@ final class DictionaryFileSyncService {
     /// Returns `true` if the dictionary files are now available locally.
     @discardableResult
     func downloadDictionary(dictId: String) async -> Bool {
-        // 0. Pre-flight
+        // 0a. Pre-flight: sync mode gate
+        guard SyncModeService.shared.isCloudSyncEnabled else { return false }
+
+        // 0b. Pre-flight
         guard await isCloudAvailable() else {
             debugLog("☁️↓ Download skipped — iCloud not available")
             return false
@@ -264,6 +270,7 @@ final class DictionaryFileSyncService {
     /// Delete the CloudKit archive for a dictionary.
     /// Call when the user deletes a dictionary locally.
     func deleteCloudArchive(dictId: String) async {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return }
         guard await isCloudAvailable() else { return }
 
         let recordName = "dict-\(dictId)"

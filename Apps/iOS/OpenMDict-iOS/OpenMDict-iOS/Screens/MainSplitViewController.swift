@@ -394,19 +394,26 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Setup Flow
 
-    /// Present the first-install onboarding flow if no dictionaries are imported.
-    /// Uses CoreData record existence so that users who delete all dictionaries
-    /// don't see the setup flow again (the records are deleted but the SQLite file remains).
+    /// Present the first-install onboarding flow when needed.
+    /// Three triggers:
+    ///   1. `.notDecided` — user has not chosen sync mode yet (first install)
+    ///   2. `.cloudSync` but no dictionaries — app killed during initial sync
+    ///   3. `.offline` but no dictionaries — should not happen pre-release
     private func presentSetupIfNeeded() {
         guard !hasAttemptedSetup else { return }
         hasAttemptedSetup = true
 
-        guard !DictMetadataService.shared.hasAnyDictionaries else {
-            debugLog("📱 Setup not needed: dictionaries exist in CoreData")
+        let syncMode = SyncModeService.shared.currentMode
+        let hasDicts = DictMetadataService.shared.hasAnyDictionaries
+
+        let needsSetup = syncMode == .notDecided || !hasDicts
+
+        guard needsSetup else {
+            debugLog("📱 Setup not needed: syncMode=\(syncMode.rawValue), hasDicts=true")
             return
         }
 
-        debugLog("📱 First install detected: presenting Setup")
+        debugLog("📱 Setup needed: syncMode=\(syncMode.rawValue), hasDicts=\(hasDicts)")
 
         let setupVC = SetupViewController(mode: .firstInstall)
         // iPad (regular): formSheet card; iPhone (compact): fullScreen

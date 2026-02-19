@@ -44,19 +44,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
         }
 
-        // Initialize persistent store (Core Data + CloudKit sync)
-        CoreDataStack.shared.setup()
+        // Initialize persistent store — CloudKit enabled only when user opted in.
+        let syncMode = SyncModeService.shared.currentMode
+        CoreDataStack.shared.setup(enableCloudKit: syncMode == .cloudSync)
+
         // Install deduplication as the remote-change preprocessor.
         // Runs on a background context before downstream caches refresh,
         // ensuring they see clean, deduplicated data after CloudKit sync.
+        // Harmless when no remote changes arrive (offline mode).
         CoreDataStack.shared.remoteChangePreprocessor = {
             await DeduplicationService.shared.deduplicateAll()
         }
+
         // Register for remote notifications (CloudKit uses silent push for sync)
         application.registerForRemoteNotifications()
-        // Initialize dictionary service (loads Library dictionaries)
-        // Spotlight indexing is triggered after metadata loads (inside setup's Task)
-        DictionaryService.shared.setup()
+
+        // Initialize dictionary service — defer when sync mode is undecided
+        // (first install).  SetupViewController will call setup() after the
+        // user chooses cloud sync or offline.
+        if syncMode != .notDecided {
+            DictionaryService.shared.setup()
+        }
 
         // iPadOS 26+: use UIMainMenuSystem.Configuration to declaratively
         // configure the menu bar. The build handler replaces buildMenu(with:).

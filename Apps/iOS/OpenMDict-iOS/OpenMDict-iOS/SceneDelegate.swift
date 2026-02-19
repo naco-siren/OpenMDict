@@ -19,9 +19,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         // Block new windows during first-install onboarding.
-        // If no dictionaries are imported, the primary scene runs the setup flow.
-        // Any additional scene opened during that time is immediately destroyed.
-        let isFirstInstall = !DictMetadataService.shared.hasAnyDictionaries
+        // If sync mode is undecided or no dictionaries exist, the primary scene
+        // runs the setup flow.  Any additional scene opened during that time
+        // is immediately destroyed.
+        let syncMode = SyncModeService.shared.currentMode
+        let isFirstInstall = syncMode == .notDecided
+            || !DictMetadataService.shared.hasAnyDictionaries
         let hasOtherScene = UIApplication.shared.connectedScenes
             .contains { $0.activationState != .unattached && $0 !== scene }
 
@@ -31,7 +34,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             DispatchQueue.main.async {
                 UIApplication.shared.requestSceneSessionDestruction(
                     session, options: nil, errorHandler: { error in
-                        print("⚠️ Failed to destroy duplicate scene during setup: \(error)")
+                        debugLog("⚠️ Failed to destroy duplicate scene during setup: \(error)")
                     }
                 )
             }
@@ -219,7 +222,7 @@ extension SceneDelegate {
     static func updateQuickActions() {
         let topGroups = LookupCountService.shared.topGroups(limit: 3)
         let groups = DictionaryService.shared.groups
-        print("🏠 Quick Actions: topGroups = \(topGroups.map { "\($0.groupId):\($0.count)" })")
+        debugLog("🏠 Quick Actions: topGroups = \(topGroups.map { "\($0.groupId):\($0.count)" })")
 
         var items: [UIApplicationShortcutItem] = []
         for entry in topGroups {
@@ -273,7 +276,7 @@ extension SceneDelegate {
             userActivity: activity,
             options: nil,
             errorHandler: { error in
-                print("Failed to open new window: \(error)")
+                debugLog("Failed to open new window: \(error)")
             }
         )
     }

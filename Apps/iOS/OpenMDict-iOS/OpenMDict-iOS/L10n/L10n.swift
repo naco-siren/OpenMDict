@@ -931,4 +931,86 @@ nonisolated enum L10n {
             NSLocalizedString("actionExtension.openInApp", value: "Proceed", comment: "Action Extension: alert button to open entry link in the main app")
         }
     }
+
+    // MARK: - Sync Mode Chooser
+
+    enum SyncChooser {
+        /// Screen title
+        static var title: String {
+            NSLocalizedString("syncChooser.title", value: "iCloud Sync", comment: "Sync chooser: screen title")
+        }
+        /// Description text below the title
+        static var description: String {
+            NSLocalizedString("syncChooser.description", value: "Sync your dictionaries, bookmarks, and lookup history across all your devices.", comment: "Sync chooser: description text")
+        }
+        /// Shown while checking iCloud availability
+        static var checkingICloud: String {
+            NSLocalizedString("syncChooser.checkingICloud", value: "Checking iCloud\u{2026}", comment: "Sync chooser: loading state while checking iCloud")
+        }
+        /// CTA button when iCloud has existing data
+        static var restoreFromICloud: String {
+            NSLocalizedString("syncChooser.restoreFromICloud", value: "Restore from iCloud", comment: "Sync chooser: button to restore data from iCloud")
+        }
+        /// CTA button when iCloud is empty
+        static var useICloudSync: String {
+            NSLocalizedString("syncChooser.useICloudSync", value: "Use iCloud Sync", comment: "Sync chooser: button to enable iCloud sync (no existing data)")
+        }
+        /// Button to retry iCloud check after error
+        static var retry: String {
+            NSLocalizedString("syncChooser.retry", value: "Retry", comment: "Sync chooser: retry button after error")
+        }
+        /// CTA2: skip iCloud
+        static var dontUseICloud: String {
+            NSLocalizedString("syncChooser.dontUseICloud", value: "Don\u{2019}t Use iCloud", comment: "Sync chooser: button to skip iCloud sync")
+        }
+        /// Error: no network
+        static var errorNoNetwork: String {
+            NSLocalizedString("syncChooser.errorNoNetwork", value: "No network connection. Check your internet and try again.", comment: "Sync chooser: error when no network is available")
+        }
+        /// Error: not signed in to iCloud
+        static var errorNotSignedIn: String {
+            NSLocalizedString("syncChooser.errorNotSignedIn", value: "You are not signed in to iCloud. Sign in from Settings to use iCloud sync.", comment: "Sync chooser: error when iCloud account is not signed in")
+        }
+        /// Error: iCloud restricted (e.g. MDM)
+        static var errorRestricted: String {
+            NSLocalizedString("syncChooser.errorRestricted", value: "iCloud access is restricted on this device.", comment: "Sync chooser: error when iCloud is restricted by MDM or parental controls")
+        }
+        /// Error: iCloud temporarily unavailable
+        static var errorTemporarilyUnavailable: String {
+            NSLocalizedString("syncChooser.errorTemporarilyUnavailable", value: "iCloud is temporarily unavailable. Please try again later.", comment: "Sync chooser: error when iCloud is temporarily unavailable")
+        }
+        /// Error: unknown reason
+        static var errorUnknown: String {
+            NSLocalizedString("syncChooser.errorUnknown", value: "Unable to check iCloud availability.", comment: "Sync chooser: generic error when iCloud check fails")
+        }
+        /// Alert title for offline choice confirmation
+        static var offlineAlertTitle: String {
+            NSLocalizedString("syncChooser.offlineAlertTitle", value: "Use Without iCloud?", comment: "Sync chooser: alert title confirming offline mode")
+        }
+        /// Alert message for offline choice confirmation
+        static var offlineAlertMessage: String {
+            NSLocalizedString("syncChooser.offlineAlertMessage", value: "Your dictionaries and data will be stored locally only. They will not sync to your other devices and cannot be recovered if the app is deleted.", comment: "Sync chooser: alert message explaining consequences of offline mode")
+        }
+        /// Alert destructive button for offline choice
+        static var confirmOffline: String {
+            NSLocalizedString("syncChooser.confirmOffline", value: "Continue Without iCloud", comment: "Sync chooser: destructive button confirming offline mode")
+        }
+    }
+
+    // MARK: - Cloud Sync Progress
+
+    enum SyncProgress {
+        /// Shown while syncing metadata from iCloud
+        static var syncingData: String {
+            NSLocalizedString("syncProgress.syncingData", value: "Syncing from iCloud\u{2026}", comment: "Cloud sync progress: syncing metadata")
+        }
+        /// Shown while downloading dictionary files
+        static var downloadingDictionaries: String {
+            NSLocalizedString("syncProgress.downloadingDictionaries", value: "Downloading Dictionaries\u{2026}", comment: "Cloud sync progress: downloading dictionary files")
+        }
+        /// Shown briefly before completion
+        static var almostDone: String {
+            NSLocalizedString("syncProgress.almostDone", value: "Almost Done\u{2026}", comment: "Cloud sync progress: nearly finished")
+        }
+    }
 }

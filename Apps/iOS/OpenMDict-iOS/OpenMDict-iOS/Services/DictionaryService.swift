@@ -139,15 +139,21 @@ final class DictionaryService: ObservableObject {
 
             // 4. Catch-up upload: any locally-present dictionaries that were never
             // uploaded to CloudKit (e.g. presets imported before file-sync was added).
-            await uploadPendingDictionaries()
+            if SyncModeService.shared.isCloudSyncEnabled {
+                await uploadPendingDictionaries()
+            }
         }
 
-        // 5. CloudKit remote change — download missing dicts, then reload groups
-        remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
-            .sink { [weak self] in
-                self?.handleRemoteChange()
-            }
+        // 5. CloudKit remote change — download missing dicts, then reload groups.
+        // Only subscribe when cloud sync is active; in offline mode there are
+        // no remote changes to process.
+        if SyncModeService.shared.isCloudSyncEnabled {
+            remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
+                .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+                .sink { [weak self] in
+                    self?.handleRemoteChange()
+                }
+        }
     }
 
     /// Upload dictionaries whose `cloudSyncStatus` is still `.pending`.

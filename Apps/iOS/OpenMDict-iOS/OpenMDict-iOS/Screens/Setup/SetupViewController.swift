@@ -3,14 +3,20 @@
 //  OpenMDict-iOS
 //
 //  Container/coordinator for the onboarding flow.
-//  Manages three child view controllers:
-//    Step 1: WelcomePageViewController
-//    Step 2: PresetDictionaryPickerViewController
-//    Step 3: ImportProgressViewController
+//  Manages child view controllers through setup steps:
 //
-//  Two modes:
-//  - .firstInstall: full flow (Welcome → Picker → Progress), presented fullScreen
-//  - .management: skip welcome, go to picker directly, presented as pageSheet
+//  First install flow:
+//    Step 1: WelcomePageViewController
+//    Step 2: SyncModeChooserViewController
+//    Step 3a (cloud, has data):  CloudSyncProgressViewController → main UI or picker
+//    Step 3b (cloud, no data):   PresetDictionaryPickerViewController → Progress
+//    Step 3c (offline):          PresetDictionaryPickerViewController → Progress
+//
+//  Management mode (from sidebar):
+//    Picker → Progress (skip welcome/sync chooser)
+//
+//  Recovery (app killed during cloud sync):
+//    CloudSyncProgressViewController → main UI or picker
 //
 //  Uses child VC containment (not UIPageViewController) for precise control
 //  over animated transitions between steps.
@@ -40,6 +46,8 @@ final class SetupViewController: UIViewController {
 
     private enum Step {
         case welcome
+        case syncModeChooser
+        case cloudSyncProgress
         case picker
         case progress
     }
@@ -49,6 +57,10 @@ final class SetupViewController: UIViewController {
     // MARK: - Child VCs
 
     private lazy var welcomeVC = WelcomePageViewController()
+
+    private lazy var syncModeChooserVC = SyncModeChooserViewController()
+
+    private lazy var cloudSyncProgressVC = CloudSyncProgressViewController()
 
     private lazy var pickerVC: PresetDictionaryPickerViewController = {
         let pickerMode: PresetDictionaryPickerViewController.Mode
@@ -106,7 +118,13 @@ final class SetupViewController: UIViewController {
         // Show initial step
         switch mode {
         case .firstInstall:
-            showStep(.welcome, animated: false)
+            if SyncModeService.shared.currentMode == .cloudSync {
+                // Recovery: app was killed during cloud sync.
+                // CloudKit is already enabled — resume the progress screen.
+                showStep(.cloudSyncProgress, animated: false)
+            } else {
+                showStep(.welcome, animated: false)
+            }
         case .management:
             showStep(.picker, animated: false)
         }
@@ -115,9 +133,56 @@ final class SetupViewController: UIViewController {
     // MARK: - Callback Wiring
 
     private func setupCallbacks() {
-        // Welcome → Picker
+        // Welcome → SyncModeChooser
         welcomeVC.onGetStarted = { [weak self] in
-            self?.showStep(.picker, animated: true)
+            self?.showStep(.syncModeChooser, animated: true)
+        }
+
+        // SyncModeChooser → Cloud or Offline
+        syncModeChooserVC.onChooseCloudSync = { [weak self] hasData in
+            guard let self else { return }
+
+            // Persist choice
+            SyncModeService.shared.currentMode = .cloudSync
+
+            // Enable CloudKit on the existing CoreData stack
+            CoreDataStack.shared.reloadWithCloudKit()
+
+            // Now safe to initialise DictionaryService
+            DictionaryService.shared.setup()
+
+            if hasData {
+                // Cloud has existing data — show sync progress
+                self.showStep(.cloudSyncProgress, animated: true)
+            } else {
+                // Cloud is empty — go straight to preset picker
+                self.showStep(.picker, animated: true)
+            }
+        }
+
+        syncModeChooserVC.onChooseOffline = { [weak self] in
+            guard let self else { return }
+
+            // Persist choice
+            SyncModeService.shared.currentMode = .offline
+
+            // DictionaryService can start now (no CloudKit)
+            DictionaryService.shared.setup()
+
+            self.showStep(.picker, animated: true)
+        }
+
+        // CloudSyncProgress → Complete or Picker
+        cloudSyncProgressVC.onComplete = { [weak self] in
+            guard let self else { return }
+
+            if DictMetadataService.shared.hasAnyDictionaries {
+                // Dictionaries synced — skip picker, go to main UI
+                self.completeSetup()
+            } else {
+                // No dictionaries found after sync — offer presets
+                self.showStep(.picker, animated: true)
+            }
         }
 
         // Picker → Progress (or cancel in management mode)
@@ -177,9 +242,11 @@ final class SetupViewController: UIViewController {
 
     private func viewController(for step: Step) -> UIViewController {
         switch step {
-        case .welcome:  return welcomeVC
-        case .picker:   return pickerNavVC
-        case .progress: return progressVC
+        case .welcome:            return welcomeVC
+        case .syncModeChooser:    return syncModeChooserVC
+        case .cloudSyncProgress:  return cloudSyncProgressVC
+        case .picker:             return pickerNavVC
+        case .progress:           return progressVC
         }
     }
 
@@ -187,7 +254,8 @@ final class SetupViewController: UIViewController {
 
     private func completeSetup() {
         // Dictionaries are already loaded into DictionaryService.shared by the
-        // piggybacked refreshAfterImport() calls in ImportProgressViewController.
+        // piggybacked refreshAfterImport() calls in ImportProgressViewController,
+        // or by CloudKit sync for the cloud restore path.
         // Just dismiss and let the caller refresh its UI.
         dismiss(animated: true) { [weak self] in
             self?.onComplete?()
