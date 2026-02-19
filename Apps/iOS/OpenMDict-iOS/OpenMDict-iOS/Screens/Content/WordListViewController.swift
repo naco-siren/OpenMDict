@@ -155,18 +155,27 @@ class WordListViewController: UIViewController {
             lookupContextDictId: ctx?.dictId, lookupContextGroupId: ctx?.groupId
         )
         // Resolve dictName from DictMetadataService (authoritative).
-        historyGroups = rawGroups.map { section in
-            HistorySection(title: section.title, records: section.records.map { item in
-                let metadata = DictMetadataService.shared.find(dictId: item.dictId)
+        // Filter out records whose dictionary is not locally available — these
+        // are synced from another device but the dict hasn't been downloaded yet.
+        // They remain visible in the dedicated LookupHistoryListViewController
+        // (with "dictionary unavailable" styling) but should not clutter the
+        // group/dict WordListVC which only shows actionable history.
+        historyGroups = rawGroups.compactMap { section in
+            let filtered = section.records.compactMap { item -> HistoryItem? in
+                guard let metadata = DictMetadataService.shared.find(dictId: item.dictId) else {
+                    return nil  // dict not available locally — skip
+                }
                 return HistoryItem(
                     objectID: item.objectID,
                     word: item.word,
                     dictId: item.dictId,
-                    dictName: metadata?.displayName ?? item.dictId,
-                    isDictAvailable: metadata != nil,
+                    dictName: metadata.displayName,
+                    isDictAvailable: true,
                     lastLookedUpAt: item.lastLookedUpAt
                 )
-            })
+            }
+            guard !filtered.isEmpty else { return nil }  // drop empty sections
+            return HistorySection(title: section.title, records: filtered)
         }
         if !isSearching {
             tableView.reloadData()
