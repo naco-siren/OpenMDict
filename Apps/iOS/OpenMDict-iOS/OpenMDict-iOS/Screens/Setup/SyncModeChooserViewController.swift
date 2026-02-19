@@ -24,8 +24,8 @@ final class SyncModeChooserViewController: UIViewController {
     // MARK: - Callbacks
 
     /// Called when the user chooses iCloud sync.
-    /// `hasData` indicates whether CloudKit already contains dictionary data.
-    var onChooseCloudSync: ((_ hasData: Bool) -> Void)?
+    /// `summary` contains the cloud data inventory (dict/group/bookmark counts).
+    var onChooseCloudSync: ((_ summary: CloudDataSummary) -> Void)?
 
     /// Called when the user confirms offline mode (after the warning alert).
     var onChooseOffline: (() -> Void)?
@@ -34,7 +34,7 @@ final class SyncModeChooserViewController: UIViewController {
 
     private enum State {
         case loading
-        case available(hasData: Bool)
+        case available(summary: CloudDataSummary)
         case unavailable(reason: SyncModeService.UnavailableReason)
     }
 
@@ -43,7 +43,7 @@ final class SyncModeChooserViewController: UIViewController {
     }
 
     /// Cached for the callback when CTA1 is tapped.
-    private var hasData = false
+    private var cachedSummary = CloudDataSummary(dictionaryCount: 0, groupCount: 0, bookmarkCount: 0)
 
     // MARK: - Upper Zone
 
@@ -252,18 +252,20 @@ final class SyncModeChooserViewController: UIViewController {
             primaryButton.configuration?.showsActivityIndicator = true
             primaryButton.configuration?.title = L10n.SyncChooser.checkingICloud
 
-        case .available(let hasData):
-            self.hasData = hasData
+        case .available(let summary):
+            self.cachedSummary = summary
             let iconConfig = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
                 .applying(UIImage.SymbolConfiguration(paletteColors: [.systemBlue]))
-            iconImageView.image = UIImage(systemName: "icloud", withConfiguration: iconConfig)
+            iconImageView.image = UIImage(systemName: "person.icloud.fill", withConfiguration: iconConfig)
             titleLabel.text = L10n.SyncChooser.title
-            messageLabel.text = L10n.SyncChooser.description
+            messageLabel.text = summary.hasData
+                ? descriptionWithSummary(summary)
+                : L10n.SyncChooser.description
             messageLabel.textColor = .secondaryLabel
 
             primaryButton.isEnabled = true
             primaryButton.configuration?.showsActivityIndicator = false
-            primaryButton.configuration?.title = hasData
+            primaryButton.configuration?.title = summary.hasData
                 ? L10n.SyncChooser.restoreFromICloud
                 : L10n.SyncChooser.useICloudSync
 
@@ -299,6 +301,25 @@ final class SyncModeChooserViewController: UIViewController {
         }
     }
 
+    /// Build a descriptive message showing what's in the user's iCloud,
+    /// e.g. "Your iCloud contains 3 dictionaries, 2 groups, and 5 bookmarks.
+    ///        They will be synced to this device."
+    private func descriptionWithSummary(_ summary: CloudDataSummary) -> String {
+        var parts: [String] = []
+        if summary.dictionaryCount > 0 {
+            parts.append(L10n.SyncChooser.summaryDictionaries(summary.dictionaryCount))
+        }
+        if summary.groupCount > 0 {
+            parts.append(L10n.SyncChooser.summaryGroups(summary.groupCount))
+        }
+        if summary.bookmarkCount > 0 {
+            parts.append(L10n.SyncChooser.summaryBookmarks(summary.bookmarkCount))
+        }
+
+        let inventory = ListFormatter.localizedString(byJoining: parts)
+        return L10n.SyncChooser.descriptionWithData(inventory)
+    }
+
     // MARK: - CloudKit Check
 
     private func checkCloud() {
@@ -306,8 +327,8 @@ final class SyncModeChooserViewController: UIViewController {
         Task {
             let result = await SyncModeService.shared.checkCloudStatus()
             switch result {
-            case .available(let hasData):
-                state = .available(hasData: hasData)
+            case .available(let summary):
+                state = .available(summary: summary)
             case .unavailable(let reason):
                 state = .unavailable(reason: reason)
             }
@@ -318,8 +339,8 @@ final class SyncModeChooserViewController: UIViewController {
 
     @objc private func primaryTapped() {
         switch state {
-        case .available(let hasData):
-            onChooseCloudSync?(hasData)
+        case .available:
+            onChooseCloudSync?(cachedSummary)
 
         case .unavailable:
             // Retry

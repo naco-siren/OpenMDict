@@ -25,6 +25,17 @@ nonisolated enum SyncMode: Int, Sendable {
     case offline    = 2   // User chose offline / local-only
 }
 
+// MARK: - Cloud Data Summary
+
+/// Counts of records found in the user's CloudKit private database.
+struct CloudDataSummary {
+    let dictionaryCount: Int
+    let groupCount: Int
+    let bookmarkCount: Int
+
+    var hasData: Bool { dictionaryCount > 0 }
+}
+
 // MARK: - Service
 
 final class SyncModeService {
@@ -56,10 +67,9 @@ final class SyncModeService {
 
     /// Result of probing CloudKit before the user makes a choice.
     enum CloudStatus {
-        /// iCloud account is available.  `hasData` indicates whether
-        /// the private database already contains dictionary metadata
-        /// (i.e. the user has synced from another device).
-        case available(hasData: Bool)
+        /// iCloud account is available.  `summary` contains counts of
+        /// records in the private database (dictionaries, groups, bookmarks).
+        case available(summary: CloudDataSummary)
 
         /// iCloud is not usable — see `reason` for details.
         case unavailable(reason: UnavailableReason)
@@ -73,8 +83,8 @@ final class SyncModeService {
         case couldNotDetermine
     }
 
-    /// Probe the iCloud account status and, if available, check whether
-    /// the private CloudKit database already contains dictionary metadata.
+    /// Probe the iCloud account status and, if available, query the private
+    /// CloudKit database for existing data (dictionaries, groups, bookmarks).
     ///
     /// This runs **independently of CoreDataStack** — it uses the CloudKit
     /// API directly so we can show the right CTA text before any
@@ -105,33 +115,85 @@ final class SyncModeService {
             }
         }
 
-        // 2. Query private database for existing metadata records.
-        //    NSPersistentCloudKitContainer auto-generates record types
-        //    with a "CD_" prefix.
+        // 2. Fetch all records from the CoreData CloudKit zone and count by type.
+        //
+        //    We use recordZoneChanges(inZoneWith:since:) instead of CKQuery because
+        //    NSPersistentCloudKitContainer's auto-generated record types do NOT have
+        //    queryable indexes — CKQuery fails with "Field 'recordName' is not marked
+        //    queryable" (CKError code 12).
+        //
+        //    Passing `nil` as the server change token fetches ALL records in the zone.
+        //    We request only `recordType` (via empty desiredKeys) to minimise payload.
         let db = container.privateCloudDatabase
-        let query = CKQuery(
-            recordType: "CD_DictionaryMetadataRecord",
-            predicate: NSPredicate(value: true)
+        let zoneID = CKRecordZone.ID(
+            zoneName: "com.apple.coredata.cloudkit.zone",
+            ownerName: CKCurrentUserDefaultName
         )
 
         do {
-            let (results, _) = try await db.records(
-                matching: query,
-                resultsLimit: 1
+            var dictCount = 0
+            var groupCount = 0
+            var bookmarkCount = 0
+
+            // Fetch changes since the beginning (nil token = all records).
+            // The API returns pages; we loop until moreComing is false.
+            var changeToken: CKServerChangeToken? = nil
+            var moreComing = true
+
+            while moreComing {
+                let changes = try await db.recordZoneChanges(
+                    inZoneWith: zoneID,
+                    since: changeToken
+                )
+
+                for (_, result) in changes.modificationResultsByID {
+                    guard case .success(let modification) = result else { continue }
+                    switch modification.record.recordType {
+                    case "CD_DictionaryMetadataRecord":
+                        dictCount += 1
+                    case "CD_DictionaryGroupRecord":
+                        groupCount += 1
+                    case "CD_BookmarkRecord":
+                        bookmarkCount += 1
+                    default:
+                        break
+                    }
+                }
+
+                changeToken = changes.changeToken
+                moreComing = changes.moreComing
+            }
+
+            let summary = CloudDataSummary(
+                dictionaryCount: dictCount,
+                groupCount: groupCount,
+                bookmarkCount: bookmarkCount
             )
-            return .available(hasData: !results.isEmpty)
+
+            debugLog("☁️ SyncModeService: cloud data — \(summary.dictionaryCount) dicts, \(summary.groupCount) groups, \(summary.bookmarkCount) bookmarks")
+
+            return .available(summary: summary)
+
         } catch let error as CKError {
+            debugLog("☁️ SyncModeService: CKError fetching zone changes — code=\(error.code.rawValue) \(error.localizedDescription)")
             switch error.code {
             case .networkUnavailable, .networkFailure:
                 return .unavailable(reason: .noNetwork)
             case .notAuthenticated:
                 return .unavailable(reason: .notSignedIn)
+            case .zoneNotFound:
+                // Zone doesn't exist — genuinely no data.
+                return .available(summary: CloudDataSummary(
+                    dictionaryCount: 0, groupCount: 0, bookmarkCount: 0
+                ))
             default:
-                // Other CKErrors (e.g. unknownItem on fresh container)
-                // — treat as "available but no data".
-                return .available(hasData: false)
+                // Other CKErrors — treat as no data (zone may not be set up yet).
+                return .available(summary: CloudDataSummary(
+                    dictionaryCount: 0, groupCount: 0, bookmarkCount: 0
+                ))
             }
         } catch {
+            debugLog("☁️ SyncModeService: unexpected error fetching zone changes — \(error)")
             return .unavailable(reason: .couldNotDetermine)
         }
     }

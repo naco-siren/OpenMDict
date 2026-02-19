@@ -991,6 +991,34 @@ nonisolated enum L10n {
         static var errorUnknown: String {
             NSLocalizedString("syncChooser.errorUnknown", value: "Unable to determine iCloud availability.", comment: "Sync chooser: reason text when iCloud check fails for unknown reason")
         }
+        /// Description when iCloud has existing data: "Your iCloud contains %@. ..."
+        static func descriptionWithData(_ inventory: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncChooser.descriptionWithData", value: "Your iCloud contains %@. They will be synced to this device.", comment: "Sync chooser: description when iCloud has existing data. %@ = inventory list e.g. '3 dictionaries, 2 groups, and 5 bookmarks'"),
+                inventory
+            )
+        }
+        /// Summary fragment: N dictionaries
+        static func summaryDictionaries(_ count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncChooser.summaryDictionaries", value: "%d dictionaries", comment: "Sync chooser: number of dictionaries found in iCloud"),
+                count
+            )
+        }
+        /// Summary fragment: N groups
+        static func summaryGroups(_ count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncChooser.summaryGroups", value: "%d groups", comment: "Sync chooser: number of groups found in iCloud"),
+                count
+            )
+        }
+        /// Summary fragment: N bookmarks
+        static func summaryBookmarks(_ count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncChooser.summaryBookmarks", value: "%d bookmarks", comment: "Sync chooser: number of bookmarks found in iCloud"),
+                count
+            )
+        }
         /// Alert title for offline choice confirmation
         static var offlineAlertTitle: String {
             NSLocalizedString("syncChooser.offlineAlertTitle", value: "Use Without iCloud?", comment: "Sync chooser: alert title confirming offline mode")
@@ -1008,17 +1036,44 @@ nonisolated enum L10n {
     // MARK: - Cloud Sync Progress
 
     enum SyncProgress {
-        /// Shown while syncing metadata from iCloud
-        static var syncingData: String {
-            NSLocalizedString("syncProgress.syncingData", value: "Syncing from iCloud\u{2026}", comment: "Cloud sync progress: syncing metadata")
+        /// Message below the icon
+        static var syncingMessage: String {
+            NSLocalizedString("syncProgress.syncingMessage", value: "Syncing your data from iCloud to this device\u{2026}", comment: "Cloud sync progress: message below icon")
         }
-        /// Shown while downloading dictionary files
-        static var downloadingDictionaries: String {
-            NSLocalizedString("syncProgress.downloadingDictionaries", value: "Downloading Dictionaries\u{2026}", comment: "Cloud sync progress: downloading dictionary files")
+        /// Category title: dictionaries
+        static var categoryDictionaries: String {
+            NSLocalizedString("syncProgress.categoryDictionaries", value: "Your dictionaries", comment: "Cloud sync progress: dictionaries category title")
         }
-        /// Shown briefly before completion
-        static var almostDone: String {
-            NSLocalizedString("syncProgress.almostDone", value: "Almost Done\u{2026}", comment: "Cloud sync progress: nearly finished")
+        /// Category title: groups
+        static var categoryGroups: String {
+            NSLocalizedString("syncProgress.categoryGroups", value: "Your groups", comment: "Cloud sync progress: groups category title")
+        }
+        /// Category title: bookmarks
+        static var categoryBookmarks: String {
+            NSLocalizedString("syncProgress.categoryBookmarks", value: "Your bookmarks", comment: "Cloud sync progress: bookmarks category title")
+        }
+        /// Subtitle: "X of Y synced"
+        static func progressFormat(current: Int, total: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncProgress.progressFormat", value: "%1$d of %2$d synced", comment: "Cloud sync progress: X of Y synced"),
+                current, total
+            )
+        }
+        /// Subtitle when a category is fully synced
+        static var progressComplete: String {
+            NSLocalizedString("syncProgress.progressComplete", value: "Synced", comment: "Cloud sync progress: category fully synced")
+        }
+        /// Message when all categories are synced
+        static var completeMessage: String {
+            NSLocalizedString("syncProgress.completeMessage", value: "All data has been synced to this device.", comment: "Cloud sync progress: completion message")
+        }
+        /// Footer button: done
+        static var done: String {
+            NSLocalizedString("syncProgress.done", value: "Done", comment: "Cloud sync progress: done button")
+        }
+        /// Footer button: syncing (disabled state)
+        static var syncing: String {
+            NSLocalizedString("syncProgress.syncing", value: "Syncing\u{2026}", comment: "Cloud sync progress: syncing button (disabled)")
         }
     }
 }

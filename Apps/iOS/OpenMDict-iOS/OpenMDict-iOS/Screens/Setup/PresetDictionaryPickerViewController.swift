@@ -82,7 +82,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
         return button
     }()
 
-    /// Separator line above the continue button area
     private let bottomSeparator: UIView = {
         let v = UIView()
         v.backgroundColor = .separator
@@ -116,7 +115,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
             subtitleLabel.text = L10n.Picker.subtitleManagement
         }
 
-        // Navigation bar items
         // Left: close button (management mode only — firstInstall is non-dismissible)
         if mode == .management {
             navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -284,9 +282,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
-            bottomSeparator.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -16),
 
-            // Continue button (constrained to readableContentGuide for iPad)
+            // Continue button (pinned to bottom)
+            continueButton.topAnchor.constraint(equalTo: bottomSeparator.bottomAnchor, constant: 20),
             continueButton.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
             continueButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
@@ -494,7 +492,7 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
 
         guard let item = dataSource.itemIdentifier(for: indexPath),
               case .dictionary(let presetId) = item,
-              let preset = findPreset(id: presetId) else { return }
+              let _ = findPreset(id: presetId) else { return }
 
         // Already-imported items cannot be toggled in management mode
         if mode == .management && PresetDictionaryService.shared.isImported(presetId) { return }
@@ -518,7 +516,7 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath),
               case .dictionary(let presetId) = item,
-              let preset = findPreset(id: presetId) else { return false }
+              let _ = findPreset(id: presetId) else { return false }
 
         // Already-imported items should not highlight in management mode
         if mode == .management && PresetDictionaryService.shared.isImported(presetId) { return false }

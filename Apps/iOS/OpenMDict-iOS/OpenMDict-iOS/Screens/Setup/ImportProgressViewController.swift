@@ -51,44 +51,61 @@ final class ImportProgressViewController: UIViewController {
         }
     }
 
-    // MARK: - UI
+    // MARK: - UI: Header
 
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = L10n.Progress.title
-        // Match UINavigationBar standard title style
-        label.font = .systemFont(ofSize: 17, weight: .semibold)
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    private let iconImageView: UIImageView = {
+        let config = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
+            .applying(UIImage.SymbolConfiguration(paletteColors: [.systemBlue]))
+        let image = UIImage(systemName: "books.vertical", withConfiguration: config)
+        let iv = UIImageView(image: image)
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            iv.widthAnchor.constraint(equalToConstant: 80),
+            iv.heightAnchor.constraint(equalToConstant: 80),
+        ])
+        return iv
     }()
 
-    private var collectionView: UICollectionView!
-    private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
-
-    private let statusLabel: UILabel = {
+    private let messageLabel: UILabel = {
         let label = UILabel()
-        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.font = .preferredFont(forTextStyle: .body)
         label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
+
+    private lazy var headerStack: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [iconImageView, messageLabel])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layoutMargins = UIEdgeInsets(top: 32, left: 32, bottom: 16, right: 32)
+        return stack
+    }()
+
+    // MARK: - UI: Collection View & Bottom
+
+    private var collectionView: UICollectionView!
+    private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
 
     private let doneButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.title = L10n.Progress.importing
         config.cornerStyle = .large
         config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 24, bottom: 14, trailing: 24)
+        config.showsActivityIndicator = true
+        config.imagePadding = 8
         let button = UIButton(configuration: config)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isEnabled = false
         return button
     }()
 
-    /// Separator line above the bottom area
     private let bottomSeparator: UIView = {
         let v = UIView()
         v.backgroundColor = .separator
@@ -101,6 +118,8 @@ final class ImportProgressViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
+
+        messageLabel.text = L10n.Progress.title
 
         setupCollectionView()
         setupLayout()
@@ -230,6 +249,7 @@ final class ImportProgressViewController: UIViewController {
     private func updateDoneButton() {
         let done = isAllDone
         doneButton.isEnabled = done
+        doneButton.configuration?.showsActivityIndicator = !done
         doneButton.configuration?.title = done ? L10n.done : L10n.Progress.importing
     }
 
@@ -246,13 +266,18 @@ final class ImportProgressViewController: UIViewController {
 
         if isAllDone {
             if failed == 0 {
-                statusLabel.text = L10n.allImportedSuccess(completed)
+                messageLabel.text = L10n.allImportedSuccess(completed)
             } else {
-                statusLabel.text = L10n.importedAndFailed(imported: completed, failed: failed)
+                messageLabel.text = L10n.importedAndFailed(imported: completed, failed: failed)
             }
+
+            // Update icon to green checkmark
+            let config = UIImage.SymbolConfiguration(pointSize: 56, weight: .thin)
+                .applying(UIImage.SymbolConfiguration(paletteColors: [.systemGreen]))
+            iconImageView.image = UIImage(systemName: "checkmark.icloud.fill", withConfiguration: config)
         } else {
             let inProgress = completed + 1
-            statusLabel.text = L10n.importingProgress(current: min(inProgress, total), total: total)
+            messageLabel.text = L10n.importingProgress(current: min(inProgress, total), total: total)
         }
     }
 
@@ -280,20 +305,19 @@ final class ImportProgressViewController: UIViewController {
     }
 
     private func setupLayout() {
-        view.addSubview(titleLabel)
+        view.addSubview(headerStack)
         view.addSubview(bottomSeparator)
-        view.addSubview(statusLabel)
         view.addSubview(doneButton)
 
         NSLayoutConstraint.activate([
-            // Title label (centered, matching nav bar position)
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
+            // Header (icon + message)
+            headerStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            headerStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.readableContentGuide.leadingAnchor),
+            headerStack.trailingAnchor.constraint(lessThanOrEqualTo: view.readableContentGuide.trailingAnchor),
+            headerStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            // Collection view (below title, above separator)
-            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            // Collection view (below header, above separator)
+            collectionView.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 8),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
@@ -302,14 +326,9 @@ final class ImportProgressViewController: UIViewController {
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
-            bottomSeparator.bottomAnchor.constraint(equalTo: statusLabel.topAnchor, constant: -12),
 
-            // Status label (constrained to readableContentGuide for iPad)
-            statusLabel.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
-            statusLabel.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
-            statusLabel.bottomAnchor.constraint(equalTo: doneButton.topAnchor, constant: -12),
-
-            // Done button (constrained to readableContentGuide for iPad)
+            // Done button (pinned to bottom)
+            doneButton.topAnchor.constraint(equalTo: bottomSeparator.bottomAnchor, constant: 20),
             doneButton.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
             doneButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             doneButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),

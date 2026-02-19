@@ -121,7 +121,17 @@ final class SetupViewController: UIViewController {
             if SyncModeService.shared.currentMode == .cloudSync {
                 // Recovery: app was killed during cloud sync.
                 // CloudKit is already enabled — resume the progress screen.
+                // Re-query CloudKit for target counts so the dashboard knows
+                // what to track. The VC shows immediately (with no categories),
+                // and reloadTargets() rebuilds the list once counts arrive.
                 showStep(.cloudSyncProgress, animated: false)
+                Task {
+                    let status = await SyncModeService.shared.checkCloudStatus()
+                    if case .available(let summary) = status {
+                        self.cloudSyncProgressVC.targetSummary = summary
+                        self.cloudSyncProgressVC.reloadTargets()
+                    }
+                }
             } else {
                 showStep(.welcome, animated: false)
             }
@@ -139,7 +149,7 @@ final class SetupViewController: UIViewController {
         }
 
         // SyncModeChooser → Cloud or Offline
-        syncModeChooserVC.onChooseCloudSync = { [weak self] hasData in
+        syncModeChooserVC.onChooseCloudSync = { [weak self] summary in
             guard let self else { return }
 
             // Persist choice
@@ -151,8 +161,9 @@ final class SetupViewController: UIViewController {
             // Now safe to initialise DictionaryService
             DictionaryService.shared.setup()
 
-            if hasData {
-                // Cloud has existing data — show sync progress
+            if summary.hasData {
+                // Cloud has existing data — sync first, skip preset picker
+                self.cloudSyncProgressVC.targetSummary = summary
                 self.showStep(.cloudSyncProgress, animated: true)
             } else {
                 // Cloud is empty — go straight to preset picker

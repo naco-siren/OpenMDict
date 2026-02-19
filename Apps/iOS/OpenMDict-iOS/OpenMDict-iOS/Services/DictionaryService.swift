@@ -595,8 +595,18 @@ final class DictionaryService: ObservableObject {
             debugLog("📋 defaultGroup.items count: \(defaultGroup.items.count)")
         }
         
-        // 4. Persist updated default order
-        persistGroups()
+        // 4. Persist updated default group order.
+        // Skip when the dictionary was downloaded from CloudKit (status == .synced):
+        // its group membership is managed by CloudKit sync, and writing the
+        // in-memory groups array back would delete user groups that CloudKit
+        // has synced into CoreData but aren't loaded in memory yet.
+        let isCloudDownloaded: Bool = {
+            guard let meta = DictMetadataService.shared.find(dictId: id) else { return false }
+            return CloudSyncStatus(rawValue: meta.cloudSyncStatus) == .synced
+        }()
+        if !isCloudDownloaded {
+            persistGroups()
+        }
         
         // 5. Load metadata + full reader
         await newDict.loadMetadata()
