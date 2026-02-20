@@ -268,20 +268,23 @@ final class DictionaryService: ObservableObject {
                     + "css \(localCssCount)→\(metadata.cssCount), "
                     + "js \(localJsCount)→\(metadata.jsCount)")
 
-                // Re-download the full archive and overwrite local files
-                let dictDir = self.storage.dictionaryDirectoryURL(id: dictId)
-                try? FileManager.default.removeItem(at: dictDir)
-                self.storage.invalidateDictManifestCache(id: dictId)
+                // Per-file incremental update: fetch remote manifest → diff → download only changed files
+                guard let remoteManifest = await DictionaryFileSyncService.shared
+                        .fetchRemoteManifest(dictId: dictId) else {
+                    debugLog("❌ Remote manifest fetch failed for \(dictId.prefix(16))")
+                    continue
+                }
 
-                let downloaded = await DictionaryFileSyncService.shared
-                    .downloadDictionary(dictId: dictId)
+                let updated = await DictionaryFileSyncService.shared
+                    .downloadUpdatedFiles(dictId: dictId, remoteManifest: remoteManifest)
 
-                if downloaded {
-                    // Reload MDD/CSS/JS resources from the fresh files
+                if updated {
+                    self.storage.invalidateDictManifestCache(id: dictId)
+                    // Reload MDD/CSS/JS resources from the updated files
                     self.reloadMDDResources(for: dictId)
                     debugLog("☁️ Remote update applied for \(dictId.prefix(16))")
                 } else {
-                    debugLog("❌ Remote update download failed for \(dictId.prefix(16))")
+                    debugLog("❌ Remote incremental update failed for \(dictId.prefix(16))")
                 }
             }
 
@@ -509,9 +512,9 @@ final class DictionaryService: ObservableObject {
         // 3. Remove from Spotlight index
         SpotlightIndexingService.shared.deindexDictionary(id: dictId)
 
-        // 4. Remove CloudKit archive in the background (fire-and-forget)
+        // 4. Remove CloudKit records in the background (fire-and-forget)
         Task {
-            await DictionaryFileSyncService.shared.deleteCloudArchive(dictId: dictId)
+            await DictionaryFileSyncService.shared.deleteCloudRecords(dictId: dictId)
         }
     }
     

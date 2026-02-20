@@ -10,40 +10,43 @@
 //  Dictionary *files* (MDX/MDD/CSS/JS) are too large for that path,
 //  so this service uses the CloudKit private database directly:
 //
-//    Record type: "DictionaryArchive"
+//    Record type: "DictionaryFile"
+//    Record naming: "dict-{dictId}-{fileName}"
 //    Fields:
-//      dictId           — String  (SHA256 header hash = dictionary ID)
-//      archiveAsset     — CKAsset (AppleArchive of {dictId}/ directory)
-//      originalFileName — String
-//      fileSizeBytes    — Int64
-//      uploadedAt       — Date
+//      dictId        — String  (SHA256 header hash = dictionary ID)
+//      fileName      — String  (original filename, e.g. "MyDict.mdx")
+//      fileAsset     — CKAsset (raw file — no archive compression)
+//      fileHash      — String  (SHA256 content hash; empty for manifest/mdx)
+//      fileSizeBytes — Int64
+//      uploadedAt    — Date
 //
-//  Archive format:  AppleArchive (.aar) with LZFSE compression.
-//  iOS 15+ native — no third-party dependencies.
+//  Per-file sync: each file in the dictionary directory gets its own
+//  CKRecord.  Adding/removing a CSS only uploads/deletes that one record
+//  plus the manifest.  Remote devices diff the manifest to determine
+//  which files to download/delete.
 //
 //  Life cycle:
-//    Import → archive → upload CKAsset → mark synced
-//    Remote metadata arrives + no local files → download CKAsset → extract
-//    Delete → remove CKRecord from CloudKit
+//    Import → upload each file as CKRecord → mark synced
+//    Remote metadata arrives + no local files → download manifest → fetch files
+//    Resource add/remove → upload single file + manifest → remote diffs + fetches
+//    Delete → remove all CKRecords for dictionary
 //
-//  Size guard: dictionaries > 250 MB (compressed) are marked "too large"
-//  and skipped.  The user must import them manually on each device.
+//  Size guard: individual files > 500 MB are marked "too large".
 //
 
-import AppleArchive
 import CloudKit
 import Combine
 import CoreData
 import Foundation
-import System
+import OpenMDictKit
 
 // MARK: - Sync Status Enum
 
 /// CloudKit file-sync status stored in DictionaryMetadataRecord.cloudSyncStatus.
 nonisolated enum CloudSyncStatus: Int16, Sendable {
     case pending  = 0   // Not yet uploaded / download not started
-    case synced   = 1   // Archive present in CloudKit
-    case tooLarge = 2   // Exceeds 250 MB — local only
+    case synced   = 1   // Files present in CloudKit
+    case tooLarge = 2   // Exceeds 500 MB — local only
     case error    = 3   // Upload/download failed
 }
 
@@ -62,14 +65,16 @@ final class DictionaryFileSyncService {
         container.privateCloudDatabase
     }
 
-    /// CloudKit Record Type name for dictionary archives.
-    private let recordType = "DictionaryArchive"
+    /// CloudKit Record Type name for per-file dictionary uploads.
+    private let recordType = "DictionaryFile"
 
-    /// Maximum archive size we are willing to upload (bytes).
+    /// Maximum single-file size we are willing to upload (bytes).
     /// CKAsset technically allows ~50 GB per asset, but we cap uploads to
-    /// protect the user's iCloud storage quota.  Very large dictionaries
-    /// (> 500 MB compressed) are kept local-only.
+    /// protect the user's iCloud storage quota.
     private let maxAssetBytes: Int64 = 500 * 1024 * 1024
+
+    /// Maximum records per CKModifyRecordsOperation batch.
+    private let maxBatchSize = 400
 
     // MARK: - Published State
 
@@ -88,18 +93,95 @@ final class DictionaryFileSyncService {
 
     private init() {}
 
-    // MARK: - Upload
+    // MARK: - Record Name Helpers
 
-    /// Archive the dictionary directory and upload it as a CKAsset.
-    /// Updates `DictionaryMetadataRecord.cloudSyncStatus` and
-    /// `cloudArchiveRecordName` on completion.
-    ///
-    /// Call this after a successful local import.
+    /// Build a CKRecord name for a file in a dictionary.
+    /// Format: "dict-{dictId}-{fileName}"
+    private func recordName(dictId: String, fileName: String) -> String {
+        "dict-\(dictId)-\(fileName)"
+    }
+
+    /// Build the manifest CKRecord name for a dictionary.
+    private func manifestRecordName(dictId: String) -> String {
+        recordName(dictId: dictId, fileName: "manifest.json")
+    }
+
+    // MARK: - Build CKRecord
+
+    /// Build a single CKRecord for a dictionary file.
+    private func buildFileRecord(
+        dictId: String,
+        fileName: String,
+        fileURL: URL,
+        fileHash: String,
+        fileSizeBytes: Int64
+    ) -> CKRecord {
+        let name = recordName(dictId: dictId, fileName: fileName)
+        let recordID = CKRecord.ID(recordName: name)
+        let record = CKRecord(recordType: recordType, recordID: recordID)
+
+        record["dictId"] = dictId as CKRecordValue
+        record["fileName"] = fileName as CKRecordValue
+        record["fileAsset"] = CKAsset(fileURL: fileURL)
+        record["fileHash"] = fileHash as CKRecordValue
+        record["fileSizeBytes"] = fileSizeBytes as CKRecordValue
+        record["uploadedAt"] = Date() as CKRecordValue
+
+        return record
+    }
+
+    // MARK: - Enumerate Files
+
+    /// Enumerate all files in a dictionary directory that should be synced.
+    /// Returns (fileName, fileURL, fileHash, fileSizeBytes) tuples.
+    private func enumerateFiles(
+        dictId: String,
+        manifest: DictManifest
+    ) -> [(fileName: String, fileURL: URL, fileHash: String, fileSizeBytes: Int64)] {
+        let dictDir = storage.dictionaryDirectoryURL(id: dictId)
+        var files: [(String, URL, String, Int64)] = []
+
+        // manifest.json
+        let manifestURL = storage.dictManifestURL(id: dictId)
+        let manifestSize = (try? FileManager.default.attributesOfItem(
+            atPath: manifestURL.path)[.size] as? Int64) ?? 0
+        files.append(("manifest.json", manifestURL, "", manifestSize))
+
+        // MDX
+        let mdxURL = dictDir.appendingPathComponent(manifest.mdx.fileName)
+        files.append((manifest.mdx.fileName, mdxURL, "", manifest.mdx.sizeBytes))
+
+        // MDD
+        let mddDir = storage.mddDirectoryURL(id: dictId)
+        for entry in manifest.mdd {
+            let url = mddDir.appendingPathComponent(entry.fileName)
+            files.append((entry.fileName, url, entry.hash, entry.sizeBytes))
+        }
+
+        // CSS
+        let cssDir = storage.cssDirectoryURL(id: dictId)
+        for entry in manifest.css {
+            let url = cssDir.appendingPathComponent(entry.fileName)
+            files.append((entry.fileName, url, entry.hash, entry.sizeBytes))
+        }
+
+        // JS
+        let jsDir = storage.jsDirectoryURL(id: dictId)
+        for entry in manifest.js {
+            let url = jsDir.appendingPathComponent(entry.fileName)
+            files.append((entry.fileName, url, entry.hash, entry.sizeBytes))
+        }
+
+        return files
+    }
+
+    // MARK: - Upload (Full Dictionary)
+
+    /// Upload all files in a dictionary as individual CKRecords.
+    /// Updates `DictionaryMetadataRecord.cloudSyncStatus` on completion.
     func uploadDictionary(dictId: String) async {
-        // 0a. Pre-flight: sync mode gate
+        // Pre-flight
         guard SyncModeService.shared.isCloudSyncEnabled else { return }
-
-        // 0b. Pre-flight: check iCloud account
         guard await isCloudAvailable() else {
             debugLog("☁️↑ Upload skipped — iCloud not available")
             return
@@ -111,98 +193,159 @@ final class DictionaryFileSyncService {
             return
         }
 
-        // 1. Archive (AppleArchive + LZFSE)
-        syncProgress[dictId] = .uploading(fractionCompleted: 0)
-
-        let tmpArchive = FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(dictId).aar")
-        defer { try? FileManager.default.removeItem(at: tmpArchive) }
-
-        do {
-            try await compressDirectory(at: dictDir, to: tmpArchive)
-        } catch {
-            debugLog("❌ Archive failed for \(dictId.prefix(16)): \(error)")
-            updateSyncStatus(dictId: dictId, status: .error)
-            syncProgress.removeValue(forKey: dictId)
+        guard let manifest = storage.loadDictManifest(id: dictId) else {
+            debugLog("☁️↑ Upload skipped — no manifest for \(dictId.prefix(16))")
             return
         }
 
-        // 2. Size check
-        let archiveSize = (try? FileManager.default.attributesOfItem(
-            atPath: tmpArchive.path)[.size] as? Int64) ?? 0
+        syncProgress[dictId] = .uploading(fractionCompleted: 0)
 
-        if archiveSize > maxAssetBytes {
-            debugLog("☁️↑ Too large (\(archiveSize / 1024 / 1024) MB) — \(dictId.prefix(16))")
+        // Enumerate and size-check
+        let allFiles = enumerateFiles(dictId: dictId, manifest: manifest)
+
+        // Check if any individual file is too large
+        let tooLargeFile = allFiles.first { $0.fileSizeBytes > maxAssetBytes }
+        if let oversized = tooLargeFile {
+            debugLog("☁️↑ File too large: \(oversized.fileName) (\(oversized.fileSizeBytes / 1024 / 1024) MB) — \(dictId.prefix(16))")
             updateSyncStatus(dictId: dictId, status: .tooLarge)
             syncProgress.removeValue(forKey: dictId)
             return
         }
 
-        syncProgress[dictId] = .uploading(fractionCompleted: 0.3)
+        // Build CKRecords
+        let records = allFiles.map {
+            buildFileRecord(dictId: dictId, fileName: $0.fileName,
+                            fileURL: $0.fileURL, fileHash: $0.fileHash,
+                            fileSizeBytes: $0.fileSizeBytes)
+        }
 
-        // 3. Build CKRecord
-        let metadata = DictMetadataService.shared.find(dictId: dictId)
-        let recordName = "dict-\(dictId)"
-        let recordID = CKRecord.ID(recordName: recordName)
-        let record = CKRecord(recordType: recordType, recordID: recordID)
+        // Batch upload (chunk if > maxBatchSize)
+        let totalRecords = records.count
+        var uploaded = 0
 
-        record["dictId"] = dictId as CKRecordValue
-        record["archiveAsset"] = CKAsset(fileURL: tmpArchive)
-        record["originalFileName"] = (metadata?.originalFileName ?? "") as CKRecordValue
-        record["fileSizeBytes"] = archiveSize as CKRecordValue
-        record["uploadedAt"] = Date() as CKRecordValue
+        for batchStart in stride(from: 0, to: totalRecords, by: maxBatchSize) {
+            let batchEnd = min(batchStart + maxBatchSize, totalRecords)
+            let batch = Array(records[batchStart..<batchEnd])
 
-        // 4. Upload (save with overwrite policy for idempotent retry)
-        let operation = CKModifyRecordsOperation(
-            recordsToSave: [record],
-            recordIDsToDelete: nil
+            do {
+                try await uploadBatch(batch)
+                uploaded += batch.count
+                syncProgress[dictId] = .uploading(
+                    fractionCompleted: Double(uploaded) / Double(totalRecords)
+                )
+            } catch {
+                debugLog("❌ Upload batch failed for \(dictId.prefix(16)): \(error)")
+                updateSyncStatus(dictId: dictId, status: .error)
+                syncProgress.removeValue(forKey: dictId)
+                return
+            }
+        }
+
+        debugLog("☁️↑ Uploaded \(totalRecords) files for \(dictId.prefix(16))")
+        updateSyncStatus(dictId: dictId, status: .synced)
+        syncProgress.removeValue(forKey: dictId)
+    }
+
+    // MARK: - Upload (Single File — Incremental)
+
+    /// Upload a single file + updated manifest.
+    /// Use after adding or overwriting a resource file.
+    func uploadSingleFile(
+        dictId: String,
+        fileName: String,
+        fileURL: URL,
+        fileHash: String,
+        fileSizeBytes: Int64
+    ) async {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return }
+        guard await isCloudAvailable() else { return }
+
+        // Size check
+        if fileSizeBytes > maxAssetBytes {
+            debugLog("☁️↑ Single file too large: \(fileName) — \(dictId.prefix(16))")
+            return
+        }
+
+        var records: [CKRecord] = []
+
+        // The new/updated file
+        records.append(buildFileRecord(
+            dictId: dictId, fileName: fileName,
+            fileURL: fileURL, fileHash: fileHash,
+            fileSizeBytes: fileSizeBytes
+        ))
+
+        // Updated manifest
+        let manifestURL = storage.dictManifestURL(id: dictId)
+        let manifestSize = (try? FileManager.default.attributesOfItem(
+            atPath: manifestURL.path)[.size] as? Int64) ?? 0
+        records.append(buildFileRecord(
+            dictId: dictId, fileName: "manifest.json",
+            fileURL: manifestURL, fileHash: "",
+            fileSizeBytes: manifestSize
+        ))
+
+        do {
+            try await uploadBatch(records)
+            debugLog("☁️↑ Uploaded single file \(fileName) for \(dictId.prefix(16))")
+        } catch {
+            debugLog("❌ Single file upload failed (\(fileName)): \(error)")
+        }
+    }
+
+    // MARK: - Delete (Single File — Incremental)
+
+    /// Delete a single file CKRecord + re-upload updated manifest.
+    /// Use after removing a resource file.
+    func deleteSingleFile(dictId: String, fileName: String) async {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return }
+        guard await isCloudAvailable() else { return }
+
+        let fileRecordID = CKRecord.ID(
+            recordName: recordName(dictId: dictId, fileName: fileName)
         )
-        operation.savePolicy = .allKeys  // overwrite if exists
+
+        // Updated manifest
+        let manifestURL = storage.dictManifestURL(id: dictId)
+        let manifestSize = (try? FileManager.default.attributesOfItem(
+            atPath: manifestURL.path)[.size] as? Int64) ?? 0
+        let manifestRecord = buildFileRecord(
+            dictId: dictId, fileName: "manifest.json",
+            fileURL: manifestURL, fileHash: "",
+            fileSizeBytes: manifestSize
+        )
+
+        let operation = CKModifyRecordsOperation(
+            recordsToSave: [manifestRecord],
+            recordIDsToDelete: [fileRecordID]
+        )
+        operation.savePolicy = .allKeys
         operation.qualityOfService = .userInitiated
 
         do {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 operation.modifyRecordsResultBlock = { result in
                     switch result {
-                    case .success:
-                        cont.resume()
-                    case .failure(let error):
-                        cont.resume(throwing: error)
-                    }
-                }
-                // Progress tracking
-                operation.perRecordProgressBlock = { [weak self] _, progress in
-                    Task { @MainActor in
-                        // Map 0→1 upload progress to 0.3→1.0 overall
-                        self?.syncProgress[dictId] = .uploading(
-                            fractionCompleted: 0.3 + progress * 0.7
-                        )
+                    case .success:  cont.resume()
+                    case .failure(let error): cont.resume(throwing: error)
                     }
                 }
                 self.database.add(operation)
             }
-
-            debugLog("☁️↑ Uploaded \(dictId.prefix(16)) (\(archiveSize / 1024) KB)")
-            updateSyncStatus(dictId: dictId, status: .synced, recordName: recordName)
-
+            debugLog("☁️✕ Deleted single file \(fileName) for \(dictId.prefix(16))")
         } catch {
-            debugLog("❌ Upload failed for \(dictId.prefix(16)): \(error)")
-            updateSyncStatus(dictId: dictId, status: .error)
+            debugLog("❌ Single file delete failed (\(fileName)): \(error)")
         }
-
-        syncProgress.removeValue(forKey: dictId)
     }
 
-    // MARK: - Download
+    // MARK: - Download (Full Dictionary)
 
-    /// Download a dictionary archive from CloudKit and extract it locally.
+    /// Download all files for a dictionary from CloudKit.
     /// Returns `true` if the dictionary files are now available locally.
     @discardableResult
     func downloadDictionary(dictId: String) async -> Bool {
-        // 0a. Pre-flight: sync mode gate
+        // Pre-flight
         guard SyncModeService.shared.isCloudSyncEnabled else { return false }
-
-        // 0b. Pre-flight
         guard await isCloudAvailable() else {
             debugLog("☁️↓ Download skipped — iCloud not available")
             return false
@@ -216,100 +359,307 @@ final class DictionaryFileSyncService {
 
         syncProgress[dictId] = .downloading(fractionCompleted: 0)
 
-        // 1. Fetch the CKRecord
-        let recordName = "dict-\(dictId)"
-        let recordID = CKRecord.ID(recordName: recordName)
+        // 1. Fetch manifest
+        guard let manifest = await fetchRemoteManifest(dictId: dictId) else {
+            debugLog("❌ No manifest in CloudKit for \(dictId.prefix(16))")
+            updateSyncStatus(dictId: dictId, status: .error)
+            syncProgress.removeValue(forKey: dictId)
+            return false
+        }
+
+        syncProgress[dictId] = .downloading(fractionCompleted: 0.1)
+
+        // 2. Create directory structure
+        do {
+            try FileManager.default.createDirectory(at: dictDir, withIntermediateDirectories: true)
+            for subdir in ["mdd", "css", "js", "fonts"] {
+                let subdirURL = dictDir.appendingPathComponent(subdir, isDirectory: true)
+                try FileManager.default.createDirectory(at: subdirURL, withIntermediateDirectories: true)
+            }
+        } catch {
+            debugLog("❌ Failed to create dirs for \(dictId.prefix(16)): \(error)")
+            try? FileManager.default.removeItem(at: dictDir)
+            updateSyncStatus(dictId: dictId, status: .error)
+            syncProgress.removeValue(forKey: dictId)
+            return false
+        }
+
+        // 3. Build record IDs → local paths mapping
+        var recordIDToLocalPath: [String: URL] = [:]
+
+        // MDX
+        let mdxName = recordName(dictId: dictId, fileName: manifest.mdx.fileName)
+        recordIDToLocalPath[mdxName] = dictDir.appendingPathComponent(manifest.mdx.fileName)
+
+        // MDD
+        for entry in manifest.mdd {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.mddDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+
+        // CSS
+        for entry in manifest.css {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.cssDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+
+        // JS
+        for entry in manifest.js {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.jsDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+
+        // 4. Fetch all file records
+        let recordIDs = recordIDToLocalPath.keys.map { CKRecord.ID(recordName: $0) }
+        let totalFiles = recordIDs.count
+        var downloaded = 0
+
+        for batchStart in stride(from: 0, to: totalFiles, by: maxBatchSize) {
+            let batchEnd = min(batchStart + maxBatchSize, totalFiles)
+            let batch = Array(recordIDs[batchStart..<batchEnd])
+
+            let fetchedRecords: [CKRecord.ID: CKRecord]
+            do {
+                fetchedRecords = try await fetchBatch(batch)
+            } catch {
+                debugLog("❌ Batch fetch failed for \(dictId.prefix(16)): \(error)")
+                try? FileManager.default.removeItem(at: dictDir)
+                updateSyncStatus(dictId: dictId, status: .error)
+                syncProgress.removeValue(forKey: dictId)
+                return false
+            }
+
+            // Copy each asset to local path
+            for (recordID, record) in fetchedRecords {
+                guard let asset = record["fileAsset"] as? CKAsset,
+                      let assetURL = asset.fileURL,
+                      let destURL = recordIDToLocalPath[recordID.recordName] else {
+                    continue
+                }
+                do {
+                    try FileManager.default.copyItem(at: assetURL, to: destURL)
+                    downloaded += 1
+                    syncProgress[dictId] = .downloading(
+                        fractionCompleted: 0.1 + 0.8 * Double(downloaded) / Double(totalFiles)
+                    )
+                } catch {
+                    debugLog("❌ Failed to copy \(recordID.recordName): \(error)")
+                }
+            }
+        }
+
+        // 5. Save manifest locally
+        let manifestURL = storage.dictManifestURL(id: dictId)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        if let data = try? encoder.encode(manifest) {
+            try? data.write(to: manifestURL, options: .atomic)
+        }
+        storage.invalidateDictManifestCache(id: dictId)
+
+        // 6. isExcludedFromBackup
+        var mutableDir = dictDir
+        var resourceValues = URLResourceValues()
+        resourceValues.isExcludedFromBackup = true
+        try? mutableDir.setResourceValues(resourceValues)
+
+        syncProgress[dictId] = .downloading(fractionCompleted: 1.0)
+
+        debugLog("☁️↓ Downloaded \(downloaded)/\(totalFiles) files for \(dictId.prefix(16))")
+        updateSyncStatus(dictId: dictId, status: .synced)
+        syncProgress.removeValue(forKey: dictId)
+        return true
+    }
+
+    // MARK: - Fetch Remote Manifest
+
+    /// Fetch the manifest CKRecord from CloudKit and decode it as DictManifest.
+    func fetchRemoteManifest(dictId: String) async -> DictManifest? {
+        let name = manifestRecordName(dictId: dictId)
+        let recordID = CKRecord.ID(recordName: name)
 
         let record: CKRecord
         do {
             record = try await database.record(for: recordID)
         } catch {
-            debugLog("❌ CloudKit fetch failed for \(dictId.prefix(16)): \(error)")
-
-            // If the CKRecord doesn't exist, mark as error so the progress
-            // dashboard doesn't count it as "downloadable" forever.
-            if let ckError = error as? CKError, ckError.code == .unknownItem {
-                updateSyncStatus(dictId: dictId, status: .error)
-            }
-
-            syncProgress.removeValue(forKey: dictId)
-            return false
+            debugLog("❌ Manifest fetch failed for \(dictId.prefix(16)): \(error)")
+            return nil
         }
 
-        syncProgress[dictId] = .downloading(fractionCompleted: 0.3)
-
-        // 2. Extract CKAsset → temp file
-        guard let asset = record["archiveAsset"] as? CKAsset,
+        guard let asset = record["fileAsset"] as? CKAsset,
               let assetURL = asset.fileURL else {
-            debugLog("❌ No archive asset in CKRecord for \(dictId.prefix(16))")
-            updateSyncStatus(dictId: dictId, status: .error)
-            syncProgress.removeValue(forKey: dictId)
-            return false
+            debugLog("❌ No asset in manifest record for \(dictId.prefix(16))")
+            return nil
         }
 
-        // 3. Extract to dictionary directory
         do {
-            try FileManager.default.createDirectory(
-                at: dictDir, withIntermediateDirectories: true
-            )
-            try await decompressArchive(at: assetURL, to: dictDir)
-            syncProgress[dictId] = .downloading(fractionCompleted: 0.9)
-
-            // Mark isExcludedFromBackup (iCloud backup ≠ CloudKit sync)
-            var resourceValues = URLResourceValues()
-            resourceValues.isExcludedFromBackup = true
-            var mutableDir = dictDir
-            try mutableDir.setResourceValues(resourceValues)
-
-            debugLog("☁️↓ Downloaded & extracted \(dictId.prefix(16))")
-            updateSyncStatus(dictId: dictId, status: .synced, recordName: recordName)
-            syncProgress.removeValue(forKey: dictId)
-            return true
-
+            let data = try Data(contentsOf: assetURL)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(DictManifest.self, from: data)
         } catch {
-            debugLog("❌ Extract failed for \(dictId.prefix(16)): \(error)")
-            updateSyncStatus(dictId: dictId, status: .error)
-            // Clean up partial directory
-            try? FileManager.default.removeItem(at: dictDir)
-            syncProgress.removeValue(forKey: dictId)
-            return false
+            debugLog("❌ Manifest decode failed for \(dictId.prefix(16)): \(error)")
+            return nil
         }
     }
 
-    // MARK: - Delete
+    // MARK: - Download Updated Files (Incremental)
 
-    /// Delete the CloudKit archive for a dictionary.
+    /// Diff local vs remote manifest and download/delete only changed files.
+    @discardableResult
+    func downloadUpdatedFiles(dictId: String, remoteManifest: DictManifest) async -> Bool {
+        let localManifest = storage.loadDictManifest(id: dictId)
+
+        // Compute diffs per resource type
+        let mddToDownload = diffNewOrChanged(local: localManifest?.mdd ?? [], remote: remoteManifest.mdd)
+        let cssToDownload = diffNewOrChanged(local: localManifest?.css ?? [], remote: remoteManifest.css)
+        let jsToDownload  = diffNewOrChanged(local: localManifest?.js ?? [],  remote: remoteManifest.js)
+
+        let mddToDelete = diffDeleted(local: localManifest?.mdd ?? [], remote: remoteManifest.mdd)
+        let cssToDelete = diffDeleted(local: localManifest?.css ?? [], remote: remoteManifest.css)
+        let jsToDelete  = diffDeleted(local: localManifest?.js ?? [],  remote: remoteManifest.js)
+
+        // Download new/changed files
+        var recordIDToLocalPath: [String: URL] = [:]
+
+        for entry in mddToDownload {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.mddDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+        for entry in cssToDownload {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.cssDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+        for entry in jsToDownload {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.jsDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+
+        if !recordIDToLocalPath.isEmpty {
+            let recordIDs = recordIDToLocalPath.keys.map { CKRecord.ID(recordName: $0) }
+            do {
+                let fetched = try await fetchBatch(recordIDs)
+                for (recordID, record) in fetched {
+                    guard let asset = record["fileAsset"] as? CKAsset,
+                          let assetURL = asset.fileURL,
+                          let destURL = recordIDToLocalPath[recordID.recordName] else {
+                        continue
+                    }
+                    // Remove existing file if overwriting
+                    try? FileManager.default.removeItem(at: destURL)
+                    try FileManager.default.copyItem(at: assetURL, to: destURL)
+                }
+            } catch {
+                debugLog("❌ Incremental download failed for \(dictId.prefix(16)): \(error)")
+                return false
+            }
+        }
+
+        // Delete removed files
+        for entry in mddToDelete {
+            let url = storage.mddDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
+            try? FileManager.default.removeItem(at: url)
+        }
+        for entry in cssToDelete {
+            let url = storage.cssDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
+            try? FileManager.default.removeItem(at: url)
+        }
+        for entry in jsToDelete {
+            let url = storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
+            try? FileManager.default.removeItem(at: url)
+        }
+
+        // Save updated manifest locally
+        let manifestURL = storage.dictManifestURL(id: dictId)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        if let data = try? encoder.encode(remoteManifest) {
+            try? data.write(to: manifestURL, options: .atomic)
+        }
+        storage.invalidateDictManifestCache(id: dictId)
+
+        let totalChanges = recordIDToLocalPath.count + mddToDelete.count + cssToDelete.count + jsToDelete.count
+        debugLog("☁️↓ Incremental update: \(totalChanges) changes for \(dictId.prefix(16))")
+        return true
+    }
+
+    // MARK: - Delete (All Records for Dictionary)
+
+    /// Delete all CloudKit records for a dictionary.
     /// Call when the user deletes a dictionary locally.
-    func deleteCloudArchive(dictId: String) async {
+    func deleteCloudRecords(dictId: String) async {
         guard SyncModeService.shared.isCloudSyncEnabled else { return }
         guard await isCloudAvailable() else { return }
 
-        let recordName = "dict-\(dictId)"
-        let recordID = CKRecord.ID(recordName: recordName)
+        var recordIDsToDelete: [CKRecord.ID] = []
 
-        let operation = CKModifyRecordsOperation(
-            recordsToSave: nil,
-            recordIDsToDelete: [recordID]
-        )
-        operation.qualityOfService = .utility
+        // Manifest
+        recordIDsToDelete.append(CKRecord.ID(
+            recordName: manifestRecordName(dictId: dictId)
+        ))
 
-        do {
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-                operation.modifyRecordsResultBlock = { result in
-                    switch result {
-                    case .success:
-                        cont.resume()
-                    case .failure(let error):
-                        cont.resume(throwing: error)
-                    }
-                }
-                self.database.add(operation)
+        // Enumerate files from local manifest (if still available)
+        if let manifest = storage.loadDictManifest(id: dictId) {
+            // MDX
+            recordIDsToDelete.append(CKRecord.ID(
+                recordName: recordName(dictId: dictId, fileName: manifest.mdx.fileName)
+            ))
+            // MDD
+            for entry in manifest.mdd {
+                recordIDsToDelete.append(CKRecord.ID(
+                    recordName: recordName(dictId: dictId, fileName: entry.fileName)
+                ))
             }
-            debugLog("☁️✕ Deleted cloud archive for \(dictId.prefix(16))")
-        } catch {
-            // Not fatal — orphaned CKRecords are harmless
-            debugLog("⚠️ Cloud archive delete failed for \(dictId.prefix(16)): \(error)")
+            // CSS
+            for entry in manifest.css {
+                recordIDsToDelete.append(CKRecord.ID(
+                    recordName: recordName(dictId: dictId, fileName: entry.fileName)
+                ))
+            }
+            // JS
+            for entry in manifest.js {
+                recordIDsToDelete.append(CKRecord.ID(
+                    recordName: recordName(dictId: dictId, fileName: entry.fileName)
+                ))
+            }
         }
+
+        // Batch delete
+        for batchStart in stride(from: 0, to: recordIDsToDelete.count, by: maxBatchSize) {
+            let batchEnd = min(batchStart + maxBatchSize, recordIDsToDelete.count)
+            let batch = Array(recordIDsToDelete[batchStart..<batchEnd])
+
+            let operation = CKModifyRecordsOperation(
+                recordsToSave: nil,
+                recordIDsToDelete: batch
+            )
+            operation.qualityOfService = .utility
+
+            do {
+                try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                    operation.modifyRecordsResultBlock = { result in
+                        switch result {
+                        case .success:  cont.resume()
+                        case .failure(let error): cont.resume(throwing: error)
+                        }
+                    }
+                    self.database.add(operation)
+                }
+            } catch {
+                // Not fatal — orphaned CKRecords are harmless
+                debugLog("⚠️ Cloud records delete failed for \(dictId.prefix(16)): \(error)")
+            }
+        }
+
+        debugLog("☁️✕ Deleted \(recordIDsToDelete.count) cloud records for \(dictId.prefix(16))")
     }
 
     // MARK: - Helpers
@@ -327,8 +677,7 @@ final class DictionaryFileSyncService {
     /// Update the CloudKit sync status on the metadata record.
     private func updateSyncStatus(
         dictId: String,
-        status: CloudSyncStatus,
-        recordName: String? = nil
+        status: CloudSyncStatus
     ) {
         let ctx = CoreDataStack.shared.viewContext
         let request = DictionaryMetadataRecord.fetchRequest()
@@ -337,129 +686,74 @@ final class DictionaryFileSyncService {
 
         guard let record = try? ctx.fetch(request).first else { return }
         record.cloudSyncStatus = status.rawValue
-        if let recordName {
-            record.cloudArchiveRecordName = recordName
-        }
         try? ctx.save()
     }
 
-    // MARK: - AppleArchive Compress / Decompress
+    /// Upload a batch of CKRecords with .allKeys save policy.
+    private func uploadBatch(_ records: [CKRecord]) async throws {
+        let operation = CKModifyRecordsOperation(
+            recordsToSave: records,
+            recordIDsToDelete: nil
+        )
+        operation.savePolicy = .allKeys
+        operation.qualityOfService = .userInitiated
 
-    /// Compress a directory into a single AppleArchive (.aar) file
-    /// using LZFSE compression.
-    ///
-    /// Runs on a background thread — AppleArchive is thread-blocking
-    /// and must not run on the cooperative thread pool.
-    private func compressDirectory(at sourceDir: URL, to destArchive: URL) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                // Remove destination if exists
-                try? FileManager.default.removeItem(at: destArchive)
-
-                let sourcePath = FilePath(sourceDir.path)
-                let destPath = FilePath(destArchive.path)
-
-                let keySet = ArchiveHeader.FieldKeySet("TYP,PAT,DAT,UID,GID,MOD,FLG,SIZ")!
-
-                do {
-                    guard let fileStream = ArchiveByteStream.fileStream(
-                        path: destPath,
-                        mode: .writeOnly,
-                        options: [.create, .truncate],
-                        permissions: [.ownerReadWrite, .groupRead, .otherRead]
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -1,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to create file stream"])
-                    }
-                    defer { try? fileStream.close() }
-
-                    guard let compressionStream = ArchiveByteStream.compressionStream(
-                        using: .lzfse,
-                        writingTo: fileStream
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -2,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to create compression stream"])
-                    }
-                    defer { try? compressionStream.close() }
-
-                    guard let encodeStream = ArchiveStream.encodeStream(
-                        writingTo: compressionStream
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -3,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to create encode stream"])
-                    }
-                    defer { try? encodeStream.close() }
-
-                    try encodeStream.writeDirectoryContents(
-                        archiveFrom: sourcePath,
-                        keySet: keySet
-                    )
-
-                    cont.resume()
-                } catch {
-                    cont.resume(throwing: error)
+            operation.modifyRecordsResultBlock = { result in
+                switch result {
+                case .success:  cont.resume()
+                case .failure(let error): cont.resume(throwing: error)
                 }
             }
+            self.database.add(operation)
         }
     }
 
-    /// Decompress an AppleArchive (.aar) file into a directory.
-    ///
-    /// Runs on a background thread — AppleArchive is thread-blocking
-    /// and must not run on the cooperative thread pool.
-    private func decompressArchive(at archiveURL: URL, to destDir: URL) async throws {
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let archivePath = FilePath(archiveURL.path)
-                let destPath = FilePath(destDir.path)
+    /// Fetch a batch of CKRecords by their IDs.
+    private func fetchBatch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord.ID: CKRecord] {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[CKRecord.ID: CKRecord], Error>) in
+            let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
+            operation.qualityOfService = .userInitiated
 
-                do {
-                    guard let fileStream = ArchiveByteStream.fileStream(
-                        path: archivePath,
-                        mode: .readOnly,
-                        options: [],
-                        permissions: []
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -4,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to open archive file"])
-                    }
-                    defer { try? fileStream.close() }
+            var results: [CKRecord.ID: CKRecord] = [:]
 
-                    guard let decompressionStream = ArchiveByteStream.decompressionStream(
-                        readingFrom: fileStream
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -5,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to create decompression stream"])
-                    }
-                    defer { try? decompressionStream.close() }
-
-                    guard let decodeStream = ArchiveStream.decodeStream(
-                        readingFrom: decompressionStream
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -6,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to create decode stream"])
-                    }
-                    defer { try? decodeStream.close() }
-
-                    guard let extractStream = ArchiveStream.extractStream(
-                        extractingTo: destPath,
-                        flags: [.ignoreOperationNotPermitted]
-                    ) else {
-                        throw NSError(domain: "DictionaryFileSyncService", code: -7,
-                                      userInfo: [NSLocalizedDescriptionKey: "Failed to create extract stream"])
-                    }
-                    defer { try? extractStream.close() }
-
-                    _ = try ArchiveStream.process(
-                        readingFrom: decodeStream,
-                        writingTo: extractStream
-                    )
-
-                    cont.resume()
-                } catch {
+            operation.perRecordResultBlock = { recordID, result in
+                if case .success(let record) = result {
+                    results[recordID] = record
+                }
+            }
+            operation.fetchRecordsResultBlock = { result in
+                switch result {
+                case .success:
+                    cont.resume(returning: results)
+                case .failure(let error):
                     cont.resume(throwing: error)
                 }
             }
+            self.database.add(operation)
         }
+    }
+
+    // MARK: - Manifest Diff Helpers
+
+    /// Files that are new or changed (in remote but not in local, or different hash).
+    private func diffNewOrChanged(
+        local: [DictManifest.ResourceEntry],
+        remote: [DictManifest.ResourceEntry]
+    ) -> [DictManifest.ResourceEntry] {
+        let localByName = Dictionary(uniqueKeysWithValues: local.map { ($0.fileName, $0) })
+        return remote.filter { remoteEntry in
+            guard let localEntry = localByName[remoteEntry.fileName] else { return true }
+            return localEntry.hash != remoteEntry.hash
+        }
+    }
+
+    /// Files that exist locally but not remotely (deleted on source device).
+    private func diffDeleted(
+        local: [DictManifest.ResourceEntry],
+        remote: [DictManifest.ResourceEntry]
+    ) -> [DictManifest.ResourceEntry] {
+        let remoteNames = Set(remote.map { $0.fileName })
+        return local.filter { !remoteNames.contains($0.fileName) }
     }
 }
