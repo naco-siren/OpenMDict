@@ -160,6 +160,7 @@ class DictInfoViewController: UIViewController {
         case date(title: String, icon: String, date: Date)
         case entryCount(Int)
         case lookupCount(Int)
+        case bookmarkCount(Int)
         case description(String)
         
         // Advanced Metadata
@@ -584,6 +585,9 @@ class DictInfoViewController: UIViewController {
             case .lookupCount(let count):
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: count), number: .decimal)
                 return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("number.circle", L10n.DictInfo.lookupCount, formatted))
+            case .bookmarkCount(let count):
+                let formatted = NumberFormatter.localizedString(from: NSNumber(value: count), number: .decimal)
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("bookmark", L10n.DictInfo.bookmarkCount, formatted))
             case .description(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: descriptionReg, for: indexPath, item: value)
                 
@@ -872,6 +876,10 @@ class DictInfoViewController: UIViewController {
                 // Lookup count (per-dict-context trophy counter)
                 let lookups = LookupCountService.shared.lookupCount(contextDictId: dictId, contextGroupId: nil)
                 basicItems.append(.lookupCount(lookups))
+
+                // Bookmark times (monotonic trophy counter for this dictionary)
+                let bookmarks = BookmarkCountService.shared.bookmarkCount(contextDictId: dictId, contextGroupId: nil)
+                basicItems.append(.bookmarkCount(bookmarks))
 
                 snapshot.appendItems(basicItems, toSection: .basicMetadata)
 
@@ -1288,7 +1296,7 @@ extension DictInfoViewController: UICollectionViewDelegate {
             showDeleteConfirmation()
             
         // Metadata items - not tappable
-        case .title, .date, .entryCount, .lookupCount, .description,
+        case .title, .date, .entryCount, .lookupCount, .bookmarkCount, .description,
              .engineVersion, .format, .encoding,
              .isEncrypted, .isCaseSensitive:
             break

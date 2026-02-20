@@ -379,7 +379,10 @@ nonisolated enum L10n {
             NSLocalizedString("dictInfo.deleteFailed", value: "Delete Failed", comment: "Alert title when delete fails")
         }
         static var lookupCount: String {
-            NSLocalizedString("dictInfo.lookupCount", value: "Lookups", comment: "Metadata label: number of lookups for this dictionary")
+            NSLocalizedString("dictInfo.lookupCount", value: "Lookup Times", comment: "Metadata label: monotonic trophy counter for lookup times")
+        }
+        static var bookmarkCount: String {
+            NSLocalizedString("dictInfo.bookmarkCount", value: "Bookmark Times", comment: "Metadata label: monotonic trophy counter for bookmark times")
         }
     }
 
@@ -447,7 +450,10 @@ nonisolated enum L10n {
             NSLocalizedString("groupInfo.allDictionaries", value: "All Dictionaries", comment: "Navigation title for default group")
         }
         static var lookupCount: String {
-            NSLocalizedString("groupInfo.lookupCount", value: "Lookups", comment: "Metadata label: total lookups for this group")
+            NSLocalizedString("groupInfo.lookupCount", value: "Lookup Times", comment: "Metadata label: monotonic trophy counter for lookup times")
+        }
+        static var bookmarkCount: String {
+            NSLocalizedString("groupInfo.bookmarkCount", value: "Bookmark Times", comment: "Metadata label: monotonic trophy counter for bookmark times")
         }
     }
 

@@ -218,9 +218,12 @@ class ArticlesViewController: UIViewController {
                 SceneDelegate.openNewWindow(for: article, sourceSession: session)
             }
             cell.onBookmarkToggle = { _ in
-                BookmarkService.shared.toggleBookmark(
+                let created = BookmarkService.shared.toggleBookmark(
                     word: article.word, dictId: article.dictId
                 )
+                if created {
+                    BookmarkCountService.shared.incrementAll(dictId: article.dictId)
+                }
             }
             cell.onBookmarkRemoveRequested = { [weak self] in
                 self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
@@ -620,6 +623,7 @@ extension ArticlesViewController: UICollectionViewDelegate {
                 self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
             } else {
                 BookmarkService.shared.toggleBookmark(word: article.word, dictId: article.dictId)
+                BookmarkCountService.shared.incrementAll(dictId: article.dictId)
             }
         })
         if #available(iOS 16, *) {

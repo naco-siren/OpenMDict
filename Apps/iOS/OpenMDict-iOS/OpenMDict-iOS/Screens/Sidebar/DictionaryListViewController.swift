@@ -639,7 +639,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
         var defaultItems: [SidebarItem] = [.group(id: defaultGroup.id, isDefault: true)]
         defaultItems += defaultGroup.items.map { .dictionary(id: $0.id, groupId: defaultGroup.id) }
-        if isEditing { defaultItems.append(.importDictionary) }
+        if isEditing || defaultGroup.items.isEmpty { defaultItems.append(.importDictionary) }
 
         var userItems: [SidebarItem] = [.header(L10n.Sidebar.myGroups, isBold: false)]
         for group in userGroups {
@@ -671,8 +671,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         // Dictionary children
         var defaultChildren = defaultGroup.items.map { SidebarItem.dictionary(id: $0.id, groupId: defaultGroup.id) }
         
-        // Add "Import Dictionary" at the end (only visible in Edit mode)
-        if isEditing {
+        // Add "Import Dictionary" at the end (visible in Edit mode or when no dicts exist)
+        if isEditing || defaultGroup.items.isEmpty {
             defaultChildren.append(.importDictionary)
         }
         
@@ -845,7 +845,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             return true
             
         case .importDictionary:
-            // Import Dictionary is only visible in edit mode and should be selectable
+            // Import Dictionary: visible in edit mode or when no dicts exist
             return true
             
         case .addGroup:

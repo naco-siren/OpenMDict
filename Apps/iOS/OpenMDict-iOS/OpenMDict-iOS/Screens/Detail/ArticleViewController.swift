@@ -307,6 +307,9 @@ class ArticleViewController: UIViewController {
             isBookmarked = BookmarkService.shared.toggleBookmark(
                 word: article.word, dictId: article.dictId
             )
+            if isBookmarked {
+                BookmarkCountService.shared.incrementAll(dictId: article.dictId)
+            }
             bookmarkButton.setNeedsUpdateConfiguration()
         }
     }

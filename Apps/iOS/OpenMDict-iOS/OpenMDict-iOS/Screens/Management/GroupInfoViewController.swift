@@ -165,6 +165,7 @@ class GroupInfoViewController: UIViewController {
         case createdDate(String)
         case modifiedDate(String)
         case lookupCount(Int)
+        case bookmarkCount(Int)
 
         // Danger Zone
         case deleteButton
@@ -447,6 +448,9 @@ class GroupInfoViewController: UIViewController {
             case .lookupCount(let count):
                 let formatted = NumberFormatter.localizedString(from: NSNumber(value: count), number: .decimal)
                 return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("number.circle", L10n.GroupInfo.lookupCount, formatted))
+            case .bookmarkCount(let count):
+                let formatted = NumberFormatter.localizedString(from: NSNumber(value: count), number: .decimal)
+                return collectionView.dequeueConfiguredReusableCell(using: infoReg, for: indexPath, item: ("bookmark", L10n.GroupInfo.bookmarkCount, formatted))
 
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
@@ -596,15 +600,19 @@ class GroupInfoViewController: UIViewController {
             let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: group.id)
             statsItems.append(.lookupCount(lookups))
 
+            // Bookmark times (monotonic trophy counter for this group)
+            let bookmarks = BookmarkCountService.shared.bookmarkCount(contextDictId: nil, contextGroupId: group.id)
+            statsItems.append(.bookmarkCount(bookmarks))
+
             if !statsItems.isEmpty {
                 snapshot.appendSections([.stats])
                 snapshot.appendItems(statsItems, toSection: .stats)
             }
         }
-        
+
         dataSource.apply(snapshot, animatingDifferences: true)
     }
-    
+
     private func applyViewingDefaultSnapshot(groupId: String) {
         guard let group = DictionaryService.shared.group(id: groupId) else {
             debugLog("⚠️ applyViewingDefaultSnapshot: group not found for \(groupId.prefix(8))...")
@@ -636,6 +644,11 @@ class GroupInfoViewController: UIViewController {
         }
         let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: groupId)
         statsItems.append(.lookupCount(lookups))
+
+        // Bookmark times (monotonic trophy counter for default group)
+        let bookmarks = BookmarkCountService.shared.bookmarkCount(contextDictId: nil, contextGroupId: groupId)
+        statsItems.append(.bookmarkCount(bookmarks))
+
         snapshot.appendSections([.stats])
         snapshot.appendItems(statsItems, toSection: .stats)
 
