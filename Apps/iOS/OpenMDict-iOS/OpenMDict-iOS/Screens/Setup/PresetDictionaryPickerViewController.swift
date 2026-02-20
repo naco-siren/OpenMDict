@@ -59,16 +59,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     // MARK: - UI
 
-    private let subtitleLabel: UILabel = {
-        let label = UILabel()
-        label.font = .preferredFont(forTextStyle: .subheadline)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<PickerSection, PickerItem>!
 
@@ -109,10 +99,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
         // Navigation bar title
         if mode == .firstInstall {
             title = L10n.Picker.titleFirstInstall
-            subtitleLabel.text = L10n.Picker.subtitleFirstInstall
         } else {
             title = L10n.Picker.titleManagement
-            subtitleLabel.text = L10n.Picker.subtitleManagement
         }
 
         // Left: close button — only when onCancel is wired (management mode
@@ -159,7 +147,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let visible = service.catalog.filter { $0.tier != nil }
         let grouped = Dictionary(grouping: visible) { $0.direction.src }
 
-        let preferredLangs = Self.preferredLanguageCodes()
+        // Build a priority map: EN always 0, then user device languages
+        // in preference order, everything else gets Int.max (sorted alphabetically).
+        let orderedLangs = Self.orderedPreferredLanguageCodes()
+        var priorityMap: [String: Int] = ["EN": 0]
+        for (index, code) in orderedLangs.enumerated() {
+            if priorityMap[code] == nil {
+                priorityMap[code] = index + 1  // EN=0, then 1,2,3…
+            }
+        }
 
         languageGroups = grouped.map { langCode, presets in
             let sorted = presets.sorted { a, b in
@@ -178,11 +174,10 @@ final class PresetDictionaryPickerViewController: UIViewController {
             )
         }
         .sorted { a, b in
-            let aPreferred = preferredLangs.contains(a.langCode)
-            let bPreferred = preferredLangs.contains(b.langCode)
-            if aPreferred != bPreferred { return aPreferred }
-            if a.langCode == "EN" { return true }
-            if b.langCode == "EN" { return false }
+            let aPriority = priorityMap[a.langCode] ?? Int.max
+            let bPriority = priorityMap[b.langCode] ?? Int.max
+            if aPriority != bPriority { return aPriority < bPriority }
+            // Both unprioritized → alphabetical by localized name
             let aName = PresetDictionary.localizedLanguageName(a.langCode)
             let bName = PresetDictionary.localizedLanguageName(b.langCode)
             return aName < bName
@@ -229,10 +224,21 @@ final class PresetDictionaryPickerViewController: UIViewController {
     /// Maps iOS locale codes (e.g. "zh-Hans-US", "ja-JP") to our catalog codes ("ZH", "JA").
     /// Returns only the languages the user has actually configured on their device.
     static func preferredLanguageCodes() -> Set<String> {
-        var codes = Set<String>()
+        Set(orderedPreferredLanguageCodes())
+    }
+
+    /// Ordered version of `preferredLanguageCodes()` — preserves the user's
+    /// device language priority (first = most preferred).
+    /// Used for section ordering in the picker.
+    static func orderedPreferredLanguageCodes() -> [String] {
+        var seen = Set<String>()
+        var codes: [String] = []
         for lang in Locale.preferredLanguages {
             let primary = lang.split(separator: "-").first.map(String.init) ?? lang
-            codes.insert(primary.uppercased())
+            let code = primary.uppercased()
+            if seen.insert(code).inserted {
+                codes.append(code)
+            }
         }
         return codes
     }
@@ -262,20 +268,14 @@ final class PresetDictionaryPickerViewController: UIViewController {
     }
 
     private func setupLayout() {
-        view.addSubview(subtitleLabel)
         view.addSubview(bottomSeparator)
         view.addSubview(continueButton)
 
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Subtitle below the navigation bar
-            subtitleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            subtitleLabel.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
-            subtitleLabel.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
-
-            // Collection view (below subtitle, above separator)
-            collectionView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 8),
+            // Collection view (fills space between nav bar and separator)
+            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),

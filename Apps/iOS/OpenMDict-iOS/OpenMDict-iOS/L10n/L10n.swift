@@ -105,13 +105,7 @@ nonisolated enum L10n {
             NSLocalizedString("picker.title.firstInstall", value: "Choose Dictionaries", comment: "Picker title on first install")
         }
         static var titleManagement: String {
-            NSLocalizedString("picker.title.management", value: "Add Preset Dictionaries", comment: "Picker title when adding more presets")
-        }
-        static var subtitleFirstInstall: String {
-            NSLocalizedString("picker.subtitle.firstInstall", value: "Select dictionaries to install. You can change this later.", comment: "Picker subtitle on first install")
-        }
-        static var subtitleManagement: String {
-            NSLocalizedString("picker.subtitle.management", value: "Select dictionaries to add to your library.", comment: "Picker subtitle when adding more presets")
+            NSLocalizedString("picker.title.management", value: "Download Presets", comment: "Picker title when adding more presets (matches sidebar label)")
         }
         static var selectAll: String {
             NSLocalizedString("picker.selectAll", value: "Select All", comment: "Button to select all dictionaries")

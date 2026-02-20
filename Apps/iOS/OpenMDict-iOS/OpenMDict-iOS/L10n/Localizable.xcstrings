@@ -12215,174 +12215,6 @@
         }
       }
     },
-    "picker.subtitle.firstInstall": {
-      "comment": "Picker subtitle on first install",
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اختر القواميس لتثبيتها. يمكنك تغيير ذلك لاحقًا."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wählen Sie Wörterbücher zur Installation aus. Sie können dies später ändern."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select dictionaries to install. You can change this later."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecciona los diccionarios a instalar. Puedes cambiarlo después."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sélectionnez les dictionnaires à installer. Vous pourrez modifier cela plus tard."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इंस्टॉल करने के लिए शब्दकोश चुनें। आप इसे बाद में बदल सकते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インストールする辞書を選択してください。後から変更できます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "설치할 사전을 선택하세요. 나중에 변경할 수 있습니다."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecione os dicionários para instalar. Você pode alterar isso depois."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выберите словари для установки. Вы сможете изменить это позже."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Оберіть словники для встановлення. Ви зможете змінити це пізніше."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择要安装的词典，之后可以随时更改。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇要安裝的辭典，之後可以隨時更改。"
-          }
-        }
-      }
-    },
-    "picker.subtitle.management": {
-      "comment": "Picker subtitle when adding more presets",
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اختر القواميس لإضافتها إلى مكتبتك."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wählen Sie Wörterbücher aus, die Sie Ihrer Bibliothek hinzufügen möchten."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select dictionaries to add to your library."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecciona los diccionarios para añadir a tu biblioteca."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sélectionnez les dictionnaires à ajouter à votre bibliothèque."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अपनी लाइब्रेरी में जोड़ने के लिए शब्दकोश चुनें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライブラリに追加する辞書を選択してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "라이브러리에 추가할 사전을 선택하세요."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecione os dicionários para adicionar à sua biblioteca."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выберите словари для добавления в библиотеку."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Оберіть словники для додавання до бібліотеки."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择要添加到词库的词典。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇要加入辭典庫的辭典。"
-          }
-        }
-      }
-    },
     "picker.title.firstInstall": {
       "comment": "Picker title on first install",
       "extractionState": "manual",
@@ -12468,85 +12300,85 @@
       }
     },
     "picker.title.management": {
-      "comment": "Picker title when adding more presets",
+      "comment": "Picker title when adding more presets (matches sidebar label)",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "إضافة قواميس معدة مسبقًا"
+            "value": "تنزيل الإعدادات المسبقة"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vorinstallierte Wörterbücher hinzufügen"
+            "value": "Voreinstellungen laden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Preset Dictionaries"
+            "value": "Download Presets"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añadir diccionarios predefinidos"
+            "value": "Descargar preestablecidos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter des dictionnaires préinstallés"
+            "value": "Télécharger les préréglages"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "प्रीसेट शब्दकोश जोड़ें"
+            "value": "प्रीसेट डाउनलोड करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "プリセット辞書を追加"
+            "value": "プリセットをダウンロード"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "프리셋 사전 추가"
+            "value": "프리셋 다운로드"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Adicionar dicionários predefinidos"
+            "value": "Baixar predefinições"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Добавить предустановленные словари"
+            "value": "Загрузить наборы"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Додати попередньо встановлені словники"
+            "value": "Завантажити набори"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加预设词典"
+            "value": "下载预设词典"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "加入預設辭典"
+            "value": "下載預設辭典"
           }
         }
       }
