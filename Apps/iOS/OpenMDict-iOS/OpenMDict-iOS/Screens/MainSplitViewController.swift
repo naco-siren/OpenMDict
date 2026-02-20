@@ -394,11 +394,15 @@ class MainSplitViewController: UISplitViewController {
     
     // MARK: - Setup Flow
 
-    /// Present the first-install onboarding flow when needed.
-    /// Three triggers:
-    ///   1. `.notDecided` — user has not chosen sync mode yet (first install)
-    ///   2. `.cloudSync` but no dictionaries — app killed during initial sync
-    ///   3. `.offline` but no dictionaries — should not happen pre-release
+    /// Present the setup/onboarding flow when needed.
+    ///
+    /// Two modes:
+    ///   1. **First install** (`syncMode == .notDecided`):
+    ///      Full flow — welcome → sync chooser → picker/cloudProgress.
+    ///   2. **Picker only** (`syncMode` already decided, but no dictionaries):
+    ///      Sync mode is locked in; just show the preset picker so the user
+    ///      can download dictionaries.  Reuses `.management` mode but kept
+    ///      non-dismissible (`isModalInPresentation = true`).
     private func presentSetupIfNeeded() {
         guard !hasAttemptedSetup else { return }
         hasAttemptedSetup = true
@@ -413,16 +417,21 @@ class MainSplitViewController: UISplitViewController {
             return
         }
 
-        debugLog("📱 Setup needed: syncMode=\(syncMode.rawValue), hasDicts=\(hasDicts)")
+        // Sync mode already persisted → only the preset picker is needed.
+        let isPickerOnly = syncMode != .notDecided && !hasDicts
 
-        let setupVC = SetupViewController(mode: .firstInstall)
-        // iPad (regular): formSheet card; iPhone (compact): fullScreen
+        debugLog("📱 Setup needed: syncMode=\(syncMode.rawValue), hasDicts=\(hasDicts), pickerOnly=\(isPickerOnly)")
+
+        let setupVC = SetupViewController(mode: isPickerOnly ? .management : .firstInstall)
+        setupVC.isCancellable = !isPickerOnly
+        // iPad (regular): formSheet card; iPhone (compact): pageSheet for picker-only, fullScreen for first install
         if traitCollection.horizontalSizeClass == .regular {
             setupVC.modalPresentationStyle = .formSheet
             setupVC.preferredContentSize = CGSize(width: 540, height: 620)
         } else {
-            setupVC.modalPresentationStyle = .fullScreen
+            setupVC.modalPresentationStyle = isPickerOnly ? .pageSheet : .fullScreen
         }
+        // Non-dismissible in both modes — user must pick at least one dictionary.
         setupVC.isModalInPresentation = true
 
         setupVC.onComplete = { [weak self] in

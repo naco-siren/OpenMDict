@@ -115,8 +115,10 @@ final class PresetDictionaryPickerViewController: UIViewController {
             subtitleLabel.text = L10n.Picker.subtitleManagement
         }
 
-        // Left: close button (management mode only — firstInstall is non-dismissible)
-        if mode == .management {
+        // Left: close button — only when onCancel is wired (management mode
+        // that is actually cancellable; the "picker-only re-launch" case reuses
+        // management mode but is non-cancellable).
+        if onCancel != nil {
             navigationItem.leftBarButtonItem = UIBarButtonItem(
                 barButtonSystemItem: .close,
                 target: self,

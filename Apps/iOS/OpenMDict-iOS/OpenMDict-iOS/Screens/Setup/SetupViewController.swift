@@ -37,6 +37,11 @@ final class SetupViewController: UIViewController {
 
     let mode: Mode
 
+    /// Whether the user can cancel/dismiss the flow.
+    /// `true` for sidebar management; `false` for first install and
+    /// the "picker-only re-launch" case (sync mode decided, no dicts).
+    var isCancellable: Bool = true
+
     // MARK: - Callback
 
     /// Called after setup is complete and the VC has been dismissed
@@ -206,8 +211,10 @@ final class SetupViewController: UIViewController {
             }
         }
 
-        pickerVC.onCancel = { [weak self] in
-            self?.dismiss(animated: true)
+        if isCancellable {
+            pickerVC.onCancel = { [weak self] in
+                self?.dismiss(animated: true)
+            }
         }
 
         // Progress → Done
