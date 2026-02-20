@@ -856,6 +856,8 @@ final class DictionaryService: ObservableObject {
         let fileName = try await storage.addMDDResource(dictId: dictId, sourceURL: fileURL)
         // Reload MDD resources in MDict instance
         reloadMDDResources(for: dictId)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "mdd")
         return fileName
     }
 
@@ -867,6 +869,8 @@ final class DictionaryService: ObservableObject {
         try storage.removeMDDResource(dictId: dictId, fileName: fileName)
         // Reload MDD resources in MDict instance
         reloadMDDResources(for: dictId)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceRemove(dictId: dictId, fileName: fileName)
     }
     
     /// Reload MDD resources for a dictionary after add/remove.
@@ -885,6 +889,8 @@ final class DictionaryService: ObservableObject {
     /// - Returns: fileName of the added file
     func addCSS(to dictId: String, from fileURL: URL) async throws -> String {
         let fileName = try await storage.addCSSResource(dictId: dictId, sourceURL: fileURL)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "css")
         return fileName
     }
 
@@ -894,6 +900,8 @@ final class DictionaryService: ObservableObject {
     ///   - fileName: File name to remove
     func removeCSS(from dictId: String, fileName: String) throws {
         try storage.removeCSSResource(dictId: dictId, fileName: fileName)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceRemove(dictId: dictId, fileName: fileName)
     }
 
     /// Add a JS file to a dictionary
@@ -903,6 +911,8 @@ final class DictionaryService: ObservableObject {
     /// - Returns: fileName of the added file
     func addJS(to dictId: String, from fileURL: URL) async throws -> String {
         let fileName = try await storage.addJSResource(dictId: dictId, sourceURL: fileURL)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "js")
         return fileName
     }
 
@@ -912,5 +922,70 @@ final class DictionaryService: ObservableObject {
     ///   - fileName: File name to remove
     func removeJS(from dictId: String, fileName: String) throws {
         try storage.removeJSResource(dictId: dictId, fileName: fileName)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceRemove(dictId: dictId, fileName: fileName)
+    }
+
+    // MARK: - Incremental CloudKit Sync Helpers
+
+    /// Sync resource counts from manifest into metadata (CoreData).
+    /// This ensures the remote device's `handleRemoteChange` Phase 3
+    /// can detect resource changes by comparing metadata counts.
+    private func syncMetadataResourceCounts(dictId: String) {
+        guard let manifest = storage.loadDictManifest(id: dictId) else { return }
+        DictMetadataService.shared.syncResourceCounts(
+            dictId: dictId,
+            mddCount: manifest.mdd.count,
+            cssCount: manifest.css.count,
+            jsCount: manifest.js.count,
+            totalSizeKB: manifest.totalSizeKB
+        )
+    }
+
+    /// Fire-and-forget: upload a newly added resource file + updated manifest.
+    private func syncAfterResourceAdd(dictId: String, fileName: String, subdirectory: String) {
+        // Update metadata counts so remote devices detect the change
+        syncMetadataResourceCounts(dictId: dictId)
+        Task {
+            let dictDir = storage.dictionaryDirectoryURL(id: dictId)
+            let fileURL = dictDir.appendingPathComponent(subdirectory, isDirectory: true)
+                .appendingPathComponent(fileName)
+
+            guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+
+            let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+            let fileSize = (attrs?[.size] as? Int64) ?? 0
+
+            // Read hash from manifest entry (just written by storage)
+            let manifest = storage.loadDictManifest(id: dictId)
+            let entries: [DictManifest.ResourceEntry]
+            switch subdirectory {
+            case "mdd": entries = manifest?.mdd ?? []
+            case "css": entries = manifest?.css ?? []
+            case "js":  entries = manifest?.js ?? []
+            default:    entries = []
+            }
+            let hash = entries.first(where: { $0.fileName == fileName })?.hash ?? ""
+
+            await DictionaryFileSyncService.shared.uploadSingleFile(
+                dictId: dictId,
+                fileName: fileName,
+                fileURL: fileURL,
+                fileHash: hash,
+                fileSizeBytes: fileSize
+            )
+        }
+    }
+
+    /// Fire-and-forget: delete a removed resource file's CKRecord + re-upload manifest.
+    private func syncAfterResourceRemove(dictId: String, fileName: String) {
+        // Update metadata counts so remote devices detect the change
+        syncMetadataResourceCounts(dictId: dictId)
+        Task {
+            await DictionaryFileSyncService.shared.deleteSingleFile(
+                dictId: dictId,
+                fileName: fileName
+            )
+        }
     }
 }
