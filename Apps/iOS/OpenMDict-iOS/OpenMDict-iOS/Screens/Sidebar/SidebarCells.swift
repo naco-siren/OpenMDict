@@ -84,34 +84,34 @@ final class DefaultGroupCell: UICollectionViewListCell {
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
         guard let group = group else { return }
-        
+
         let isLookupMode = stateProvider?.appMode == .lookup
         let isEditing = stateProvider?.isEditingMode ?? false
-        
+
         var content = UIListContentConfiguration.sidebarCell()
         content.text = group.name
         content.image = UIImage(systemName: "books.vertical.fill")
-        
+
         var bg = UIBackgroundConfiguration.listSidebarCell()
-        
+
         // Only show selection highlight when NOT in edit mode
         let isActive = isLookupMode && !isEditing && (state.isSelected || state.isHighlighted)
-        
+
         if isActive {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .bold)
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
-            
+
             bg.backgroundColor = .systemBlue
-            
+
             accessories = [.outlineDisclosure(options: .init(style: .cell, tintColor: .white))]
         } else {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .medium)
             content.textProperties.color = .label
             content.imageProperties.tintColor = isEditing ? .label : .systemBlue
-            
+
             bg.backgroundColor = .clear
-            
+
             var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .cell))]
 
             // iCloud status + info button in edit mode

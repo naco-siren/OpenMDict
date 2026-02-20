@@ -440,6 +440,8 @@ final class DictionaryFileSyncService {
                     continue
                 }
                 do {
+                    // Remove existing file if present (e.g. retry after partial download)
+                    try? FileManager.default.removeItem(at: destURL)
                     try FileManager.default.copyItem(at: assetURL, to: destURL)
                     downloaded += 1
                     syncProgress[dictId] = .downloading(

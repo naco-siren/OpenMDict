@@ -390,14 +390,15 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 self?.invalidateVisibleCellConfigurations()
             }
 
-        // 7. Refresh CKAccountStatus when returning from Settings
-        if SyncModeService.shared.isCloudSyncEnabled {
-            refreshCKAccountStatus()
-            NotificationCenter.default.addObserver(
-                self, selector: #selector(handleDidBecomeActive),
-                name: UIScene.didActivateNotification, object: nil
-            )
-        }
+        // 7. Refresh CKAccountStatus — always register the observer so
+        //    it fires even when cloud sync is enabled *after* initial setup
+        //    (e.g. user picks iCloud during the setup flow, CoreData reloads
+        //    with CloudKit=true, but this VC was created when it was false).
+        refreshCKAccountStatus()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleDidBecomeActive),
+            name: UIScene.didActivateNotification, object: nil
+        )
     }
 
     @objc private func handleDidBecomeActive() {
@@ -405,7 +406,17 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
 
     /// Async-check CKAccountStatus and cache the result.
+    /// Safe to call even when cloud sync is disabled — bails out early.
     private func refreshCKAccountStatus() {
+        guard SyncModeService.shared.isCloudSyncEnabled else {
+            // Cloud sync was turned off (or never on).  Nil out cached status
+            // so iCloud icons disappear.
+            if cachedAccountStatus != nil {
+                cachedAccountStatus = nil
+                invalidateVisibleCellConfigurations()
+            }
+            return
+        }
         Task {
             let container = CKContainer(identifier: AppIdentifiers.cloudKitContainerID)
             let status = try? await container.accountStatus()
@@ -418,6 +429,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private func handleDictionaryListChanged() {
         // Re-subscribe to new list of dictionaries
         subscribeToAllDictionaryStates()
+        // Refresh CK account status — covers the case where cloud sync was
+        // enabled mid-session (setup flow: CoreData reloads with CloudKit=true)
+        refreshCKAccountStatus()
         // Refresh snapshot
         applySnapshot(animated: true)
     }
