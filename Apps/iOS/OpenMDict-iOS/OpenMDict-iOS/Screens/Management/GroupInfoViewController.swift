@@ -625,11 +625,14 @@ class GroupInfoViewController: UIViewController {
         let count = group.dictionaryIds.count
         snapshot.appendItems([.containedItems(count)], toSection: itemsSection)
         
-        // Stats: created date (from initial setup) + lookup count; no modifiedDate
+        // Stats: created date, modified date, lookup count
         let fmt = Self.dateFormatter
         var statsItems: [Item] = []
         if let created = group.createdAt {
             statsItems.append(.createdDate(fmt.string(from: created)))
+        }
+        if let modified = group.modifiedAt {
+            statsItems.append(.modifiedDate(fmt.string(from: modified)))
         }
         let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: groupId)
         statsItems.append(.lookupCount(lookups))

@@ -411,7 +411,8 @@ final class DictionaryService: ObservableObject {
                 name: L10n.GroupInfo.allDictionaries,
                 isDefault: true,
                 dictionaryIds: allDictionaries.map { $0.id },
-                createdAt: now
+                createdAt: now,
+                modifiedAt: now
             )
             allGroup.populate(from: allDictionaries)
             groups = [allGroup]
@@ -546,6 +547,7 @@ final class DictionaryService: ObservableObject {
         guard let defaultGroup = defaultGroup else { return }
         defaultGroup.dictionaryIds = newOrder
         defaultGroup.populate(from: allDictionaries)
+        defaultGroup.modifiedAt = Date()
         persistGroups()
     }
     
