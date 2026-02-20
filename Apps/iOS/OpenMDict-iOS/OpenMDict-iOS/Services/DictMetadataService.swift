@@ -165,8 +165,9 @@ final class DictMetadataService {
     /// Sync resource counts from a per-dict manifest.
     /// Called after resource CRUD operations (add/remove MDD, CSS, JS).
     ///
-    /// Also triggers a background re-upload of the dictionary archive
-    /// to CloudKit, since the file contents have changed.
+    /// Updates resource counts in metadata.  Does NOT change cloudSyncStatus —
+    /// incremental per-file sync (uploadSingleFile / deleteSingleFile) is
+    /// handled by the caller (DictionaryService.syncAfterResourceAdd/Remove).
     func syncResourceCounts(dictId: String, mddCount: Int, cssCount: Int,
                             jsCount: Int, totalSizeKB: Int64) {
         let ctx = stack.viewContext
@@ -176,18 +177,24 @@ final class DictMetadataService {
         record.jsCount = Int32(jsCount)
         record.totalSizeKB = totalSizeKB
         record.updatedAt = Date()
-        if SyncModeService.shared.isCloudSyncEnabled {
-            // Reset sync status so the archive is re-uploaded with new files
-            record.cloudSyncStatus = CloudSyncStatus.pending.rawValue
-        }
         save(ctx)
+    }
 
-        if SyncModeService.shared.isCloudSyncEnabled {
-            // Re-upload dictionary archive (fire-and-forget)
-            Task {
-                await DictionaryFileSyncService.shared.uploadDictionary(dictId: dictId)
-            }
-        }
+    /// In-memory set of dictionaries currently downloading from CloudKit.
+    /// Used by UI to show "syncing" state without writing `.pending` to CoreData
+    /// (which would get exported back to CloudKit and overwrite the sender's `.synced`).
+    private(set) var downloadingDictIds = Set<String>()
+
+    /// Mark a dictionary as downloading (UI shows syncing arrow).
+    func markDownloading(_ dictId: String) {
+        downloadingDictIds.insert(dictId)
+        revision += 1
+    }
+
+    /// Clear the downloading flag (UI reverts to CoreData's authoritative status).
+    func clearDownloading(_ dictId: String) {
+        downloadingDictIds.remove(dictId)
+        revision += 1
     }
 
     // MARK: - Private Helpers

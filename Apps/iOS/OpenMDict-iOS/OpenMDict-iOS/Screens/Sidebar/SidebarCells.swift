@@ -77,10 +77,56 @@ protocol SidebarStateProvider: AnyObject {
 /// - Blue background + white text when selected (only in lookup mode, not editing)
 /// - Edit mode: info button for viewing group info
 final class DefaultGroupCell: UICollectionViewListCell {
-    
+
     var group: MDicts?
     weak var stateProvider: SidebarStateProvider?
-    
+
+    // MARK: - Persistent trailing buttons
+    //
+    // Added as direct subviews of the cell instead of using `UICellAccessory`.
+    // UIKit's outline-disclosure parent machinery resets `accessories` after
+    // `setNeedsUpdateConfiguration()`, which makes custom accessory views
+    // disappear. Direct subviews are immune to this.
+
+    private lazy var syncButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.addTarget(self, action: #selector(sectionSyncTapped), for: .touchUpInside)
+        return btn
+    }()
+
+    private lazy var infoButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.setImage(UIImage(systemName: "info.circle"), for: .normal)
+        btn.tintColor = .systemBlue
+        btn.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
+        return btn
+    }()
+
+    private lazy var trailingStack: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [syncButton, infoButton])
+        stack.axis = .horizontal
+        stack.spacing = 2
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private var trailingStackInstalled = false
+
+    private func installTrailingStackIfNeeded() {
+        guard !trailingStackInstalled else { return }
+        trailingStackInstalled = true
+        contentView.addSubview(trailingStack)
+        NSLayoutConstraint.activate([
+            trailingStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            trailingStack.trailingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.trailingAnchor),
+        ])
+    }
+
+    // MARK: - Configuration
+
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
         guard let group = group else { return }
@@ -101,64 +147,56 @@ final class DefaultGroupCell: UICollectionViewListCell {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .bold)
             content.textProperties.color = .white
             content.imageProperties.tintColor = .white
-
             bg.backgroundColor = .systemBlue
-
             accessories = [.outlineDisclosure(options: .init(style: .cell, tintColor: .white))]
+
+            // Hide trailing buttons in active/selected state
+            if trailingStackInstalled { trailingStack.isHidden = true }
         } else {
             content.textProperties.font = .systemFont(ofSize: 20, weight: .medium)
             content.textProperties.color = .label
             content.imageProperties.tintColor = isEditing ? .label : .systemBlue
-
             bg.backgroundColor = .clear
+            accessories = [.outlineDisclosure(options: .init(style: .cell))]
 
-            var cellAccessories: [UICellAccessory] = [.outlineDisclosure(options: .init(style: .cell))]
-
-            // iCloud status + info button in edit mode
             if isEditing {
-                // iCloud section status (before info button)
+                installTrailingStackIfNeeded()
+                trailingStack.isHidden = false
+
+                // Update sync button icon/color
                 if let status = stateProvider?.iCloudSectionStatus() {
-                    let syncButton = Self.createSectionSyncButton(status: status, target: self, action: #selector(sectionSyncTapped))
-                    let syncConfig = UICellAccessory.CustomViewConfiguration(
-                        customView: syncButton,
-                        placement: .trailing(displayed: .always)
-                    )
-                    cellAccessories.append(.customView(configuration: syncConfig))
+                    syncButton.isHidden = false
+                    let (iconName, tintColor) = Self.syncIconAndColor(for: status)
+                    syncButton.setImage(UIImage(systemName: iconName), for: .normal)
+                    syncButton.tintColor = tintColor
+                } else {
+                    syncButton.isHidden = true
                 }
 
-                let infoButton = createInfoButton(for: group.id)
-                let infoConfig = UICellAccessory.CustomViewConfiguration(
-                    customView: infoButton,
-                    placement: .trailing(displayed: .always)
-                )
-                cellAccessories.append(.customView(configuration: infoConfig))
+                // Update info button group id
+                infoButton.accessibilityIdentifier = group.id
+            } else {
+                if trailingStackInstalled { trailingStack.isHidden = true }
             }
-
-            accessories = cellAccessories
         }
 
         contentConfiguration = content
         backgroundConfiguration = bg
     }
 
+    /// Returns (SF Symbol name, tint color) for a given iCloud section status.
+    static func syncIconAndColor(for status: ICloudSectionStatus) -> (String, UIColor) {
+        switch status {
+        case .healthy:      return ("checkmark.icloud", .secondaryLabel)
+        case .syncing:      return ("arrow.trianglehead.clockwise.icloud", .secondaryLabel)
+        case .temporaryIssue: return ("bolt.horizontal.icloud", .systemOrange)
+        case .error:        return ("exclamationmark.icloud", .systemRed)
+        }
+    }
+
     static func createSectionSyncButton(status: ICloudSectionStatus, target: Any, action: Selector) -> UIButton {
         let button = UIButton(type: .system)
-        let iconName: String
-        let tintColor: UIColor
-        switch status {
-        case .healthy:
-            iconName = "checkmark.icloud"
-            tintColor = .secondaryLabel
-        case .syncing:
-            iconName = "arrow.trianglehead.clockwise.icloud"
-            tintColor = .secondaryLabel
-        case .temporaryIssue:
-            iconName = "bolt.horizontal.icloud"
-            tintColor = .systemOrange
-        case .error:
-            iconName = "exclamationmark.icloud"
-            tintColor = .systemRed
-        }
+        let (iconName, tintColor) = syncIconAndColor(for: status)
         button.setImage(UIImage(systemName: iconName), for: .normal)
         button.tintColor = tintColor
         button.addTarget(target, action: action, for: .touchUpInside)
@@ -167,15 +205,6 @@ final class DefaultGroupCell: UICollectionViewListCell {
 
     @objc private func sectionSyncTapped() {
         stateProvider?.didTapSectionSyncStatus()
-    }
-
-    private func createInfoButton(for groupId: String) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "info.circle"), for: .normal)
-        button.tintColor = .systemBlue
-        button.accessibilityIdentifier = groupId
-        button.addTarget(self, action: #selector(infoButtonTapped(_:)), for: .touchUpInside)
-        return button
     }
 
     @objc private func infoButtonTapped(_ sender: UIButton) {

@@ -73,6 +73,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     func cloudSyncStatus(forDictId dictId: String) -> CloudSyncStatus? {
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
         guard let metadata = DictMetadataService.shared.find(dictId: dictId) else { return nil }
+        // If the dict is currently downloading files from CloudKit, show as pending
+        // (in-memory flag — not written to CoreData to avoid CloudKit export ping-pong).
+        if DictMetadataService.shared.downloadingDictIds.contains(dictId) {
+            return .pending
+        }
         return CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
     }
 
@@ -97,10 +102,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
         // Check child dict statuses — may escalate to .error
         let allMetadata = DictMetadataService.shared.loadAll()
+        let downloading = DictMetadataService.shared.downloadingDictIds
         for metadata in allMetadata {
             let s = CloudSyncStatus(rawValue: metadata.cloudSyncStatus)
             if s == .error || s == .tooLarge { return .error }
-            if s == .pending && worst == .healthy { worst = .syncing }
+            if (s == .pending || downloading.contains(metadata.dictId)) && worst == .healthy {
+                worst = .syncing
+            }
         }
         return worst
     }
@@ -109,14 +117,15 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
 
         // Check child dicts in this group.
-        // Priority: error/tooLarge > pending (syncing) > healthy
+        // Priority: error/tooLarge > pending/downloading (syncing) > healthy
         guard let group = DictionaryService.shared.group(id: groupId) else { return .healthy }
+        let downloading = DictMetadataService.shared.downloadingDictIds
         var hasPending = false
         for dict in group.items {
             guard let metadata = DictMetadataService.shared.find(dictId: dict.id) else { continue }
             let s = CloudSyncStatus(rawValue: metadata.cloudSyncStatus)
             if s == .error || s == .tooLarge { return .error }
-            if s == .pending { hasPending = true }
+            if s == .pending || downloading.contains(dict.id) { hasPending = true }
         }
         return hasPending ? .syncing : .healthy
     }
@@ -188,9 +197,12 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         let title: String
         let message: String
         switch status {
-        case .healthy, .syncing:
+        case .healthy:
             title = L10n.SyncStatus.iCloudHealthyTitle
             message = L10n.SyncStatus.iCloudHealthyMessage
+        case .syncing:
+            title = L10n.SyncStatus.iCloudSyncingTitle
+            message = L10n.SyncStatus.iCloudSyncingMessage
         case .temporaryIssue, .error:
             title = L10n.SyncStatus.iCloudIssueTitle
             message = L10n.SyncStatus.iCloudIssueMessage
@@ -212,8 +224,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             title = L10n.SyncStatus.syncedTitle
             message = L10n.SyncStatus.syncedGroupMessage(name: groupName)
         case .syncing:
-            title = L10n.SyncStatus.iCloudHealthyTitle
-            message = L10n.SyncStatus.iCloudHealthyMessage
+            title = L10n.SyncStatus.iCloudSyncingTitle
+            message = L10n.SyncStatus.iCloudSyncingMessage
         case .temporaryIssue, .error:
             title = L10n.SyncStatus.iCloudIssueTitle
             message = L10n.SyncStatus.iCloudIssueMessage
@@ -365,7 +377,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.subscribeToAllGroupItems()
-                self?.applySnapshot(animated: true)
+                self?.applySubscriptionSnapshot()
             }
 
         // 3. Subscribe to each dictionary's load state
@@ -432,8 +444,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         // Refresh CK account status — covers the case where cloud sync was
         // enabled mid-session (setup flow: CoreData reloads with CloudKit=true)
         refreshCKAccountStatus()
-        // Refresh snapshot
-        applySnapshot(animated: true)
+        // Schedule coalesced snapshot (may overlap with $groups / $items fires)
+        applySubscriptionSnapshot()
     }
 
     /// Subscribe to all dictionaries' load state changes to update cell UI
@@ -458,13 +470,13 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     /// Re-created when the groups array itself changes
     private func subscribeToAllGroupItems() {
         groupItemsCancellables.removeAll()
-        
+
         for group in DictionaryService.shared.groups {
             group.$items
                 .dropFirst()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
-                    self?.applySnapshot(animated: true)
+                    self?.applySubscriptionSnapshot()
                 }
                 .store(in: &groupItemsCancellables)
         }
@@ -599,15 +611,55 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
     
     // MARK: - Snapshot
-    
-    private func applySnapshot(animated: Bool) {
-        guard let defaultGroup = groups.first(where: { $0.isDefault }) else {
-            print("⚠️ No default group found")
+
+    /// Cached item identifiers from the last snapshot apply.
+    /// Used to skip redundant `dataSource.apply` calls — applying an identical
+    /// section snapshot to an outline parent (DefaultGroupCell) causes UIKit to
+    /// reset its accessories, which makes the iCloud button disappear.
+    private var lastSnapshotSignature: [Section: [SidebarItem]] = [:]
+
+    /// Handle subscription-driven updates.
+    /// If the structural items haven't changed, just invalidate visible cell
+    /// configurations (cheap, preserves accessories). Only rebuild the full
+    /// snapshot when items actually differ (import/delete/reorder).
+    private func applySubscriptionSnapshot() {
+        let signature = buildSnapshotSignature()
+        if signature == lastSnapshotSignature {
+            // Items unchanged — only cell content (sync status, display name) changed.
+            invalidateVisibleCellConfigurations()
             return
         }
-        
-        print("📋 applySnapshot - defaultGroup.items: \(defaultGroup.items.map { $0.id })")
-        print("📋 applySnapshot - dictionaryIds: \(defaultGroup.dictionaryIds)")
+        applySnapshot(animated: false)
+    }
+
+    /// Build a lightweight signature of what the next snapshot would contain.
+    private func buildSnapshotSignature() -> [Section: [SidebarItem]] {
+        guard let defaultGroup = groups.first(where: { $0.isDefault }) else { return [:] }
+        let userGroups = groups.filter { !$0.isDefault }
+
+        var defaultItems: [SidebarItem] = [.group(id: defaultGroup.id, isDefault: true)]
+        defaultItems += defaultGroup.items.map { .dictionary(id: $0.id, groupId: defaultGroup.id) }
+        if isEditing { defaultItems.append(.importDictionary) }
+
+        var userItems: [SidebarItem] = [.header(L10n.Sidebar.myGroups, isBold: false)]
+        for group in userGroups {
+            userItems.append(.group(id: group.id, isDefault: false))
+            userItems += group.items.map { .dictionary(id: $0.id, groupId: group.id) }
+        }
+        if isEditing || userGroups.isEmpty { userItems.append(.addGroup) }
+
+        let mgmtItems: [SidebarItem] = [
+            .header(L10n.Sidebar.management, isBold: false),
+            .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings
+        ]
+
+        return [.defaultGroup: defaultItems, .userGroups: userItems, .management: mgmtItems]
+    }
+
+    private func applySnapshot(animated: Bool) {
+        guard let defaultGroup = groups.first(where: { $0.isDefault }) else {
+            return
+        }
         
         let userGroups = groups.filter { !$0.isDefault }
         
@@ -653,6 +705,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         mgmtSnapshot.append([.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings], to: mgmtHeader)
         mgmtSnapshot.expand([mgmtHeader])
         dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
+
+        // Cache the signature so applySubscriptionSnapshot() can skip
+        // redundant applies that would cause UIKit to reset accessories
+        // on outline parent items (DefaultGroupCell iCloud button bug).
+        lastSnapshotSignature = buildSnapshotSignature()
     }
     
     // MARK: - State Update

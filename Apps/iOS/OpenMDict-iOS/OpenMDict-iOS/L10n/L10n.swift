@@ -1089,14 +1089,14 @@ nonisolated enum L10n {
         /// Alert message when dictionary is synced — includes dict name
         static func syncedDictMessage(name: String) -> String {
             String.localizedStringWithFormat(
-                NSLocalizedString("syncStatus.synced.dictMessage", value: "\u{201C}%@\u{201D} has been synced to your iCloud.", comment: "Sidebar sync status alert: dictionary synced message. %@ = dictionary name"),
+                NSLocalizedString("syncStatus.synced.dictMessage", value: "Dictionary \u{201C}%@\u{201D} has been synced to your iCloud.", comment: "Sidebar sync status alert: dictionary synced message. %@ = dictionary name"),
                 name
             )
         }
         /// Alert message when group is synced — includes group name
         static func syncedGroupMessage(name: String) -> String {
             String.localizedStringWithFormat(
-                NSLocalizedString("syncStatus.synced.groupMessage", value: "\u{201C}%@\u{201D} has been synced to your iCloud.", comment: "Sidebar sync status alert: group synced message. %@ = group name"),
+                NSLocalizedString("syncStatus.synced.groupMessage", value: "Group \u{201C}%@\u{201D} has been synced to your iCloud.", comment: "Sidebar sync status alert: group synced message. %@ = group name"),
                 name
             )
         }
@@ -1136,13 +1136,21 @@ nonisolated enum L10n {
 
         // -- Section-level iCloud account status --
 
-        /// Alert title when iCloud is healthy
+        /// Alert title when iCloud is healthy (all synced)
         static var iCloudHealthyTitle: String {
             NSLocalizedString("syncStatus.iCloudHealthy.title", value: "iCloud Sync Active", comment: "Sidebar sync status alert: iCloud healthy title")
         }
-        /// Alert message when iCloud is healthy
+        /// Alert message when iCloud is healthy (all synced)
         static var iCloudHealthyMessage: String {
-            NSLocalizedString("syncStatus.iCloudHealthy.message", value: "Your data is being synced to iCloud.", comment: "Sidebar sync status alert: iCloud healthy message")
+            NSLocalizedString("syncStatus.iCloudHealthy.message", value: "All dictionaries are synced to iCloud.", comment: "Sidebar sync status alert: iCloud healthy message — all synced")
+        }
+        /// Alert title when iCloud is syncing
+        static var iCloudSyncingTitle: String {
+            NSLocalizedString("syncStatus.iCloudSyncing.title", value: "Syncing", comment: "Sidebar sync status alert: iCloud syncing title")
+        }
+        /// Alert message when iCloud is syncing
+        static var iCloudSyncingMessage: String {
+            NSLocalizedString("syncStatus.iCloudSyncing.message", value: "Your data is being synced to iCloud.", comment: "Sidebar sync status alert: iCloud syncing message — in progress")
         }
         /// Alert title when iCloud has issues
         static var iCloudIssueTitle: String {

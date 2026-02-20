@@ -234,8 +234,10 @@ final class DictionaryService: ObservableObject {
                     }
 
                     // Files not on device → download from CloudKit
+                    DictMetadataService.shared.markDownloading(dictId)
                     let downloaded = await DictionaryFileSyncService.shared
                         .downloadDictionary(dictId: dictId)
+                    DictMetadataService.shared.clearDownloading(dictId)
                     if downloaded {
                         await refreshAfterImport(dictId)
                     }
@@ -269,14 +271,19 @@ final class DictionaryService: ObservableObject {
                     + "js \(localJsCount)→\(metadata.jsCount)")
 
                 // Per-file incremental update: fetch remote manifest → diff → download only changed files
+                DictMetadataService.shared.markDownloading(dictId)
+
                 guard let remoteManifest = await DictionaryFileSyncService.shared
                         .fetchRemoteManifest(dictId: dictId) else {
+                    DictMetadataService.shared.clearDownloading(dictId)
                     debugLog("❌ Remote manifest fetch failed for \(dictId.prefix(16))")
                     continue
                 }
 
                 let updated = await DictionaryFileSyncService.shared
                     .downloadUpdatedFiles(dictId: dictId, remoteManifest: remoteManifest)
+
+                DictMetadataService.shared.clearDownloading(dictId)
 
                 if updated {
                     self.storage.invalidateDictManifestCache(id: dictId)
