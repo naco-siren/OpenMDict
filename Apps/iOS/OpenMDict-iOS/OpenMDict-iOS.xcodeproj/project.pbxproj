@@ -18,6 +18,7 @@
 		F88D31022F4933A20043F9BF /* WikDict-EN-DE.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F88D30E12F4933A20043F9BF /* WikDict-EN-DE.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-de", ); }; };
 		F88D31032F4933A20043F9BF /* JMdict-JA-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F88D30D22F4933A20043F9BF /* JMdict-JA-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-jmdict-ja-en", ); }; };
 		F88D31042F4933A20043F9BF /* Bible-Vulgate-LA.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F88D30CE2F4933A20043F9BF /* Bible-Vulgate-LA.mdx */; settings = {ASSET_TAGS = ("preset-dict-bible-vulgate-la", ); }; };
+		62A63C23533D4C728AA25CE1 /* Bible-Byzantine-GRC.mdx in Resources */ = {isa = PBXBuildFile; fileRef = 67CFC373710944B2A2B9FECC /* Bible-Byzantine-GRC.mdx */; settings = {ASSET_TAGS = ("preset-dict-bible-byzantine-grc", ); }; };
 		F88D31052F4933A20043F9BF /* WikDict-FR-ES.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F88D30EE2F4933A20043F9BF /* WikDict-FR-ES.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-fr-es", ); }; };
 		F88D31062F4933A20043F9BF /* WikDict-EN-ES.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F88D30E32F4933A20043F9BF /* WikDict-EN-ES.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-es", ); }; };
 		F88D31072F4933A20043F9BF /* WikDict-EN-IT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F88D30E52F4933A20043F9BF /* WikDict-EN-IT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-it", ); }; };
@@ -125,6 +126,7 @@
 		F88D30CC2F4933A20043F9BF /* Bible-Synodal-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Bible-Synodal-RU.mdx"; sourceTree = "<group>"; };
 		F88D30CD2F4933A20043F9BF /* Bible-Turkish-TR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Bible-Turkish-TR.mdx"; sourceTree = "<group>"; };
 		F88D30CE2F4933A20043F9BF /* Bible-Vulgate-LA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Bible-Vulgate-LA.mdx"; sourceTree = "<group>"; };
+		67CFC373710944B2A2B9FECC /* Bible-Byzantine-GRC.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Bible-Byzantine-GRC.mdx"; sourceTree = "<group>"; };
 		F88D30CF2F4933A20043F9BF /* CEDICT-ZH-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CEDICT-ZH-EN.mdx"; sourceTree = "<group>"; };
 		F88D30D02F4933A20043F9BF /* FreeDict-DE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "FreeDict-DE-EN.mdx"; sourceTree = "<group>"; };
 		F88D30D12F4933A20043F9BF /* FreeDict-EN-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "FreeDict-EN-DE.mdx"; sourceTree = "<group>"; };
@@ -322,6 +324,7 @@
 				F88D30CC2F4933A20043F9BF /* Bible-Synodal-RU.mdx */,
 				F88D30CD2F4933A20043F9BF /* Bible-Turkish-TR.mdx */,
 				F88D30CE2F4933A20043F9BF /* Bible-Vulgate-LA.mdx */,
+				67CFC373710944B2A2B9FECC /* Bible-Byzantine-GRC.mdx */,
 				F88D30CF2F4933A20043F9BF /* CEDICT-ZH-EN.mdx */,
 				F88D30D02F4933A20043F9BF /* FreeDict-DE-EN.mdx */,
 				F88D30D12F4933A20043F9BF /* FreeDict-EN-DE.mdx */,
@@ -484,6 +487,7 @@
 					"preset-dict-bible-synodal-ru",
 					"preset-dict-bible-turkish-tr",
 					"preset-dict-bible-vulgate-la",
+					"preset-dict-bible-byzantine-grc",
 					"preset-dict-cedict-zh-en",
 					"preset-dict-freedict-de-en",
 					"preset-dict-freedict-en-de",
@@ -594,6 +598,7 @@
 				F88D31022F4933A20043F9BF /* WikDict-EN-DE.mdx in Resources */,
 				F88D31032F4933A20043F9BF /* JMdict-JA-EN.mdx in Resources */,
 				F88D31042F4933A20043F9BF /* Bible-Vulgate-LA.mdx in Resources */,
+				62A63C23533D4C728AA25CE1 /* Bible-Byzantine-GRC.mdx in Resources */,
 				F88D31052F4933A20043F9BF /* WikDict-FR-ES.mdx in Resources */,
 				F88D31062F4933A20043F9BF /* WikDict-EN-ES.mdx in Resources */,
 				F88D31072F4933A20043F9BF /* WikDict-EN-IT.mdx in Resources */,

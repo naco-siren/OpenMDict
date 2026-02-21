@@ -163,13 +163,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
                 if (a.tier ?? 99) != (b.tier ?? 99) { return (a.tier ?? 99) < (b.tier ?? 99) }
                 // 2. Bundle assets before ODR within same tier
                 if a.isBundleAsset != b.isBundleAsset { return a.isBundleAsset }
-                // 3. Alphabetical
+                // 3. Monolingual before bilingual (e.g. Moby Thesaurus EN→EN before FreeDict EN→DE)
+                if a.isMonolingual != b.isMonolingual { return a.isMonolingual }
+                // 4. Alphabetical
                 return a.displayName < b.displayName
             }
 
             return LanguageGroup(
                 langCode: langCode,
-                flag: sorted[0].flag,
+                flag: PresetDictionary.flagEmoji(for: langCode),
                 presets: sorted
             )
         }
@@ -177,10 +179,16 @@ final class PresetDictionaryPickerViewController: UIViewController {
             let aPriority = priorityMap[a.langCode] ?? Int.max
             let bPriority = priorityMap[b.langCode] ?? Int.max
             if aPriority != bPriority { return aPriority < bPriority }
-            // Both unprioritized → alphabetical by localized name
+            // Both unprioritized → cultural proximity cluster, then localized name.
+            // East Asian / CJK-sphere languages appear before Western / other,
+            // matching user expectations in CJK locales where kanji-named and
+            // katakana-named languages would otherwise interleave confusingly.
+            let aCluster = Self.culturalCluster(a.langCode)
+            let bCluster = Self.culturalCluster(b.langCode)
+            if aCluster != bCluster { return aCluster < bCluster }
             let aName = PresetDictionary.localizedLanguageName(a.langCode)
             let bName = PresetDictionary.localizedLanguageName(b.langCode)
-            return aName < bName
+            return aName.localizedCaseInsensitiveCompare(bName) == .orderedAscending
         }
     }
 
@@ -246,6 +254,19 @@ final class PresetDictionaryPickerViewController: UIViewController {
             }
         }
         return codes
+    }
+
+    /// Cultural proximity cluster for language group ordering.
+    /// East Asian / CJK-sphere (0) → European / Latin-alphabet (1) → Other (2).
+    /// Within each cluster groups sort by localized name.
+    private static func culturalCluster(_ code: String) -> Int {
+        switch code {
+        case "ZH", "JA", "KO":  return 0   // CJK sphere
+        case "EN", "ES", "FR", "DE", "IT", "PT", "LA", "EL", "TR":
+                                return 1   // European / Latin-alphabet
+        case "RU":              return 1   // Cyrillic, but European cultural context
+        default:                return 2   // Arabic, etc.
+        }
     }
 
     // MARK: - Collection View Setup
