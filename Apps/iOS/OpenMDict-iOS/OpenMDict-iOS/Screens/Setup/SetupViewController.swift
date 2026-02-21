@@ -201,13 +201,18 @@ final class SetupViewController: UIViewController {
             }
         }
 
-        // Picker → Progress (or cancel in management mode)
+        // Picker → Progress (or skip to completion if nothing selected)
         pickerVC.onContinue = { [weak self] selectedPresets in
             guard let self else { return }
-            self.showStep(.progress, animated: true)
-            // Delay startImporting until the progress VC's view is loaded
-            DispatchQueue.main.async {
-                self.progressVC.startImporting(selectedPresets)
+            if selectedPresets.isEmpty {
+                // Nothing to import — skip progress screen entirely
+                self.completeSetup()
+            } else {
+                self.showStep(.progress, animated: true)
+                // Delay startImporting until the progress VC's view is loaded
+                DispatchQueue.main.async {
+                    self.progressVC.startImporting(selectedPresets)
+                }
             }
         }
 

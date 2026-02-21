@@ -6,7 +6,7 @@
 //  Shows preset dictionaries grouped by source language with checkboxes.
 //
 //  Two modes:
-//  - .firstInstall: bundle dicts locked (pre-checked, non-toggleable), shown on first launch
+//  - .firstInstall: tier 0 locked (pre-checked, non-toggleable), shown on first launch
 //  - .management: everything is optional, already-imported dicts shown with badge
 //
 
@@ -17,7 +17,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
     // MARK: - Mode
 
     enum Mode {
-        /// First install: tier 0 dicts are pre-selected (but user can uncheck)
+        /// First install: tier 0 locked (pre-selected, non-deselectable)
         case firstInstall
         /// Sidebar management: everything optional, imported dicts badged
         case management
@@ -192,27 +192,32 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         for group in languageGroups {
             for preset in group.presets {
-                // Rule 1: Management — skip already-imported
+                let tier = preset.tier ?? 3
+                let destLangs = Set(preset.direction.dest)
+                let matchesDeviceLangs = preferredLangs.contains(preset.direction.src)
+                    && !destLangs.isDisjoint(with: preferredLangs)
+
+                // Management — skip already-imported
                 if mode == .management && service.isImported(preset.id) {
                     continue
                 }
 
-                // Rule 2: Pre-select tier 0 only if BOTH src AND at least one dest
-                // are in the user's preferred languages.
-                // This ensures we only recommend dictionaries the user can fully use:
-                //   - They speak the headword language (src)
-                //   - They understand at least one definition language (dest)
-                // Examples:
-                //   EN-only user → WordNet (EN→EN), Moby (EN→EN). NOT EN→DE (user has no DE).
-                //   EN+ZH user  → WordNet, Moby, CEDICT (ZH→EN). NOT EN→DE.
-                //   EN+DE user  → WordNet, Moby, FreeDict DE→EN, FreeDict EN→DE.
-                //
-                // Bundle assets are also pre-selected via this rule (no longer locked).
-                let destLangs = Set(preset.direction.dest)
-                if preset.tier == 0
-                    && preferredLangs.contains(preset.direction.src)
-                    && !destLangs.isDisjoint(with: preferredLangs) {
-                    selectedIds.insert(preset.id)
+                // Tier 0 (essential): always pre-selected in firstInstall (locked),
+                //   in management mode only if device languages match.
+                // Tier 1 (recommended): pre-selected if device languages match.
+                // Tier 2 (alternative): pre-selected if device languages match.
+                // Tier 3 (ordinary): never pre-selected.
+                switch tier {
+                case 0:
+                    if mode == .firstInstall || matchesDeviceLangs {
+                        selectedIds.insert(preset.id)
+                    }
+                case 1, 2:
+                    if matchesDeviceLangs {
+                        selectedIds.insert(preset.id)
+                    }
+                default:
+                    break
                 }
             }
         }
@@ -336,6 +341,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let service = PresetDictionaryService.shared
         let isSelected = selectedIds.contains(preset.id)
         let isImported = service.isImported(preset.id)
+        let tier = preset.tier ?? 3
+        let isLocked = mode == .firstInstall && tier == 0
 
         // Content configuration
         var content = UIListContentConfiguration.subtitleCell()
@@ -348,11 +355,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
         content.secondaryText = "\(directionLabel) \u{00B7} \(L10n.entryCount(preset.entries)) \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
-        // Dim tier 2+ alternatives OR already-imported items in management mode
-        if (isImported && mode == .management) {
-            content.textProperties.color = .secondaryLabel
-            content.secondaryTextProperties.color = .tertiaryLabel
-        } else if let tier = preset.tier, tier >= 2 {
+        // Bold for tier 0/1 (prominent), normal weight for tier 2/3
+        if tier <= 1,
+           let boldDesc = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
+               .withSymbolicTraits(.traitBold) {
+            content.textProperties.font = UIFont(descriptor: boldDesc, size: 0)
+        }
+
+        // Dim already-imported items in management mode
+        if isImported && mode == .management {
             content.textProperties.color = .secondaryLabel
             content.secondaryTextProperties.color = .tertiaryLabel
         }
@@ -363,16 +374,23 @@ final class PresetDictionaryPickerViewController: UIViewController {
         var accessories: [UICellAccessory] = []
 
         if isImported && mode == .management {
-            // Already imported — no leading checkbox (ambiguous in this context).
-            // Diamond checkmark as trailing status indicator (distinct from circle checkboxes).
+            // Already imported — diamond checkmark as trailing status indicator
             let checkImage = UIImageView(image: UIImage(systemName: "checkmark.diamond.fill"))
             checkImage.tintColor = .systemGreen
             accessories.append(.customView(configuration: .init(
                 customView: checkImage, placement: .trailing(displayed: .always)
             )))
 
+        } else if isLocked {
+            // Tier 0 in firstInstall — always selected, disabled appearance
+            let lockImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
+            lockImage.tintColor = .secondaryLabel
+            accessories.append(.customView(configuration: .init(
+                customView: lockImage, placement: .leading(displayed: .always)
+            )))
+
         } else {
-            // Normal checkbox (leading) — all items are toggleable
+            // Normal checkbox (leading)
             let imageName = isSelected ? "checkmark.circle.fill" : "circle"
             let imageView = UIImageView(image: UIImage(systemName: imageName))
             imageView.tintColor = isSelected ? .systemBlue : .tertiaryLabel
@@ -454,6 +472,8 @@ final class PresetDictionaryPickerViewController: UIViewController {
         for group in languageGroups {
             for preset in group.presets {
                 if mode == .management && service.isImported(preset.id) { continue }
+                // Tier 0 is locked in firstInstall — not toggleable by Select All
+                if mode == .firstInstall && (preset.tier ?? 3) == 0 { continue }
                 ids.insert(preset.id)
             }
         }
@@ -494,10 +514,13 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
 
         guard let item = dataSource.itemIdentifier(for: indexPath),
               case .dictionary(let presetId) = item,
-              let _ = findPreset(id: presetId) else { return }
+              let preset = findPreset(id: presetId) else { return }
 
         // Already-imported items cannot be toggled in management mode
         if mode == .management && PresetDictionaryService.shared.isImported(presetId) { return }
+
+        // Tier 0 is locked (non-toggleable) in firstInstall mode
+        if mode == .firstInstall && (preset.tier ?? 3) == 0 { return }
 
         // Toggle selection
         if selectedIds.contains(presetId) {
@@ -518,10 +541,13 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath),
               case .dictionary(let presetId) = item,
-              let _ = findPreset(id: presetId) else { return false }
+              let preset = findPreset(id: presetId) else { return false }
 
         // Already-imported items should not highlight in management mode
         if mode == .management && PresetDictionaryService.shared.isImported(presetId) { return false }
+
+        // Tier 0 is locked in firstInstall mode — no highlight
+        if mode == .firstInstall && (preset.tier ?? 3) == 0 { return false }
 
         return true
     }
