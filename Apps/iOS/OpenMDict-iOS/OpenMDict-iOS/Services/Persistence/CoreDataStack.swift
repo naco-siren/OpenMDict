@@ -77,7 +77,9 @@ final class CoreDataStack {
     func setup(enableCloudKit: Bool) {
         guard _persistentContainer == nil else { return }
         _persistentContainer = createContainer(enableCloudKit: enableCloudKit)
-        installRemoteChangeObserver()
+        if enableCloudKit {
+            installRemoteChangeObserver()
+        }
     }
 
     /// Tear down the current (local-only) container and recreate it
@@ -144,13 +146,18 @@ final class CoreDataStack {
             )
         }
 
-        // Persistent history tracking — ALWAYS enabled.
-        // Required by CloudKit sync, and also allows a future
-        // offline → cloud transition to export existing records.
-        description.setOption(true as NSNumber,
-                              forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(true as NSNumber,
-                              forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        // Persistent history tracking + remote change notifications.
+        // Both are required by NSPersistentCloudKitContainer for sync.
+        // In offline mode neither is needed — no history to export
+        // (reloadWithCloudKit is only called when the store is empty),
+        // and leaving history tracking on would bloat the SQLite file
+        // with change logs we never clean up.
+        if enableCloudKit {
+            description.setOption(true as NSNumber,
+                                  forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber,
+                                  forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        }
 
         container.persistentStoreDescriptions = [description]
 
