@@ -122,6 +122,28 @@ nonisolated enum L10n {
         static var skipPresets: String {
             NSLocalizedString("picker.skipPresets", value: "Skip", comment: "Button to skip preset dictionary selection")
         }
+
+        // Section headers (region names)
+        static var regionFarEast: String {
+            NSLocalizedString("picker.region.farEast", value: "Far East", comment: "Picker section header: Far East region")
+        }
+        static var regionEurope: String {
+            NSLocalizedString("picker.region.europe", value: "Europe", comment: "Picker section header: Europe region")
+        }
+        static var regionMiddleEast: String {
+            NSLocalizedString("picker.region.middleEast", value: "Middle East", comment: "Picker section header: Middle East region")
+        }
+        static var regionClassical: String {
+            NSLocalizedString("picker.region.classical", value: "Classical", comment: "Picker section header: Classical languages region")
+        }
+        static var regionBible: String {
+            NSLocalizedString("picker.region.bible", value: "Bible", comment: "Picker section header: Bible translations region")
+        }
+
+        // Empty state
+        static var allPresetsInstalled: String {
+            NSLocalizedString("picker.allPresetsInstalled", value: "All available preset dictionaries have been installed on your device.", comment: "Empty state when all preset dictionaries are already imported")
+        }
     }
 
     // MARK: - Import Progress
@@ -143,6 +165,12 @@ nonisolated enum L10n {
             String.localizedStringWithFormat(
                 NSLocalizedString("progress.downloadingBytes", value: "Downloaded %.1f MB / %.1f MB", comment: "Download progress with megabyte counts; %.1f = completed MB, %.1f = total MB"),
                 completedMB, totalMB
+            )
+        }
+        static func downloadComplete(size: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("progress.downloadComplete", value: "Download complete: %@", comment: "Subtitle after download finishes; %@ is the formatted file size"),
+                size
             )
         }
     }

@@ -389,7 +389,7 @@ final class ImportProgressViewController: UIViewController {
             )))
 
         case .completed:
-            content.secondaryText = preset.sizeFormatted
+            content.secondaryText = L10n.Progress.downloadComplete(size: preset.sizeFormatted)
             content.secondaryTextProperties.color = .secondaryLabel
             let checkImage = UIImageView(image: UIImage(systemName: "checkmark.diamond.fill"))
             checkImage.tintColor = .systemGreen

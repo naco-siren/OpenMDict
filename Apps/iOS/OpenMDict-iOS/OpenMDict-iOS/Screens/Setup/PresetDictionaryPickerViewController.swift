@@ -126,6 +126,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
         )
 
         loadCatalogData()
+
+        // Empty state: all available presets are already installed (management mode only)
+        if regionGroups.isEmpty && mode == .management {
+            setupCollectionView()
+            setupLayout()
+            showEmptyState()
+            return
+        }
+
         computePreSelection()
         setupCollectionView()
         setupLayout()
@@ -327,7 +336,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
             var content = headerView.defaultContentConfiguration()
             if let region = self.regionGroups.first(where: { $0.region.rawValue == regionName }) {
-                content.text = "\(region.region.headerEmoji) \(regionName)"
+                content.text = "\(region.region.headerEmoji) \(self.localizedRegionName(region.region))"
             } else {
                 content.text = regionName
             }
@@ -568,6 +577,64 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: n)) ?? "\(n)"
+    }
+
+    private func localizedRegionName(_ region: PresetDictionary.Region) -> String {
+        switch region {
+        case .farEast:    return L10n.Picker.regionFarEast
+        case .europe:     return L10n.Picker.regionEurope
+        case .middleEast: return L10n.Picker.regionMiddleEast
+        case .classical:  return L10n.Picker.regionClassical
+        case .bible:      return L10n.Picker.regionBible
+        }
+    }
+
+    // MARK: - Empty State
+
+    private func showEmptyState() {
+        // Hide list chrome
+        collectionView.isHidden = true
+        bottomSeparator.isHidden = true
+        continueButton.isHidden = true
+        navigationItem.rightBarButtonItem = nil
+
+        // Build placeholder (ContentUnavailableView equivalent for iOS 15+)
+        let iconName: String
+        if #available(iOS 16, *) {
+            iconName = "info.bubble"
+        } else {
+            iconName = "info.circle"
+        }
+
+        let imageView = UIImageView(image: UIImage(systemName: iconName))
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.contentMode = .scaleAspectFit
+        imageView.tintColor = .secondaryLabel
+        imageView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(
+            pointSize: 48, weight: .light
+        )
+
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = L10n.Picker.allPresetsInstalled
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.font = .preferredFont(forTextStyle: .body)
+
+        let stack = UIStackView(arrangedSubviews: [imageView, label])
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 12
+
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -32),
+        ])
     }
 }
 

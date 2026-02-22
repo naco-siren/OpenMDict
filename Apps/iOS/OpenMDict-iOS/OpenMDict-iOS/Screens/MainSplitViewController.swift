@@ -423,7 +423,7 @@ class MainSplitViewController: UISplitViewController {
         debugLog("📱 Setup needed: syncMode=\(syncMode.rawValue), hasDicts=\(hasDicts), pickerOnly=\(isPickerOnly)")
 
         let setupVC = SetupViewController(mode: isPickerOnly ? .management : .firstInstall)
-        setupVC.isCancellable = !isPickerOnly
+        setupVC.isCancellable = false
         // iPad (regular): formSheet card; iPhone (compact): pageSheet for picker-only, fullScreen for first install
         if traitCollection.horizontalSizeClass == .regular {
             setupVC.modalPresentationStyle = .formSheet
