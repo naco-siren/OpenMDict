@@ -114,7 +114,7 @@ struct PresetDictionary: Codable, Identifiable {
         case "KO": return "🇰🇷"
         case "ES": return "🇪🇸"
         case "FR": return "🇫🇷"
-        case "DE": return "🇩🇪🇦🇹"
+        case "DE": return "🇩🇪"
         case "IT": return "🇮🇹"
         case "PT": return "🇵🇹🇧🇷"
         case "RU": return "🇷🇺"
@@ -126,29 +126,99 @@ struct PresetDictionary: Codable, Identifiable {
         }
     }
 
-    // MARK: - Language Pair Display
+    // MARK: - Region / Hierarchical Picker
 
-    /// Flexible language pair display string.
-    /// - Parameters:
-    ///   - abbreviated: `true` → "JA → EN", `false` → "Japanese → English"
-    ///   - withEmoji: `true` → prepend/append flag emoji
-    /// - Returns: Formatted language pair string
-    func languagePair(abbreviated: Bool = true, withEmoji: Bool = false) -> String {
-        // Monolingual dictionaries (e.g., WordNet EN → EN)
-        if isMonolingual {
-            let name = abbreviated ? direction.src : Self.localizedLanguageName(direction.src)
-            return withEmoji ? "\(flag) \(name)" : name
+    /// Geographic/cultural region for hierarchical picker grouping.
+    enum Region: String, CaseIterable {
+        case farEast    = "Far East"
+        case europe     = "Europe"
+        case middleEast = "Middle East"
+        case classical  = "Classical"
+        case bible      = "Bible"
+
+        var sortOrder: Int {
+            switch self {
+            case .farEast:    return 0
+            case .europe:     return 1
+            case .middleEast: return 2
+            case .classical:  return 3
+            case .bible:      return 4
+            }
         }
 
-        let srcName = abbreviated ? direction.src : Self.localizedLanguageName(direction.src)
-        let destNames = direction.dest.map { abbreviated ? $0 : Self.localizedLanguageName($0) }
-        let pair = "\(srcName) \u{2192} \(destNames.joined(separator: ", "))"
-
-        guard withEmoji else { return pair }
-
-        let destFlags = direction.dest.map { Self.flagEmoji(for: $0) }.joined(separator: " ")
-        return "\(flag) \(pair) \(destFlags)".trimmingCharacters(in: .whitespaces)
+        var headerEmoji: String {
+            switch self {
+            case .farEast:    return "🌏"
+            case .europe:     return "🌍"
+            case .middleEast: return "🕌"
+            case .classical:  return "🏛️"
+            case .bible:      return "✝️"
+            }
+        }
     }
+
+    /// The region this dictionary belongs to in the hierarchical picker.
+    var region: Region {
+        // Bible dicts always go to the Bible region
+        if filename.hasPrefix("Bible-") { return .bible }
+
+        // Classical: Ancient Greek (LSJ) + Latin (Lewis-Short)
+        // Note: Kaikki-LA, WikDict-LA, etc. are modern teaching tools → Classical
+        // Note: LSJ uses "EL" in direction.src but is Ancient Greek
+        if filename.hasPrefix("LSJ-") || filename.hasPrefix("Lewis-Short-") { return .classical }
+
+        // Use the primary language to determine region
+        switch primaryLanguage {
+        case "ZH", "JA", "KO",
+             "CJK", "YUE":         return .farEast
+        case "AR", "TR":           return .middleEast
+        case "LA", "GRC":          return .classical
+        default:                   return .europe   // EN, FR, DE, ES, IT, PT, RU, EL
+        }
+    }
+
+    /// The primary language for grouping within a region.
+    /// - Monolingual (EN→EN): src
+    /// - Bilingual X→EN: X (the non-English language is what defines the dict)
+    /// - Bilingual EN→X: X (English users looking up language X)
+    /// - Cross-pair X→Y: src (e.g., FR→ES goes under French)
+    /// - Special: Unihan (src=ZH but serves CJK) → "CJK"
+    var primaryLanguage: String {
+        // Special cases first
+        if filename.hasPrefix("Unihan-") { return "CJK" }
+        // CC-Canto: Cantonese is a Chinese dialect → group under ZH
+        // LSJ: Ancient Greek → use GRC (not modern "EL")
+        if filename.hasPrefix("LSJ-") { return "GRC" }
+
+        // EN→X bilingual: group under the target language X
+        if direction.src == "EN" && !isMonolingual {
+            return direction.dest[0]
+        }
+
+        // Everything else: group by source language
+        return direction.src
+    }
+
+    /// Flag emoji for the primary language (may differ from direction.src flag).
+    var primaryFlag: String {
+        switch primaryLanguage {
+        case "CJK": return "🇨🇳🇹🇼🇭🇰🇯🇵🇰🇷"
+        case "YUE": return "🇭🇰"
+        case "GRC": return "🏛️"
+        default:    return Self.flagEmoji(for: primaryLanguage)
+        }
+    }
+
+    /// Localized display name for the primary language.
+    var primaryLanguageName: String {
+        switch primaryLanguage {
+        case "CJK": return "CJK (Unihan)"
+        case "YUE": return NSLocalizedString("Cantonese", comment: "Language name for Cantonese")
+        case "GRC": return NSLocalizedString("Ancient Greek", comment: "Language name for Ancient Greek")
+        default:    return Self.localizedLanguageName(primaryLanguage)
+        }
+    }
+
 }
 
 // MARK: - PresetDictionaryCatalog

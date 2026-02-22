@@ -3,7 +3,8 @@
 //  OpenMDict-iOS
 //
 //  Step 2 of the onboarding flow, also reusable from sidebar management.
-//  Shows preset dictionaries grouped by source language with checkboxes.
+//  Shows preset dictionaries in a 3-level hierarchy:
+//    Region (section) → Language (expandable parent) → Dictionary (leaf)
 //
 //  Two modes:
 //  - .firstInstall: tier 0 locked (pre-checked, non-toggleable), shown on first launch
@@ -38,23 +39,25 @@ final class PresetDictionaryPickerViewController: UIViewController {
     /// Selected preset IDs
     private var selectedIds: Set<String> = []
 
-    /// Catalog grouped by direction.src, sorted for display
-    private var languageGroups: [LanguageGroup] = []
+    /// Hierarchical data: Region → [LanguageGroup]
+    private var regionGroups: [(region: PresetDictionary.Region, languages: [LanguageGroup])] = []
 
     private struct LanguageGroup {
-        let langCode: String       // direction.src code (e.g. "DE")
-        let flag: String           // source language flag emoji
-        let presets: [PresetDictionary]
+        let langCode: String               // primary language code (e.g. "JA", "CJK", "YUE")
+        let flag: String                   // emoji flag
+        let displayName: String            // localized language name
+        let presets: [PresetDictionary]    // sorted dicts under this language
     }
 
     // MARK: - DiffableDataSource Types
 
     private nonisolated enum PickerSection: Hashable, Sendable {
-        case language(code: String)
+        case region(String)   // region rawValue, e.g. "Far East"
     }
 
     private nonisolated enum PickerItem: Hashable, Sendable {
-        case dictionary(id: String)
+        case languageHeader(code: String, region: String)   // expandable parent
+        case dictionary(id: String)                         // checkable leaf
     }
 
     // MARK: - UI
@@ -143,57 +146,61 @@ final class PresetDictionaryPickerViewController: UIViewController {
         }
         service.refreshImportStatus()
 
-        // Group visible presets (tier != nil) by direction.src.
+        // Filter visible presets (tier != nil).
         // In management mode, hide already-imported dictionaries entirely.
         var visible = service.catalog.filter { $0.tier != nil }
         if mode == .management {
             visible = visible.filter { !service.isImported($0.id) }
         }
-        let grouped = Dictionary(grouping: visible) { $0.direction.src }
 
-        // Build a priority map: EN always 0, then user device languages
-        // in preference order, everything else gets Int.max (sorted alphabetically).
+        // Group by region → primaryLanguage
+        let byRegion = Dictionary(grouping: visible) { $0.region }
+
+        // Build a priority map for language ordering within regions
         let orderedLangs = Self.orderedPreferredLanguageCodes()
         var priorityMap: [String: Int] = ["EN": 0]
         for (index, code) in orderedLangs.enumerated() {
             if priorityMap[code] == nil {
-                priorityMap[code] = index + 1  // EN=0, then 1,2,3…
+                priorityMap[code] = index + 1
             }
         }
 
-        languageGroups = grouped.map { langCode, presets in
-            let sorted = presets.sorted { a, b in
-                // 1. Lower tier first
-                if (a.tier ?? 99) != (b.tier ?? 99) { return (a.tier ?? 99) < (b.tier ?? 99) }
-                // 2. Bundle assets before ODR within same tier
-                if a.isBundleAsset != b.isBundleAsset { return a.isBundleAsset }
-                // 3. Monolingual before bilingual (e.g. Moby Thesaurus EN→EN before FreeDict EN→DE)
-                if a.isMonolingual != b.isMonolingual { return a.isMonolingual }
-                // 4. Alphabetical
-                return a.displayName < b.displayName
-            }
+        regionGroups = PresetDictionary.Region.allCases
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { region in
+                guard let presetsInRegion = byRegion[region], !presetsInRegion.isEmpty else { return nil }
 
-            return LanguageGroup(
-                langCode: langCode,
-                flag: PresetDictionary.flagEmoji(for: langCode),
-                presets: sorted
-            )
-        }
-        .sorted { a, b in
-            let aPriority = priorityMap[a.langCode] ?? Int.max
-            let bPriority = priorityMap[b.langCode] ?? Int.max
-            if aPriority != bPriority { return aPriority < bPriority }
-            // Both unprioritized → cultural proximity cluster, then localized name.
-            // East Asian / CJK-sphere languages appear before Western / other,
-            // matching user expectations in CJK locales where kanji-named and
-            // katakana-named languages would otherwise interleave confusingly.
-            let aCluster = Self.culturalCluster(a.langCode)
-            let bCluster = Self.culturalCluster(b.langCode)
-            if aCluster != bCluster { return aCluster < bCluster }
-            let aName = PresetDictionary.localizedLanguageName(a.langCode)
-            let bName = PresetDictionary.localizedLanguageName(b.langCode)
-            return aName.localizedCaseInsensitiveCompare(bName) == .orderedAscending
-        }
+                // Group by primaryLanguage within this region
+                let byLang = Dictionary(grouping: presetsInRegion) { $0.primaryLanguage }
+
+                let languages = byLang.map { langCode, presets in
+                    let sorted = presets.sorted { a, b in
+                        // 1. Lower tier first
+                        if (a.tier ?? 99) != (b.tier ?? 99) { return (a.tier ?? 99) < (b.tier ?? 99) }
+                        // 2. Bundle assets before ODR within same tier
+                        if a.isBundleAsset != b.isBundleAsset { return a.isBundleAsset }
+                        // 3. Monolingual before bilingual
+                        if a.isMonolingual != b.isMonolingual { return a.isMonolingual }
+                        // 4. Alphabetical
+                        return a.displayName < b.displayName
+                    }
+                    let first = presets[0]
+                    return LanguageGroup(
+                        langCode: langCode,
+                        flag: first.primaryFlag,
+                        displayName: first.primaryLanguageName,
+                        presets: sorted
+                    )
+                }
+                .sorted { a, b in
+                    let aPriority = priorityMap[a.langCode] ?? Int.max
+                    let bPriority = priorityMap[b.langCode] ?? Int.max
+                    if aPriority != bPriority { return aPriority < bPriority }
+                    return a.displayName.localizedCaseInsensitiveCompare(b.displayName) == .orderedAscending
+                }
+
+                return (region: region, languages: languages)
+            }
     }
 
     // MARK: - Pre-selection
@@ -201,29 +208,26 @@ final class PresetDictionaryPickerViewController: UIViewController {
     private func computePreSelection() {
         let preferredLangs = Self.preferredLanguageCodes()
 
-        for group in languageGroups {
-            for preset in group.presets {
-                let tier = preset.tier ?? 3
-                let destLangs = Set(preset.direction.dest)
-                let matchesDeviceLangs = preferredLangs.contains(preset.direction.src)
-                    && !destLangs.isDisjoint(with: preferredLangs)
+        for regionGroup in regionGroups {
+            for langGroup in regionGroup.languages {
+                for preset in langGroup.presets {
+                    let tier = preset.tier ?? 3
+                    let destLangs = Set(preset.direction.dest)
+                    let matchesDeviceLangs = preferredLangs.contains(preset.direction.src)
+                        && !destLangs.isDisjoint(with: preferredLangs)
 
-                // Tier 0 (essential): always pre-selected in firstInstall (locked),
-                //   in management mode only if device languages match.
-                // Tier 1 (recommended): pre-selected if device languages match.
-                // Tier 2 (alternative): pre-selected if device languages match.
-                // Tier 3 (ordinary): never pre-selected.
-                switch tier {
-                case 0:
-                    if mode == .firstInstall || matchesDeviceLangs {
-                        selectedIds.insert(preset.id)
+                    switch tier {
+                    case 0:
+                        if mode == .firstInstall || matchesDeviceLangs {
+                            selectedIds.insert(preset.id)
+                        }
+                    case 1, 2:
+                        if matchesDeviceLangs {
+                            selectedIds.insert(preset.id)
+                        }
+                    default:
+                        break
                     }
-                case 1, 2:
-                    if matchesDeviceLangs {
-                        selectedIds.insert(preset.id)
-                    }
-                default:
-                    break
                 }
             }
         }
@@ -231,16 +235,10 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     // MARK: - Locale Detection
 
-    /// Extract ISO 639-1 language codes from Locale.preferredLanguages.
-    /// Maps iOS locale codes (e.g. "zh-Hans-US", "ja-JP") to our catalog codes ("ZH", "JA").
-    /// Returns only the languages the user has actually configured on their device.
     static func preferredLanguageCodes() -> Set<String> {
         Set(orderedPreferredLanguageCodes())
     }
 
-    /// Ordered version of `preferredLanguageCodes()` — preserves the user's
-    /// device language priority (first = most preferred).
-    /// Used for section ordering in the picker.
     static func orderedPreferredLanguageCodes() -> [String] {
         var seen = Set<String>()
         var codes: [String] = []
@@ -254,27 +252,12 @@ final class PresetDictionaryPickerViewController: UIViewController {
         return codes
     }
 
-    /// Cultural proximity cluster for language group ordering.
-    /// East Asian / CJK-sphere (0) → European / Latin-alphabet (1) → Other (2).
-    /// Within each cluster groups sort by localized name.
-    private static func culturalCluster(_ code: String) -> Int {
-        switch code {
-        case "ZH", "JA", "KO":  return 0   // CJK sphere
-        case "EN", "ES", "FR", "DE", "IT", "PT", "LA", "EL", "TR":
-                                return 1   // European / Latin-alphabet
-        case "RU":              return 1   // Cyrillic, but European cultural context
-        default:                return 2   // Arabic, etc.
-        }
-    }
-
     // MARK: - Collection View Setup
 
     private func setupCollectionView() {
         var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
         listConfig.headerMode = .supplementary
 
-        // Use section provider so we can set contentInsetsReference per-section.
-        // List sections don't inherit this from the layout configuration.
         let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment in
             let section = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: layoutEnvironment)
             section.contentInsetsReference = .readableContent
@@ -298,18 +281,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            // Collection view (fills space between nav bar and separator)
             collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomSeparator.topAnchor),
 
-            // Separator
             bottomSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
 
-            // Continue button (pinned to bottom)
             continueButton.topAnchor.constraint(equalTo: bottomSeparator.bottomAnchor, constant: 20),
             continueButton.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
             continueButton.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
@@ -321,34 +301,42 @@ final class PresetDictionaryPickerViewController: UIViewController {
     // MARK: - Data Source
 
     private func configureDataSource() {
-        // Cell registration
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> {
-            [weak self] cell, indexPath, presetId in
-            guard let self, let preset = self.findPreset(id: presetId) else { return }
-            self.configureCell(cell, preset: preset)
+        // Cell registration — handles both language headers and dictionary items
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PickerItem> {
+            [weak self] cell, indexPath, item in
+            guard let self else { return }
+
+            switch item {
+            case .languageHeader(let code, let region):
+                self.configureLanguageHeaderCell(cell, langCode: code, regionName: region)
+            case .dictionary(let id):
+                if let preset = self.findPreset(id: id) {
+                    self.configureDictionaryCell(cell, preset: preset)
+                }
+            }
         }
 
-        // Section header registration
+        // Section header registration (region headers)
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] headerView, _, indexPath in
             guard let self,
                   let section = self.dataSource.sectionIdentifier(for: indexPath.section),
-                  case .language(let code) = section,
-                  let group = self.languageGroups.first(where: { $0.langCode == code })
+                  case .region(let regionName) = section
             else { return }
 
             var content = headerView.defaultContentConfiguration()
-            content.text = Self.sectionHeaderText(for: group)
+            if let region = self.regionGroups.first(where: { $0.region.rawValue == regionName }) {
+                content.text = "\(region.region.headerEmoji) \(regionName)"
+            } else {
+                content.text = regionName
+            }
             headerView.contentConfiguration = content
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) {
             collectionView, indexPath, item in
-            switch item {
-            case .dictionary(let id):
-                return collectionView.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: id)
-            }
+            collectionView.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
         }
 
         dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
@@ -356,12 +344,45 @@ final class PresetDictionaryPickerViewController: UIViewController {
         }
     }
 
-    private func configureCell(_ cell: UICollectionViewListCell, preset: PresetDictionary) {
+    /// Configure a language header cell (expandable parent with disclosure triangle)
+    private func configureLanguageHeaderCell(_ cell: UICollectionViewListCell, langCode: String, regionName: String) {
+        guard let langGroup = findLanguageGroup(langCode: langCode, regionName: regionName) else { return }
+
+        var content = UIListContentConfiguration.cell()
+        content.text = "\(langGroup.flag) \(langGroup.displayName)"
+
+        // Bold font for language headers
+        if let boldDesc = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
+            .withSymbolicTraits(.traitBold) {
+            content.textProperties.font = UIFont(descriptor: boldDesc, size: 0)
+        }
+
+        cell.contentConfiguration = content
+
+        // Trailing "X / Y selected" label before disclosure
+        let selectedCount = langGroup.presets.filter { selectedIds.contains($0.id) }.count
+        let totalCount = langGroup.presets.count
+        let countLabel = UILabel()
+        countLabel.text = "\(selectedCount) / \(totalCount) selected"
+        countLabel.font = .preferredFont(forTextStyle: .footnote)
+        countLabel.textColor = .secondaryLabel
+        countLabel.sizeToFit()
+
+        cell.accessories = [
+            .customView(configuration: .init(
+                customView: countLabel,
+                placement: .trailing(displayed: .always)
+            )),
+            .outlineDisclosure()
+        ]
+    }
+
+    /// Configure a dictionary cell (checkable leaf with checkbox)
+    private func configureDictionaryCell(_ cell: UICollectionViewListCell, preset: PresetDictionary) {
         let isSelected = selectedIds.contains(preset.id)
         let tier = preset.tier ?? 3
         let isLocked = mode == .firstInstall && tier == 0
 
-        // Content configuration
         var content = UIListContentConfiguration.subtitleCell()
         content.text = preset.displayName
 
@@ -372,7 +393,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
         content.secondaryText = "\(directionLabel) \u{00B7} \(L10n.entryCount(preset.entries)) \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
-        // Bold for tier 0/1 (prominent), normal weight for tier 2/3
+        // Bold for tier 0/1
         if tier <= 1,
            let boldDesc = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
                .withSymbolicTraits(.traitBold) {
@@ -385,15 +406,12 @@ final class PresetDictionaryPickerViewController: UIViewController {
         var accessories: [UICellAccessory] = []
 
         if isLocked {
-            // Tier 0 in firstInstall — always selected, disabled appearance
             let lockImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
             lockImage.tintColor = .secondaryLabel
             accessories.append(.customView(configuration: .init(
                 customView: lockImage, placement: .leading(displayed: .always)
             )))
-
         } else {
-            // Normal checkbox (leading)
             let imageName = isSelected ? "checkmark.circle.fill" : "circle"
             let imageView = UIImageView(image: UIImage(systemName: imageName))
             imageView.tintColor = isSelected ? .systemBlue : .tertiaryLabel
@@ -405,19 +423,57 @@ final class PresetDictionaryPickerViewController: UIViewController {
         cell.accessories = accessories
     }
 
-    // MARK: - Snapshot
+    // MARK: - Snapshot (Hierarchical)
 
     private func applySnapshot() {
+        // First: create the top-level snapshot with sections
         var snapshot = NSDiffableDataSourceSnapshot<PickerSection, PickerItem>()
-
-        for group in languageGroups {
-            let section = PickerSection.language(code: group.langCode)
-            snapshot.appendSections([section])
-            let items = group.presets.map { PickerItem.dictionary(id: $0.id) }
-            snapshot.appendItems(items, toSection: section)
-        }
-
+        let sections = regionGroups.map { PickerSection.region($0.region.rawValue) }
+        snapshot.appendSections(sections)
         dataSource.apply(snapshot, animatingDifferences: false)
+
+        // Then: apply per-section hierarchical snapshots
+        for regionGroup in regionGroups {
+            let section = PickerSection.region(regionGroup.region.rawValue)
+            var sectionSnapshot = NSDiffableDataSourceSectionSnapshot<PickerItem>()
+
+            // Collect standalone items (no parent header) to append after all groups
+            var standaloneItems: [PickerItem] = []
+
+            for langGroup in regionGroup.languages {
+                // Standalone items: no parent header (CJK/Unihan, Classical, Bible)
+                if langGroup.langCode == "CJK" || regionGroup.region == .classical || regionGroup.region == .bible {
+                    standaloneItems.append(contentsOf:
+                        langGroup.presets.map { PickerItem.dictionary(id: $0.id) }
+                    )
+                    continue
+                }
+
+                // Normal: language header → dictionary children
+                let parent = PickerItem.languageHeader(
+                    code: langGroup.langCode,
+                    region: regionGroup.region.rawValue
+                )
+                sectionSnapshot.append([parent])
+
+                // Dictionary items = children
+                let children = langGroup.presets.map { PickerItem.dictionary(id: $0.id) }
+                sectionSnapshot.append(children, to: parent)
+
+                // Expand only if this language group has default-selected children
+                let hasSelectedChild = langGroup.presets.contains { selectedIds.contains($0.id) }
+                if hasSelectedChild {
+                    sectionSnapshot.expand([parent])
+                }
+            }
+
+            // Append standalone items after all parent-child groups
+            if !standaloneItems.isEmpty {
+                sectionSnapshot.append(standaloneItems)
+            }
+
+            dataSource.apply(sectionSnapshot, to: section, animatingDifferences: false)
+        }
     }
 
     // MARK: - Continue Button
@@ -426,7 +482,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let count = selectedIds.count
         if count > 0 {
             continueButton.configuration?.title = L10n.confirmSelection(count)
-            continueButton.configuration?.baseBackgroundColor = nil  // system default (filled blue)
+            continueButton.configuration?.baseBackgroundColor = nil
         } else if mode == .firstInstall {
             continueButton.configuration?.title = L10n.Picker.skipPresets
             continueButton.configuration?.baseBackgroundColor = .systemGray4
@@ -459,9 +515,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
         }
 
         // Reconfigure all visible cells
-        var snapshot = dataSource.snapshot()
-        snapshot.reconfigureItems(snapshot.itemIdentifiers)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        reconfigureAllItems()
 
         updateContinueButton()
         updateSelectAllButton()
@@ -471,11 +525,12 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private func allSelectableIds() -> Set<String> {
         var ids = Set<String>()
-        for group in languageGroups {
-            for preset in group.presets {
-                // Tier 0 is locked in firstInstall — not toggleable by Select All
-                if mode == .firstInstall && (preset.tier ?? 3) == 0 { continue }
-                ids.insert(preset.id)
+        for regionGroup in regionGroups {
+            for langGroup in regionGroup.languages {
+                for preset in langGroup.presets {
+                    if mode == .firstInstall && (preset.tier ?? 3) == 0 { continue }
+                    ids.insert(preset.id)
+                }
             }
         }
         return ids
@@ -493,10 +548,20 @@ final class PresetDictionaryPickerViewController: UIViewController {
         PresetDictionaryService.shared.catalog.first { $0.id == id }
     }
 
-    /// Build section header text: just "🇬🇧 English" (localized via Locale API)
-    private static func sectionHeaderText(for group: LanguageGroup) -> String {
-        let langName = PresetDictionary.localizedLanguageName(group.langCode)
-        return "\(group.flag) \(langName)"
+    private func findLanguageGroup(langCode: String, regionName: String) -> LanguageGroup? {
+        regionGroups
+            .first(where: { $0.region.rawValue == regionName })?
+            .languages
+            .first(where: { $0.langCode == langCode })
+    }
+
+    /// Reconfigure all items across all sections (checkbox + selection count refresh).
+    private func reconfigureAllItems() {
+        var snapshot = dataSource.snapshot()
+        let allItems = snapshot.itemIdentifiers
+        guard !allItems.isEmpty else { return }
+        snapshot.reconfigureItems(allItems)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private static func formatNumber(_ n: Int) -> String {
@@ -513,37 +578,56 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
 
-        guard let item = dataSource.itemIdentifier(for: indexPath),
-              case .dictionary(let presetId) = item,
-              let preset = findPreset(id: presetId) else { return }
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
-        // Tier 0 is locked (non-toggleable) in firstInstall mode
-        if mode == .firstInstall && (preset.tier ?? 3) == 0 { return }
+        switch item {
+        case .languageHeader:
+            // Tapping a language header toggles expand/collapse (handled automatically
+            // by outlineDisclosure accessory). No manual action needed.
+            break
 
-        // Toggle selection
-        if selectedIds.contains(presetId) {
-            selectedIds.remove(presetId)
-        } else {
-            selectedIds.insert(presetId)
+        case .dictionary(let presetId):
+            guard let preset = findPreset(id: presetId) else { return }
+
+            // Tier 0 is locked in firstInstall mode
+            if mode == .firstInstall && (preset.tier ?? 3) == 0 { return }
+
+            // Toggle selection
+            if selectedIds.contains(presetId) {
+                selectedIds.remove(presetId)
+            } else {
+                selectedIds.insert(presetId)
+            }
+
+            // Reconfigure this cell + its parent language header (if present)
+            var snapshot = dataSource.snapshot()
+            var itemsToReconfigure: [PickerItem] = [item]
+            let parentItem = PickerItem.languageHeader(
+                code: preset.primaryLanguage,
+                region: preset.region.rawValue
+            )
+            if snapshot.itemIdentifiers.contains(parentItem) {
+                itemsToReconfigure.append(parentItem)
+            }
+            snapshot.reconfigureItems(itemsToReconfigure)
+            dataSource.apply(snapshot, animatingDifferences: false)
+
+            updateContinueButton()
+            updateSelectAllButton()
         }
-
-        // Reconfigure just this cell
-        var snapshot = dataSource.snapshot()
-        snapshot.reconfigureItems([item])
-        dataSource.apply(snapshot, animatingDifferences: false)
-
-        updateContinueButton()
-        updateSelectAllButton()
     }
 
     func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
-        guard let item = dataSource.itemIdentifier(for: indexPath),
-              case .dictionary(let presetId) = item,
-              let preset = findPreset(id: presetId) else { return false }
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
 
-        // Tier 0 is locked in firstInstall mode — no highlight
-        if mode == .firstInstall && (preset.tier ?? 3) == 0 { return false }
+        switch item {
+        case .languageHeader:
+            return true  // Allow highlight for expand/collapse
 
-        return true
+        case .dictionary(let presetId):
+            guard let preset = findPreset(id: presetId) else { return false }
+            if mode == .firstInstall && (preset.tier ?? 3) == 0 { return false }
+            return true
+        }
     }
 }
