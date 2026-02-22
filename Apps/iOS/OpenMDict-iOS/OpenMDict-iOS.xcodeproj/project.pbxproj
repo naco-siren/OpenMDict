@@ -581,7 +581,7 @@
 			mainGroup = A5AB7E2F2F0E15A000B554E0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */,
+				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A5AB7E392F0E15A000B554E0 /* Products */;
@@ -731,7 +731,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -767,7 +767,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -979,7 +979,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
@@ -1243,7 +1243,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */ = {
+		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../../OpenMDict;
 		};
@@ -1252,17 +1252,17 @@
 /* Begin XCSwiftPackageProductDependency section */
 		F8E12D982F1CA93800D8E524 /* OpenMDictKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
 			productName = OpenMDictKit;
 		};
 		F8E12D9A2F1CA97800D8E524 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
 			productName = OpenMDict;
 		};
 		F8F7974B2F42EBEE00D47B41 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
 			productName = OpenMDict;
 		};
 /* End XCSwiftPackageProductDependency section */
