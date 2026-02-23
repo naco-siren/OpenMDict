@@ -209,6 +209,10 @@ class MainSplitViewController: UISplitViewController {
             guard let self, isCollapsed else { return }
             show(.supplementary)
         }
+
+        detailContainer.onJumpSearchFallback = { [weak self] word in
+            self?.focusSearchAndLookup(word: word)
+        }
     }
     
     private func setupManagementCallbacks() {

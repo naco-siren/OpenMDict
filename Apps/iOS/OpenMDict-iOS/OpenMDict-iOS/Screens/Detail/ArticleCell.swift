@@ -24,6 +24,8 @@ class ArticleCell: UICollectionViewCell {
     var onBookmarkToggle: ((Bool) -> Void)?
     var onBookmarkRemoveRequested: (() -> Void)?
     var onWillPresentFind: (() -> Void)?
+    var onDragItemRequested: (() -> UIDragItem?)?
+    var onJumpSearch: ((String) -> Void)?
 
     // MARK: - State
     
@@ -139,6 +141,11 @@ class ArticleCell: UICollectionViewCell {
         toolbarStack.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(toolbarStack)
         
+        // Drag interaction on header only (not whole cell)
+        let drag = UIDragInteraction(delegate: self)
+        headerView.addInteraction(drag)
+        headerView.isUserInteractionEnabled = true
+
         // Content WebView
         let config = WKWebViewConfiguration()
         config.dataDetectorTypes = []
@@ -276,6 +283,8 @@ class ArticleCell: UICollectionViewCell {
         onBookmarkToggle = nil
         onBookmarkRemoveRequested = nil
         onWillPresentFind = nil
+        onDragItemRequested = nil
+        onJumpSearch = nil
         currentArticle = nil
         isBookmarked = false
     }
@@ -288,7 +297,14 @@ class ArticleCell: UICollectionViewCell {
     }
     
     // MARK: - Public Methods
-    
+
+    /// Check if a point (in this cell's coordinate space) falls within the header area.
+    /// Used by ArticlesViewController to restrict context menu to header-only long presses.
+    func isPointInHeader(_ pointInCell: CGPoint) -> Bool {
+        let pointInContainer = contentView.convert(pointInCell, to: containerView)
+        return headerView.frame.contains(pointInContainer)
+    }
+
     func setWebViewInteractive(_ interactive: Bool) {
         webView.isUserInteractionEnabled = interactive
         containerView.alpha = interactive ? 1.0 : 0.95
@@ -340,6 +356,21 @@ class ArticleCell: UICollectionViewCell {
     }
 }
 
+// MARK: - UIDragInteractionDelegate
+
+extension ArticleCell: UIDragInteractionDelegate {
+    func dragInteraction(_ interaction: UIDragInteraction, itemsForBeginning session: UIDragSession) -> [UIDragItem] {
+        guard let item = onDragItemRequested?() else { return [] }
+        return [item]
+    }
+
+    func dragInteraction(_ interaction: UIDragInteraction, previewForLifting item: UIDragItem, session: UIDragSession) -> UITargetedDragPreview? {
+        let params = UIDragPreviewParameters()
+        params.visiblePath = UIBezierPath(roundedRect: containerView.bounds, cornerRadius: 12)
+        return UITargetedDragPreview(view: containerView, parameters: params)
+    }
+}
+
 // MARK: - WKNavigationDelegate
 
 extension ArticleCell: WKNavigationDelegate {
@@ -378,6 +409,32 @@ extension ArticleCell: WKNavigationDelegate {
         if currentZoomLevel != ZoomLevel.defaultLevel {
             let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
             webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+}
+
+// MARK: - Jump Search (via UIMenuController responder chain)
+
+extension ArticleCell {
+    /// Register the "Jump Search" menu item globally.
+    /// Called once; idempotent because UIMenuController.shared.menuItems is a simple array.
+    static func registerJumpSearchMenuItem() {
+        let item = UIMenuItem(title: L10n.Articles.jumpSearch, action: #selector(jumpSearchAction(_:)))
+        UIMenuController.shared.menuItems = [item]
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(jumpSearchAction(_:)) {
+            return onJumpSearch != nil
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    @objc func jumpSearchAction(_ sender: Any?) {
+        webView.evaluateJavaScript("window.getSelection().toString()") { [weak self] result, _ in
+            if let text = result as? String, !text.isEmpty {
+                self?.onJumpSearch?(text.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
         }
     }
 }

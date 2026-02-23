@@ -266,6 +266,9 @@ nonisolated enum L10n {
         static var findInPage: String {
             NSLocalizedString("articles.findInPage", value: "Find in Page", comment: "Context menu: find text in article")
         }
+        static var jumpSearch: String {
+            NSLocalizedString("articles.jumpSearch", value: "Jump Search", comment: "WKWebView text selection menu: look up selected text in the same dictionary")
+        }
         static var removeBookmark: String {
             NSLocalizedString("articles.removeBookmark", value: "Remove Bookmark", comment: "Context menu: remove bookmark from article")
         }

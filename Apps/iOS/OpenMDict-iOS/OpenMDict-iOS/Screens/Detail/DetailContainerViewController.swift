@@ -27,6 +27,10 @@ class DetailContainerViewController: UIViewController {
 
     /// Called when articles become empty (for compact mode navigation)
     var onArticlesEmptied: (() -> Void)?
+
+    /// Called when Jump Search fails to find the word in the same dictionary.
+    /// Fallback: put the word in the search bar (wired by MainSplitVC).
+    var onJumpSearchFallback: ((String) -> Void)?
     
     /// Subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -95,10 +99,13 @@ class DetailContainerViewController: UIViewController {
         
         view.backgroundColor = .systemGroupedBackground
         
+        // Register "Jump Search" menu item for WKWebView text selection
+        ArticleCell.registerJumpSearchMenuItem()
+
         // Install appropriate child for current traits
         updateChildForTraits(traitCollection)
         updateNavigationBar(for: traitCollection)
-        
+
         subscribeToAppearanceChanges()
         subscribeToArticleMoved()
         
@@ -656,6 +663,28 @@ class DetailContainerViewController: UIViewController {
     /// Dismiss the search bar (called by Esc smart dismiss)
     func dismissSearch() { searchController.isActive = false }
 
+    // MARK: - Jump Search
+
+    /// Look up selected text in the same dictionary. If found, push as new article.
+    /// If not found, fall back to the search bar via onJumpSearchFallback.
+    private func performJumpSearch(word: String, dictId: String) {
+        guard let dict = DictionaryService.shared.dict(id: dictId),
+              let article = DictionaryService.shared.lookup(word, in: dict) else {
+            // Not found in same dictionary → fall back to search bar
+            onJumpSearchFallback?(word)
+            return
+        }
+        // Found → push as new article
+        pushArticle(article, animated: true)
+
+        // Record lookup history
+        let ctx = lookupContext ?? (nil, "all")
+        LookupHistoryService.shared.recordLookup(
+            word: word, dictId: dictId,
+            lookupContextDictId: ctx.dictId, lookupContextGroupId: ctx.groupId
+        )
+    }
+
     // MARK: - Keyboard Shortcut Handlers (called via responder chain from buildMenu)
 
     @objc func handleFindShortcut() {
@@ -740,12 +769,16 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
     func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleDisplayItem) {
         // Switch to columns
         layoutMode = .columns
-        
+
         // Update child and nav bar
         articlesVC.configure(articles: articles, animated: false)
         articlesVC.applyLayout(.columns, animated: true)
         articlesVC.scrollToArticle(article, animated: true)
         updateNavigationBar(for: traitCollection)
+    }
+
+    func articlesViewController(_ vc: ArticlesViewController, didRequestJumpSearch word: String, inDict dictId: String) {
+        performJumpSearch(word: word, dictId: dictId)
     }
 }
 
@@ -794,6 +827,10 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
     func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String) {
         print("📖 Entry link (vc): \(word) in \(dictId)")
         handleEntryLink(word: word, dictId: dictId)
+    }
+
+    func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String) {
+        performJumpSearch(word: word, dictId: dictId)
     }
 }
 

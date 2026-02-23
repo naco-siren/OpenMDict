@@ -14,6 +14,7 @@ import WebKit
 
 protocol ArticleViewControllerDelegate: AnyObject {
     func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String)
+    func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String)
 }
 
 class ArticleViewController: UIViewController {
@@ -81,7 +82,56 @@ class ArticleViewController: UIViewController {
         l.font = .italicSystemFont(ofSize: 11)
         return l
     }()
-    
+
+    // Drag preview (styled like ArticlePreviewViewController)
+    private var dragPreviewTitleLabel: UILabel!
+    private var dragPreviewSubtitleLabel: UILabel!
+    private var dragPreviewWidthConstraint: NSLayoutConstraint!
+
+    private lazy var dragPreviewView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.backgroundColor = .systemFill
+        v.layer.cornerRadius = 12
+        v.layer.masksToBounds = true
+
+        let iconName: String = if #available(iOS 17.0, *) { "book.pages" } else { "menucard" }
+        let iconView = UIImageView(image: UIImage(systemName: iconName))
+        iconView.tintColor = .secondaryLabel
+        iconView.contentMode = .scaleAspectFit
+        iconView.preferredSymbolConfiguration = .init(pointSize: 16, weight: .regular)
+
+        let titleLbl = UILabel()
+        titleLbl.font = .systemFont(ofSize: 17, weight: .semibold)
+        dragPreviewTitleLabel = titleLbl
+
+        let subtitleLbl = UILabel()
+        subtitleLbl.font = .systemFont(ofSize: 13)
+        subtitleLbl.textColor = .secondaryLabel
+        dragPreviewSubtitleLabel = subtitleLbl
+
+        let titleStack = UIStackView(arrangedSubviews: [titleLbl, subtitleLbl])
+        titleStack.axis = .vertical
+        titleStack.spacing = 2
+
+        let mainStack = UIStackView(arrangedSubviews: [iconView, titleStack])
+        mainStack.axis = .horizontal
+        mainStack.spacing = 10
+        mainStack.alignment = .center
+        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        v.addSubview(mainStack)
+
+        NSLayoutConstraint.activate([
+            iconView.widthAnchor.constraint(equalToConstant: 24),
+            iconView.heightAnchor.constraint(equalToConstant: 24),
+            mainStack.leadingAnchor.constraint(equalTo: v.leadingAnchor, constant: 16),
+            mainStack.trailingAnchor.constraint(equalTo: v.trailingAnchor, constant: -16),
+            mainStack.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+        ])
+
+        return v
+    }()
+
     private lazy var webView: WKWebView = {
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(MDictSchemeHandler.shared, forURLScheme: "mdict")
@@ -159,6 +209,15 @@ class ArticleViewController: UIViewController {
         titleStack.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(titleStack)
 
+        // Drag interaction on header (drag to open in new window)
+        let drag = UIDragInteraction(delegate: self)
+        headerView.addInteraction(drag)
+
+        // Drag preview (hidden behind headerView, snapshotted on drag)
+        view.addSubview(dragPreviewView)
+        view.sendSubviewToBack(dragPreviewView)
+        dragPreviewWidthConstraint = dragPreviewView.widthAnchor.constraint(equalToConstant: 200)
+
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -185,6 +244,12 @@ class ArticleViewController: UIViewController {
             emptyView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             emptyView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             emptyView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            // Drag preview (behind headerView, same vertical center)
+            dragPreviewView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
+            dragPreviewView.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            dragPreviewView.heightAnchor.constraint(equalToConstant: 72),
+            dragPreviewWidthConstraint,
         ])
     }
     
@@ -218,6 +283,13 @@ class ArticleViewController: UIViewController {
 
         titleLabel.text = article.word
         subtitleLabel.text = article.dictName
+
+        // Update drag preview content
+        dragPreviewTitleLabel.text = article.word
+        dragPreviewSubtitleLabel.text = article.dictName
+        let previewTitleWidth = max(dragPreviewTitleLabel.intrinsicContentSize.width,
+                                    dragPreviewSubtitleLabel.intrinsicContentSize.width)
+        dragPreviewWidthConstraint.constant = min(400, 24 + 10 + previewTitleWidth + 32)
 
         isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
         bookmarkButton.setNeedsUpdateConfiguration()
@@ -347,6 +419,29 @@ class ArticleViewController: UIViewController {
     }
 }
 
+// MARK: - UIDragInteractionDelegate
+
+extension ArticleViewController: UIDragInteractionDelegate {
+    func dragInteraction(_ interaction: UIDragInteraction, itemsForBeginning session: UIDragSession) -> [UIDragItem] {
+        guard let article = currentArticle else { return [] }
+        let activity = article.userActivity
+        if let sessionId = view.window?.windowScene?.session.persistentIdentifier {
+            activity.userInfo?["sourceSessionId"] = sessionId
+        }
+        let itemProvider = NSItemProvider(object: activity)
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        dragItem.localObject = article
+        return [dragItem]
+    }
+
+    func dragInteraction(_ interaction: UIDragInteraction, previewForLifting item: UIDragItem, session: UIDragSession) -> UITargetedDragPreview? {
+        view.layoutIfNeeded()
+        let params = UIDragPreviewParameters()
+        params.visiblePath = UIBezierPath(roundedRect: dragPreviewView.bounds, cornerRadius: 12)
+        return UITargetedDragPreview(view: dragPreviewView, parameters: params)
+    }
+}
+
 // MARK: - WKNavigationDelegate
 
 extension ArticleViewController: WKNavigationDelegate {
@@ -380,6 +475,27 @@ extension ArticleViewController: WKNavigationDelegate {
         default:
             print("🔗 Unknown link: \(url)")
             decisionHandler(.cancel)
+        }
+    }
+}
+
+// MARK: - Jump Search (via UIMenuController responder chain)
+
+extension ArticleViewController {
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(jumpSearchAction(_:)) {
+            return currentArticle != nil
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    @objc func jumpSearchAction(_ sender: Any?) {
+        webView.evaluateJavaScript("window.getSelection().toString()") { [weak self] result, _ in
+            guard let self, let text = result as? String, !text.isEmpty,
+                  let dictId = self.currentArticle?.dictId else { return }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            self.delegate?.articleViewController(self, didRequestJumpSearch: trimmed, inDict: dictId)
         }
     }
 }

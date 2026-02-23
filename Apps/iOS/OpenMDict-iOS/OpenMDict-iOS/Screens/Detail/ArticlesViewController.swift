@@ -16,6 +16,7 @@ protocol ArticlesViewControllerDelegate: AnyObject {
     func articlesViewController(_ vc: ArticlesViewController, didCloseArticle article: ArticleDisplayItem)
     func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleDisplayItem)
     func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleDisplayItem)
+    func articlesViewController(_ vc: ArticlesViewController, didRequestJumpSearch word: String, inDict dictId: String)
 }
 
 // MARK: - Articles View Controller
@@ -188,9 +189,6 @@ class ArticlesViewController: UIViewController {
     // MARK: - Collection View Setup
     
     private func setupCollectionView() {
-        collectionView.dragDelegate = self
-        collectionView.dragInteractionEnabled = true
-        
         // Only allow cell selection in Grid mode
         collectionView.allowsSelection = (layoutMode == .grid)
         
@@ -230,6 +228,20 @@ class ArticlesViewController: UIViewController {
             }
             cell.onWillPresentFind = { [weak self] in
                 self?.dismissAllFindsExcept(cell)
+            }
+            cell.onDragItemRequested = { [weak self] in
+                let activity = article.userActivity
+                if let sessionId = self?.view.window?.windowScene?.session.persistentIdentifier {
+                    activity.userInfo?["sourceSessionId"] = sessionId
+                }
+                let itemProvider = NSItemProvider(object: activity)
+                let dragItem = UIDragItem(itemProvider: itemProvider)
+                dragItem.localObject = article
+                return dragItem
+            }
+            cell.onJumpSearch = { [weak self] text in
+                guard let self else { return }
+                self.delegate?.articlesViewController(self, didRequestJumpSearch: text, inDict: article.dictId)
             }
         }
         
@@ -613,6 +625,15 @@ extension ArticlesViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return nil }
 
+        // In List/Columns mode, only show context menu when long-pressing the header.
+        // Long-press on the WebView area should trigger text selection instead.
+        // Grid mode: WebView is non-interactive, so context menu works anywhere.
+        if layoutMode != .grid,
+           let cell = collectionView.cellForItem(at: indexPath) as? ArticleCell {
+            let pointInCell = collectionView.convert(point, to: cell)
+            guard cell.isPointInHeader(pointInCell) else { return nil }
+        }
+
         var actions: [UIAction] = []
         let isBM = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
         let bmTitle = isBM ? L10n.Articles.removeBookmark : L10n.Articles.bookmark
@@ -672,27 +693,6 @@ extension ArticlesViewController: UICollectionViewDelegate {
                 }
             }
         }
-    }
-}
-
-// MARK: - UICollectionViewDragDelegate
-
-extension ArticlesViewController: UICollectionViewDragDelegate {
-    func collectionView(_ collectionView: UICollectionView,
-                        itemsForBeginning session: UIDragSession,
-                        at indexPath: IndexPath) -> [UIDragItem] {
-        guard let article = dataSource.itemIdentifier(for: indexPath) else { return [] }
-        
-        // Create user activity with source session ID for tracking
-        let activity = article.userActivity
-        if let sessionId = view.window?.windowScene?.session.persistentIdentifier {
-            activity.userInfo?["sourceSessionId"] = sessionId
-        }
-
-        let itemProvider = NSItemProvider(object: activity)
-        let dragItem = UIDragItem(itemProvider: itemProvider)
-        dragItem.localObject = article
-        return [dragItem]
     }
 }
 
