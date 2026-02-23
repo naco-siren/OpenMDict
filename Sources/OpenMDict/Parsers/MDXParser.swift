@@ -106,7 +106,8 @@ internal final class MDXParser {
     // MARK: - Lookup API
     
     /// Lookup a keyword and return definition with index
-    /// Automatically follows @@@LINK= redirects (up to 5 levels)
+    /// Automatically follows @@@LINK= redirects (up to 2 levels).
+    /// MDict spec mandates at most one redirect; a second level is a safety margin for malformed MDX.
     /// - Parameter keyword: The word to look up
     /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
     func lookupWithIndex(_ keyword: String) -> (String, String, Int)? {
@@ -119,8 +120,8 @@ internal final class MDXParser {
     ///   - depth: Current redirect depth (to prevent infinite loops)
     /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
     private func lookupWithRedirect(_ keyword: String, depth: Int) -> (String, String, Int)? {
-       // Prevent infinite redirect loops
-        guard depth < 5 else {
+       // Prevent infinite redirect loops (MDict spec: max 1 redirect; allow 2 for safety)
+        guard depth < 2 else {
             print("⚠️ MDXParser: Max redirect depth reached for '\(keyword)'")
             return nil
         }
