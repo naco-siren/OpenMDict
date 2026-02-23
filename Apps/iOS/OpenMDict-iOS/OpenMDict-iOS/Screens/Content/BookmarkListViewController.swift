@@ -76,7 +76,8 @@ class BookmarkListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = L10n.Bookmarks.title
+        navigationItem.title = L10n.Bookmarks.title
+        navigationItem.largeTitleDisplayMode = .never
         setupNavigationBar()
 
         view.backgroundColor = .systemGroupedBackground
