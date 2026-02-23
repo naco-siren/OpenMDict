@@ -952,6 +952,90 @@
         }
       }
     },
+    "articles.loadingMessage": {
+      "comment": "Placeholder message while dictionary loads; %@ is the dictionary name",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سيظهر التعريف بعد انتهاء تحميل \u201C%@\u201D."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Definition wird angezeigt, sobald \u201E%@\u201C geladen ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definition will appear once \u201C%@\u201D finishes loading."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La definición aparecerá cuando \u201C%@\u201D termine de cargarse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La définition s\u2019affichera une fois \u00AB\u202F%@\u202F\u00BB chargé."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "परिभाषा \u201C%@\u201D लोड होने के बाद दिखाई देगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定義は\u201C%@\u201Dの読み込み完了後に表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정의는 \u201C%@\u201D 로딩이 완료되면 표시됩니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A definição aparecerá quando \u201C%@\u201D terminar de carregar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Определение появится после загрузки \u00AB%@\u00BB."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Визначення з\u2019явиться після завантаження \u00AB%@\u00BB."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "释义将在\u201C%@\u201D加载完成后显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "釋義將在\u201C%@\u201D載入完成後顯示。"
+          }
+        }
+      }
+    },
     "articles.lookupCount": {
       "comment": "Lookup count shown in article header; %d is the number of lookups",
       "extractionState": "extracted_with_value",

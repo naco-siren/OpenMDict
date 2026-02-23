@@ -283,6 +283,12 @@ nonisolated enum L10n {
                 word
             )
         }
+        static func loadingMessage(dictName: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("articles.loadingMessage", value: "Definition will appear once \u{201C}%@\u{201D} finishes loading.", comment: "Placeholder message while dictionary loads; %@ is the dictionary name"),
+                dictName
+            )
+        }
         static func notFoundTitle(_ word: String) -> String {
             String.localizedStringWithFormat(
                 NSLocalizedString("articles.notFound.title", value: "\u{201C}%@\u{201D} not found", comment: "Article not found title; %@ is the word"),

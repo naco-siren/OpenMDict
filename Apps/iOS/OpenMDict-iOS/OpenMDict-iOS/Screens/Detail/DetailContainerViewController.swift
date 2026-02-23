@@ -17,6 +17,7 @@ class DetailContainerViewController: UIViewController {
     // MARK: - Source of Truth
     
     private var articles: [ArticleDisplayItem] = []
+    private var currentCompactIndex: Int = 0
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
     private var zoom = ZoomLevel()
@@ -145,6 +146,14 @@ class DetailContainerViewController: UIViewController {
         if let child = activeChild {
             debugLog("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - child.view.frame: \(child.view.frame)")
         }
+        ensureCorrectChild()
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.horizontalSizeClass != previousTraitCollection?.horizontalSizeClass {
+            ensureCorrectChild()
+        }
     }
 
     private func subscribeToAppearanceChanges() {
@@ -194,6 +203,7 @@ class DetailContainerViewController: UIViewController {
             self.updateChildForTraits(newCollection)
             self.updateNavigationBar(for: newCollection)
         } completion: { _ in
+            self.ensureCorrectChild()
             // Safe area propagation only completes after the transition animation finishes.
             // Force layout rebuild here to ensure correct cell positioning.
             if newCollection.horizontalSizeClass == .regular {
@@ -236,9 +246,17 @@ class DetailContainerViewController: UIViewController {
         if let index = articles.firstIndex(where: { $0.id == articleId }) {
             articles.remove(at: index)
             debugLog("📤 [\(instanceID)] Removed dragged article: \(articleId)")
+
+            // Adjust compact index
+            if index < currentCompactIndex {
+                currentCompactIndex -= 1
+            } else if index == currentCompactIndex {
+                currentCompactIndex = min(currentCompactIndex, articles.count - 1)
+            }
+            currentCompactIndex = max(0, currentCompactIndex)
+
             syncStateToActiveChild()
 
-            // If articles empty and compact mode, notify to show supplementary
             if articles.isEmpty {
                 onArticlesEmptied?()
             }
@@ -336,7 +354,16 @@ class DetailContainerViewController: UIViewController {
             print("[\(instanceID)] 🔄 → Already correct child, skipping")
             return
         }
-        
+
+        // Capture state from outgoing child before removing
+        if activeChild === articleVC {
+            // Switching from compact → regular: capture current page index
+            currentCompactIndex = articleVC.currentPageIndex
+        } else if activeChild === articlesVC {
+            // Switching from regular → compact: capture visible article index
+            currentCompactIndex = articlesVC.visibleArticleIndex ?? 0
+        }
+
         // Remove old child
         if let old = activeChild {
             old.willMove(toParent: nil)
@@ -368,12 +395,24 @@ class DetailContainerViewController: UIViewController {
             articlesVC.configure(articles: articles, animated: false)
             articlesVC.applyLayout(layoutMode, animated: false)
         } else {
-            articleVC.configure(article: articles.first)
+            articleVC.configure(articles: articles, currentIndex: currentCompactIndex)
         }
     }
     
+    /// Defensive check: correct child VC if trait change animation was skipped or interrupted.
+    /// O(1) pointer comparison in the normal case.
+    private func ensureCorrectChild() {
+        let shouldUseArticlesVC = traitCollection.horizontalSizeClass == .regular
+        let targetChild: UIViewController = shouldUseArticlesVC ? articlesVC : articleVC
+        guard targetChild !== activeChild else { return }
+
+        debugLog("⚠️ [\(instanceID)] ensureCorrectChild: MISMATCH — expected \(shouldUseArticlesVC ? "articlesVC" : "articleVC"), correcting")
+        updateChildForTraits(traitCollection)
+        updateNavigationBar(for: traitCollection)
+    }
+
     // MARK: - Navigation Bar
-    
+
     private func updateNavigationBar(for traits: UITraitCollection) {
         let isRegular = traits.horizontalSizeClass == .regular
         
@@ -553,7 +592,8 @@ class DetailContainerViewController: UIViewController {
             articlesVC.configure(articles: articles, animated: animated)
             articlesVC.scrollToArticle(article, animated: animated)
         } else {
-            articleVC.configure(article: article)
+            currentCompactIndex = 0
+            articleVC.configure(articles: articles, currentIndex: 0)
         }
 
         // Donate the activity for Siri Suggestions, Spotlight search, and Handoff.
@@ -573,14 +613,23 @@ class DetailContainerViewController: UIViewController {
     func closeArticle(_ article: ArticleDisplayItem) {
         guard let index = articles.firstIndex(of: article) else { return }
         articles.remove(at: index)
-        
+
         if activeChild === articlesVC {
             articlesVC.configure(articles: articles, animated: true)
         } else {
-            articleVC.configure(article: articles.first)
+            // Smart index adjustment for compact pager
+            if index < currentCompactIndex {
+                currentCompactIndex -= 1
+            } else if index == currentCompactIndex {
+                currentCompactIndex = min(currentCompactIndex, articles.count - 1)
+            }
+            currentCompactIndex = max(0, currentCompactIndex)
+            articleVC.configure(articles: articles, currentIndex: currentCompactIndex)
         }
-        
-        // TODO: Show some placeholder articles become empty
+
+        if articles.isEmpty {
+            onArticlesEmptied?()
+        }
     }
     
     /// Set layout mode (for state restoration)
@@ -688,12 +737,19 @@ class DetailContainerViewController: UIViewController {
     // MARK: - Keyboard Shortcut Handlers (called via responder chain from buildMenu)
 
     @objc func handleFindShortcut() {
-        // Toggle search bar focus in Regular mode
-        if searchController.isActive {
-            searchController.isActive = false
-        } else {
-            searchController.isActive = true
-            searchController.searchBar.becomeFirstResponder()
+        if activeChild === articlesVC {
+            // Regular mode: toggle search bar
+            if searchController.isActive {
+                searchController.isActive = false
+            } else {
+                searchController.isActive = true
+                searchController.searchBar.becomeFirstResponder()
+            }
+        } else if activeChild === articleVC {
+            // Compact mode: toggle WKWebView find
+            if #available(iOS 16.0, *) {
+                articleVC.toggleFind()
+            }
         }
     }
 
@@ -701,6 +757,14 @@ class DetailContainerViewController: UIViewController {
     @objc func nextPageShortcut() { navigatePage(direction: 1) }
 
     private func navigatePage(direction: Int) {
+        // Compact mode: page through ArticleVC's pager
+        if activeChild === articleVC {
+            let newIndex = articleVC.currentPageIndex + direction
+            guard newIndex >= 0, newIndex < articles.count else { return }
+            articleVC.navigateToPage(newIndex, animated: true)
+            return
+        }
+        // Regular mode: scroll ArticlesVC in list layout
         guard layoutMode == .list, !articles.isEmpty else { return }
         let pageHeight = articlesVC.view.bounds.height
         guard pageHeight > 0 else { return }
@@ -736,15 +800,16 @@ class DetailContainerViewController: UIViewController {
     // MARK: - canPerformAction
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        // ⌘F: Find — iOS 16+ regular only
+        // ⌘F: Find — iOS 16+, both regular and compact
         if action == #selector(handleFindShortcut) {
             if #available(iOS 16.0, *) {
-                return traitCollection.horizontalSizeClass == .regular
+                return true
             }
             return false
         }
-        // ⌘[/]: Page nav — regular + list layout only
+        // ⌘[/]: Page nav — compact with multiple articles, or regular + list layout
         if action == #selector(previousPageShortcut) || action == #selector(nextPageShortcut) {
+            if activeChild === articleVC && articles.count > 1 { return true }
             return traitCollection.horizontalSizeClass == .regular && layoutMode == .list
         }
         return super.canPerformAction(action, withSender: sender)
@@ -808,8 +873,13 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
             articles.insert(article, at: 0)
         }
 
-        syncStateToActiveChild()
-        articlesVC.scrollToArticle(articles.first!, animated: true)
+        if activeChild === articleVC {
+            currentCompactIndex = 0
+            articleVC.configure(articles: articles, currentIndex: 0)
+        } else {
+            articlesVC.configure(articles: articles, animated: true)
+            articlesVC.scrollToArticle(articles.first!, animated: true)
+        }
 
         // Record lookup history using the current lookup context
         let ctx = lookupContext ?? (nil, "all")
@@ -831,6 +901,13 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
 
     func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String) {
         performJumpSearch(word: word, dictId: dictId)
+    }
+
+    func articleViewController(_ vc: ArticleViewController, didChangePage index: Int) {
+        currentCompactIndex = index
+        if index < articles.count {
+            self.userActivity = articles[index].userActivity
+        }
     }
 }
 

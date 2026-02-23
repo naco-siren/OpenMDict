@@ -28,11 +28,12 @@ class ArticleCell: UICollectionViewCell {
     var onJumpSearch: ((String) -> Void)?
 
     // MARK: - State
-    
+
     private var currentLayoutMode: ArticleLayoutMode = .columns
     private var currentArticle: ArticleDisplayItem?
     private var isBookmarked: Bool = false
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
+    private static let pendingOverlayTag = 9876
     
     // MARK: - Views
     
@@ -227,16 +228,38 @@ class ArticleCell: UICollectionViewCell {
         case .pending:
             let html = ArticleHTMLRenderer.renderPending(word: article.word, traitCollection: traitCollection)
             webView.loadHTMLString(html, baseURL: nil)
+            addPendingOverlayIfNeeded(word: article.word, dictName: article.dictName)
 
         case .loaded(let html, _):
+            removePendingOverlay()
             let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
             webView.loadHTMLString(styledHTML, baseURL: nil)
 
         case .notFound:
+            removePendingOverlay()
             let html = ArticleHTMLRenderer.renderNotFound(word: article.word, dictName: article.dictName, traitCollection: traitCollection)
             webView.loadHTMLString(html, baseURL: nil)
          }
      }
+
+    private func addPendingOverlayIfNeeded(word: String, dictName: String) {
+        guard containerView.viewWithTag(Self.pendingOverlayTag) == nil else { return }
+        let overlay = ArticlePlaceholderView.loading(word: word, dictName: dictName)
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        overlay.tag = Self.pendingOverlayTag
+        overlay.backgroundColor = .secondarySystemGroupedBackground
+        containerView.addSubview(overlay)
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: webView.topAnchor),
+            overlay.leadingAnchor.constraint(equalTo: webView.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: webView.trailingAnchor),
+            overlay.bottomAnchor.constraint(equalTo: webView.bottomAnchor),
+        ])
+    }
+
+    private func removePendingOverlay() {
+        containerView.viewWithTag(Self.pendingOverlayTag)?.removeFromSuperview()
+    }
     
     /// Refresh only the bookmark icon state from persistence.
     /// Lightweight alternative to full reconfigure — avoids re-running
@@ -287,6 +310,7 @@ class ArticleCell: UICollectionViewCell {
         onJumpSearch = nil
         currentArticle = nil
         isBookmarked = false
+        removePendingOverlay()
     }
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {

@@ -57,27 +57,9 @@ class ArticlesViewController: UIViewController {
      
     private var dataSource: UICollectionViewDiffableDataSource<Int, ArticleDisplayItem>!
     
-    private lazy var emptyView: UIView = {
-        let v = UIView()
+    private lazy var emptyView: ArticlePlaceholderView = {
+        let v = ArticlePlaceholderView.empty()
         v.translatesAutoresizingMaskIntoConstraints = false
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 16
-        let img = UIImageView(image: UIImage(systemName: "book.closed"))
-        img.tintColor = .tertiaryLabel
-        img.preferredSymbolConfiguration = .init(pointSize: 64)
-        let lbl = UILabel()
-        lbl.text = L10n.Articles.selectWord
-        lbl.textColor = .secondaryLabel
-        stack.addArrangedSubview(img)
-        stack.addArrangedSubview(lbl)
-        v.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: v.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: v.centerYAnchor),
-        ])
         return v
     }()
     
@@ -360,6 +342,15 @@ class ArticlesViewController: UIViewController {
     
     /// Current scroll offset of the collection view (used for page navigation)
     var currentScrollOffset: CGPoint { collectionView.contentOffset }
+
+    /// Index of the article closest to the center of the viewport (used for trait-change state sync)
+    var visibleArticleIndex: Int? {
+        let center = CGPoint(
+            x: collectionView.bounds.midX + collectionView.contentOffset.x,
+            y: collectionView.bounds.midY + collectionView.contentOffset.y
+        )
+        return collectionView.indexPathForItem(at: center)?.item
+    }
 
     /// Scroll to a specific item by index path (used for ⌘[/] page navigation)
     func scrollToItem(at indexPath: IndexPath, animated: Bool) {
