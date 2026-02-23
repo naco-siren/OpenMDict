@@ -35,6 +35,7 @@ class ArticlesViewController: UIViewController {
     // MARK: - Internal State (view-rendering only, not source of truth)
 
     private var bookmarkCancellable: AnyCancellable?
+    private var lookupHistoryCancellable: AnyCancellable?
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     private var zoomLevel: Int = ZoomLevel.defaultLevel
@@ -91,7 +92,15 @@ class ArticlesViewController: UIViewController {
             .sink { [weak self] _ in
                 self?.bookmarksDidChange()
             }
-        
+
+        // Refresh lookup count when lookup history changes
+        lookupHistoryCancellable = LookupHistoryService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.lookupCountsDidChange()
+            }
+
         // Initialize paging for default mode
         collectionView.isPagingEnabled = (layoutMode == .list)
         
@@ -189,29 +198,33 @@ class ArticlesViewController: UIViewController {
             cell.delegate = self?.cellDelegate
             cell.configure(with: article, layoutMode: self?.layoutMode ?? .columns)
             cell.setZoomLevel(self?.zoomLevel ?? 100)
-            cell.onClose = { [weak self] in
+
+            // Wire pageView callbacks
+            cell.pageView.onCloseTapped = { [weak self] in
                 guard let self = self else { return }
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
             }
-            cell.onOpenInNewWindow = { [weak self] in
+            cell.pageView.onNewWindowTapped = { [weak self] in
                 let session = self?.view.window?.windowScene?.session
                 SceneDelegate.openNewWindow(for: article, sourceSession: session)
             }
-            cell.onBookmarkToggle = { _ in
-                let created = BookmarkService.shared.toggleBookmark(
-                    word: article.word, dictId: article.dictId
-                )
-                if created {
-                    BookmarkCountService.shared.incrementAll(dictId: article.dictId)
+            cell.pageView.onBookmarkTapped = { [weak self, weak cell] isCurrentlyBookmarked in
+                if isCurrentlyBookmarked {
+                    self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
+                } else {
+                    cell?.pageView.setBookmarked(true)
+                    let created = BookmarkService.shared.toggleBookmark(
+                        word: article.word, dictId: article.dictId
+                    )
+                    if created {
+                        BookmarkCountService.shared.incrementAll(dictId: article.dictId)
+                    }
                 }
             }
-            cell.onBookmarkRemoveRequested = { [weak self] in
-                self?.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
-            }
-            cell.onWillPresentFind = { [weak self] in
+            cell.pageView.onFindTapped = { [weak self] in
                 self?.dismissAllFindsExcept(cell)
             }
-            cell.onDragItemRequested = { [weak self] in
+            cell.pageView.onDragItemRequested = { [weak self] in
                 let activity = article.userActivity
                 if let sessionId = self?.view.window?.windowScene?.session.persistentIdentifier {
                     activity.userInfo?["sourceSessionId"] = sessionId
@@ -221,7 +234,7 @@ class ArticlesViewController: UIViewController {
                 dragItem.localObject = article
                 return dragItem
             }
-            cell.onJumpSearch = { [weak self] text in
+            cell.pageView.onJumpSearch = { [weak self] text in
                 guard let self else { return }
                 self.delegate?.articlesViewController(self, didRequestJumpSearch: text, inDict: article.dictId)
             }
@@ -536,6 +549,15 @@ class ArticlesViewController: UIViewController {
         for cell in collectionView.visibleCells {
             if let articleCell = cell as? ArticleCell {
                 articleCell.refreshBookmarkState()
+            }
+        }
+    }
+
+    private func lookupCountsDidChange() {
+        // Directly update lookup count label on visible cells (same pattern as bookmarks).
+        for cell in collectionView.visibleCells {
+            if let articleCell = cell as? ArticleCell {
+                articleCell.refreshLookupCount()
             }
         }
     }

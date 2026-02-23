@@ -5,8 +5,7 @@
 //  Paged article view for compact mode (iPhone / iPad narrow).
 //  Displays all open articles in a horizontally-scrollable pager
 //  with a floating page control at the bottom.
-//  Each page contains its own header row + WKWebView, so headers
-//  swipe together with content.
+//  Each page is an ArticlePageView (shared component: header + WKWebView).
 //
 
 import Combine
@@ -19,6 +18,8 @@ protocol ArticleViewControllerDelegate: AnyObject {
     func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String)
     func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String)
     func articleViewController(_ vc: ArticleViewController, didChangePage index: Int)
+    func articleViewController(_ vc: ArticleViewController, didCloseArticle article: ArticleDisplayItem)
+    func articleViewController(_ vc: ArticleViewController, didRequestNewWindow article: ArticleDisplayItem)
 }
 
 class ArticleViewController: UIViewController {
@@ -32,27 +33,13 @@ class ArticleViewController: UIViewController {
     private var articles: [ArticleDisplayItem] = []
     private(set) var currentPageIndex: Int = 0
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
-    private var isBookmarked: Bool = false
     private var lookupCountCancellable: AnyCancellable?
     private var bookmarkCancellable: AnyCancellable?
 
-    // MARK: - Per-Page Layout
+    // MARK: - Pages
 
-    /// Each page is a vertical stack: header (64pt) + WKWebView (fill).
-    private struct PageSlot {
-        let container: UIView
-        let headerView: UIView
-        let bookmarkButton: UIButton
-        let titleLabel: UILabel
-        let subtitleLabel: UILabel
-        let lookupCountLabel: UILabel
-        let webView: WKWebView
-    }
-
-    private var pages: [PageSlot] = []
+    private var pages: [ArticlePageView] = []
     private var pageLeadingConstraints: [NSLayoutConstraint] = []
-
-    private static let headerHeight: CGFloat = 64
 
     // MARK: - Pager UI
 
@@ -84,6 +71,8 @@ class ArticleViewController: UIViewController {
         let pc = UIPageControl()
         pc.translatesAutoresizingMaskIntoConstraints = false
         pc.hidesForSinglePage = true
+        pc.currentPageIndicatorTintColor = .label
+        pc.pageIndicatorTintColor = .tertiaryLabel
         pc.addTarget(self, action: #selector(pageControlValueChanged), for: .valueChanged)
         pc.isHidden = true
         return pc
@@ -173,7 +162,7 @@ class ArticleViewController: UIViewController {
             height: scrollView.bounds.height
         )
 
-        // Update each page container's leading constraint
+        // Update each page's leading constraint
         for (index, constraint) in pageLeadingConstraints.enumerated() {
             constraint.constant = CGFloat(index) * pageWidth
         }
@@ -211,10 +200,10 @@ class ArticleViewController: UIViewController {
                 if self.articles[index].contentState != newArticle.contentState {
                     self.articles[index] = newArticle
                     if index < pages.count {
-                        loadContent(for: newArticle, in: pages[index].webView)
+                        loadContent(for: newArticle, in: pages[index])
                         // Remove native pending overlay once content arrives
                         if case .pending = newArticle.contentState {} else {
-                            removePendingOverlay(from: pages[index])
+                            pages[index].removePendingOverlay()
                         }
                     }
                 }
@@ -254,7 +243,7 @@ class ArticleViewController: UIViewController {
     private func rebuildPages() {
         // Remove old pages
         for page in pages {
-            page.container.removeFromSuperview()
+            page.removeFromSuperview()
         }
         pages.removeAll()
         pageLeadingConstraints.removeAll()
@@ -273,131 +262,102 @@ class ArticleViewController: UIViewController {
     }
 
     private func addPage(for article: ArticleDisplayItem, at index: Int) {
-        let slot = makePageSlot(for: article)
-        scrollView.addSubview(slot.container)
+        let pageView = makeArticlePageView(for: article)
+        scrollView.addSubview(pageView)
 
-        let leadingConstraint = slot.container.leadingAnchor.constraint(
+        let leadingConstraint = pageView.leadingAnchor.constraint(
             equalTo: scrollView.leadingAnchor,
             constant: CGFloat(index) * scrollView.bounds.width
         )
 
         NSLayoutConstraint.activate([
-            slot.container.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            slot.container.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            slot.container.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
+            pageView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            pageView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            pageView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
             leadingConstraint,
         ])
 
-        pages.append(slot)
+        pages.append(pageView)
         pageLeadingConstraints.append(leadingConstraint)
 
-        loadContent(for: article, in: slot.webView)
+        loadContent(for: article, in: pageView)
 
         // Native pending overlay while dictionary loads
         if case .pending = article.contentState {
-            addPendingOverlay(to: slot, word: article.word, dictName: article.dictName)
+            pageView.showPendingOverlay(word: article.word, dictName: article.dictName)
         }
     }
 
-    /// Create a page container with header row + WKWebView.
-    private func makePageSlot(for article: ArticleDisplayItem) -> PageSlot {
-        // Container
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-
-        // Header
-        let header = UIView()
-        header.translatesAutoresizingMaskIntoConstraints = false
-        header.backgroundColor = .secondarySystemGroupedBackground
-
-        // Bookmark button
-        var btnConfig = UIButton.Configuration.plain()
-        btnConfig.image = UIImage(systemName: "bookmark")
-        btnConfig.baseForegroundColor = .secondaryLabel
-        let bookmarkBtn = UIButton(configuration: btnConfig)
-        bookmarkBtn.translatesAutoresizingMaskIntoConstraints = false
-        bookmarkBtn.addTarget(self, action: #selector(bookmarkTapped), for: .touchUpInside)
-
-        // Labels
-        let titleLbl = UILabel()
-        titleLbl.translatesAutoresizingMaskIntoConstraints = false
-        titleLbl.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLbl.lineBreakMode = .byTruncatingTail
-        titleLbl.text = article.word
-
-        let subtitleLbl = UILabel()
-        subtitleLbl.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLbl.font = .systemFont(ofSize: 11)
-        subtitleLbl.textColor = .secondaryLabel
-        subtitleLbl.text = article.dictName
-
-        let lookupCountLbl = UILabel()
-        lookupCountLbl.translatesAutoresizingMaskIntoConstraints = false
-        lookupCountLbl.font = .italicSystemFont(ofSize: 11)
-        lookupCountLbl.isHidden = true
-
-        let titleStack = UIStackView(arrangedSubviews: [titleLbl, subtitleLbl, lookupCountLbl])
-        titleStack.axis = .vertical
-        titleStack.spacing = 3
-        titleStack.translatesAutoresizingMaskIntoConstraints = false
-
-        header.addSubview(bookmarkBtn)
-        header.addSubview(titleStack)
-
-        // Note: UIDragInteraction is NOT added here. Plain UIScrollView (unlike UICollectionView)
-        // has no built-in drag coordination, making drag-to-new-scene unreliable from paged content.
-        // Drag-to-new-window remains available in regular mode via ArticleCell.
-
-        // WebView
-        let webView = makeWebView()
-
-        // Layout
-        container.addSubview(header)
-        container.addSubview(webView)
-
-        NSLayoutConstraint.activate([
-            header.topAnchor.constraint(equalTo: container.topAnchor),
-            header.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            header.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            header.heightAnchor.constraint(equalToConstant: Self.headerHeight),
-
-            bookmarkBtn.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 4),
-            bookmarkBtn.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            bookmarkBtn.widthAnchor.constraint(equalToConstant: 40),
-            bookmarkBtn.heightAnchor.constraint(equalToConstant: 40),
-
-            titleStack.leadingAnchor.constraint(equalTo: bookmarkBtn.trailingAnchor, constant: 4),
-            titleStack.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: header.trailingAnchor, constant: -12),
-
-            webView.topAnchor.constraint(equalTo: header.bottomAnchor),
-            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ])
-
-        return PageSlot(
-            container: container,
-            headerView: header,
-            bookmarkButton: bookmarkBtn,
-            titleLabel: titleLbl,
-            subtitleLabel: subtitleLbl,
-            lookupCountLabel: lookupCountLbl,
-            webView: webView
+    /// Create a page view for the given article.
+    private func makeArticlePageView(for article: ArticleDisplayItem) -> ArticlePageView {
+        let config = ArticlePageView.Configuration.compactPager(
+            webViewConfig: webViewConfiguration
         )
-    }
+        let pageView = ArticlePageView(configuration: config)
+        pageView.translatesAutoresizingMaskIntoConstraints = false
 
-    private func makeWebView() -> WKWebView {
-        let wv = WKWebView(frame: .zero, configuration: webViewConfiguration)
-        wv.translatesAutoresizingMaskIntoConstraints = false
-        wv.isOpaque = false
-        wv.backgroundColor = .clear
-        wv.scrollView.backgroundColor = .clear
-        wv.navigationDelegate = self
-        if #available(iOS 16.0, *) {
-            wv.isFindInteractionEnabled = true
+        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        pageView.configure(word: article.word, dictName: article.dictName,
+                          dictId: article.dictId, isBookmarked: isBookmarked)
+
+        // Wire callbacks
+        pageView.onBookmarkTapped = { [weak self] isCurrentlyBookmarked in
+            self?.handleBookmarkTapped(isCurrentlyBookmarked: isCurrentlyBookmarked)
         }
-        return wv
+        pageView.onEntryLinkTapped = { [weak self] word in
+            guard let self else { return }
+            // Determine which page this belongs to
+            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+               pageIndex < self.articles.count {
+                let dictId = self.articles[pageIndex].dictId
+                self.delegate?.articleViewController(self, didTapEntryLink: word, inDict: dictId)
+            }
+        }
+        pageView.onSoundLinkTapped = { [weak self] url in
+            guard let self else { return }
+            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+               pageIndex < self.articles.count {
+                let dictId = self.articles[pageIndex].dictId
+                AudioService.shared.play(url: url, dictId: dictId)
+            }
+        }
+        pageView.onJumpSearch = { [weak self] text in
+            guard let self else { return }
+            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+               pageIndex < self.articles.count {
+                let dictId = self.articles[pageIndex].dictId
+                self.delegate?.articleViewController(self, didRequestJumpSearch: text, inDict: dictId)
+            }
+        }
+        pageView.onCloseTapped = { [weak self] in
+            guard let self else { return }
+            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+               pageIndex < self.articles.count {
+                let article = self.articles[pageIndex]
+                self.delegate?.articleViewController(self, didCloseArticle: article)
+            }
+        }
+        pageView.onNewWindowTapped = { [weak self] in
+            guard let self else { return }
+            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+               pageIndex < self.articles.count {
+                let article = self.articles[pageIndex]
+                self.delegate?.articleViewController(self, didRequestNewWindow: article)
+            }
+        }
+        pageView.onFindTapped = { [weak self] in
+            // Dismiss find on all other pages when one page opens find
+            guard let self else { return }
+            if #available(iOS 16.0, *) {
+                for (idx, p) in self.pages.enumerated() {
+                    if p !== pageView && p.isFindNavigatorVisible {
+                        p.dismissFind()
+                    }
+                }
+            }
+        }
+
+        return pageView
     }
 
     private func scrollToPageInternal(_ page: Int, animated: Bool) {
@@ -422,8 +382,8 @@ class ArticleViewController: UIViewController {
         let page = pages[currentPageIndex]
 
         // Bookmark state
-        isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        updateBookmarkButton(page.bookmarkButton, isBookmarked: isBookmarked)
+        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        page.setBookmarked(isBookmarked)
 
         // Lookup count subscription (re-binds on each page change)
         lookupCountCancellable = LookupHistoryService.shared
@@ -432,72 +392,35 @@ class ArticleViewController: UIViewController {
             .sink { [weak self] count in
                 guard let self,
                       self.currentPageIndex < self.pages.count else { return }
-                let lookupLabel = self.pages[self.currentPageIndex].lookupCountLabel
-                if count > 0 {
-                    lookupLabel.text = L10n.Articles.lookupCount(count)
-                    lookupLabel.textColor = self.lookupCountColor(for: count)
-                    lookupLabel.isHidden = false
-                } else {
-                    lookupLabel.isHidden = true
-                }
+                self.pages[self.currentPageIndex].setLookupCount(count)
             }
-    }
-
-    private func updateBookmarkButton(_ button: UIButton, isBookmarked: Bool) {
-        var config = button.configuration
-        let imageName = isBookmarked ? "bookmark.fill" : "bookmark"
-        config?.image = UIImage(systemName: imageName)
-        config?.baseForegroundColor = isBookmarked ? nil : .secondaryLabel
-        button.configuration = config
     }
 
     @objc private func pageControlValueChanged(_ sender: UIPageControl) {
         navigateToPage(sender.currentPage, animated: true)
     }
 
-    // MARK: - Pending Overlay
-
-    private static let pendingOverlayTag = 9876
-
-    private func addPendingOverlay(to page: PageSlot, word: String, dictName: String) {
-        let overlay = ArticlePlaceholderView.loading(word: word, dictName: dictName)
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.tag = Self.pendingOverlayTag
-        overlay.backgroundColor = .systemBackground
-        page.container.addSubview(overlay)
-        NSLayoutConstraint.activate([
-            overlay.topAnchor.constraint(equalTo: page.webView.topAnchor),
-            overlay.leadingAnchor.constraint(equalTo: page.webView.leadingAnchor),
-            overlay.trailingAnchor.constraint(equalTo: page.webView.trailingAnchor),
-            overlay.bottomAnchor.constraint(equalTo: page.webView.bottomAnchor),
-        ])
-    }
-
-    private func removePendingOverlay(from page: PageSlot) {
-        page.container.viewWithTag(Self.pendingOverlayTag)?.removeFromSuperview()
-    }
-
     // MARK: - Content Loading
 
-    private func loadContent(for article: ArticleDisplayItem, in webView: WKWebView) {
+    private func loadContent(for article: ArticleDisplayItem, in pageView: ArticlePageView) {
         switch article.contentState {
         case .pending:
             let html = ArticleHTMLRenderer.renderPending(word: article.word, traitCollection: traitCollection)
-            webView.loadHTMLString(html, baseURL: nil)
+            pageView.loadHTMLContent(html)
 
         case .loaded(let html, _):
             let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
-            webView.loadHTMLString(styledHTML, baseURL: nil)
+            pageView.loadHTMLContent(styledHTML)
 
         case .notFound:
             let html = ArticleHTMLRenderer.renderNotFound(word: article.word, dictName: article.dictName, traitCollection: traitCollection)
-            webView.loadHTMLString(html, baseURL: nil)
+            pageView.loadHTMLContent(html)
         }
     }
 
     private func reloadAllPages() {
         for (index, page) in pages.enumerated() where index < articles.count {
-            loadContent(for: articles[index], in: page.webView)
+            loadContent(for: articles[index], in: page)
         }
     }
 
@@ -514,33 +437,21 @@ class ArticleViewController: UIViewController {
         pageControl.isHidden = true
         pageControlBackdrop.isHidden = true
         articles = []
-        for page in pages { page.container.removeFromSuperview() }
+        for page in pages { page.removeFromSuperview() }
         pages.removeAll()
         pageLeadingConstraints.removeAll()
         currentPageIndex = 0
     }
 
-    // MARK: - Lookup Count
-
-    private func lookupCountColor(for count: Int) -> UIColor {
-        switch count {
-        case 15...:   return .systemRed
-        case 10..<15: return .systemOrange
-        case 6..<10:  return .systemBrown
-        case 3..<6:   return .secondaryLabel
-        default:      return .tertiaryLabel
-        }
-    }
-
     // MARK: - Bookmark Actions
 
-    @objc private func bookmarkTapped() {
+    private func handleBookmarkTapped(isCurrentlyBookmarked: Bool) {
         guard currentPageIndex < articles.count,
               currentPageIndex < pages.count else { return }
         let article = articles[currentPageIndex]
         let page = pages[currentPageIndex]
 
-        if isBookmarked {
+        if isCurrentlyBookmarked {
             // Removing → show confirmation
             let alert = UIAlertController(
                 title: L10n.Bookmarks.removeBookmark,
@@ -553,19 +464,18 @@ class ArticleViewController: UIViewController {
                 BookmarkService.shared.toggleBookmark(
                     word: article.word, dictId: article.dictId
                 )
-                self.isBookmarked = false
-                self.updateBookmarkButton(page.bookmarkButton, isBookmarked: false)
+                page.setBookmarked(false)
             })
             present(alert, animated: true)
         } else {
             // Adding → immediate
-            isBookmarked = BookmarkService.shared.toggleBookmark(
+            let created = BookmarkService.shared.toggleBookmark(
                 word: article.word, dictId: article.dictId
             )
-            if isBookmarked {
+            if created {
                 BookmarkCountService.shared.incrementAll(dictId: article.dictId)
             }
-            updateBookmarkButton(page.bookmarkButton, isBookmarked: isBookmarked)
+            page.setBookmarked(created)
         }
     }
 
@@ -573,17 +483,16 @@ class ArticleViewController: UIViewController {
         guard currentPageIndex < articles.count,
               currentPageIndex < pages.count else { return }
         let article = articles[currentPageIndex]
-        isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        updateBookmarkButton(pages[currentPageIndex].bookmarkButton, isBookmarked: isBookmarked)
+        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        pages[currentPageIndex].setBookmarked(isBookmarked)
     }
 
     // MARK: - Zoom
 
     func setZoomLevel(_ level: Int) {
         currentZoomLevel = level
-        let js = "document.body.style.fontSize = '\(level)%';"
         for page in pages {
-            page.webView.evaluateJavaScript(js, completionHandler: nil)
+            page.setZoomLevel(level)
         }
     }
 
@@ -593,13 +502,11 @@ class ArticleViewController: UIViewController {
     @available(iOS 16.0, *)
     func toggleFind() {
         guard currentPageIndex < pages.count else { return }
-        let wv = pages[currentPageIndex].webView
-        if let findInteraction = wv.findInteraction {
-            if findInteraction.isFindNavigatorVisible {
-                findInteraction.dismissFindNavigator()
-            } else {
-                findInteraction.presentFindNavigator(showingReplace: false)
-            }
+        let page = pages[currentPageIndex]
+        if page.isFindNavigatorVisible {
+            page.dismissFind()
+        } else {
+            page.presentFind()
         }
     }
 }
@@ -617,77 +524,5 @@ extension ArticleViewController: UIScrollViewDelegate {
         pageControl.currentPage = page
         updateCurrentPageState()
         delegate?.articleViewController(self, didChangePage: page)
-    }
-}
-
-// MARK: - WKNavigationDelegate
-
-extension ArticleViewController: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.allow)
-            return
-        }
-
-        // Determine which article this webView belongs to
-        let pageIndex = pages.firstIndex(where: { $0.webView === webView }) ?? currentPageIndex
-        let article = pageIndex < articles.count ? articles[pageIndex] : nil
-
-        let scheme = url.scheme ?? ""
-
-        switch scheme {
-        case "entry":
-            // Entry link: navigate to word in same dictionary
-            let targetWord = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            if let dictId = article?.dictId, !targetWord.isEmpty {
-                delegate?.articleViewController(self, didTapEntryLink: targetWord, inDict: dictId)
-            }
-            decisionHandler(.cancel)
-
-        case "sound":
-            // Play audio from MDD
-            if let dictId = article?.dictId {
-                AudioService.shared.play(url: url, dictId: dictId)
-            }
-            decisionHandler(.cancel)
-
-        case "about":
-            decisionHandler(.allow)
-
-        default:
-            print("🔗 Unknown link: \(url)")
-            decisionHandler(.cancel)
-        }
-    }
-
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Apply zoom to this page if non-default
-        guard currentZoomLevel != ZoomLevel.defaultLevel else { return }
-        let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
-        webView.evaluateJavaScript(js, completionHandler: nil)
-    }
-}
-
-// MARK: - Jump Search (via UIMenuController responder chain)
-
-extension ArticleViewController {
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if action == #selector(jumpSearchAction(_:)) {
-            return !articles.isEmpty && currentPageIndex < articles.count
-        }
-        return super.canPerformAction(action, withSender: sender)
-    }
-
-    @objc func jumpSearchAction(_ sender: Any?) {
-        guard currentPageIndex < pages.count,
-              currentPageIndex < articles.count else { return }
-        let wv = pages[currentPageIndex].webView
-        let dictId = articles[currentPageIndex].dictId
-        wv.evaluateJavaScript("window.getSelection().toString()") { [weak self] result, _ in
-            guard let self, let text = result as? String, !text.isEmpty else { return }
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return }
-            self.delegate?.articleViewController(self, didRequestJumpSearch: trimmed, inDict: dictId)
-        }
     }
 }

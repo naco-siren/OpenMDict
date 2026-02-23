@@ -2,7 +2,9 @@
 //  ArticleCell.swift
 //  OpenMDict-iOS
 //
-//  Collection view cell for displaying dictionary article with WKWebView
+//  Collection view cell for displaying dictionary articles in regular mode.
+//  Thin shell wrapping a shared ArticlePageView — all header + webView layout,
+//  WKNavigationDelegate, drag, and jump search are handled by ArticlePageView.
 //
 
 import UIKit
@@ -15,450 +17,178 @@ protocol ArticleCellDelegate: AnyObject {
 }
 
 class ArticleCell: UICollectionViewCell {
-    
-    // MARK: - Callbacks
-    
+
+    // MARK: - Page View
+
+    private(set) var pageView: ArticlePageView!
+
+    // MARK: - Delegate (for entry links)
+
     weak var delegate: ArticleCellDelegate?
-    var onClose: (() -> Void)?
-    var onOpenInNewWindow: (() -> Void)?
-    var onBookmarkToggle: ((Bool) -> Void)?
-    var onBookmarkRemoveRequested: (() -> Void)?
-    var onWillPresentFind: (() -> Void)?
-    var onDragItemRequested: (() -> UIDragItem?)?
-    var onJumpSearch: ((String) -> Void)?
 
     // MARK: - State
 
     private var currentLayoutMode: ArticleLayoutMode = .columns
-    private var currentArticle: ArticleDisplayItem?
-    private var isBookmarked: Bool = false
-    private var currentZoomLevel: Int = ZoomLevel.defaultLevel
-    private static let pendingOverlayTag = 9876
-    
-    // MARK: - Views
-    
-    private let containerView = UIView()
-    private let headerView = UIView()
-    
-    private lazy var bookmarkButton: UIButton = {
-        var config = UIButton.Configuration.plain()
-        config.image = UIImage(systemName: "bookmark")
-        config.baseForegroundColor = .secondaryLabel
-        let btn = UIButton(configuration: config)
-        btn.configurationUpdateHandler = { [weak self] button in
-            guard let self = self else { return }
-            var config = button.configuration
-            let imageName = self.isBookmarked ? "bookmark.fill" : "bookmark"
-            config?.image = UIImage(systemName: imageName)
-            config?.baseForegroundColor = self.isBookmarked ? nil : .secondaryLabel
-            button.configuration = config
-        }
-        btn.addTarget(self, action: #selector(bookmarkTapped), for: .touchUpInside)
-        return btn
-    }()
-    
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    
-    // Trailing toolbar buttons
-    private lazy var findButton: UIButton = {
-        var config = UIButton.Configuration.plain()
-        config.image = UIImage(systemName: "magnifyingglass")
-        config.baseForegroundColor = .secondaryLabel
-        let btn = UIButton(configuration: config)
-        btn.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
-        return btn
-    }()
-    
-    private lazy var newWindowButton: UIButton = {
-        var config = UIButton.Configuration.plain()
-        config.image = UIImage(systemName: "rectangle.badge.plus")
-        config.baseForegroundColor = .secondaryLabel
-        let btn = UIButton(configuration: config)
-        btn.addTarget(self, action: #selector(newWindowTapped), for: .touchUpInside)
-        return btn
-    }()
-    
-    private lazy var closeButton: UIButton = {
-        var config = UIButton.Configuration.plain()
-        config.image = UIImage(systemName: "xmark.circle.fill")
-        config.baseForegroundColor = .secondaryLabel
-        let btn = UIButton(configuration: config)
-        btn.configurationUpdateHandler = { button in
-            var config = button.configuration
-            config?.baseForegroundColor = button.isHighlighted ? .systemRed : .secondaryLabel
-            button.configuration = config
-        }
-        btn.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        return btn
-    }()
-    
-    private var webView: WKWebView!
+    private(set) var currentArticle: ArticleDisplayItem?
 
-    // MARK: - Init
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    
-    required init?(coder: NSCoder) { fatalError() }
-    
-    // MARK: - Setup
-    
-    private func setupUI() {
-        // Container
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.layer.cornerRadius = 12
-        containerView.layer.masksToBounds = true
-        containerView.backgroundColor = .secondarySystemGroupedBackground
-        contentView.addSubview(containerView)
-        
-        // Header bar
-        headerView.translatesAutoresizingMaskIntoConstraints = false
-        headerView.backgroundColor = .systemFill
-        containerView.addSubview(headerView)
-        
-        // Leading icon
-        bookmarkButton.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(bookmarkButton)
-        
-        // Title & subtitle stack
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        subtitleLabel.font = .systemFont(ofSize: 12)
-        subtitleLabel.textColor = .secondaryLabel
-        
-        let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        titleStack.axis = .vertical
-        titleStack.spacing = 1
-        titleStack.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(titleStack)
-        
-        // Trailing toolbar
-        let subViews = if #available(iOS 16, *) { [findButton, newWindowButton, closeButton] } else { [newWindowButton, closeButton] }
-        let toolbarStack = UIStackView(arrangedSubviews: subViews)
-        toolbarStack.axis = .horizontal
-        toolbarStack.spacing = 0
-        toolbarStack.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(toolbarStack)
-        
-        // Drag interaction on header only (not whole cell)
-        let drag = UIDragInteraction(delegate: self)
-        headerView.addInteraction(drag)
-        headerView.isUserInteractionEnabled = true
+    // MARK: - Shared WKWebViewConfiguration
 
-        // Content WebView
+    private static let sharedWebViewConfiguration: WKWebViewConfiguration = {
         let config = WKWebViewConfiguration()
         config.dataDetectorTypes = []
         config.setURLSchemeHandler(MDictSchemeHandler.shared, forURLScheme: MDictSchemeHandler.scheme)
-        let wv = WKWebView(frame: .zero, configuration: config)
-        wv.translatesAutoresizingMaskIntoConstraints = false
-        wv.isOpaque = false
-        wv.backgroundColor = .clear
-        wv.scrollView.backgroundColor = .clear
-        wv.navigationDelegate = self
-        if #available(iOS 16.0, *) {
-            wv.isFindInteractionEnabled = true
-        }
-        containerView.addSubview(wv)
-        webView = wv
-        
+        return config
+    }()
+
+    // MARK: - Init
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        let config = ArticlePageView.Configuration.regularCell(
+            webViewConfig: Self.sharedWebViewConfiguration
+        )
+        pageView = ArticlePageView(configuration: config)
+        pageView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(pageView)
+
         NSLayoutConstraint.activate([
-            // Container fills cell's contentView
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            
-            // Header at top of container
-            headerView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: 44),
-            
-            // Leading bookmark button
-            bookmarkButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 4),
-            bookmarkButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-                        
-            // Title stack after icon
-            titleStack.leadingAnchor.constraint(equalTo: bookmarkButton.trailingAnchor, constant: 8),
-            titleStack.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: toolbarStack.leadingAnchor, constant: -8),
-            
-            // Trailing toolbar
-            toolbarStack.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -4),
-            toolbarStack.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            
-            // Article content below header
-            webView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            webView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            pageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            pageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            pageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            pageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
         ])
     }
 
+    required init?(coder: NSCoder) { fatalError() }
+
     // MARK: - Configuration
-    
+
     func configure(with article: ArticleDisplayItem, layoutMode: ArticleLayoutMode) {
         let articleChanged = (currentArticle?.id != article.id)
         let contentStateChanged = (currentArticle?.contentState != article.contentState)
-                 
+
         currentLayoutMode = layoutMode
         currentArticle = article
-        
-        titleLabel.text = article.word
-        subtitleLabel.text = article.dictName
-        
-        // Query bookmark state from persistence
-        isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        bookmarkButton.setNeedsUpdateConfiguration()
 
-        // Disable scroll in Grid mode, due to viewport too small
-        webView.scrollView.isScrollEnabled = (layoutMode != .grid)
-        webView.isUserInteractionEnabled = (layoutMode != .grid)
+        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        pageView.configure(word: article.word, dictName: article.dictName,
+                          dictId: article.dictId, isBookmarked: isBookmarked)
+
+        // Lookup count
+        let count = LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+        pageView.setLookupCount(count)
+
+        // Grid mode: disable webView scroll & interaction
+        pageView.webView.scrollView.isScrollEnabled = (layoutMode != .grid)
+        if layoutMode == .grid {
+            pageView.setWebViewInteractive(false)
+        }
+
+        // Wire internal callbacks that depend on the current article
+        pageView.onEntryLinkTapped = { [weak self] word in
+            guard let self else { return }
+            self.delegate?.articleCell(self, didTapEntryLink: word, inDict: article.dictId)
+        }
+        pageView.onSoundLinkTapped = { url in
+            AudioService.shared.play(url: url, dictId: article.dictId)
+        }
 
         // Load content when article or content state changes
         if articleChanged || contentStateChanged {
             loadContent(for: article)
         }
     }
-    
+
     private func loadContent(for article: ArticleDisplayItem) {
         switch article.contentState {
         case .pending:
             let html = ArticleHTMLRenderer.renderPending(word: article.word, traitCollection: traitCollection)
-            webView.loadHTMLString(html, baseURL: nil)
-            addPendingOverlayIfNeeded(word: article.word, dictName: article.dictName)
+            pageView.loadHTMLContent(html)
+            pageView.showPendingOverlay(word: article.word, dictName: article.dictName)
 
         case .loaded(let html, _):
-            removePendingOverlay()
+            pageView.removePendingOverlay()
             let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
-            webView.loadHTMLString(styledHTML, baseURL: nil)
+            pageView.loadHTMLContent(styledHTML)
 
         case .notFound:
-            removePendingOverlay()
+            pageView.removePendingOverlay()
             let html = ArticleHTMLRenderer.renderNotFound(word: article.word, dictName: article.dictName, traitCollection: traitCollection)
-            webView.loadHTMLString(html, baseURL: nil)
-         }
-     }
-
-    private func addPendingOverlayIfNeeded(word: String, dictName: String) {
-        guard containerView.viewWithTag(Self.pendingOverlayTag) == nil else { return }
-        let overlay = ArticlePlaceholderView.loading(word: word, dictName: dictName)
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.tag = Self.pendingOverlayTag
-        overlay.backgroundColor = .secondarySystemGroupedBackground
-        containerView.addSubview(overlay)
-        NSLayoutConstraint.activate([
-            overlay.topAnchor.constraint(equalTo: webView.topAnchor),
-            overlay.leadingAnchor.constraint(equalTo: webView.leadingAnchor),
-            overlay.trailingAnchor.constraint(equalTo: webView.trailingAnchor),
-            overlay.bottomAnchor.constraint(equalTo: webView.bottomAnchor),
-        ])
-    }
-
-    private func removePendingOverlay() {
-        containerView.viewWithTag(Self.pendingOverlayTag)?.removeFromSuperview()
-    }
-    
-    /// Refresh only the bookmark icon state from persistence.
-    /// Lightweight alternative to full reconfigure — avoids re-running
-    /// setZoomLevel which can cause a visual reflow glitch.
-    func refreshBookmarkState() {
-        guard let article = currentArticle else { return }
-        let newState = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        if newState != isBookmarked {
-            isBookmarked = newState
-            bookmarkButton.setNeedsUpdateConfiguration()
+            pageView.loadHTMLContent(html)
         }
     }
 
-    // MARK: - Actions
-    @objc private func bookmarkTapped() {
-        if isBookmarked {
-            // Removing bookmark → ask controller to show confirmation
-            onBookmarkRemoveRequested?()
-        } else {
-            // Adding bookmark → immediate
-            isBookmarked = true
-            bookmarkButton.setNeedsUpdateConfiguration()
-            onBookmarkToggle?(true)
-        }
-    }
-    
-    @objc private func findTapped() {
-        guard #available(iOS 16.0, *) else { return }
-        onWillPresentFind?()
-        presentFind()
-    }
-
-    @objc private func newWindowTapped() { onOpenInNewWindow?() }
-
-    @objc private func closeTapped() { onClose?() }
-    
     // MARK: - Lifecycle
-    
+
     override func prepareForReuse() {
         super.prepareForReuse()
         delegate = nil
-        onClose = nil
-        onOpenInNewWindow = nil
-        onBookmarkToggle = nil
-        onBookmarkRemoveRequested = nil
-        onWillPresentFind = nil
-        onDragItemRequested = nil
-        onJumpSearch = nil
+        pageView.prepareForReuse()
         currentArticle = nil
-        isBookmarked = false
-        removePendingOverlay()
     }
-    
+
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             forceReloadWebView()
         }
     }
-    
-    // MARK: - Public Methods
+
+    // MARK: - Public Methods (proxies to pageView)
+
+    /// Refresh only the bookmark icon state from persistence.
+    func refreshBookmarkState() {
+        guard let article = currentArticle else { return }
+        let newState = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
+        pageView.setBookmarked(newState)
+    }
+
+    /// Refresh only the lookup count label from persistence.
+    func refreshLookupCount() {
+        guard let article = currentArticle else { return }
+        let count = LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+        pageView.setLookupCount(count)
+    }
 
     /// Check if a point (in this cell's coordinate space) falls within the header area.
-    /// Used by ArticlesViewController to restrict context menu to header-only long presses.
     func isPointInHeader(_ pointInCell: CGPoint) -> Bool {
-        let pointInContainer = contentView.convert(pointInCell, to: containerView)
-        return headerView.frame.contains(pointInContainer)
+        pageView.isPointInHeader(pointInCell)
     }
 
     func setWebViewInteractive(_ interactive: Bool) {
-        webView.isUserInteractionEnabled = interactive
-        containerView.alpha = interactive ? 1.0 : 0.95
+        pageView.setWebViewInteractive(interactive)
     }
-    
+
     func forceReloadWebView() {
         guard let article = currentArticle else { return }
         loadContent(for: article)
     }
-    
+
     func setZoomLevel(_ level: Int) {
-        currentZoomLevel = level
-        let js = "document.body.style.fontSize = '\(level)%';"
-        webView.evaluateJavaScript(js) { _, error in
-            if let error = error {
-                print("⚠️ Zoom JS error: \(error)")
-            }
-        }
+        pageView.setZoomLevel(level)
     }
-    
+
     /// Present system Find UI (iOS 16+)
     @available(iOS 16.0, *)
     func presentFind() {
-        webView.findInteraction?.presentFindNavigator(showingReplace: false)
+        pageView.presentFind()
     }
-    
+
     /// Dismiss system Find UI (iOS 16+)
     @available(iOS 16.0, *)
     func dismissFind() {
-        webView.findInteraction?.dismissFindNavigator()
+        pageView.dismissFind()
     }
-    
+
     /// Check if find navigator is currently visible (iOS 16+)
     var isFindNavigatorVisible: Bool {
-        guard #available(iOS 16.0, *) else { return false }
-        
-        return webView.findInteraction?.isFindNavigatorVisible ?? false
+        pageView.isFindNavigatorVisible
     }
-    
+
     // MARK: - JavaScript Highlight (for multi-article search)
-    
-    /// Highlight keyword using JavaScript (works across all cells)
+
     func highlightKeyword(_ keyword: String?) {
-        let escaped = (keyword ?? "").replacingOccurrences(of: "'", with: "\\'")
-        let js = "highlightKeyword('\(escaped)')"
-        webView.evaluateJavaScript(js) { result, error in
-            // result = match count, can be used for UI feedback
-        }
-    }
-}
-
-// MARK: - UIDragInteractionDelegate
-
-extension ArticleCell: UIDragInteractionDelegate {
-    func dragInteraction(_ interaction: UIDragInteraction, itemsForBeginning session: UIDragSession) -> [UIDragItem] {
-        guard let item = onDragItemRequested?() else { return [] }
-        return [item]
-    }
-
-    func dragInteraction(_ interaction: UIDragInteraction, previewForLifting item: UIDragItem, session: UIDragSession) -> UITargetedDragPreview? {
-        let params = UIDragPreviewParameters()
-        params.visiblePath = UIBezierPath(roundedRect: containerView.bounds, cornerRadius: 12)
-        return UITargetedDragPreview(view: containerView, parameters: params)
-    }
-}
-
-// MARK: - WKNavigationDelegate
-
-extension ArticleCell: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.allow)
-            return
-        }
-        
-        let scheme = url.scheme ?? ""
-        
-        switch scheme {
-        case "entry":
-            // Entry link: navigate to word in same dictionary
-            let targetWord = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            if let dictId = currentArticle?.dictId, !targetWord.isEmpty {
-                delegate?.articleCell(self, didTapEntryLink: targetWord, inDict: dictId)
-            }
-            decisionHandler(.cancel)
-        case "sound":
-            // Play audio from MDD
-            if let dictId = currentArticle?.dictId {
-                AudioService.shared.play(url: url, dictId: dictId)
-            }
-            decisionHandler(.cancel)
-        case "about":
-            decisionHandler(.allow)
-        default:
-            print("🔗 Unknown link: \(url)")
-            decisionHandler(.cancel)
-        }
-    }
-    
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Apply zoom level after content loads
-        if currentZoomLevel != ZoomLevel.defaultLevel {
-            let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
-            webView.evaluateJavaScript(js, completionHandler: nil)
-        }
-    }
-}
-
-// MARK: - Jump Search (via UIMenuController responder chain)
-
-extension ArticleCell {
-    /// Register the "Jump Search" menu item globally.
-    /// Called once; idempotent because UIMenuController.shared.menuItems is a simple array.
-    static func registerJumpSearchMenuItem() {
-        let item = UIMenuItem(title: L10n.Articles.jumpSearch, action: #selector(jumpSearchAction(_:)))
-        UIMenuController.shared.menuItems = [item]
-    }
-
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if action == #selector(jumpSearchAction(_:)) {
-            return onJumpSearch != nil
-        }
-        return super.canPerformAction(action, withSender: sender)
-    }
-
-    @objc func jumpSearchAction(_ sender: Any?) {
-        webView.evaluateJavaScript("window.getSelection().toString()") { [weak self] result, _ in
-            if let text = result as? String, !text.isEmpty {
-                self?.onJumpSearch?(text.trimmingCharacters(in: .whitespacesAndNewlines))
-            }
-        }
+        pageView.highlightKeyword(keyword)
     }
 }

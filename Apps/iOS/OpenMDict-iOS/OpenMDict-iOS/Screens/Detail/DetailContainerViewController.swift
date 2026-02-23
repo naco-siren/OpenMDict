@@ -101,7 +101,7 @@ class DetailContainerViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         
         // Register "Jump Search" menu item for WKWebView text selection
-        ArticleCell.registerJumpSearchMenuItem()
+        ArticlePageView.registerJumpSearchMenuItem()
 
         // Install appropriate child for current traits
         updateChildForTraits(traitCollection)
@@ -533,13 +533,6 @@ class DetailContainerViewController: UIViewController {
                         }),
                     ]
                 ),
-                .fixedGroup(
-                    items: [
-                        .init(title: L10n.Detail.find, image: .init(systemName: "magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.presentFind()
-                        }),
-                    ]
-                ),
             ]
         } else {
             navigationItem.leftBarButtonItems = []
@@ -697,14 +690,6 @@ class DetailContainerViewController: UIViewController {
     }
 
     // MARK: - Find in Page
-
-    private func presentFind() {
-        guard #available(iOS 16.0, *) else { return }
-
-        if activeChild === articleVC {
-            articleVC.toggleFind()
-        }
-    }
 
     /// Whether the search bar (find/highlight) is currently active
     var isSearchActive: Bool { searchController.isActive }
@@ -908,6 +893,16 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
         if index < articles.count {
             self.userActivity = articles[index].userActivity
         }
+    }
+
+    func articleViewController(_ vc: ArticleViewController, didCloseArticle article: ArticleDisplayItem) {
+        closeArticle(article)
+    }
+
+    func articleViewController(_ vc: ArticleViewController, didRequestNewWindow article: ArticleDisplayItem) {
+        let session = view.window?.windowScene?.session
+        SceneDelegate.openNewWindow(for: article, sourceSession: session)
+        closeArticle(article)
     }
 }
 

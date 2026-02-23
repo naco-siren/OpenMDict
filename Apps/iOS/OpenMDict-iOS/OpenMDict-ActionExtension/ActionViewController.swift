@@ -36,22 +36,9 @@ private struct ArticleResult: Sendable {
 
 class ActionViewController: UIViewController {
 
-    // MARK: - Per-Page Layout
+    // MARK: - Pages
 
-    private static let headerHeight: CGFloat = 64
-
-    /// Each page is a vertical stack: header (64pt) + WKWebView (fill).
-    private struct PageSlot {
-        let container: UIView
-        let headerView: UIView
-        let bookmarkButton: UIButton
-        let titleLabel: UILabel
-        let subtitleLabel: UILabel
-        let lookupCountLabel: UILabel
-        let webView: WKWebView
-    }
-
-    private var pages: [PageSlot] = []
+    private var pages: [ArticlePageView] = []
     private var pageLeadingConstraints: [NSLayoutConstraint] = []
     private var isBookmarked = false
 
@@ -359,14 +346,21 @@ class ActionViewController: UIViewController {
 
     // MARK: - Bookmark
 
+    /// Keyboard shortcut handler — delegates to the current page's bookmark toggle.
     @objc private func bookmarkTapped() {
-        guard currentPageIndex < results.count,
-              currentPageIndex < pages.count else { return }
-        let result = results[currentPageIndex]
+        guard currentPageIndex < pages.count else { return }
         let page = pages[currentPageIndex]
+        handleBookmarkTapped(isCurrentlyBookmarked: page.isBookmarked, pageView: page)
+    }
 
-        if isBookmarked {
-            // Removing → show confirmation alert (same as main app)
+    /// Shared bookmark toggle logic (called from both keyboard shortcut and page callback).
+    private func handleBookmarkTapped(isCurrentlyBookmarked: Bool, pageView: ArticlePageView) {
+        guard let pageIndex = pages.firstIndex(where: { $0 === pageView }),
+              pageIndex < results.count else { return }
+        let result = results[pageIndex]
+
+        if isCurrentlyBookmarked {
+            // Removing → show confirmation alert
             let alert = UIAlertController(
                 title: L10n.Bookmarks.removeBookmark,
                 message: L10n.Bookmarks.removeBookmarkMessage(word: result.keyword, dictName: result.dictName),
@@ -379,7 +373,7 @@ class ActionViewController: UIViewController {
                     word: result.keyword, dictId: result.dictId
                 )
                 self.isBookmarked = false
-                self.updateBookmarkButton(page.bookmarkButton, isBookmarked: false)
+                pageView.setBookmarked(false)
             })
             present(alert, animated: true)
         } else {
@@ -387,16 +381,8 @@ class ActionViewController: UIViewController {
             isBookmarked = BookmarkService.shared.toggleBookmark(
                 word: result.keyword, dictId: result.dictId
             )
-            updateBookmarkButton(page.bookmarkButton, isBookmarked: isBookmarked)
+            pageView.setBookmarked(isBookmarked)
         }
-    }
-
-    private func updateBookmarkButton(_ button: UIButton, isBookmarked: Bool) {
-        var config = button.configuration
-        let imageName = isBookmarked ? "bookmark.fill" : "bookmark"
-        config?.image = UIImage(systemName: imageName)
-        config?.baseForegroundColor = isBookmarked ? nil : .secondaryLabel
-        button.configuration = config
     }
 
     // MARK: - Lookup Count
@@ -405,32 +391,14 @@ class ActionViewController: UIViewController {
         guard currentPageIndex < results.count,
               currentPageIndex < pages.count else { return }
         let result = results[currentPageIndex]
+        let page = pages[currentPageIndex]
 
         lookupCountCancellable = LookupHistoryService.shared
             .lookupCountPublisher(word: result.keyword, dictId: result.dictId)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] count in
-                guard let self,
-                      self.currentPageIndex < self.pages.count else { return }
-                let lookupLabel = self.pages[self.currentPageIndex].lookupCountLabel
-                if count > 0 {
-                    lookupLabel.text = L10n.Articles.lookupCount(count)
-                    lookupLabel.textColor = self.lookupCountColor(for: count)
-                    lookupLabel.isHidden = false
-                } else {
-                    lookupLabel.isHidden = true
-                }
+            .sink { [weak page] count in
+                page?.setLookupCount(count)
             }
-    }
-
-    private func lookupCountColor(for count: Int) -> UIColor {
-        switch count {
-        case 15...:   return .systemRed
-        case 10..<15: return .systemOrange
-        case 6..<10:  return .systemBrown
-        case 3..<6:   return .secondaryLabel
-        default:      return .tertiaryLabel
-        }
     }
 
     // MARK: - Zoom
@@ -479,16 +447,9 @@ class ActionViewController: UIViewController {
     }
 
     private func applyZoomToAllPages() {
-        let js = "document.body.style.fontSize = '\(zoom.current)%';"
         for page in pages {
-            page.webView.evaluateJavaScript(js, completionHandler: nil)
+            page.setZoomLevel(zoom.current)
         }
-    }
-
-    private func applyZoom(to webView: WKWebView) {
-        guard !zoom.isDefault else { return }
-        let js = "document.body.style.fontSize = '\(zoom.current)%';"
-        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     // MARK: - Loading UI
@@ -940,95 +901,35 @@ class ActionViewController: UIViewController {
         addPage(for: result)
     }
 
-    /// Create a page container with header row + WKWebView (mirrors ArticleViewController.makePageSlot).
-    private func makePageSlot(for result: ArticleResult) -> PageSlot {
+    /// Create an ArticlePageView for the given article result.
+    private func makeArticlePageView(for result: ArticleResult) -> ArticlePageView {
         guard let config = webViewConfiguration else { fatalError("webViewConfiguration must be set before making pages") }
 
-        // Container
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
+        let pageConfig = ArticlePageView.Configuration.actionExtension(webViewConfig: config)
+        let pageView = ArticlePageView(configuration: pageConfig)
+        pageView.translatesAutoresizingMaskIntoConstraints = false
 
-        // Header
-        let header = UIView()
-        header.translatesAutoresizingMaskIntoConstraints = false
-        header.backgroundColor = .secondarySystemGroupedBackground
+        let bookmarked = BookmarkService.shared.isBookmarked(word: result.keyword, dictId: result.dictId)
+        pageView.configure(word: result.keyword, dictName: result.dictName,
+                          dictId: result.dictId, isBookmarked: bookmarked)
 
-        // Bookmark button
-        var btnConfig = UIButton.Configuration.plain()
-        btnConfig.image = UIImage(systemName: "bookmark")
-        btnConfig.baseForegroundColor = .secondaryLabel
-        let bookmarkBtn = UIButton(configuration: btnConfig)
-        bookmarkBtn.translatesAutoresizingMaskIntoConstraints = false
-        bookmarkBtn.addTarget(self, action: #selector(bookmarkTapped), for: .touchUpInside)
+        // Wire callbacks (capture pageView weakly to avoid retain cycles)
+        pageView.onBookmarkTapped = { [weak self, weak pageView] isCurrentlyBookmarked in
+            guard let self, let pageView else { return }
+            self.handleBookmarkTapped(isCurrentlyBookmarked: isCurrentlyBookmarked, pageView: pageView)
+        }
 
-        // Labels
-        let titleLbl = UILabel()
-        titleLbl.translatesAutoresizingMaskIntoConstraints = false
-        titleLbl.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLbl.lineBreakMode = .byTruncatingTail
-        titleLbl.text = result.keyword
+        pageView.onEntryLinkTapped = { [weak self, weak pageView] word in
+            guard let self, let pageView else { return }
+            self.confirmOpenInApp(word: word, from: pageView)
+        }
 
-        let subtitleLbl = UILabel()
-        subtitleLbl.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLbl.font = .systemFont(ofSize: 11)
-        subtitleLbl.textColor = .secondaryLabel
-        subtitleLbl.text = result.dictName
+        pageView.onSoundLinkTapped = { [weak self, weak pageView] url in
+            guard let self, let pageView else { return }
+            self.playAudio(url: url, from: pageView)
+        }
 
-        let lookupCountLbl = UILabel()
-        lookupCountLbl.translatesAutoresizingMaskIntoConstraints = false
-        lookupCountLbl.font = .italicSystemFont(ofSize: 11)
-        lookupCountLbl.isHidden = true
-
-        let titleStack = UIStackView(arrangedSubviews: [titleLbl, subtitleLbl, lookupCountLbl])
-        titleStack.axis = .vertical
-        titleStack.spacing = 3
-        titleStack.translatesAutoresizingMaskIntoConstraints = false
-
-        header.addSubview(bookmarkBtn)
-        header.addSubview(titleStack)
-
-        // WebView
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
-        webView.navigationDelegate = self
-
-        // Layout
-        container.addSubview(header)
-        container.addSubview(webView)
-
-        NSLayoutConstraint.activate([
-            header.topAnchor.constraint(equalTo: container.topAnchor),
-            header.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            header.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            header.heightAnchor.constraint(equalToConstant: Self.headerHeight),
-
-            bookmarkBtn.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 4),
-            bookmarkBtn.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            bookmarkBtn.widthAnchor.constraint(equalToConstant: 40),
-            bookmarkBtn.heightAnchor.constraint(equalToConstant: 40),
-
-            titleStack.leadingAnchor.constraint(equalTo: bookmarkBtn.trailingAnchor, constant: 4),
-            titleStack.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: header.trailingAnchor, constant: -12),
-
-            webView.topAnchor.constraint(equalTo: header.bottomAnchor),
-            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ])
-
-        return PageSlot(
-            container: container,
-            headerView: header,
-            bookmarkButton: bookmarkBtn,
-            titleLabel: titleLbl,
-            subtitleLabel: subtitleLbl,
-            lookupCountLabel: lookupCountLbl,
-            webView: webView
-        )
+        return pageView
     }
 
     /// Updates bookmark state and lookup count subscription for the current page.
@@ -1040,33 +941,33 @@ class ActionViewController: UIViewController {
 
         // Bookmark state
         isBookmarked = BookmarkService.shared.isBookmarked(word: result.keyword, dictId: result.dictId)
-        updateBookmarkButton(page.bookmarkButton, isBookmarked: isBookmarked)
+        page.setBookmarked(isBookmarked)
 
         // Lookup count subscription (re-binds on each page change)
         subscribeLookupCount()
     }
 
-    /// Adds a new page (container + header + WKWebView) for the given article result.
+    /// Adds a new page (ArticlePageView) for the given article result.
     private func addPage(for result: ArticleResult) {
         guard let sv = scrollView else { return }
 
-        let slot = makePageSlot(for: result)
-        sv.addSubview(slot.container)
+        let pageView = makeArticlePageView(for: result)
+        sv.addSubview(pageView)
 
         let pageIndex = pages.count
-        let leadingConstraint = slot.container.leadingAnchor.constraint(
+        let leadingConstraint = pageView.leadingAnchor.constraint(
             equalTo: sv.leadingAnchor,
             constant: CGFloat(pageIndex) * sv.bounds.width
         )
 
         NSLayoutConstraint.activate([
-            slot.container.topAnchor.constraint(equalTo: sv.topAnchor),
-            slot.container.widthAnchor.constraint(equalTo: sv.widthAnchor),
-            slot.container.heightAnchor.constraint(equalTo: sv.heightAnchor),
+            pageView.topAnchor.constraint(equalTo: sv.topAnchor),
+            pageView.widthAnchor.constraint(equalTo: sv.widthAnchor),
+            pageView.heightAnchor.constraint(equalTo: sv.heightAnchor),
             leadingConstraint,
         ])
 
-        pages.append(slot)
+        pages.append(pageView)
         pageLeadingConstraints.append(leadingConstraint)
 
         sv.contentSize = CGSize(
@@ -1074,12 +975,17 @@ class ActionViewController: UIViewController {
             height: sv.bounds.height
         )
 
+        // Set zoom level before loading content (ArticlePageView auto-applies on didFinish)
+        if !zoom.isDefault {
+            pageView.setZoomLevel(zoom.current)
+        }
+
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html,
             dictId: result.dictId,
             traitCollection: traitCollection
         )
-        slot.webView.loadHTMLString(renderedHTML, baseURL: nil)
+        pageView.loadHTMLContent(renderedHTML)
     }
 
     @objc private func pageControlValueChanged(_ sender: UIPageControl) {
@@ -1143,12 +1049,12 @@ class ActionViewController: UIViewController {
     /// Play audio from a sound:// URL tapped in a WKWebView page.
     /// - Parameters:
     ///   - url: The `sound://` URL intercepted from WKNavigationDelegate
-    ///   - webView: The WKWebView that triggered the navigation
-    private func playAudio(url: URL, from webView: WKWebView) {
+    ///   - pageView: The ArticlePageView that triggered the navigation
+    private func playAudio(url: URL, from pageView: ArticlePageView) {
         guard let mdictURL = MDictURL(url), mdictURL.isAudio else { return }
 
         // Determine which dictionary this page belongs to
-        guard let pageIndex = pages.firstIndex(where: { $0.webView === webView }),
+        guard let pageIndex = pages.firstIndex(where: { $0 === pageView }),
               pageIndex < results.count else { return }
         let dictId = results[pageIndex].dictId
 
@@ -1243,9 +1149,9 @@ class ActionViewController: UIViewController {
     // MARK: - Open Containing App
 
     /// Presents an alert asking the user to confirm opening an entry link in the main app.
-    private func confirmOpenInApp(word: String, from webView: WKWebView) {
+    private func confirmOpenInApp(word: String, from pageView: ArticlePageView) {
         let result: ArticleResult? = {
-            guard let idx = pages.firstIndex(where: { $0.webView === webView }), idx < results.count else { return nil }
+            guard let idx = pages.firstIndex(where: { $0 === pageView }), idx < results.count else { return nil }
             return results[idx]
         }()
         let title = String(format: L10n.ActionExtension.browseEntryTitle, word)
@@ -1313,49 +1219,6 @@ extension ActionViewController: UIScrollViewDelegate {
     }
 }
 
-// MARK: - WKNavigationDelegate
-
-extension ActionViewController: WKNavigationDelegate {
-
-    func webView(
-        _ webView: WKWebView,
-        decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
-    ) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.allow)
-            return
-        }
-
-        let scheme = url.scheme?.lowercased() ?? ""
-
-        switch scheme {
-        case "entry":
-            decisionHandler(.cancel)
-            if let mdictURL = MDictURL(url), mdictURL.isEntryLink {
-                confirmOpenInApp(word: mdictURL.resourcePath, from: webView)
-            }
-
-        case "sound":
-            decisionHandler(.cancel)
-            playAudio(url: url, from: webView)
-
-        case "http", "https":
-            decisionHandler(.cancel)
-
-        default:
-            if navigationAction.navigationType == .other {
-                decisionHandler(.allow)
-            } else {
-                decisionHandler(.cancel)
-            }
-        }
-    }
-
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        applyZoom(to: webView)
-    }
-}
 
 // MARK: - DictManifestLite
 

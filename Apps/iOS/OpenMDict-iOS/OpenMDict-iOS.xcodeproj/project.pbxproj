@@ -220,6 +220,8 @@
 				L10n/L10n.swift,
 				L10n/Localizable.xcstrings,
 				OpenMDict_iOS.xcdatamodeld,
+				Screens/Detail/ArticlePageView.swift,
+				Screens/Detail/ArticlePlaceholderView.swift,
 				Services/BookmarkService.swift,
 				Services/DateGroupingHelper.swift,
 				Services/LookupCountService.swift,
