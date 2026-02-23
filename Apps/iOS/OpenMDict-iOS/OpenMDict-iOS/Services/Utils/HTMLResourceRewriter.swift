@@ -53,9 +53,10 @@ nonisolated enum HTMLResourceRewriter {
                     continue
                 }
 
-                // Construct mdict:// URL
+                // Construct mdict:// URL (percent-encode path for valid URL)
                 let cleanPath = path.hasPrefix("/") ? path : "/\(path)"
-                let mdictURL = "mdict://\(dictId)\(cleanPath)"
+                let encodedPath = cleanPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleanPath
+                let mdictURL = "mdict://\(dictId)\(encodedPath)"
 
                 // Reconstruct the full match with new URL
                 let prefix = String(result[Range(match.range(at: 1), in: result)!])
