@@ -33,6 +33,13 @@ class DetailContainerViewController: UIViewController {
     /// Fallback: put the word in the search bar (wired by MainSplitVC).
     var onJumpSearchFallback: ((String) -> Void)?
     
+    /// True while a `willTransition(to:with:)` animation is in-flight.
+    /// Prevents `ensureCorrectChild()` in `viewDidLayoutSubviews` from
+    /// fighting with the transition (self.traitCollection is still the OLD
+    /// value during the animation block, so ensureCorrectChild would bounce
+    /// the child VCs back and forth).
+    private var isTransitioning = false
+
     /// Subscriptions
     private var cancellables = Set<AnyCancellable>()
     
@@ -146,7 +153,11 @@ class DetailContainerViewController: UIViewController {
         if let child = activeChild {
             debugLog("📐 [\(instanceID)] DetailContainer.viewDidLayoutSubviews - child.view.frame: \(child.view.frame)")
         }
-        ensureCorrectChild()
+        // Skip during willTransition animation — self.traitCollection is still
+        // the OLD value, so ensureCorrectChild would incorrectly switch back.
+        if !isTransitioning {
+            ensureCorrectChild()
+        }
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -199,14 +210,19 @@ class DetailContainerViewController: UIViewController {
         super.willTransition(to: newCollection, with: coordinator)
         debugLog("📐 [\(instanceID)] DetailContainer.willTransition - from \(traitCollection.horizontalSizeClass.rawValue) to \(newCollection.horizontalSizeClass.rawValue)")
 
+        isTransitioning = true
+
         coordinator.animate { _ in
             self.updateChildForTraits(newCollection)
             self.updateNavigationBar(for: newCollection)
         } completion: { _ in
+            self.isTransitioning = false
+            // Use self.traitCollection (the ACTUAL current traits, whether
+            // the transition completed or was cancelled).
             self.ensureCorrectChild()
             // Safe area propagation only completes after the transition animation finishes.
             // Force layout rebuild here to ensure correct cell positioning.
-            if newCollection.horizontalSizeClass == .regular {
+            if self.traitCollection.horizontalSizeClass == .regular {
                 debugLog("📐 [\(self.instanceID)] DetailContainer.willTransition completion - triggering layout rebuild")
                 self.articlesVC.invalidateLayoutForSafeAreaChange()
             }

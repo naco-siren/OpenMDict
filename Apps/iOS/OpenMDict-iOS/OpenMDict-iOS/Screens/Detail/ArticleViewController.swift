@@ -41,6 +41,22 @@ class ArticleViewController: UIViewController {
     private var pages: [ArticlePageView] = []
     private var pageLeadingConstraints: [NSLayoutConstraint] = []
 
+    // MARK: - Safe Area (manual, same pattern as ArticlesVC)
+
+    /// Constraint from scrollView.top → view.top, constant = effective safe area.
+    /// We manage this manually instead of using `safeAreaLayoutGuide.topAnchor`
+    /// because safeAreaLayoutGuide doesn't propagate from UINavigationController
+    /// during a `UIViewControllerTransitionCoordinator.animate` block.
+    private var scrollViewTopConstraint: NSLayoutConstraint!
+
+    /// Effective safe area top: own value, falling back to parent's.
+    /// Mirrors the `effectiveSafeAreaTop` pattern in ArticlesVC.
+    private var effectiveSafeAreaTop: CGFloat {
+        let myTop = view.safeAreaInsets.top
+        if myTop > 0 { return myTop }
+        return parent?.view.safeAreaInsets.top ?? 0
+    }
+
     // MARK: - Pager UI
 
     private lazy var scrollView: UIScrollView = {
@@ -119,9 +135,11 @@ class ArticleViewController: UIViewController {
         }
         view.addSubview(pageControlBackdrop)
 
+        // Manual safe area: topAnchor + constant (not safeAreaLayoutGuide — see comment above)
+        scrollViewTopConstraint = scrollView.topAnchor.constraint(equalTo: view.topAnchor, constant: effectiveSafeAreaTop)
+
         NSLayoutConstraint.activate([
-            // ScrollView from safe area top to bottom (headers are per-page now)
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollViewTopConstraint,
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -143,8 +161,16 @@ class ArticleViewController: UIViewController {
         ])
     }
 
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        scrollViewTopConstraint.constant = effectiveSafeAreaTop
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+
+        // Keep scrollView below nav bar (parent fallback for first transition)
+        scrollViewTopConstraint.constant = effectiveSafeAreaTop
 
         // Capsule shape for page control backdrop
         if pageControlBackdrop.bounds.height > 0 {
