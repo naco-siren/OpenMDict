@@ -259,6 +259,12 @@ class DictInfoViewController: UIViewController {
             action: #selector(cancelTapped)
         )
     }()
+
+    /// Explicit close button for iOS 26 compact mode where the system back button
+    /// may not appear due to UISplitViewController column-swap behavior.
+    private lazy var closeButton: UIBarButtonItem = {
+        UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(closeTapped))
+    }()
     
     /// Reference to the display name text view (for reading edited value)
     private weak var displayNameTextView: UITextView?
@@ -305,6 +311,14 @@ class DictInfoViewController: UIViewController {
         updateUI()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Re-apply navigation bar configuration.
+        // On iOS 26 compact mode, UISplitViewController column swaps may cause
+        // the wrapper UINavigationController to lose bar button item state.
+        updateNavigationBar()
+    }
+
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         
@@ -727,7 +741,13 @@ class DictInfoViewController: UIViewController {
                 navigationItem.rightBarButtonItem = doneButton
             } else {
                 // Viewing mode: (system back) / Edit
-                navigationItem.leftBarButtonItem = nil
+                // On iOS 26 compact, the system back button may not appear after
+                // UISplitViewController column swaps. Provide an explicit close button.
+                if #available(iOS 26, *), isSplitViewCollapsed {
+                    navigationItem.leftBarButtonItem = closeButton
+                } else {
+                    navigationItem.leftBarButtonItem = nil
+                }
                 navigationItem.rightBarButtonItem = editButton
             }
         }
@@ -920,6 +940,12 @@ class DictInfoViewController: UIViewController {
         isEditingMode = true
     }
     
+    /// Close button action (iOS 26 compact fallback for missing system back button).
+    /// Exits management mode and navigates back to the sidebar.
+    @objc private func closeTapped() {
+        performDismiss()
+    }
+
     @objc private func cancelTapped() {
         switch currentMode {
         case .empty:

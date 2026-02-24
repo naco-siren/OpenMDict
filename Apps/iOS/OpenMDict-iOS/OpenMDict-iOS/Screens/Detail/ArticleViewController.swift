@@ -73,7 +73,7 @@ class ArticleViewController: UIViewController {
     private lazy var pageControlBackdrop: UIVisualEffectView = {
         let effect: UIVisualEffect
         if #available(iOS 26, *) {
-            effect = UIGlassEffect(style: .regular)
+            effect = UIGlassEffect(style: .clear)
         } else {
             effect = UIBlurEffect(style: .systemUltraThinMaterial)
         }

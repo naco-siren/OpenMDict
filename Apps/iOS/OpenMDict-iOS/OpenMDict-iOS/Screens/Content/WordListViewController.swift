@@ -160,7 +160,7 @@ class WordListViewController: UIViewController {
         // They remain visible in the dedicated LookupHistoryListViewController
         // (with "dictionary unavailable" styling) but should not clutter the
         // group/dict WordListVC which only shows actionable history.
-        historyGroups = rawGroups.compactMap { section in
+        var groups: [HistorySection] = rawGroups.compactMap { section in
             let filtered = section.records.compactMap { item -> HistoryItem? in
                 guard let metadata = DictMetadataService.shared.find(dictId: item.dictId) else {
                     return nil  // dict not available locally — skip
@@ -177,6 +177,8 @@ class WordListViewController: UIViewController {
             guard !filtered.isEmpty else { return nil }  // drop empty sections
             return HistorySection(title: section.title, records: filtered)
         }
+
+        historyGroups = groups
         if !isSearching {
             tableView.reloadData()
             updateEmptyState()
@@ -450,7 +452,6 @@ extension WordListViewController: UISearchResultsUpdating {
         // When transitioning between modes, reload the table
         tableView.reloadData()
         updateEmptyState()
-
     }
 }
 

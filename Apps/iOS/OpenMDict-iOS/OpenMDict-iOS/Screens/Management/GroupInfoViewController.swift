@@ -200,6 +200,12 @@ class GroupInfoViewController: UIViewController {
     private lazy var cancelButton: UIBarButtonItem = {
         UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
     }()
+
+    /// Explicit close button for iOS 26 compact mode where the system back button
+    /// may not appear due to UISplitViewController column-swap behavior.
+    private lazy var closeButton: UIBarButtonItem = {
+        UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(closeTapped))
+    }()
     
     /// Reference to the name text view (for reading edited value)
     private weak var nameTextView: UITextView?
@@ -228,9 +234,9 @@ class GroupInfoViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         view.backgroundColor = .systemGroupedBackground
-        
+
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -238,9 +244,17 @@ class GroupInfoViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        
+
         configureDataSource()
         updateUI()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Re-apply navigation bar configuration.
+        // On iOS 26 compact mode, UISplitViewController column swaps may cause
+        // the wrapper UINavigationController to lose bar button item state.
+        updateNavigationBar()
     }
     
     /// Track previous collapsed state to detect changes
@@ -510,13 +524,23 @@ class GroupInfoViewController: UIViewController {
                 navigationItem.rightBarButtonItem = doneButton
             } else {
                 // Viewing mode: (back) / Edit
-                navigationItem.leftBarButtonItem = nil
+                // On iOS 26 compact, the system back button may not appear after
+                // UISplitViewController column swaps. Provide an explicit close button.
+                if #available(iOS 26, *), isSplitViewCollapsed {
+                    navigationItem.leftBarButtonItem = closeButton
+                } else {
+                    navigationItem.leftBarButtonItem = nil
+                }
                 navigationItem.rightBarButtonItem = editButton
             }
-            
+
         case .viewingDefault:
             // Read-only: no edit buttons
-            navigationItem.leftBarButtonItem = nil
+            if #available(iOS 26, *), isSplitViewCollapsed {
+                navigationItem.leftBarButtonItem = closeButton
+            } else {
+                navigationItem.leftBarButtonItem = nil
+            }
             navigationItem.rightBarButtonItem = nil
         }
     }
@@ -662,6 +686,15 @@ class GroupInfoViewController: UIViewController {
         isEditingMode = true
     }
     
+    /// Close button action (iOS 26 compact fallback for missing system back button).
+    /// Exits management mode and navigates back to the sidebar.
+    @objc private func closeTapped() {
+        onDismiss?()
+        if isSplitViewCollapsed, let splitVC = findSplitViewController() {
+            splitVC.show(.primary)
+        }
+    }
+
     @objc private func cancelTapped() {
         guard let mode = currentMode else { return }
         
