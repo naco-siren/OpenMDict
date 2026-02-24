@@ -174,11 +174,14 @@ class WordListViewController: UIViewController {
             }
 
         case .activeEmpty:
-            // Clipboard + history
-            newSections.append(SectionData(
-                type: .clipboard,
-                rows: [.clipboardContent(clipboardText)]
-            ))
+            // Clipboard (only shown when clipboard has searchable text)
+            if let clipboardText {
+                newSections.append(SectionData(
+                    type: .clipboard,
+                    rows: [.clipboardContent(clipboardText)]
+                ))
+            }
+            // History
             for group in historyGroups {
                 newSections.append(SectionData(
                     type: .history(group.title),
