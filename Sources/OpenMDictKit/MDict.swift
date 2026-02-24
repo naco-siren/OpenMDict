@@ -130,8 +130,11 @@ public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Reader
     
-    /// The actual dictionary reader (nil when unloaded)
-    private var _reader: MDictReader?
+    /// The actual dictionary reader (nil when unloaded).
+    /// `nonisolated(unsafe)` allows background access from `suggestions()`.
+    /// Thread-safe because: mutations only happen on MainActor (load/unload),
+    /// and MDictReader's read operations use immutable in-memory data.
+    nonisolated(unsafe) private var _reader: MDictReader?
     
     /// Whether the dictionary is currently loaded
     public var isLoaded: Bool { _reader != nil }
@@ -254,8 +257,10 @@ public final class MDict: ObservableObject, Identifiable {
         _reader?.search(prefix: prefix, limit: limit) ?? []
     }
     
-    /// Get suggestions for a misspelled word
-    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [MDictWordKey] {
+    /// Get suggestions for a misspelled word.
+    /// `nonisolated` — safe for background calls. Underlying MDXParser operates
+    /// on immutable in-memory keyword data (set once during load, never mutated).
+    public nonisolated func suggestions(for key: MDictWordKey, limit: Int = 5) -> [MDictWordKey] {
         _reader?.suggestions(for: key, limit: limit) ?? []
     }
     

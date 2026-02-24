@@ -959,79 +959,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "سيظهر التعريف بعد انتهاء تحميل \u201C%@\u201D."
+            "value": "سيظهر التعريف بعد انتهاء تحميل “%@”."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Definition wird angezeigt, sobald \u201E%@\u201C geladen ist."
+            "value": "Die Definition wird angezeigt, sobald „%@“ geladen ist."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Definition will appear once \u201C%@\u201D finishes loading."
+            "value": "Definition will appear once “%@” finishes loading."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La definición aparecerá cuando \u201C%@\u201D termine de cargarse."
+            "value": "La definición aparecerá cuando “%@” termine de cargarse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La définition s\u2019affichera une fois \u00AB\u202F%@\u202F\u00BB chargé."
+            "value": "La définition s’affichera une fois « %@ » chargé."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "परिभाषा \u201C%@\u201D लोड होने के बाद दिखाई देगी।"
+            "value": "परिभाषा “%@” लोड होने के बाद दिखाई देगी।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "定義は\u201C%@\u201Dの読み込み完了後に表示されます。"
+            "value": "定義は“%@”の読み込み完了後に表示されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "정의는 \u201C%@\u201D 로딩이 완료되면 표시됩니다."
+            "value": "정의는 “%@” 로딩이 완료되면 표시됩니다."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A definição aparecerá quando \u201C%@\u201D terminar de carregar."
+            "value": "A definição aparecerá quando “%@” terminar de carregar."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Определение появится после загрузки \u00AB%@\u00BB."
+            "value": "Определение появится после загрузки «%@»."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Визначення з\u2019явиться після завантаження \u00AB%@\u00BB."
+            "value": "Визначення з’явиться після завантаження «%@»."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "释义将在\u201C%@\u201D加载完成后显示。"
+            "value": "释义将在“%@”加载完成后显示。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "釋義將在\u201C%@\u201D載入完成後顯示。"
+            "value": "釋義將在“%@”載入完成後顯示。"
           }
         }
       }
@@ -23637,6 +23637,426 @@
           "stringUnit": {
             "state": "translated",
             "value": "त्वरित खोज"
+          }
+        }
+      }
+    },
+    "wordList.clipboardHeader": {
+      "comment": "Section header for clipboard row in word list",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الحافظة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwischenablage"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clipboard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portapapeles"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presse-papiers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्लिपबोर्ड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリップボード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클립보드"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Área de Transferência"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Буфер обмена"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Буфер обміну"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪貼簿"
+          }
+        }
+      }
+    },
+    "wordList.clipboardPasteToSearch": {
+      "comment": "Clipboard cell secondary text prompting paste action",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لصق للبحث"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Suchen einfügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste to search"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar para buscar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coller pour rechercher"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोजने के लिए चिपकाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ペーストして検索"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "붙여넣어 검색"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colar para pesquisar"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставить для поиска"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставити для пошуку"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴以搜索"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "貼上以搜尋"
+          }
+        }
+      }
+    },
+    "wordList.clipboardEmpty": {
+      "comment": "Clipboard cell placeholder when clipboard is empty",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انسخ كلمة للصقها هنا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiere ein Wort zum Einfügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy a word to paste here"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia una palabra para pegar aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiez un mot à coller ici"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यहाँ चिपकाने के लिए कोई शब्द कॉपी करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語をコピーしてここにペースト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기에 붙여넣을 단어를 복사하세요"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copie uma palavra para colar aqui"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопируйте слово для вставки"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопіюйте слово для вставки"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制一个词以粘贴到此处"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製一個詞以貼上至此處"
+          }
+        }
+      }
+    },
+    "wordList.searchResultsHeader": {
+      "comment": "Section header for search results in word list",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نتائج البحث"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchergebnisse"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search Results"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultados de búsqueda"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résultats de recherche"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोज परिणाम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索結果"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검색 결과"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultados da pesquisa"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результаты поиска"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результати пошуку"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索结果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋結果"
+          }
+        }
+      }
+    },
+    "wordList.suggestionsHeader": {
+      "comment": "Section header for spelling suggestions in word list",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اقتراحات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschläge"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggestions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugerencias"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggestions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सुझाव"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제안"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugestões"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предложения"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пропозиції"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建議"
           }
         }
       }

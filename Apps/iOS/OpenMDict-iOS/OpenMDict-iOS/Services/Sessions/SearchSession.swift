@@ -7,7 +7,7 @@
 
 import Foundation
 import Combine
-import OpenMDictKit
+@preconcurrency import OpenMDictKit
 
 /// Independent search session for each scene
 /// Manages its own query, context, and results
@@ -23,6 +23,7 @@ final class SearchSession: ObservableObject {
     // MARK: - Output
 
     @Published private(set) var results: [WordDisplayItem] = []
+    @Published private(set) var suggestions: [String] = []
 
     // MARK: - State
 
@@ -36,6 +37,7 @@ final class SearchSession: ObservableObject {
         self.volumeSubject = CurrentValueSubject(volume)
         subscribeToSettingsChanges()
         setupPipeline()
+        setupSuggestionsPipeline()
     }
     
     // MARK: - Reactive Pipeline
@@ -101,6 +103,76 @@ final class SearchSession: ObservableObject {
         .store(in: &cancellables)
     }
 
+    // MARK: - Suggestions
+
+    private var suggestionsTask: Task<Void, Never>?
+
+    /// Derived suggestions pipeline:
+    /// - Clears stale suggestions immediately when query changes.
+    /// - After results settle (300ms debounce, avoids premature firing during
+    ///   progressive group results), evaluates whether suggestions are needed.
+    /// - When results < 3 and query is non-empty, runs Levenshtein-ranked
+    ///   suggestions on a background thread (`@concurrent`).
+    /// - Previous computation is auto-cancelled when new results arrive.
+    private func setupSuggestionsPipeline() {
+        // 1) Clear stale suggestions immediately when query changes
+        querySubject
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.suggestionsTask?.cancel()
+                self?.suggestions = []
+            }
+            .store(in: &cancellables)
+
+        // 2) Evaluate after results settle
+        $results
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .sink { [weak self] results in
+                self?.evaluateSuggestions(for: results)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func evaluateSuggestions(for results: [WordDisplayItem]) {
+        suggestionsTask?.cancel()
+
+        let query = querySubject.value
+        guard results.count < 3, !query.isEmpty else {
+            suggestions = []
+            return
+        }
+
+        let context = contextSubject.value
+        let existingWords = Set(results.map(\.word))
+
+        // Capture active dicts on main thread (safe @MainActor access)
+        let activeDicts: [MDict]
+        switch context {
+        case .dictionary(let dict): activeDicts = [dict]
+        case .group(let group):     activeDicts = group.active
+        case .none:                 activeDicts = []
+        }
+
+        guard !activeDicts.isEmpty else {
+            suggestions = []
+            return
+        }
+
+        // Run expensive Levenshtein computation off main thread.
+        // MDict.suggestions() is nonisolated — safe for cross-thread calls.
+        suggestionsTask = Task { [weak self] in
+            let filtered = await computeSuggestionsInBackground(
+                activeDicts: activeDicts,
+                query: query,
+                existingWords: existingWords
+            )
+
+            guard !Task.isCancelled else { return }
+            self?.suggestions = filtered
+        }
+    }
+
     /// Listen for Settings.bundle changes to searchResultVolume.
     private func subscribeToSettingsChanges() {
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
@@ -144,6 +216,35 @@ final class SearchSession: ObservableObject {
     var currentContext: SearchContext {
         contextSubject.value
     }
+}
+
+// MARK: - Background Suggestions Computation
+
+/// Compute Levenshtein-ranked suggestions on a background thread.
+/// `MDict.suggestions()` is `nonisolated` and accesses immutable in-memory data,
+/// so it's safe to call from any thread.
+@concurrent
+private nonisolated func computeSuggestionsInBackground(
+    activeDicts: [MDict],
+    query: String,
+    existingWords: Set<String>
+) async -> [String] {
+    var allSuggestions = Set<String>()
+
+    for dict in activeDicts {
+        guard !Task.isCancelled else { return [] }
+        let s = dict.suggestions(for: query, limit: 8)
+        allSuggestions.formUnion(s)
+    }
+
+    guard !Task.isCancelled else { return [] }
+
+    return Array(
+        allSuggestions
+            .filter { !existingWords.contains($0) }
+            .sorted()
+            .prefix(5)
+    )
 }
 
 // MARK: - Search Result Volume

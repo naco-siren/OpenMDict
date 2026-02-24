@@ -2,11 +2,12 @@
 //  WordListViewController.swift
 //  OpenMDict-iOS
 //
-//  Dual-mode word list:
-//  - Search mode (isSearching == true): shows lookup results from reactive pipeline
-//  - History mode (isSearching == false): shows recent lookups grouped by date
+//  Three-state word list (enhanced search UX):
+//  - Idle: search bar not active — shows date-grouped lookup history
+//  - Active + empty query: search bar focused — shows clipboard + history
+//  - Active + query: search bar has text — shows search results (+ suggestions if few)
 //
-//  All search logic is handled by the reactive pipeline in DictionaryService.
+//  All search logic is handled by the reactive pipeline in SearchSession.
 //  History data is fetched from LookupHistoryService.
 //
 
@@ -15,6 +16,36 @@ import Combine
 import OpenMDictKit
 
 class WordListViewController: UIViewController {
+
+    // MARK: - Display State
+
+    /// Three-state display model replacing the old boolean `isSearching`.
+    private enum DisplayState: Equatable {
+        case idle                    // search bar not active
+        case activeEmpty             // search bar focused, no text
+        case activeWithQuery(String) // search bar focused, has text
+    }
+
+    // MARK: - Section Model
+
+    private enum SectionType {
+        case clipboard
+        case history(String)      // title = date string ("Today", "Yesterday", …)
+        case searchResults
+        case suggestions
+    }
+
+    private struct SectionData {
+        let type: SectionType
+        let rows: [RowItem]
+    }
+
+    private enum RowItem {
+        case clipboardContent(String?)   // nil = clipboard empty → placeholder
+        case historyRecord(HistoryItem)
+        case searchResult(WordDisplayItem)
+        case suggestion(String)
+    }
 
     // MARK: - State
 
@@ -25,21 +56,27 @@ class WordListViewController: UIViewController {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// Current displayed words (bound to DictionaryService.searchResults)
+    private var displayState: DisplayState = .idle
+    private var sections: [SectionData] = []
+
+    /// Current displayed words (bound to SearchSession.$results)
     private var displayedWords: [WordDisplayItem] = []
 
-    /// History records grouped by date (used only in history mode)
+    /// Suggested words when search results are few (bound to SearchSession.$suggestions)
+    private var suggestedWords: [String] = []
+
+    /// History records grouped by date
     private var historyGroups: [HistorySection] = []
 
-    private var isSearching: Bool {
-        !(searchController.searchBar.text?.isEmpty ?? true)
-    }
+    /// Clipboard text read once when search becomes active
+    private var clipboardText: String?
 
     // MARK: - UI
 
     private lazy var searchController: UISearchController = {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
+        sc.delegate = self
         sc.obscuresBackgroundDuringPresentation = false
         sc.searchBar.placeholder = L10n.WordList.searchPlaceholder
         return sc
@@ -91,11 +128,84 @@ class WordListViewController: UIViewController {
         ])
 
         subscribeToSearchResults()
+        subscribeToSuggestions()
         subscribeToHistoryChanges()
         loadHistory()
-        updateEmptyState()
+        rebuildSections()
         updateTitleView()
+    }
 
+    // MARK: - Display State Management
+
+    private func updateDisplayState() {
+        let isActive = searchController.isActive
+        let query = (searchController.searchBar.text ?? "")
+            .trimmingCharacters(in: .whitespaces)
+
+        let newState: DisplayState
+        if !isActive {
+            newState = .idle
+        } else if query.isEmpty {
+            newState = .activeEmpty
+        } else {
+            newState = .activeWithQuery(query)
+        }
+
+        guard newState != displayState else { return }
+        displayState = newState
+        rebuildSections()
+    }
+
+    // MARK: - Section Assembly
+
+    /// Rebuild `sections` from backing stores and reload the table view.
+    /// This is the terminal convergence point for all reactive signals.
+    private func rebuildSections() {
+        var newSections: [SectionData] = []
+
+        switch displayState {
+        case .idle:
+            // History only (date-grouped)
+            for group in historyGroups {
+                newSections.append(SectionData(
+                    type: .history(group.title),
+                    rows: group.records.map { .historyRecord($0) }
+                ))
+            }
+
+        case .activeEmpty:
+            // Clipboard + history
+            newSections.append(SectionData(
+                type: .clipboard,
+                rows: [.clipboardContent(clipboardText)]
+            ))
+            for group in historyGroups {
+                newSections.append(SectionData(
+                    type: .history(group.title),
+                    rows: group.records.map { .historyRecord($0) }
+                ))
+            }
+
+        case .activeWithQuery:
+            // Search results
+            if !displayedWords.isEmpty {
+                newSections.append(SectionData(
+                    type: .searchResults,
+                    rows: displayedWords.map { .searchResult($0) }
+                ))
+            }
+            // Suggestions (only when few results)
+            if !suggestedWords.isEmpty {
+                newSections.append(SectionData(
+                    type: .suggestions,
+                    rows: suggestedWords.map { .suggestion($0) }
+                ))
+            }
+        }
+
+        sections = newSections
+        tableView.reloadData()
+        updateEmptyState()
     }
 
     // MARK: - Reactive Binding
@@ -106,10 +216,18 @@ class WordListViewController: UIViewController {
             .sink { [weak self] results in
                 guard let self else { return }
                 self.displayedWords = results
-                if self.isSearching {
-                    self.tableView.reloadData()
-                }
-                self.updateEmptyState()
+                self.rebuildSections()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func subscribeToSuggestions() {
+        searchSession?.$suggestions
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] suggestions in
+                guard let self else { return }
+                self.suggestedWords = suggestions
+                self.rebuildSections()
             }
             .store(in: &cancellables)
     }
@@ -160,7 +278,7 @@ class WordListViewController: UIViewController {
         // They remain visible in the dedicated LookupHistoryListViewController
         // (with "dictionary unavailable" styling) but should not clutter the
         // group/dict WordListVC which only shows actionable history.
-        var groups: [HistorySection] = rawGroups.compactMap { section in
+        let groups: [HistorySection] = rawGroups.compactMap { section in
             let filtered = section.records.compactMap { item -> HistoryItem? in
                 guard let metadata = DictMetadataService.shared.find(dictId: item.dictId) else {
                     return nil  // dict not available locally — skip
@@ -179,10 +297,29 @@ class WordListViewController: UIViewController {
         }
 
         historyGroups = groups
-        if !isSearching {
-            tableView.reloadData()
-            updateEmptyState()
+        rebuildSections()
+    }
+
+    // MARK: - Clipboard
+
+    private func refreshClipboard() {
+        if #available(iOS 16.0, *) {
+            guard UIPasteboard.general.hasStrings else {
+                clipboardText = nil
+                return
+            }
         }
+        let text = UIPasteboard.general.string?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        clipboardText = (text?.isEmpty ?? true) ? nil : text
+    }
+
+    /// Inject text into the search bar, triggering the reactive search pipeline.
+    private func injectSearchText(_ text: String) {
+        searchController.searchBar.text = text
+        searchController.searchBar.delegate?.searchBar?(
+            searchController.searchBar, textDidChange: text
+        )
     }
 
     // MARK: - Context Setting (called by MainSplitVC)
@@ -192,7 +329,6 @@ class WordListViewController: UIViewController {
         searchSession?.setContext(group: group)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
-        updateEmptyState()
     }
 
     func loadWords(for dict: MDict) {
@@ -200,7 +336,6 @@ class WordListViewController: UIViewController {
         searchSession?.setContext(dict: dict)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
-        updateEmptyState()
     }
 
     /// Activate the search bar and show keyboard (called from keyboard shortcut ⌘L)
@@ -215,11 +350,7 @@ class WordListViewController: UIViewController {
         searchController.isActive = true
         searchController.searchBar.becomeFirstResponder()
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            searchController.searchBar.text = text
-            searchController.searchBar.delegate?.searchBar?(
-                searchController.searchBar, textDidChange: text
-            )
+            self?.injectSearchText(text)
         }
     }
 
@@ -236,26 +367,33 @@ class WordListViewController: UIViewController {
     // MARK: - UI Updates
 
     private func updateEmptyState() {
-        if isSearching {
-            // Search mode
-            let isEmpty = displayedWords.isEmpty
-            emptyLabel.isHidden = !isEmpty
-            tableView.isHidden = isEmpty
-
-            let context = searchSession?.currentContext ?? .none
-            if case .none = context {
-                emptyLabel.text = L10n.WordList.selectDictionaryOrGroup
-            } else if displayedWords.isEmpty {
-                emptyLabel.text = L10n.WordList.noResults(query: searchController.searchBar.text ?? "")
-            } else {
-                emptyLabel.text = L10n.WordList.typeToSearch
-            }
-        } else {
-            // History mode
+        switch displayState {
+        case .idle:
             let isEmpty = historyGroups.isEmpty
             emptyLabel.isHidden = !isEmpty
             tableView.isHidden = isEmpty
             emptyLabel.text = L10n.History.emptyState
+
+        case .activeEmpty:
+            // Always show table (clipboard + history)
+            emptyLabel.isHidden = true
+            tableView.isHidden = false
+
+        case .activeWithQuery:
+            let context = searchSession?.currentContext ?? .none
+            if case .none = context {
+                emptyLabel.text = L10n.WordList.selectDictionaryOrGroup
+                emptyLabel.isHidden = false
+                tableView.isHidden = true
+            } else if displayedWords.isEmpty && suggestedWords.isEmpty {
+                emptyLabel.text = L10n.WordList.noResults(
+                    query: searchController.searchBar.text ?? "")
+                emptyLabel.isHidden = false
+                tableView.isHidden = true
+            } else {
+                emptyLabel.isHidden = true
+                tableView.isHidden = false
+            }
         }
     }
 
@@ -302,24 +440,21 @@ class WordListViewController: UIViewController {
 extension WordListViewController: UITableViewDataSource {
 
     func numberOfSections(in tableView: UITableView) -> Int {
-        isSearching ? 1 : historyGroups.count
+        sections.count
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if isSearching {
-            return displayedWords.count
-        } else {
-            guard section < historyGroups.count else { return 0 }
-            return historyGroups[section].records.count
-        }
+        guard section < sections.count else { return 0 }
+        return sections[section].rows.count
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        if isSearching {
-            return nil
-        } else {
-            guard section < historyGroups.count else { return nil }
-            return historyGroups[section].title
+        guard section < sections.count else { return nil }
+        switch sections[section].type {
+        case .clipboard:       return L10n.WordList.clipboardHeader
+        case .history(let t):  return t
+        case .searchResults:   return L10n.WordList.searchResultsHeader
+        case .suggestions:     return L10n.WordList.suggestionsHeader
         }
     }
 
@@ -327,11 +462,45 @@ extension WordListViewController: UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         var c = cell.defaultContentConfiguration()
 
-        if isSearching {
-            // Search mode
-            let wordItem = displayedWords[indexPath.row]
-            c.text = wordItem.word
+        guard indexPath.section < sections.count,
+              indexPath.row < sections[indexPath.section].rows.count else {
+            cell.contentConfiguration = c
+            return cell
+        }
 
+        let row = sections[indexPath.section].rows[indexPath.row]
+
+        switch row {
+        case .clipboardContent(let text):
+            c.image = UIImage(systemName: "doc.on.clipboard")
+            c.imageProperties.tintColor = .secondaryLabel
+            if let text {
+                // Truncate long clipboard text for display
+                let truncated = text.count > 60
+                    ? String(text.prefix(60)) + "\u{2026}"
+                    : text
+                c.text = truncated
+                c.secondaryText = L10n.WordList.clipboardPasteToSearch
+                c.secondaryTextProperties.color = .secondaryLabel
+            } else {
+                c.text = L10n.WordList.clipboardEmpty
+                c.textProperties.color = .tertiaryLabel
+            }
+
+        case .historyRecord(let record):
+            c.text = record.word
+            c.image = UIImage(systemName: "clock")
+            c.imageProperties.tintColor = .secondaryLabel
+            // Show dict name unless the context is a single dictionary
+            if case .dictionary = searchSession?.currentContext {
+                // Single-dict context: all records are from the same dict, skip dictName
+            } else {
+                c.secondaryText = record.dictName
+                c.secondaryTextProperties.color = .secondaryLabel
+            }
+
+        case .searchResult(let wordItem):
+            c.text = wordItem.word
             let iconName: String
             if #available(iOS 17.0, *) {
                 iconName = "book.pages"
@@ -340,29 +509,15 @@ extension WordListViewController: UITableViewDataSource {
             }
             c.image = UIImage(systemName: iconName)
             c.imageProperties.tintColor = .secondaryLabel
-
             // Show dictionary name as secondary text when displaying a group
             if case .group = searchSession?.currentContext {
                 c.secondaryText = wordItem.dictName
                 c.secondaryTextProperties.color = .secondaryLabel
             }
-        } else {
-            // History mode
-            guard indexPath.section < historyGroups.count,
-                  indexPath.row < historyGroups[indexPath.section].records.count else {
-                cell.contentConfiguration = c
-                return cell
-            }
-            let record = historyGroups[indexPath.section].records[indexPath.row]
-            c.text = record.word
-            // Show dict name unless the context is a single dictionary
-            if case .dictionary = searchSession?.currentContext {
-                // Single-dict context: all records are from the same dict, skip dictName
-            } else {
-                c.secondaryText = record.dictName
-                c.secondaryTextProperties.color = .secondaryLabel
-            }
-            c.image = UIImage(systemName: "clock")
+
+        case .suggestion(let word):
+            c.text = word
+            c.image = UIImage(systemName: "lightbulb")
             c.imageProperties.tintColor = .secondaryLabel
         }
 
@@ -373,17 +528,23 @@ extension WordListViewController: UITableViewDataSource {
     // Swipe-to-delete (history mode only)
 
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        !isSearching
+        guard indexPath.section < sections.count,
+              indexPath.row < sections[indexPath.section].rows.count else { return false }
+        if case .historyRecord = sections[indexPath.section].rows[indexPath.row] {
+            return true
+        }
+        return false
     }
 
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        guard editingStyle == .delete, !isSearching else { return }
-        guard indexPath.section < historyGroups.count,
-              indexPath.row < historyGroups[indexPath.section].records.count else { return }
-        let record = historyGroups[indexPath.section].records[indexPath.row]
-        guard let objectID = record.objectID else { return }
-        LookupHistoryService.shared.deleteRecord(objectID: objectID)
-        // loadHistory() will be triggered via $revision subscription
+        guard editingStyle == .delete,
+              indexPath.section < sections.count,
+              indexPath.row < sections[indexPath.section].rows.count else { return }
+        if case .historyRecord(let record) = sections[indexPath.section].rows[indexPath.row] {
+            guard let objectID = record.objectID else { return }
+            LookupHistoryService.shared.deleteRecord(objectID: objectID)
+            // loadHistory() will be triggered via $revision subscription
+        }
     }
 }
 
@@ -393,26 +554,41 @@ extension WordListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        if isSearching {
-            onWordSelected?(displayedWords[indexPath.row])
-        } else {
-            guard indexPath.section < historyGroups.count,
-                  indexPath.row < historyGroups[indexPath.section].records.count else { return }
-            let record = historyGroups[indexPath.section].records[indexPath.row]
+        guard indexPath.section < sections.count,
+              indexPath.row < sections[indexPath.section].rows.count else { return }
+
+        let row = sections[indexPath.section].rows[indexPath.row]
+
+        switch row {
+        case .clipboardContent(let text):
+            guard let text else { return }  // placeholder cell — non-interactive
+            injectSearchText(text)
+
+        case .historyRecord(let record):
             let wordItem = WordDisplayItem(
                 word: record.word,
                 dictId: record.dictId,
                 dictName: record.dictName
             )
             onWordSelected?(wordItem)
+
+        case .searchResult(let wordItem):
+            onWordSelected?(wordItem)
+
+        case .suggestion(let word):
+            injectSearchText(word)
         }
     }
 
     func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        // Context menu only for search mode
-        guard isSearching else { return nil }
+        guard indexPath.section < sections.count,
+              indexPath.row < sections[indexPath.section].rows.count else { return nil }
 
-        let word = displayedWords[indexPath.row]
+        // Context menu only for search result rows
+        guard case .searchResult(let word) = sections[indexPath.section].rows[indexPath.row] else {
+            return nil
+        }
+
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             guard let self = self else { return nil }
 
@@ -448,10 +624,21 @@ extension WordListViewController: UISearchResultsUpdating {
         let query = searchController.searchBar.text ?? ""
         // Just update the query - reactive pipeline handles the rest!
         searchSession?.updateQuery(query)
+        updateDisplayState()
+    }
+}
 
-        // When transitioning between modes, reload the table
-        tableView.reloadData()
-        updateEmptyState()
+// MARK: - UISearchControllerDelegate
+
+extension WordListViewController: UISearchControllerDelegate {
+    func willPresentSearchController(_ searchController: UISearchController) {
+        refreshClipboard()
+        updateDisplayState()
+    }
+
+    func willDismissSearchController(_ searchController: UISearchController) {
+        clipboardText = nil
+        updateDisplayState()
     }
 }
 

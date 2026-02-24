@@ -246,6 +246,23 @@ nonisolated enum L10n {
         static var wordSearch: String {
             NSLocalizedString("wordList.wordSearch", value: "Word Search", comment: "Back button title")
         }
+
+        // Section headers (enhanced search UX)
+        static var clipboardHeader: String {
+            NSLocalizedString("wordList.clipboardHeader", value: "Clipboard", comment: "Section header for clipboard paste section")
+        }
+        static var clipboardPasteToSearch: String {
+            NSLocalizedString("wordList.clipboardPasteToSearch", value: "Paste to search", comment: "Clipboard cell secondary text")
+        }
+        static var clipboardEmpty: String {
+            NSLocalizedString("wordList.clipboardEmpty", value: "Copy a word to paste here", comment: "Clipboard cell text when clipboard is empty")
+        }
+        static var searchResultsHeader: String {
+            NSLocalizedString("wordList.searchResultsHeader", value: "Search Results", comment: "Section header for search results")
+        }
+        static var suggestionsHeader: String {
+            NSLocalizedString("wordList.suggestionsHeader", value: "Suggestions", comment: "Section header for suggested similar words")
+        }
     }
 
     // MARK: - Articles & Article Renderer

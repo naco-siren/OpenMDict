@@ -213,19 +213,51 @@ internal final class MDXParser {
         return results
     }
     
-    /// Get suggestions for a keyword (did you mean?)
+    /// Get suggestions for a keyword (did you mean?).
+    ///
+    /// 1. **Candidate generation**: tries progressively shorter prefixes (5→1 chars),
+    ///    collecting ALL matches across every prefix length (not stopping at the first hit).
+    /// 2. **Ranking**: candidates are sorted by Levenshtein edit distance to `keyword`.
+    /// 3. **Filtering**: exact matches and candidates beyond a dynamic distance threshold
+    ///    are excluded.
+    ///
     /// - Parameters:
     ///   - keyword: The word to find suggestions for
     ///   - limit: Maximum suggestions
-    /// - Returns: Array of similar keywords
+    /// - Returns: Array of similar keywords, closest matches first
     func suggestions(for keyword: String, limit: Int = 5) -> [String] {
-        // Try progressively shorter prefixes
-        for prefixLen in stride(from: min(keyword.count, 5), through: 1, by: -1) {
-            let prefix = String(keyword.prefix(prefixLen))
-            let matches = search(prefix: prefix, limit: limit)
-            if !matches.isEmpty { return matches }
+        let lower = keyword.lowercased()
+        let keyLen = lower.count
+
+        guard keyLen >= 2 else {
+            // Very short keyword — prefix search on the single character
+            return search(prefix: keyword, limit: limit)
         }
-        return []
+
+        // Phase 1: Candidate generation — collect from ALL prefix lengths
+        let candidateLimit = limit * 10
+        var seen = Set<String>()
+        var candidates: [String] = []
+
+        for prefixLen in stride(from: min(keyLen, 5), through: 1, by: -1) {
+            let prefix = String(lower.prefix(prefixLen))
+            for match in search(prefix: prefix, limit: candidateLimit) {
+                let key = match.lowercased()
+                if seen.insert(key).inserted {
+                    candidates.append(match)
+                }
+            }
+            if candidates.count >= candidateLimit { break }
+        }
+
+        // Phase 2: Rank by Levenshtein edit distance
+        let maxDist = max(keyLen / 2, 2)
+        let ranked = candidates
+            .map { (word: $0, dist: levenshteinDistance(lower, $0.lowercased())) }
+            .filter { $0.dist > 0 && $0.dist <= maxDist }  // exclude exact match + too distant
+            .sorted { $0.dist < $1.dist }
+
+        return Array(ranked.prefix(limit).map(\.word))
     }
     
     // MARK: - Private: Record Loading
