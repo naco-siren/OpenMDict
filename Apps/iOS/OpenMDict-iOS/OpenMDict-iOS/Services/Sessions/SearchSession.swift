@@ -7,7 +7,7 @@
 
 import Foundation
 import Combine
-@preconcurrency import OpenMDictKit
+import OpenMDictKit
 
 /// Independent search session for each scene
 /// Manages its own query, context, and results
@@ -146,24 +146,24 @@ final class SearchSession: ObservableObject {
         let context = contextSubject.value
         let existingWords = Set(results.map(\.word))
 
-        // Capture active dicts on main thread (safe @MainActor access)
-        let activeDicts: [MDict]
+        // Capture Sendable readers on MainActor — safe to pass to background
+        let readers: [MDictReader]
         switch context {
-        case .dictionary(let dict): activeDicts = [dict]
-        case .group(let group):     activeDicts = group.active
-        case .none:                 activeDicts = []
+        case .dictionary(let dict): readers = [dict.reader].compactMap { $0 }
+        case .group(let group):     readers = group.activeReaders
+        case .none:                 readers = []
         }
 
-        guard !activeDicts.isEmpty else {
+        guard !readers.isEmpty else {
             suggestions = []
             return
         }
 
         // Run expensive Levenshtein computation off main thread.
-        // MDict.suggestions() is nonisolated — safe for cross-thread calls.
+        // MDictReader is Sendable (thread-safe via internal locks).
         suggestionsTask = Task { [weak self] in
             let filtered = await computeSuggestionsInBackground(
-                activeDicts: activeDicts,
+                readers: readers,
                 query: query,
                 existingWords: existingWords
             )
@@ -221,19 +221,20 @@ final class SearchSession: ObservableObject {
 // MARK: - Background Suggestions Computation
 
 /// Compute Levenshtein-ranked suggestions on a background thread.
-/// `MDict.suggestions()` is `nonisolated` and accesses immutable in-memory data,
-/// so it's safe to call from any thread.
+/// `MDictReader` is `@unchecked Sendable` with thread safety guaranteed by
+/// internal NSLock guards (BinaryReader.atomicRead, ResourceProvider.cacheLock).
+/// `suggestions()` operates on immutable in-memory keyword data — no I/O, no locks needed.
 @concurrent
 private nonisolated func computeSuggestionsInBackground(
-    activeDicts: [MDict],
+    readers: [MDictReader],
     query: String,
     existingWords: Set<String>
 ) async -> [String] {
     var allSuggestions = Set<String>()
 
-    for dict in activeDicts {
+    for reader in readers {
         guard !Task.isCancelled else { return [] }
-        let s = dict.suggestions(for: query, limit: 8)
+        let s = reader.suggestions(for: query, limit: 8)
         allSuggestions.formUnion(s)
     }
 

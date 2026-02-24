@@ -128,7 +128,13 @@ public final class MDicts: ObservableObject, Identifiable {
     public var active: [MDict] {
         items.filter { $0.isLoaded && $0.isEnabled }
     }
-    
+
+    /// Sendable readers for all active (loaded + enabled) dictionaries.
+    /// Capture on MainActor, pass to background tasks.
+    public var activeReaders: [MDictReader] {
+        active.compactMap(\.reader)
+    }
+
     // MARK: - Access
     
     /// Get item by ID

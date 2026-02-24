@@ -18,9 +18,16 @@ enum BinaryReaderError: Error, CustomStringConvertible {
     }
 }
 
-/// Low-level binary reader for MDX/MDD files
+/// Low-level binary reader for MDX/MDD files.
+///
+/// Thread safety:
+/// - Sequential methods (`seek`, `readBytes`, etc.) are used during initialization
+///   (header/keyword/record-block parsing) where no concurrency exists.
+/// - `atomicRead(at:count:)` wraps seek+read under `NSLock` for post-init
+///   random access (`loadRecord`) that may be called from multiple threads.
 final class BinaryReader {
     private let handle: FileHandle
+    private let lock = NSLock()
     let fileSize: UInt64
     
     init(path: String) throws {
@@ -74,6 +81,21 @@ final class BinaryReader {
         return data
     }
     
+    // MARK: - Atomic Read (thread-safe)
+
+    /// Atomic seek-and-read: positions to `offset`, reads `count` bytes, under lock.
+    /// Use this for post-init random access (e.g., `loadRecord`) where concurrent
+    /// calls from multiple threads are possible.
+    func atomicRead(at offset: UInt64, count: Int) throws -> Data {
+        lock.lock()
+        defer { lock.unlock() }
+        handle.seek(toFileOffset: offset)
+        guard let data = try handle.read(upToCount: count), data.count == count else {
+            throw BinaryReaderError.readFailed(expected: count, got: 0)
+        }
+        return data
+    }
+
     // MARK: - Integer reading (Big Endian - MDX uses BE)
     
     func readUInt8() throws -> UInt8 {

@@ -38,11 +38,13 @@ private struct MDictMetadataResult: Sendable {
 
 // MARK: - MDict (ViewModel)
 
-/// Single dictionary ViewModel
-/// Holds MDictReader and manages loading state
+/// Single dictionary ViewModel.
+/// Holds `MDictReader` (Sendable) and manages loading state.
 ///
 /// Marked as `@MainActor` to ensure all state updates happen on main thread.
-/// Heavy IO work is offloaded via `nonisolated` helper functions.
+/// Heavy IO work is offloaded via `@concurrent nonisolated` free functions.
+/// For background data access, capture the `reader` property (Sendable)
+/// on MainActor and pass it to background tasks.
 ///
 /// Usage:
 /// ```swift
@@ -129,13 +131,14 @@ public final class MDict: ObservableObject, Identifiable {
     }
     
     // MARK: - Reader
-    
+
     /// The actual dictionary reader (nil when unloaded).
-    /// `nonisolated(unsafe)` allows background access from `suggestions()`.
-    /// Thread-safe because: mutations only happen on MainActor (load/unload),
-    /// and MDictReader's read operations use immutable in-memory data.
-    nonisolated(unsafe) private var _reader: MDictReader?
-    
+    private var _reader: MDictReader?
+
+    /// The underlying reader (`@unchecked Sendable`, thread-safe via internal locks).
+    /// Capture on MainActor, pass to background tasks for search/suggestions.
+    public var reader: MDictReader? { _reader }
+
     /// Whether the dictionary is currently loaded
     public var isLoaded: Bool { _reader != nil }
     
@@ -258,9 +261,8 @@ public final class MDict: ObservableObject, Identifiable {
     }
     
     /// Get suggestions for a misspelled word.
-    /// `nonisolated` — safe for background calls. Underlying MDXParser operates
-    /// on immutable in-memory keyword data (set once during load, never mutated).
-    public nonisolated func suggestions(for key: MDictWordKey, limit: Int = 5) -> [MDictWordKey] {
+    /// For background use, capture `reader` (Sendable) and call `.suggestions()` directly.
+    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [MDictWordKey] {
         _reader?.suggestions(for: key, limit: limit) ?? []
     }
     

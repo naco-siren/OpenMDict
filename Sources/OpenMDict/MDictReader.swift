@@ -89,8 +89,14 @@ public enum MDictError: Error, CustomStringConvertible {
 
 // MARK: - MDictReader
 
-/// MDict dictionary reader (Engine layer facade)
-/// Combines MDX parsing and MDD resource access
+/// MDict dictionary reader (Engine layer facade).
+/// Combines MDX parsing and MDD resource access.
+///
+/// Marked `@unchecked Sendable` — thread safety guaranteed by:
+/// - `BinaryReader.atomicRead()`: NSLock guards FileHandle seek+read
+/// - `ResourceProvider.cacheLock`: NSLock guards resource cache dictionary
+/// - `resourceLock`: NSLock guards `resources` property replacement
+/// - `parser`, `metadata`: immutable (`let`) after init
 ///
 /// Usage:
 /// ```swift
@@ -101,15 +107,27 @@ public enum MDictError: Error, CustomStringConvertible {
 /// let css = reader.resource(for: "style.css")
 /// ```
 public final class MDictReader: @unchecked Sendable {
-    
+
     // MARK: - Properties
-    
+
     /// Internal MDX parser
     internal let parser: MDXParser
-    
-    /// Resource provider (MDD + external files)
-    public private(set) var resources: ResourceProvider
-    
+
+    /// Resource provider lock — guards `_resources` property replacement
+    /// via `reloadResources(mddPaths:)`.
+    private let resourceLock = NSLock()
+
+    /// Backing storage for the resource provider.
+    /// Access through the `resources` computed property (locked).
+    private var _resources: ResourceProvider
+
+    /// Thread-safe access to the resource provider.
+    public var resources: ResourceProvider {
+        resourceLock.lock()
+        defer { resourceLock.unlock() }
+        return _resources
+    }
+
     /// Dictionary metadata
     public let metadata: MDictMetadata
     
@@ -132,12 +150,12 @@ public final class MDictReader: @unchecked Sendable {
         }
         
         self.parser = try MDXParser(path: path)
-        self.resources = ResourceProvider(mdxPath: path)
+        self._resources = ResourceProvider(mdxPath: path)
 
         // Build metadata
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         let title = Self.resolveTitle(parser.info.title.htmlEntityDecoded)
-        
+
         // Compute SHA256 of header for duplicate detection
         // Note: We read the header again here, but it's a small overhead compared to full parsing
         let headerSHA256 = Self.computeHeaderSHA256(path: path)
@@ -171,11 +189,11 @@ public final class MDictReader: @unchecked Sendable {
         }
         
         self.parser = try MDXParser(path: path)
-        
+
         // Use explicit MDD paths instead of auto-discovery
         let mdxURL = URL(fileURLWithPath: path)
         let baseDirectory = mdxURL.deletingLastPathComponent().path
-        self.resources = ResourceProvider(mddPaths: mddPaths, baseDirectory: baseDirectory)
+        self._resources = ResourceProvider(mddPaths: mddPaths, baseDirectory: baseDirectory)
 
         // Build metadata
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
@@ -198,13 +216,17 @@ public final class MDictReader: @unchecked Sendable {
         )
     }
     
-    /// Reload the resource provider with new MDD paths
-    /// Call this after adding/removing MDD files
+    /// Reload the resource provider with new MDD paths.
+    /// Call this after adding/removing MDD files.
+    /// Thread-safe: property replacement is guarded by `resourceLock`.
     ///
     /// - Parameter mddPaths: New MDD paths (empty array to clear all)
     public func reloadResources(mddPaths: [String]) {
         let baseDirectory = (metadata.path as NSString).deletingLastPathComponent
-        self.resources = ResourceProvider(mddPaths: mddPaths, baseDirectory: baseDirectory)
+        let newResources = ResourceProvider(mddPaths: mddPaths, baseDirectory: baseDirectory)
+        resourceLock.lock()
+        _resources = newResources
+        resourceLock.unlock()
     }
     
     // MARK: - Static Metadata Loading

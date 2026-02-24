@@ -108,9 +108,12 @@ public final class MDDParser {
     
     private func loadRecord(_ entry: KeywordEntry) throws -> Data {
         let blockInfo = recordBlocks[entry.recordBlockIndex]
-        
-        reader.seek(to: blockInfo.fileOffset)
-        let compressedData = try reader.readBytes(Int(blockInfo.compressedSize))
+
+        // Atomic seek+read: thread-safe for concurrent loadRecord calls
+        let compressedData = try reader.atomicRead(
+            at: blockInfo.fileOffset,
+            count: Int(blockInfo.compressedSize)
+        )
         
         let compType = compressedData[0]
         guard let compression = CompressionType(rawValue: compType) else {

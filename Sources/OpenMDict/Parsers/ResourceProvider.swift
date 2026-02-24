@@ -2,16 +2,23 @@ import Foundation
 
 // MARK: - Resource Provider
 
-/// Provides resources (CSS, images, audio) for dictionary entries
+/// Provides resources (CSS, images, audio) for dictionary entries.
+///
+/// Thread safety:
+/// - `cacheLock` (NSLock) guards all reads/writes to the `cache` dictionary.
+/// - MDD lookups are thread-safe via `BinaryReader.atomicRead()`.
+/// - `contains()`, `mddResourceCount`, `allMDDPaths` are read-only on immutable data.
+///
 /// Supports:
 /// - .mdd resource files
 /// - External files in the same directory as the .mdx
 public final class ResourceProvider {
-    
+
     // MARK: - Properties
-    
+
     private let mddReaders: [MDDParser]
     private let baseDirectory: URL
+    private let cacheLock = NSLock()
     private var cache: [String: Data] = [:]
     private let useCache: Bool
     
@@ -82,26 +89,38 @@ public final class ResourceProvider {
     /// - Parameter path: Resource path (e.g., "mydict.css", "/img/logo.png")
     /// - Returns: Resource data or nil if not found
     public func resource(for path: String) -> Data? {
-        // Check cache first
         let normalizedPath = normalizePath(path)
-        if useCache, let cached = cache[normalizedPath] {
-            return cached
+
+        // Check cache (locked)
+        if useCache {
+            cacheLock.lock()
+            let cached = cache[normalizedPath]
+            cacheLock.unlock()
+            if let cached { return cached }
         }
-        
-        // Try MDD files first
+
+        // Try MDD files (thread-safe via BinaryReader.atomicRead)
         for reader in mddReaders {
             if let data = reader.lookup(path) {
-                if useCache { cache[normalizedPath] = data }
+                if useCache {
+                    cacheLock.lock()
+                    cache[normalizedPath] = data
+                    cacheLock.unlock()
+                }
                 return data
             }
         }
-        
-        // Fall back to external file
+
+        // Fall back to external file (stateless)
         if let data = loadExternalFile(path: path) {
-            if useCache { cache[normalizedPath] = data }
+            if useCache {
+                cacheLock.lock()
+                cache[normalizedPath] = data
+                cacheLock.unlock()
+            }
             return data
         }
-        
+
         return nil
     }
     
@@ -132,7 +151,9 @@ public final class ResourceProvider {
     
     /// Clear the cache
     public func clearCache() {
+        cacheLock.lock()
         cache.removeAll()
+        cacheLock.unlock()
     }
     
     /// List all available resources in MDD files
