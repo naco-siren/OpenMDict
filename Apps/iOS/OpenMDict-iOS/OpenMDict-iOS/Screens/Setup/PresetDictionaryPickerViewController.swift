@@ -648,10 +648,17 @@ extension PresetDictionaryPickerViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
-        case .languageHeader:
-            // Tapping a language header toggles expand/collapse (handled automatically
-            // by outlineDisclosure accessory). No manual action needed.
-            break
+        case .languageHeader(let code, let region):
+            // Toggle expand/collapse when tapping anywhere on the language header cell
+            let section = PickerSection.region(region)
+            var sectionSnapshot = dataSource.snapshot(for: section)
+            if sectionSnapshot.isExpanded(item) {
+                sectionSnapshot.collapse([item])
+            } else {
+                sectionSnapshot.expand([item])
+            }
+            dataSource.apply(sectionSnapshot, to: section, animatingDifferences: true)
+            _ = code  // suppress unused warning
 
         case .dictionary(let presetId):
             guard let preset = findPreset(id: presetId) else { return }
