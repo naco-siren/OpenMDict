@@ -12,3 +12,9 @@
 "SEARCH_RESULT_DEFAULT" = "Padrão";
 "SEARCH_RESULT_MORE" = "Mais";
 "SEARCH_RESULT_A_LOT" = "Muitos";
+
+"ARTICLES_GROUP" = "Artigos";
+"ARTICLES_CAPACITY" = "Capacidade";
+"ARTICLES_FEWER" = "Menos";
+"ARTICLES_DEFAULT" = "Padrão";
+"ARTICLES_MORE" = "Mais";

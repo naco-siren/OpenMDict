@@ -76,6 +76,9 @@ class ActionViewController: UIViewController {
     /// All article results from scanning all dictionaries.
     private var results: [ArticleResult] = []
 
+    /// Maximum number of articles to display, based on device RAM and user setting.
+    private let articlesCapacityLimit: Int = UserDefaults.shared.articlesCapacity.limit
+
     /// Currently visible page index.
     private var currentPageIndex: Int = 0
 
@@ -653,7 +656,16 @@ class ActionViewController: UIViewController {
 
             // 2. Iterate through dictionaries sequentially.
             //    Rule: only one MDX reader alive at a time.
+            //    Stop early when articles capacity is reached.
+            let capacityLimit = await MainActor.run { self.articlesCapacityLimit }
             for (index, record) in records.enumerated() {
+                // Check if we've reached the capacity limit
+                let currentCount = await MainActor.run { self.results.count }
+                guard currentCount < capacityLimit else {
+                    print("📦 Reached articles capacity (\(capacityLimit)), stopping scan")
+                    break
+                }
+
                 let dictId = record.dictId
                 let dictDir = Self.dictionariesRoot.appendingPathComponent(dictId)
                 let manifestURL = dictDir.appendingPathComponent("manifest.json")
@@ -788,6 +800,7 @@ class ActionViewController: UIViewController {
 
     /// Called on MainActor each time a new article result arrives from the scan.
     private func appendArticle(_ result: ArticleResult) {
+        guard results.count < articlesCapacityLimit else { return }
         results.append(result)
 
         // Record lookup history (bumps "You have looked this word up N times")

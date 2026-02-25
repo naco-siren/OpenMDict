@@ -16,10 +16,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // and shared (Extension reads/writes here) suites.
         let defaults: [String: Any] = [
             "appearanceMode": 1,    // .system
-            "searchResultVolume": 2 // .normal (Default)
+            "searchResultVolume": 2, // .normal (Default)
+            "articlesCapacity": 1,  // .normal (Default)
         ]
         UserDefaults.standard.register(defaults: defaults)
         UserDefaults.shared.register(defaults: defaults)
+
+        // Bridge articles capacity from standard (Settings.bundle) to shared (Action Extension).
+        // Settings.bundle writes to standard; Extension reads from shared.
+        UserDefaults.shared.articlesCapacity = UserDefaults.standard.articlesCapacity
 
         // Merge appearance mode between standard (Settings.bundle) and shared (Extension).
         // Both may have changed while the app was killed:

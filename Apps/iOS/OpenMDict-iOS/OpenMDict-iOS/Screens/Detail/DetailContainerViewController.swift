@@ -21,6 +21,9 @@ class DetailContainerViewController: UIViewController {
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
     private var zoom = ZoomLevel()
+
+    /// Current articles capacity limit from Settings.bundle, scaled by device RAM.
+    private var articlesCapacityLimit: Int = UserDefaults.standard.articlesCapacity.limit
      
     /// Current lookup context for recording entry-link lookups.
     /// Set by MainSplitViewController whenever the search context changes.
@@ -115,8 +118,9 @@ class DetailContainerViewController: UIViewController {
         updateNavigationBar(for: traitCollection)
 
         subscribeToAppearanceChanges()
+        subscribeToArticlesCapacityChanges()
         subscribeToArticleMoved()
-        
+
         loadPendingArticlesIfReady()
     }
     
@@ -205,7 +209,26 @@ class DetailContainerViewController: UIViewController {
         }
     }
 
-    
+    /// Detect changes to `articlesCapacity` from Settings.bundle and enforce immediately.
+    /// Also bridges the value from `.standard` to `.shared` for Action Extension.
+    private func subscribeToArticlesCapacityChanges() {
+        NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                let newLimit = UserDefaults.standard.articlesCapacity.limit
+                // Bridge to shared (Action Extension reads shared)
+                UserDefaults.shared.articlesCapacity = UserDefaults.standard.articlesCapacity
+                guard newLimit != self.articlesCapacityLimit else { return }
+                self.articlesCapacityLimit = newLimit
+                self.enforceCapacity()
+            }
+        }
+    }
+
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
         debugLog("📐 [\(instanceID)] DetailContainer.willTransition - from \(traitCollection.horizontalSizeClass.rawValue) to \(newCollection.horizontalSizeClass.rawValue)")
@@ -574,8 +597,30 @@ class DetailContainerViewController: UIViewController {
         }
     }
 
+    // MARK: - Articles Capacity
+
+    /// Remove oldest articles (from the tail) until count is within capacity limit.
+    private func trimToCapacity() {
+        guard articles.count > articlesCapacityLimit else { return }
+        let excess = articles.count - articlesCapacityLimit
+        articles.removeLast(excess)
+        debugLog("📦 [\(instanceID)] Evicted \(excess) oldest articles (capacity: \(articlesCapacityLimit))")
+    }
+
+    /// Called when the capacity setting changes to a lower value.
+    /// Trims excess articles, adjusts compact index, and syncs to active child.
+    private func enforceCapacity() {
+        guard articles.count > articlesCapacityLimit else { return }
+        trimToCapacity()
+        currentCompactIndex = min(currentCompactIndex, max(0, articles.count - 1))
+        syncStateToActiveChild()
+        if articles.isEmpty {
+            onArticlesEmptied?()
+        }
+    }
+
     // MARK: - Public API (called by MainSplitVC)
-    
+
     func pushArticle(_ article: ArticleDisplayItem, animated: Bool) {
         // Check if already exists (by id, not full Equatable which includes contentState)
         if let existingIndex = articles.firstIndex(where: { $0.id == article.id }) {
@@ -596,6 +641,9 @@ class DetailContainerViewController: UIViewController {
             }
         }
 
+        // Enforce capacity: evict oldest articles from the tail
+        trimToCapacity()
+
         // Update child
         if activeChild === articlesVC {
             articlesVC.configure(articles: articles, animated: animated)
@@ -610,7 +658,8 @@ class DetailContainerViewController: UIViewController {
     }
     
     func preloadArticle(_ article: ArticleDisplayItem) {
-        guard !articles.contains(article) else { return }
+        guard !articles.contains(article),
+              articles.count < articlesCapacityLimit else { return }
         articles.append(article)
         
         // If pending, subscribe to the dictionary's load state
@@ -873,6 +922,9 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
             }
             articles.insert(article, at: 0)
         }
+
+        // Enforce capacity: evict oldest articles from the tail
+        trimToCapacity()
 
         if activeChild === articleVC {
             currentCompactIndex = 0

@@ -216,6 +216,8 @@
 				Data/Constants.swift,
 				Data/MDictURL.swift,
 				Data/ViewModels/AppearanceMode.swift,
+				Data/ViewModels/ArticlesCapacity.swift,
+				Data/ViewModels/DeviceCapability.swift,
 				Data/ViewModels/ZoomLevel.swift,
 				L10n/L10n.swift,
 				L10n/Localizable.xcstrings,
