@@ -191,9 +191,10 @@ class DetailContainerViewController: UIViewController {
 
         // Settings.bundle sync: detect UserDefaults changes when returning from system Settings.
         // Settings.bundle writes to standard, so bridge the value to shared for Extension visibility.
+        // Observe only `.standard` to avoid infinite loops from our own `.shared` writes.
         NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
-            object: nil,
+            object: UserDefaults.standard,
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
@@ -212,9 +213,13 @@ class DetailContainerViewController: UIViewController {
     /// Detect changes to `articlesCapacity` from Settings.bundle and enforce immediately.
     /// Also bridges the value from `.standard` to `.shared` for Action Extension.
     private func subscribeToArticlesCapacityChanges() {
+        // Observe only `.standard` — Settings.bundle writes there.
+        // Using `object: nil` would also catch writes to `.shared`,
+        // and the bridge line below writes to `.shared`, creating an
+        // infinite notification loop that pins the CPU at 100%.
         NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
-            object: nil,
+            object: UserDefaults.standard,
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
