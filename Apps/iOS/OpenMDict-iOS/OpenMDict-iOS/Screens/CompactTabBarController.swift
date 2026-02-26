@@ -323,6 +323,12 @@ class CompactTabBarController: UITabBarController {
             self?.handleWordSelected(word)
         }
 
+        lookupWordListVC.onViewAllHistory = { [weak self] in
+            guard let self else { return }
+            selectedIndex = 2
+            historyListVC.reload()
+        }
+
         lookupDetailContainer.onArticlesEmptied = { [weak self] in
             guard let self else { return }
             // Pop back to word list when all articles are closed
