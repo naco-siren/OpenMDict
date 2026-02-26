@@ -20,9 +20,17 @@ enum AppMode {
 // MARK: - MainSplitViewController
 
 class MainSplitViewController: UISplitViewController {
-    
+
+    /// Simplified column target for compact ↔ regular state transfer.
+    enum ColumnTargetSnapshot {
+        case lookup
+        case bookmarks
+        case lookupHistory
+        case management
+    }
+
     // MARK: - Child Controllers
-    
+
     private let dictionaryListVC = DictionaryListViewController()
     private let wordListVC = WordListViewController()
     private let detailContainer = DetailContainerViewController()
@@ -32,6 +40,9 @@ class MainSplitViewController: UISplitViewController {
     private lazy var groupDictEditorVC = GroupDictionaryEditorViewController()
     private lazy var bookmarkListVC = BookmarkListViewController()
     private lazy var lookupHistoryListVC = LookupHistoryListViewController()
+
+    /// Compact layout: UITabBarController shown when the split view collapses.
+    private(set) lazy var compactTabBarController = CompactTabBarController()
     
     // MARK: - State
     
@@ -110,27 +121,8 @@ class MainSplitViewController: UISplitViewController {
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
-        
-        let wasRegular = traitCollection.horizontalSizeClass == .regular
-        let willBeCompact = newCollection.horizontalSizeClass == .compact
-        
-        guard wasRegular && willBeCompact else { return }
-        
-        coordinator.animate { _ in
-            switch self.currentMode {
-            case .lookup:
-                if self.detailContainer.allArticles.isEmpty {
-                    debugLog("📱 Transitioning to compact (lookup): showing word list")
-                    self.show(.supplementary)
-                } else {
-                    debugLog("📱 Transitioning to compact (lookup): showing detail")
-                    self.show(.secondary)
-                }
-            case .management:
-                debugLog("📱 Transitioning to compact (management): showing config")
-                self.show(.supplementary)
-            }
-        }
+        // Compact layout is handled by CompactTabBarController via .compact column.
+        // No manual show(.supplementary)/show(.secondary) needed on collapse.
     }
     
     // MARK: - Setup
@@ -153,6 +145,7 @@ class MainSplitViewController: UISplitViewController {
         setViewController(dictionaryListVC, for: .primary)
         setViewController(wordListVC, for: .supplementary)
         setViewController(detailContainer, for: .secondary)
+        setViewController(compactTabBarController, for: .compact)
     }
     
     private func setupSidebarCallbacks() {
@@ -487,6 +480,17 @@ class MainSplitViewController: UISplitViewController {
     func select(group: MDicts) {
         currentGroup = group
         currentDict = nil
+
+        if isCollapsed {
+            // Compact mode: route to compact tab bar's lookup tab
+            compactTabBarController.currentGroup = group
+            compactTabBarController.currentDict = nil
+            compactTabBarController.selectedIndex = 0
+            compactTabBarController.lookupNav.popToRootViewController(animated: false)
+            compactTabBarController.lookupWordListVC.loadWords(for: group)
+            return
+        }
+
         // Exit bookmarks/history column if needed
         if currentColumnTarget == .bookmarks || currentColumnTarget == .lookupHistory {
             configureColumns(for: .lookup)
@@ -499,6 +503,17 @@ class MainSplitViewController: UISplitViewController {
     func select(dictionary dict: MDict) {
         currentGroup = nil
         currentDict = dict
+
+        if isCollapsed {
+            // Compact mode: route to compact tab bar's lookup tab
+            compactTabBarController.currentGroup = nil
+            compactTabBarController.currentDict = dict
+            compactTabBarController.selectedIndex = 0
+            compactTabBarController.lookupNav.popToRootViewController(animated: false)
+            compactTabBarController.lookupWordListVC.loadWords(for: dict)
+            return
+        }
+
         // Exit bookmarks/history column if needed
         if currentColumnTarget == .bookmarks || currentColumnTarget == .lookupHistory {
             configureColumns(for: .lookup)
@@ -537,6 +552,13 @@ class MainSplitViewController: UISplitViewController {
     /// Focus search bar and type the given word to trigger lookup.
     /// Used by URL Scheme, Siri Suggestions (lookupWord), Share Extension, etc.
     func focusSearchAndLookup(word: String) {
+        if isCollapsed {
+            // Compact mode: route to compact tab bar's lookup tab
+            compactTabBarController.selectedIndex = 0
+            compactTabBarController.lookupNav.popToRootViewController(animated: false)
+            compactTabBarController.lookupWordListVC.focusSearchBar(withInitialText: word)
+            return
+        }
         exitToLookupModeIfNeeded()
         show(.supplementary)
         wordListVC.focusSearchBar(withInitialText: word)
@@ -545,24 +567,41 @@ class MainSplitViewController: UISplitViewController {
     /// Open an external .mdx file for import.
     /// Enters management/import mode and pre-fills the selected file.
     func importMDXFile(url: URL) {
+        if isCollapsed {
+            // Compact mode: switch to Management tab and start import
+            compactTabBarController.selectedIndex = 3
+            compactTabBarController.managementVC.onImportSelected?()
+            // DictInfoVC is now on the management nav stack; hand it the file
+            DispatchQueue.main.async { [weak self] in
+                self?.compactTabBarController.dictInfoVC.handleMDXFile(at: url)
+            }
+            return
+        }
         enterManagementMode(for: .importNew)
         dictInfoVC.handleMDXFile(at: url)
     }
 
     func select(word: WordDisplayItem) {
+        if isCollapsed {
+            // Compact mode: route to compact tab bar's lookup tab
+            compactTabBarController.selectedIndex = 0
+            compactTabBarController.handleWordSelected(word)
+            return
+        }
+
         let dict = DictionaryService.shared.dict(id: word.dictId)
-        
+
         var article = ArticleDisplayItem(
             word: word.word,
             dictId: word.dictId,
             dictName: word.dictName,
             contentState: .pending
         )
-        
+
         if let dict, let entry = dict.lookup(word.word) {
             article.contentState = .loaded(html: entry.article.html, css: nil)
         }
-        
+
         showArticle(article, animated: true)
 
         // Record lookup history with current search context
@@ -577,8 +616,21 @@ class MainSplitViewController: UISplitViewController {
             lookupContextDictId: ctxDictId, lookupContextGroupId: ctxGroupId
         )
     }
-    
+
     func showArticle(_ article: ArticleDisplayItem, animated: Bool) {
+        if isCollapsed {
+            // Compact mode: show article in lookup tab's detail container
+            compactTabBarController.selectedIndex = 0
+            let lookupDetail = compactTabBarController.lookupDetailContainer
+            let lookupNav = compactTabBarController.lookupNav
+            if lookupDetail.parent == nil || lookupNav.viewControllers.last !== lookupDetail {
+                lookupDetail.pushArticle(article, animated: false)
+                lookupNav.pushViewController(lookupDetail, animated: animated)
+            } else {
+                lookupDetail.pushArticle(article, animated: animated)
+            }
+            return
+        }
         detailContainer.pushArticle(article, animated: animated)
         show(.secondary)
     }
@@ -1042,10 +1094,21 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - State Restoration
 
     func currentStateActivity() -> NSUserActivity? {
-        let articles = detailContainer.allArticles
-        let groupId = currentGroup?.id ?? ""
+        // When collapsed, read articles from the compact tab bar's detail container
+        let articles: [ArticleDisplayItem]
+        let groupId: String
+
+        if isCollapsed {
+            let state = compactTabBarController.transferStateOut()
+            articles = state.articles
+            groupId = state.group?.id ?? ""
+        } else {
+            articles = detailContainer.allArticles
+            groupId = currentGroup?.id ?? ""
+        }
+
         let layoutMode = detailContainer.currentLayoutMode.rawValue
-        
+
         return ArticleDisplayItem.sceneStateActivity(
             articles: articles,
             groupId: groupId,
@@ -1057,16 +1120,93 @@ class MainSplitViewController: UISplitViewController {
 // MARK: - UISplitViewControllerDelegate
 
 extension MainSplitViewController: UISplitViewControllerDelegate {
-    
-    func splitViewController(
-        _ svc: UISplitViewController,
-        topColumnForCollapsingToProposedTopColumn proposedTopColumn: UISplitViewController.Column
-    ) -> UISplitViewController.Column {
-        switch currentMode {
-        case .lookup:
-            return detailContainer.allArticles.isEmpty ? .supplementary : .secondary
-        case .management:
-            return .supplementary
+
+    // topColumnForCollapsingToProposedTopColumn is NOT called when a .compact
+    // column is registered.  State transfer uses willCollapse/willExpand instead.
+
+    func splitViewControllerWillCollapse(_ svc: UISplitViewController) {
+        transferStateToCompact()
+        debugLog("📱 splitViewControllerWillCollapse: transferred state to compact tab bar")
+    }
+
+    func splitViewControllerDidExpand(_ svc: UISplitViewController) {
+        transferStateFromCompact()
+        debugLog("📱 splitViewControllerDidExpand: transferred state from compact tab bar")
+    }
+}
+
+// MARK: - Compact State Transfer
+
+extension MainSplitViewController {
+
+    /// Map the private `ColumnTarget` to the public `ColumnTargetSnapshot`.
+    private var columnTargetSnapshot: ColumnTargetSnapshot {
+        switch currentColumnTarget {
+        case .lookup:                        return .lookup
+        case .bookmarks:                     return .bookmarks
+        case .lookupHistory:                 return .lookupHistory
+        case .managementDict, .managementGroup: return .management
+        }
+    }
+
+    /// Push current regular-mode state into the compact tab bar controller.
+    private func transferStateToCompact() {
+        compactTabBarController.transferStateIn(
+            group: currentGroup,
+            dict: currentDict,
+            searchSession: searchSession,
+            articles: detailContainer.allArticles,
+            currentArticleIndex: 0,
+            columnTarget: columnTargetSnapshot
+        )
+    }
+
+    /// Read state from the compact tab bar controller and apply to regular-mode VCs.
+    private func transferStateFromCompact() {
+        let state = compactTabBarController.transferStateOut()
+
+        // Restore group / dictionary selection
+        if let group = state.group {
+            currentGroup = group
+            currentDict = nil
+            wordListVC.loadWords(for: group)
+            dictionaryListVC.setActiveGroup(group)
+        } else if let dict = state.dict {
+            currentGroup = nil
+            currentDict = dict
+            wordListVC.loadWords(for: dict)
+            dictionaryListVC.setActiveDictionary(dict)
+        }
+
+        // Restore articles into the regular detail container
+        if !state.articles.isEmpty {
+            detailContainer.restoreArticles(state.articles, currentIndex: state.currentArticleIndex)
+        }
+
+        // Restore column target based on selected tab
+        switch state.selectedTab {
+        case 1:
+            if currentColumnTarget != .bookmarks {
+                configureColumns(for: .bookmarks)
+                bookmarkListVC.reload()
+                dictionaryListVC.selectBookmarksItem()
+            }
+        case 2:
+            if currentColumnTarget != .lookupHistory {
+                configureColumns(for: .lookupHistory)
+                lookupHistoryListVC.reload()
+                dictionaryListVC.selectLookupHistoryItem()
+            }
+        case 3:
+            // Management tab — if not already in management mode, just switch to lookup
+            if currentMode != .management, currentColumnTarget != .lookup {
+                configureColumns(for: .lookup)
+            }
+        default:
+            // Tab 0 = Lookup
+            if currentColumnTarget != .lookup {
+                configureColumns(for: .lookup)
+            }
         }
     }
 }
