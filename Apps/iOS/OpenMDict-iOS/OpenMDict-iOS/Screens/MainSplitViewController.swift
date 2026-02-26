@@ -204,6 +204,10 @@ class MainSplitViewController: UISplitViewController {
         wordListVC.onWordSelected = { [weak self] word in
             self?.select(word: word)
         }
+
+        wordListVC.onViewAllHistory = { [weak self] in
+            self?.showLookupHistoryList()
+        }
         
         detailContainer.onArticlesEmptied = { [weak self] in
             guard let self, isCollapsed else { return }

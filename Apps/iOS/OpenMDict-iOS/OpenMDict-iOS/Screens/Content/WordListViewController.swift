@@ -50,6 +50,7 @@ class WordListViewController: UIViewController {
     // MARK: - State
 
     var onWordSelected: ((WordDisplayItem) -> Void)?
+    var onViewAllHistory: (() -> Void)?
 
     /// Per-scene search session (injected by MainSplitVC)
     var searchSession: SearchSession?
@@ -92,14 +93,75 @@ class WordListViewController: UIViewController {
         return tv
     }()
 
-    private lazy var emptyLabel: UILabel = {
+    // MARK: Empty State View (ContentUnavailableView-like, iOS 15+)
+
+    private lazy var emptyStateView: UIView = {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.isHidden = true
+
+        container.addSubview(emptyStateStack)
+        NSLayoutConstraint.activate([
+            emptyStateStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            emptyStateStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            emptyStateStack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 40),
+            emptyStateStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -40),
+        ])
+
+        return container
+    }()
+
+    private lazy var emptyStateStack: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [
+            emptyStateIcon, emptyStateTitle, emptyStateMessage, emptyStateButton
+        ])
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.setCustomSpacing(12, after: emptyStateIcon)
+        return stack
+    }()
+
+    private lazy var emptyStateIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.tintColor = .secondaryLabel
+        iv.contentMode = .scaleAspectFit
+        iv.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 40)
+        return iv
+    }()
+
+    private lazy var emptyStateTitle: UILabel = {
         let l = UILabel()
         l.translatesAutoresizingMaskIntoConstraints = false
-        l.text = L10n.WordList.typeToSearch
-        l.textColor = .secondaryLabel
+        l.font = .systemFont(ofSize: 17, weight: .semibold)
         l.textAlignment = .center
+        l.numberOfLines = 0
         return l
     }()
+
+    private lazy var emptyStateMessage: UILabel = {
+        let l = UILabel()
+        l.translatesAutoresizingMaskIntoConstraints = false
+        l.font = .systemFont(ofSize: 15, weight: .regular)
+        l.textColor = .secondaryLabel
+        l.textAlignment = .center
+        l.numberOfLines = 0
+        return l
+    }()
+
+    private lazy var emptyStateButton: UIButton = {
+        let b = UIButton(type: .system)
+        b.translatesAutoresizingMaskIntoConstraints = false
+        b.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
+        b.addTarget(self, action: #selector(emptyStateButtonTapped), for: .touchUpInside)
+        return b
+    }()
+
+    @objc private func emptyStateButtonTapped() {
+        onViewAllHistory?()
+    }
 
     // MARK: - Lifecycle
 
@@ -116,15 +178,17 @@ class WordListViewController: UIViewController {
         definesPresentationContext = true
         view.backgroundColor = .systemBackground
         view.addSubview(tableView)
-        view.addSubview(emptyLabel)
+        view.addSubview(emptyStateView)
         view.addInteraction(UIDropInteraction(delegate: self))
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            emptyStateView.topAnchor.constraint(equalTo: view.topAnchor),
+            emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
         subscribeToSearchResults()
@@ -372,32 +436,79 @@ class WordListViewController: UIViewController {
     private func updateEmptyState() {
         switch displayState {
         case .idle:
-            let isEmpty = historyGroups.isEmpty
-            emptyLabel.isHidden = !isEmpty
-            tableView.isHidden = isEmpty
-            emptyLabel.text = L10n.History.emptyState
+            let context = searchSession?.currentContext ?? .none
+            if case .none = context {
+                // No context selected — prompt user to pick a source
+                configureEmptyState(
+                    icon: "text.book.closed",
+                    title: L10n.WordList.selectDictionaryOrGroup,
+                    message: nil,
+                    buttonTitle: nil
+                )
+                emptyStateView.isHidden = false
+                tableView.isHidden = true
+            } else if historyGroups.isEmpty {
+                // Context selected but no history in this source
+                configureEmptyState(
+                    icon: "clock",
+                    title: L10n.WordList.noHistoryInContext,
+                    message: L10n.WordList.noHistoryInContextMessage,
+                    buttonTitle: L10n.WordList.viewAllHistory
+                )
+                emptyStateView.isHidden = false
+                tableView.isHidden = true
+            } else {
+                emptyStateView.isHidden = true
+                tableView.isHidden = false
+            }
 
         case .activeEmpty:
             // Always show table (clipboard + history)
-            emptyLabel.isHidden = true
+            emptyStateView.isHidden = true
             tableView.isHidden = false
 
         case .activeWithQuery:
             let context = searchSession?.currentContext ?? .none
             if case .none = context {
-                emptyLabel.text = L10n.WordList.selectDictionaryOrGroup
-                emptyLabel.isHidden = false
+                configureEmptyState(
+                    icon: "text.book.closed",
+                    title: L10n.WordList.selectDictionaryOrGroup,
+                    message: nil,
+                    buttonTitle: nil
+                )
+                emptyStateView.isHidden = false
                 tableView.isHidden = true
             } else if displayedWords.isEmpty && suggestedWords.isEmpty {
-                emptyLabel.text = L10n.WordList.noResults(
-                    query: searchController.searchBar.text ?? "")
-                emptyLabel.isHidden = false
+                configureEmptyState(
+                    icon: "magnifyingglass",
+                    title: L10n.WordList.noResults(
+                        query: searchController.searchBar.text ?? ""),
+                    message: nil,
+                    buttonTitle: nil
+                )
+                emptyStateView.isHidden = false
                 tableView.isHidden = true
             } else {
-                emptyLabel.isHidden = true
+                emptyStateView.isHidden = true
                 tableView.isHidden = false
             }
         }
+    }
+
+    /// Configure the empty state view with the given content.
+    /// Pass `nil` for `message` or `buttonTitle` to hide those elements.
+    private func configureEmptyState(
+        icon: String,
+        title: String,
+        message: String?,
+        buttonTitle: String?
+    ) {
+        emptyStateIcon.image = UIImage(systemName: icon)
+        emptyStateTitle.text = title
+        emptyStateMessage.text = message
+        emptyStateMessage.isHidden = (message == nil)
+        emptyStateButton.setTitle(buttonTitle, for: .normal)
+        emptyStateButton.isHidden = (buttonTitle == nil)
     }
 
     private func updateTitleView() {
