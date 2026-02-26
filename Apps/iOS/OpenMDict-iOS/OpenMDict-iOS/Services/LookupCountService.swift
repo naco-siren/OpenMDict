@@ -94,9 +94,17 @@ final class LookupCountService {
     /// Reload the entire cache from CoreData.
     /// Called on CloudKit remote change to pick up counters synced from other devices.
     /// Uses max() merge: if local cache has a higher count, keep it.
+    ///
+    /// IMPORTANT: do NOT call flushDirtyEntriesToCoreData() here.
+    /// Background ctx.save() fires NSPersistentStoreRemoteChange (even for
+    /// local saves when persistent history tracking is enabled), which would
+    /// re-trigger this handler and create an infinite feedback loop.  Dirty
+    /// entries are safe — they stay in the cache and will be flushed by the
+    /// normal three-tier schedule (threshold / debounce / lifecycle).
+    /// The max() merge below preserves any local cache values that are higher
+    /// than what CoreData has, so no data is lost.
     private func reloadCacheFromCoreData() {
         guard isCachePopulated else { return }
-        flushDirtyEntriesToCoreData()
 
         let ctx = stack.viewContext
         let request = LookupCountRecord.fetchRequest()

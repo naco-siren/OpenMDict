@@ -174,14 +174,34 @@ final class LookupHistoryService {
 
     /// Reload the entire cache from CoreData.
     /// Called on CloudKit remote change to pick up records synced from other devices.
+    ///
+    /// IMPORTANT: do NOT call flushDirtyEntriesToCoreData() here.
+    /// Background ctx.save() fires NSPersistentStoreRemoteChange (even for
+    /// local saves when persistent history tracking is enabled), which would
+    /// re-trigger this handler and create an infinite feedback loop.
+    ///
+    /// Instead, dirty entries are saved aside before the reload, then
+    /// re-applied on top.  They stay in `dirtyKeys` and will be flushed
+    /// by the normal three-tier schedule (threshold / debounce / lifecycle).
     private func reloadCacheFromCoreData() {
         guard isCachePopulated else { return }  // not yet populated → skip
-        // Flush pending local writes first so they aren't lost
-        flushDirtyEntriesToCoreData()
+
+        // Preserve dirty entries — they have the latest data and must not
+        // be overwritten by the (potentially stale) CoreData values.
+        let pendingDirty: [LookupRecordKey: CachedLookupRecord] = dirtyKeys.reduce(into: [:]) { result, key in
+            if let entry = cache[key] { result[key] = entry }
+        }
+
         cache.removeAll()
         populateCacheFromCoreData()
+
+        // Re-apply dirty entries on top of the reloaded data
+        for (key, entry) in pendingDirty {
+            cache[key] = entry
+        }
+
         revision += 1
-        debugLog("☁️ LookupHistoryService: cache reloaded from CoreData")
+        debugLog("☁️ LookupHistoryService: cache reloaded from CoreData (preserved \(pendingDirty.count) dirty entries)")
     }
 
     /// Fetch all LookupRecords from CoreData into the in-memory cache.
