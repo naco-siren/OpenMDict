@@ -16,6 +16,7 @@
 //
 
 import UIKit
+import Combine
 import OpenMDictKit
 
 class CompactTabBarController: UITabBarController {
@@ -124,6 +125,8 @@ class CompactTabBarController: UITabBarController {
     /// Per-scene search session (injected by MainSplitVC on transfer)
     private var searchSession: SearchSession?
 
+    private var cancellables = Set<AnyCancellable>()
+
     /// Loading modal for long-running operations (import)
     private weak var loadingVC: LoadingViewController?
 
@@ -160,12 +163,33 @@ class CompactTabBarController: UITabBarController {
 
         // If no group/dict was provided via transferStateIn(), load the default group
         // so the word list shows a title and is ready for searching.
+        // Groups may not yet be populated (async CoreData / CloudKit), so also
+        // subscribe reactively to pick up the default group once it appears.
         if currentGroup == nil && currentDict == nil {
-            if let defaultGroup = DictionaryService.shared.groups.first(where: { $0.isDefault }) {
+            if let defaultGroup = DictionaryService.shared.defaultGroup {
                 currentGroup = defaultGroup
                 lookupWordListVC.loadWords(for: defaultGroup)
+            } else {
+                subscribeToDefaultGroupAvailable()
             }
         }
+    }
+
+    /// One-shot subscription: when DictionaryService.groups becomes non-empty
+    /// and no group/dict has been selected yet, auto-select the default group.
+    private func subscribeToDefaultGroupAvailable() {
+        DictionaryService.shared.$groups
+            .compactMap { $0.first { $0.isDefault } }
+            .first()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] defaultGroup in
+                guard let self,
+                      self.currentGroup == nil,
+                      self.currentDict == nil else { return }
+                self.currentGroup = defaultGroup
+                self.lookupWordListVC.loadWords(for: defaultGroup)
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Sidebar Toggle Button
