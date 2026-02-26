@@ -31,11 +31,19 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onLookupHistorySelected: (() -> Void)?
     var onManagePresetsSelected: (() -> Void)?
     
+    // MARK: - Compact Sidebar Mode
+
+    /// When `true`, the sidebar is configured for compact tab bar mode:
+    /// - Collection view top is pinned to safe area (fixes nav bar overlap in child VC context)
+    /// - Management section is hidden (covered by the Management tab)
+    /// Must be set **before** the view loads.
+    var isCompactSidebarMode = false
+
     // MARK: - SidebarStateProvider
-    
+
     /// Whether the sidebar is in edit mode
     var isEditingMode: Bool { isEditing }
-    
+
     /// Current app mode (updated by MainSplitViewController)
     var appMode: AppMode = .lookup
     
@@ -321,6 +329,17 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         // Edit button (system editButtonItem handles Edit/Done toggle)
         navigationItem.rightBarButtonItem = editButtonItem
         
+        // In compact sidebar mode the nav controller is a manually-added child VC
+        // of the tab bar controller (via addChild), NOT one of its managed tabs.
+        // UITabBarController only propagates safe area to its own viewControllers,
+        // so the nav bar height never reaches this VC's safeAreaInsets.
+        // Setting edgesForExtendedLayout = [] tells the UINavigationController to
+        // place this VC's view BELOW the nav bar instead of behind it — this changes
+        // the view frame directly and doesn't rely on safe area propagation.
+        if isCompactSidebarMode {
+            edgesForExtendedLayout = []
+        }
+
         view.backgroundColor = .systemGroupedBackground
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -648,7 +667,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
         if isEditing || userGroups.isEmpty { userItems.append(.addGroup) }
 
-        let mgmtItems: [SidebarItem] = [
+        let mgmtItems: [SidebarItem] = isCompactSidebarMode ? [] : [
             .header(L10n.Sidebar.management, isBold: false),
             .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings
         ]
@@ -698,13 +717,20 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         userSnapshot.expand([userHeader])
         dataSource.apply(userSnapshot, to: .userGroups, animatingDifferences: animated)
         
-        // Section 2: Management - with header
-        var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
-        let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
-        mgmtSnapshot.append([mgmtHeader])
-        mgmtSnapshot.append([.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings], to: mgmtHeader)
-        mgmtSnapshot.expand([mgmtHeader])
-        dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
+        // Section 2: Management - with header (hidden in compact sidebar mode
+        // because all management actions live in the dedicated Management tab).
+        if isCompactSidebarMode {
+            // Apply an empty section snapshot to clear any existing management items
+            let emptyMgmt = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
+            dataSource.apply(emptyMgmt, to: .management, animatingDifferences: animated)
+        } else {
+            var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
+            let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
+            mgmtSnapshot.append([mgmtHeader])
+            mgmtSnapshot.append([.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings], to: mgmtHeader)
+            mgmtSnapshot.expand([mgmtHeader])
+            dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
+        }
 
         // Cache the signature so applySubscriptionSnapshot() can skip
         // redundant applies that would cause UIKit to reset accessories

@@ -527,9 +527,13 @@ class WordListViewController: UIViewController {
             title = nil
             navigationItem.title = nil
             navigationItem.titleView = nil
+            // Do NOT clear leftBarButtonItem here — in compact tab mode it
+            // holds the sidebar toggle button set by CompactTabBarController.
             return
         }
 
+        // Static titleView (icon + label).
+        // In compact tab mode, leftBarButtonItem is set externally by CompactTabBarController.
         let imageView = UIImageView(image: UIImage(systemName: iconName))
         imageView.tintColor = .label
         imageView.contentMode = .scaleAspectFit

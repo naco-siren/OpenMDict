@@ -67,6 +67,11 @@ class ArticleViewController: UIViewController {
         sv.showsVerticalScrollIndicator = false
         sv.bounces = true
         sv.delegate = self
+        // Safe area is handled manually via scrollViewTopConstraint.
+        // Prevent UIKit from adding automatic content insets that would
+        // double-offset the pages and cause the header to scroll with
+        // the WKWebView content when inside a UINavigationController.
+        sv.contentInsetAdjustmentBehavior = .never
         return sv
     }()
 

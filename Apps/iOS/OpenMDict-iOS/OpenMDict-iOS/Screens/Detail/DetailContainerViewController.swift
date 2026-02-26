@@ -673,6 +673,16 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
+    /// Restore articles from state transfer (compact ↔ regular).
+    /// Replaces all current articles and syncs to active child.
+    func restoreArticles(_ newArticles: [ArticleDisplayItem], currentIndex: Int) {
+        articles = newArticles
+        currentCompactIndex = min(currentIndex, max(0, articles.count - 1))
+        if isViewLoaded {
+            syncStateToActiveChild()
+        }
+    }
+
     func closeArticle(_ article: ArticleDisplayItem) {
         guard let index = articles.firstIndex(of: article) else { return }
         articles.remove(at: index)
