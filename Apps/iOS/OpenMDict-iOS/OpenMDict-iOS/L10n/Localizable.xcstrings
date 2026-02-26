@@ -5068,13 +5068,13 @@
       }
     },
     "dict.unavailable": {
-      "comment": "Shown when a referenced dictionary hasn't been synced to this device yet",
+      "comment": "Shown when the dictionary for a history/bookmark entry is not available locally",
       "extractionState": "extracted_with_value",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "new",
-            "value": "Not on this device"
+            "value": "Dictionary not imported"
           }
         }
       }
@@ -24057,6 +24057,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "建議"
+          }
+        }
+      }
+    },
+    "wordList.noHistoryInContext": {
+      "comment": "Empty state when selected group/dictionary has no lookup history",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No lookup history in this source"
+          }
+        }
+      }
+    },
+    "wordList.noHistoryInContextMessage": {
+      "comment": "Message suggesting user check centralized history",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View all history in My Lookup History."
+          }
+        }
+      }
+    },
+    "wordList.viewAllHistory": {
+      "comment": "Button to navigate to centralized lookup history",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View All History"
           }
         }
       }

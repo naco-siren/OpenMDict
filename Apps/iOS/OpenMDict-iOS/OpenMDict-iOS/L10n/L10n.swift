@@ -263,6 +263,17 @@ nonisolated enum L10n {
         static var suggestionsHeader: String {
             NSLocalizedString("wordList.suggestionsHeader", value: "Suggestions", comment: "Section header for suggested similar words")
         }
+
+        // Empty state (context-filtered history)
+        static var noHistoryInContext: String {
+            NSLocalizedString("wordList.noHistoryInContext", value: "No lookup history in this source", comment: "Empty state when selected group/dictionary has no lookup history")
+        }
+        static var noHistoryInContextMessage: String {
+            NSLocalizedString("wordList.noHistoryInContextMessage", value: "View all history in My Lookup History.", comment: "Message suggesting user check centralized history")
+        }
+        static var viewAllHistory: String {
+            NSLocalizedString("wordList.viewAllHistory", value: "View All History", comment: "Button to navigate to centralized lookup history")
+        }
     }
 
     // MARK: - Articles & Article Renderer
@@ -718,9 +729,9 @@ nonisolated enum L10n {
 
     // MARK: - Dictionary Availability
 
-    /// Suffix shown after dictName when the dictionary is not on this device.
+    /// Suffix shown after dictName when the dictionary is not available locally.
     static var dictUnavailable: String {
-        NSLocalizedString("dict.unavailable", value: "Not on this device", comment: "Shown when a referenced dictionary hasn't been synced to this device yet")
+        NSLocalizedString("dict.unavailable", value: "Dictionary not imported", comment: "Shown when the dictionary for a history/bookmark entry is not available locally")
     }
 
     // MARK: - Detail Container (Layout, Appearance, Zoom)
