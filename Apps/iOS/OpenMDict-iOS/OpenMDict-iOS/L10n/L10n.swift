@@ -1226,4 +1226,21 @@ nonisolated enum L10n {
             NSLocalizedString("syncStatus.iCloudIssue.message", value: "iCloud sync is currently unavailable. Please check your iCloud settings and network connection.", comment: "Sidebar sync status alert: iCloud issue message")
         }
     }
+
+    // MARK: - Tab Bar (Compact Layout)
+
+    enum TabBar {
+        static var lookup: String {
+            NSLocalizedString("tabBar.lookup", value: "Lookup", comment: "Tab bar item: word lookup / search")
+        }
+        static var bookmarks: String {
+            NSLocalizedString("tabBar.bookmarks", value: "Bookmarks", comment: "Tab bar item: bookmarks")
+        }
+        static var history: String {
+            NSLocalizedString("tabBar.history", value: "History", comment: "Tab bar item: lookup history")
+        }
+        static var management: String {
+            NSLocalizedString("tabBar.management", value: "Management", comment: "Tab bar item: dictionary management")
+        }
+    }
 }
