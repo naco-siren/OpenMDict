@@ -38,6 +38,17 @@ final class CoreDataStack {
 
     private var remoteChangeObserver: Any?
 
+    /// Coalesces rapid-fire NSPersistentStoreRemoteChange notifications
+    /// into a single dedup + publish cycle.  Without this, startup can
+    /// fire 20+ notifications, each spawning a concurrent deduplicateAll()
+    /// Task — a thundering herd that saturates the CPU and deadlocks.
+    private var remoteChangeWorkItem: DispatchWorkItem?
+
+    /// Guards against re-entrant preprocessor runs.
+    /// While a dedup pass is in flight, new notifications are coalesced
+    /// but won't spawn a second concurrent pass.
+    private var isProcessingRemoteChange = false
+
     // MARK: - Container
 
     /// Backing storage — set by `setup(enableCloudKit:)` or
@@ -180,7 +191,12 @@ final class CoreDataStack {
     /// Subscribe to NSPersistentStoreRemoteChange and relay via
     /// `remoteChangePublisher`.
     ///
-    /// Pipeline: remote change → preprocessor (dedup) → publish.
+    /// Pipeline: remote change → debounce → preprocessor (dedup) → publish.
+    ///
+    /// Notifications are coalesced with a 0.3 s debounce window.  While a
+    /// preprocessor pass is in flight, additional notifications set a
+    /// `pendingRemoteChange` flag so that exactly one follow-up pass runs
+    /// after the current one finishes — no thundering herd.
     private func installRemoteChangeObserver() {
         remoteChangeObserver = NotificationCenter.default.addObserver(
             forName: .NSPersistentStoreRemoteChange,
@@ -188,14 +204,60 @@ final class CoreDataStack {
             queue: .main
         ) { [weak self] _ in
             debugLog("☁️ Remote change detected")
-            // The closure is @Sendable but dispatched on .main queue.
-            // Route through Task { @MainActor } to satisfy the compiler
-            // for accessing MainActor-isolated properties.
-            Task { @MainActor [weak self] in
-                if let preprocessor = self?.remoteChangePreprocessor {
-                    await preprocessor()
-                }
-                self?.remoteChangePublisher.send()
+            self?.scheduleRemoteChangeProcessing()
+        }
+    }
+
+    /// Debounce + single-flight guard for remote change processing.
+    private func scheduleRemoteChangeProcessing() {
+        // Cancel any pending debounce timer — we'll restart it.
+        remoteChangeWorkItem?.cancel()
+
+        // If a preprocessor pass is already running, just mark that
+        // another round is needed once it finishes.
+        if isProcessingRemoteChange {
+            // The flag itself acts as "pending" — when the in-flight
+            // pass finishes, it checks and re-schedules.
+            remoteChangeWorkItem = DispatchWorkItem { [weak self] in
+                self?.executeRemoteChangeProcessing()
+            }
+            // Don't schedule immediately — let the current pass finish
+            // and re-check in executeRemoteChangeProcessing().
+            return
+        }
+
+        let item = DispatchWorkItem { [weak self] in
+            self?.executeRemoteChangeProcessing()
+        }
+        remoteChangeWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
+    }
+
+    /// Runs dedup (if installed) then publishes.  Re-checks for
+    /// additional notifications that arrived while running.
+    private func executeRemoteChangeProcessing() {
+        guard !isProcessingRemoteChange else { return }
+        isProcessingRemoteChange = true
+        remoteChangeWorkItem = nil
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            if let preprocessor = self.remoteChangePreprocessor {
+                await preprocessor()
+            }
+            self.remoteChangePublisher.send()
+
+            self.isProcessingRemoteChange = false
+
+            // If more notifications arrived while we were processing,
+            // schedule one follow-up pass (debounced).
+            // We detect this by checking if scheduleRemoteChangeProcessing()
+            // left a pending workItem while we were busy.
+            if self.remoteChangeWorkItem != nil {
+                debugLog("☁️ Remote change: re-processing queued notifications")
+                self.remoteChangeWorkItem = nil
+                self.scheduleRemoteChangeProcessing()
             }
         }
     }
