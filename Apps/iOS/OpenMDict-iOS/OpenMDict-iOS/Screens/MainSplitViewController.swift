@@ -113,7 +113,7 @@ class MainSplitViewController: UISplitViewController {
         // Check for first-install setup (before article restoration)
         presentSetupIfNeeded()
 
-        if !detailContainer.allArticles.isEmpty {
+        if !isCollapsed, !detailContainer.allArticles.isEmpty {
             debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
             show(.secondary)
         }
