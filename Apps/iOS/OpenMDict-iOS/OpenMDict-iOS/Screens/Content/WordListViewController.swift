@@ -722,15 +722,18 @@ extension WordListViewController: UITableViewDelegate {
                 article.contentState = .loaded(html: entry.article.html, css: nil)
             }
 
-            return UIMenu(children: [
+            var actions: [UIAction] = [
                 UIAction(title: L10n.Articles.open, image: UIImage(systemName: "doc.text")) { _ in
                     self.onWordSelected?(word)
                 },
-                UIAction(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "square.split.2x1")) { [weak self] _ in
+            ]
+            if UIApplication.shared.supportsMultipleScenes {
+                actions.append(UIAction(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "square.split.2x1")) { [weak self] _ in
                     let session = self?.view.window?.windowScene?.session
                     SceneDelegate.openNewWindow(for: article, sourceSession: session)
-                },
-            ])
+                })
+            }
+            return UIMenu(children: actions)
         }
     }
 }
