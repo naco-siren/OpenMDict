@@ -322,7 +322,8 @@ class ArticleViewController: UIViewController {
     /// Create a page view for the given article.
     private func makeArticlePageView(for article: ArticleDisplayItem) -> ArticlePageView {
         let config = ArticlePageView.Configuration.compactPager(
-            webViewConfig: webViewConfiguration
+            webViewConfig: webViewConfiguration,
+            supportsMultipleScenes: UIApplication.shared.supportsMultipleScenes
         )
         let pageView = ArticlePageView(configuration: config)
         pageView.translatesAutoresizingMaskIntoConstraints = false

@@ -665,10 +665,12 @@ extension ArticlesViewController: UICollectionViewDelegate {
                 self?.pendingFindIndexPath = indexPath
             })
         }
-        actions.append(.init(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "rectangle.badge.plus")) { _ in
-            let session = self.view.window?.windowScene?.session
-            SceneDelegate.openNewWindow(for: article, sourceSession: session)
-        })
+        if UIApplication.shared.supportsMultipleScenes {
+            actions.append(.init(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "rectangle.badge.plus")) { _ in
+                let session = self.view.window?.windowScene?.session
+                SceneDelegate.openNewWindow(for: article, sourceSession: session)
+            })
+        }
         actions.append(.init(title: L10n.Articles.close, image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
             if let self = self {
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
