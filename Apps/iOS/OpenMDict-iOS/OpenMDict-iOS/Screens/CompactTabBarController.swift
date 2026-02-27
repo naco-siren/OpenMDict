@@ -304,6 +304,11 @@ class CompactTabBarController: UITabBarController {
         guard isSidebarVisible else { completion?(); return }
         isSidebarVisible = false
 
+        // Exit editing mode if the sidebar was being edited
+        if sidebarVC.isEditing {
+            sidebarVC.setEditing(false, animated: false)
+        }
+
         sidebarLeadingConstraint.constant = -sidebarWidth
         UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseIn) {
             self.sidebarDimmingView.alpha = 0
