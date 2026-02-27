@@ -23228,79 +23228,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "ابحث عن كلمات…"
+            "value": "اكتب استعلامك هنا…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wörter suchen…"
+            "value": "Suchanfrage eingeben…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search words…"
+            "value": "Type your query here…"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar palabras…"
+            "value": "Escribe tu consulta aquí…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rechercher des mots…"
+            "value": "Saisissez votre recherche ici…"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "शब्द खोजें…"
+            "value": "अपनी खोज यहाँ लिखें…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "単語を検索…"
+            "value": "検索語を入力…"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "단어 검색…"
+            "value": "검색어를 입력하세요…"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar palavras…"
+            "value": "Digite sua consulta aqui…"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Поиск слов…"
+            "value": "Введите запрос…"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пошук слів…"
+            "value": "Введіть запит…"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "搜索词条…"
+            "value": "在此输入查询…"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "搜尋詞條…"
+            "value": "在此輸入查詢…"
           }
         }
       }

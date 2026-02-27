@@ -407,21 +407,12 @@ class BookmarkListViewController: UIViewController {
 
     // MARK: Navigation Bar Buttons
 
-    /// Sort-by menu: line.3.horizontal.decrease
-    private lazy var sortByButton: UIBarButtonItem = {
+    /// Combined sort menu: sort-by + sort-order in one button
+    private lazy var sortButton: UIBarButtonItem = {
         .init(
             title: L10n.BookmarkSort.sortBy,
             image: UIImage(systemName: "line.3.horizontal.decrease"),
-            menu: sortByMenu,
-        )
-    }()
-
-    /// Sort-order menu: arrow.up.arrow.down
-    private lazy var sortOrderButton: UIBarButtonItem = {
-        .init(
-            title: L10n.BookmarkSort.sortOrder,
-            image: UIImage(systemName: "arrow.up.arrow.down"),
-            menu: sortOrderMenu
+            menu: combinedSortMenu
         )
     }()
 
@@ -438,8 +429,9 @@ class BookmarkListViewController: UIViewController {
     
     // MARK: - Navigation Bar Menus
 
-    private var sortByMenu: UIMenu {
-        let actions = SortMode.allCases.map { mode in
+    /// Combined sort menu: sort-by section | sort-order section
+    private var combinedSortMenu: UIMenu {
+        let sortByActions = SortMode.allCases.map { mode in
             UIAction(
                 title: mode.title,
                 image: UIImage(systemName: mode.iconName),
@@ -448,10 +440,8 @@ class BookmarkListViewController: UIViewController {
                 self?.updateSorting(mode: mode, isAscending: false)
             }
         }
-        return UIMenu(children: actions)
-    }
+        let sortBySection = UIMenu(options: .displayInline, children: sortByActions)
 
-    private var sortOrderMenu: UIMenu {
         let ascAction = UIAction(
             title: L10n.BookmarkSort.ascending,
             image: UIImage(systemName: "arrow.up"),
@@ -459,7 +449,6 @@ class BookmarkListViewController: UIViewController {
         ) { [weak self] _ in
             self?.updateSorting(isAscending: true)
         }
-
         let descAction = UIAction(
             title: L10n.BookmarkSort.descending,
             image: UIImage(systemName: "arrow.down"),
@@ -467,36 +456,9 @@ class BookmarkListViewController: UIViewController {
         ) { [weak self] _ in
             self?.updateSorting(isAscending: false)
         }
+        let sortOrderSection = UIMenu(options: .displayInline, children: [ascAction, descAction])
 
-        return UIMenu(children: [ascAction, descAction])
-    }
-
-    /// iOS 15 overflow menu: sort order + clear all combined
-    private var legacyOverflowMenu: UIMenu {
-        let sortOrderSection = UIMenu(options: .displayInline, children: [
-            UIAction(
-                title: L10n.BookmarkSort.ascending,
-                image: UIImage(systemName: "arrow.up"),
-                state: isAscending ? .on : .off
-            ) { [weak self] _ in
-                self?.updateSorting(isAscending: true)
-            },
-            UIAction(
-                title: L10n.BookmarkSort.descending,
-                image: UIImage(systemName: "arrow.down"),
-                state: !isAscending ? .on : .off
-            ) { [weak self] _ in
-                self?.updateSorting(isAscending: false)
-            },
-        ])
-        let clearAction = UIAction(
-            title: L10n.Bookmarks.clearAll,
-            image: UIImage(systemName: "trash"),
-            attributes: .destructive
-        ) { [weak self] _ in
-            self?.confirmClearAll()
-        }
-        return UIMenu(children: [sortOrderSection, clearAction])
+        return UIMenu(children: [sortBySection, sortOrderSection])
     }
 
     // MARK: - Navigation Bar Setup
@@ -508,18 +470,8 @@ class BookmarkListViewController: UIViewController {
             navigationItem.leadingItemGroups = []
             navigationItem.centerItemGroups = []
             navigationItem.trailingItemGroups = [
-                // Sort-by is always visible (primary action)
-                .fixedGroup(items: [sortByButton]),
-                // Sort-order collapses into overflow when space is tight
-                .optionalGroup(
-                    customizationIdentifier: "sortOrder",
-                    representativeItem: UIBarButtonItem(
-                        title: isAscending ? L10n.BookmarkSort.ascending : L10n.BookmarkSort.descending,
-                        image: UIImage(systemName: "arrow.up.arrow.down"),
-                        menu: sortOrderMenu
-                    ),
-                    items: [sortOrderButton]
-                ),
+                // Combined sort button (sort-by + sort-order in one menu)
+                .fixedGroup(items: [sortButton]),
                 // Clear all collapses into overflow when space is tight
                 // representativeItem must be a DIFFERENT instance from the items array
                 .optionalGroup(
@@ -535,23 +487,18 @@ class BookmarkListViewController: UIViewController {
                 ),
             ]
         } else {
-            // iOS 15: merge sort-order into overflow
+            // iOS 15: sort button + clear-all
             navigationItem.leftBarButtonItems = []
             navigationItem.rightBarButtonItems = [
-                UIBarButtonItem(
-                    image: UIImage(systemName: "ellipsis.circle"),
-                    menu: legacyOverflowMenu
-                ),
-                sortByButton,
+                clearAllButton,
+                sortButton,
             ]
         }
     }
 
     /// Rebuild all menus to reflect current sort state (checkmarks).
     private func rebuildMenus() {
-        sortByButton.menu = sortByMenu
-        sortOrderButton.menu = sortOrderMenu
-
+        sortButton.menu = combinedSortMenu
         setupNavigationBar()
     }
 

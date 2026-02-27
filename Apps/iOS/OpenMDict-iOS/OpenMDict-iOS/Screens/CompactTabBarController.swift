@@ -31,7 +31,7 @@ class CompactTabBarController: UITabBarController {
         nav.tabBarItem = UITabBarItem(
             title: L10n.TabBar.lookup,
             image: UIImage(systemName: "character.book.closed"),
-            tag: 0
+            selectedImage: UIImage(systemName: "character.book.closed.fill")
         )
         return nav
     }()
@@ -42,8 +42,8 @@ class CompactTabBarController: UITabBarController {
         let nav = UINavigationController(rootViewController: bookmarkListVC)
         nav.tabBarItem = UITabBarItem(
             title: L10n.TabBar.bookmarks,
-            image: UIImage(systemName: "bookmark.fill"),
-            tag: 1
+            image: UIImage(systemName: "bookmark"),
+            selectedImage: UIImage(systemName: "bookmark.fill")
         )
         return nav
     }()
@@ -55,7 +55,7 @@ class CompactTabBarController: UITabBarController {
         nav.tabBarItem = UITabBarItem(
             title: L10n.TabBar.history,
             image: UIImage(systemName: "clock.arrow.circlepath"),
-            tag: 2
+            selectedImage: UIImage(systemName: "clock.arrow.circlepath.fill")
         )
         return nav
     }()
@@ -67,8 +67,8 @@ class CompactTabBarController: UITabBarController {
         nav.navigationBar.prefersLargeTitles = true
         nav.tabBarItem = UITabBarItem(
             title: L10n.TabBar.management,
-            image: UIImage(systemName: "gearshape.2.fill"),
-            tag: 3
+            image: UIImage(systemName: "gearshape.2"),
+            selectedImage: UIImage(systemName: "gearshape.2.fill")
         )
         return nav
     }()

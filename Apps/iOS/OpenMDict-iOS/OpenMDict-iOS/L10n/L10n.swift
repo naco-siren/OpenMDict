@@ -229,7 +229,7 @@ nonisolated enum L10n {
 
     enum WordList {
         static var searchPlaceholder: String {
-            NSLocalizedString("wordList.searchPlaceholder", value: "Search words\u{2026}", comment: "Search bar placeholder")
+            NSLocalizedString("wordList.searchPlaceholder", value: "Type your query here\u{2026}", comment: "Search bar placeholder")
         }
         static var typeToSearch: String {
             NSLocalizedString("wordList.typeToSearch", value: "Type to search", comment: "Empty state when no query entered")
