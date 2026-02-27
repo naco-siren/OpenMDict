@@ -76,8 +76,8 @@ class BookmarkListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationItem.title = L10n.Bookmarks.title
-        navigationItem.largeTitleDisplayMode = .never
+        title = L10n.Bookmarks.title
+        navigationItem.largeTitleDisplayMode = .automatic
         setupNavigationBar()
 
         view.backgroundColor = .systemGroupedBackground
@@ -466,7 +466,7 @@ class BookmarkListViewController: UIViewController {
     private func setupNavigationBar() {
         if #available(iOS 16, *) {
             // Browser style: title left-aligned, items auto-overflow
-            navigationItem.style = .browser
+            navigationItem.style = .navigator
             navigationItem.leadingItemGroups = []
             navigationItem.centerItemGroups = []
             navigationItem.trailingItemGroups = [

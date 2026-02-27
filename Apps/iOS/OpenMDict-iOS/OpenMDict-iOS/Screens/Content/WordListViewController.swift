@@ -168,14 +168,17 @@ class WordListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationItem.backButtonDisplayMode = .minimal
-        navigationItem.backButtonTitle = L10n.WordList.wordSearch
-        navigationController?.navigationBar.prefersLargeTitles = false
         navigationItem.largeTitleDisplayMode = .never
+        navigationController?.navigationBar.prefersLargeTitles = false
+        
+        navigationItem.backButtonDisplayMode = .default
+        navigationItem.backButtonTitle = L10n.WordList.wordSearch
 
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
+        
         definesPresentationContext = true
+        
         view.backgroundColor = .systemBackground
         view.addSubview(tableView)
         view.addSubview(emptyStateView)
@@ -549,6 +552,7 @@ class WordListViewController: UIViewController {
 
         navigationItem.title = nil
         navigationItem.titleView = stack
+        navigationItem.backButtonTitle = titleText
     }
 
 }

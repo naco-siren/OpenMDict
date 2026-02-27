@@ -117,6 +117,8 @@ class ArticleViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
+        
+        navigationItem.largeTitleDisplayMode = .never
         setupUI()
         showEmpty()
 

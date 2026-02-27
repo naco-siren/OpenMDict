@@ -40,6 +40,7 @@ class CompactTabBarController: UITabBarController {
     let bookmarkListVC = BookmarkListViewController()
     private(set) lazy var bookmarksNav: UINavigationController = {
         let nav = UINavigationController(rootViewController: bookmarkListVC)
+        nav.navigationBar.prefersLargeTitles = true
         nav.tabBarItem = UITabBarItem(
             title: L10n.TabBar.bookmarks,
             image: UIImage(systemName: "bookmark"),
@@ -52,6 +53,7 @@ class CompactTabBarController: UITabBarController {
     let historyListVC = LookupHistoryListViewController()
     private(set) lazy var historyNav: UINavigationController = {
         let nav = UINavigationController(rootViewController: historyListVC)
+        nav.navigationBar.prefersLargeTitles = true
         nav.tabBarItem = UITabBarItem(
             title: L10n.TabBar.history,
             image: UIImage(systemName: "clock.arrow.circlepath"),

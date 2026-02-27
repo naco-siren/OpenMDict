@@ -462,6 +462,7 @@ class DetailContainerViewController: UIViewController {
         
         navigationItem.title = nil
         navigationItem.titleView = nil
+        navigationItem.largeTitleDisplayMode = .never
         
         if isRegular {
             setupRegularNavigationBar()
@@ -581,9 +582,9 @@ class DetailContainerViewController: UIViewController {
         } else {
             navigationItem.leftBarButtonItems = []
             navigationItem.rightBarButtonItems = [
+                .init(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu),
                 .init(title: L10n.Detail.appearance, image: .init(systemName: "circle.lefthalf.filled"),
                       menu: appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }),
-                .init(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu),
             ]
         }
     }

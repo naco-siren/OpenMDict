@@ -30,8 +30,8 @@ class LookupHistoryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationItem.title = L10n.LookupHistory.title
-        navigationItem.largeTitleDisplayMode = .never
+        title = L10n.LookupHistory.title
+        navigationItem.largeTitleDisplayMode = .automatic
         setupNavigationBar()
 
         view.backgroundColor = .systemGroupedBackground
@@ -263,7 +263,7 @@ class LookupHistoryListViewController: UIViewController {
 
     private func setupNavigationBar() {
         if #available(iOS 16, *) {
-            navigationItem.style = .browser
+            navigationItem.style = .navigator
             navigationItem.leadingItemGroups = []
             navigationItem.centerItemGroups = []
             navigationItem.trailingItemGroups = [
