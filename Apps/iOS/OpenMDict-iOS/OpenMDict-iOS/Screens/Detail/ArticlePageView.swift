@@ -386,10 +386,15 @@ class ArticlePageView: UIView {
     // MARK: - Static: Jump Search Menu
 
     /// Register the "Jump Search" menu item globally.
-    /// Called once; idempotent because UIMenuController.shared.menuItems is a simple array.
+    /// On iOS < 26: UIMenuItem (no icon support — API limitation).
+    /// On iOS 26+: injected via buildMenu(with:) with SF Symbol icon instead.
     static func registerJumpSearchMenuItem() {
-        let item = UIMenuItem(title: L10n.Articles.jumpSearch, action: #selector(jumpSearchAction(_:)))
-        UIMenuController.shared.menuItems = [item]
+        if #available(iOS 26, *) {
+            // Jump Search is provided via buildMenu(with:) override below
+        } else {
+            let item = UIMenuItem(title: L10n.Articles.jumpSearch, action: #selector(jumpSearchAction(_:)))
+            UIMenuController.shared.menuItems = [item]
+        }
     }
 
     // MARK: - Private: Header Button Factory
@@ -516,6 +521,8 @@ extension ArticlePageView: UIDragInteractionDelegate {
 extension ArticlePageView {
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if action == #selector(jumpSearchAction(_:)) {
+            // On iOS 26+, Jump Search is injected via buildMenu — suppress UIMenuItem path
+            if #available(iOS 26, *) { return false }
             return features.contains(.jumpSearch) && onJumpSearch != nil
         }
         return super.canPerformAction(action, withSender: sender)
@@ -527,6 +534,26 @@ extension ArticlePageView {
                 self?.onJumpSearch?(text.trimmingCharacters(in: .whitespacesAndNewlines))
             }
         }
+    }
+
+    // MARK: - iOS 26+ Context Menu (with icon)
+
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard #available(iOS 26, *),
+              builder.system == .context,
+              features.contains(.jumpSearch),
+              onJumpSearch != nil else { return }
+        let action = UIAction(
+            title: L10n.Articles.jumpSearch,
+            image: UIImage(systemName: "sparkle.magnifyingglass")
+        ) { [weak self] _ in
+            self?.jumpSearchAction(nil)
+        }
+        builder.insertChild(
+            UIMenu(options: .displayInline, children: [action]),
+            atEndOfMenu: .root
+        )
     }
 }
 
