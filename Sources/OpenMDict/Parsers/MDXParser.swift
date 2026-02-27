@@ -415,18 +415,25 @@ extension MDXParser {
                   let range = Range(match.range(at: 1), in: xml) else { return "" }
             return String(xml[range])
         }
-        
+
+        /// Some MDX files embed HTML tags (e.g. `<h1>`) in attribute values.
+        /// Strip them at the parser level so all consumers receive plain text.
+        func stripHTML(_ value: String) -> String {
+            value.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+                 .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
         let encryptedStr = attr("Encrypted")
         let encrypted = encryptedStr.isEmpty || encryptedStr == "No" ? 0 :
                         encryptedStr == "Yes" ? 1 : (Int(encryptedStr) ?? 0)
-        
+
         return MDictHeader(
             generatedByEngineVersion: attr("GeneratedByEngineVersion"),
             requiredEngineVersion: attr("RequiredEngineVersion"),
             encrypted: encrypted,
             encoding: attr("Encoding").isEmpty ? "UTF-8" : attr("Encoding"),
             format: attr("Format"),
-            title: attr("Title"),
+            title: stripHTML(attr("Title")),
             description: attr("Description"),
             creationDate: attr("CreationDate"),
             keyCaseSensitive: attr("KeyCaseSensitive") == "Yes"
