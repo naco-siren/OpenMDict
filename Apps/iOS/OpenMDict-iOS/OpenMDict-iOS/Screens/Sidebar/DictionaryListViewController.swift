@@ -398,7 +398,6 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     override func setEditing(_ editing: Bool, animated: Bool) {
         super.setEditing(editing, animated: animated)
         applySnapshot(animated: animated)
-        // Trigger cell updates so dict cells show/hide info button
         invalidateVisibleCellConfigurations()
     }
     
@@ -860,7 +859,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 // MARK: - UICollectionViewDelegate
 
 extension DictionaryListViewController: UICollectionViewDelegate {
-    
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        // Ensure cells pick up current state (editing, selection, sync status)
+        // when scrolling into view — invalidateVisibleCellConfigurations()
+        // only updates cells already on screen.
+        cell.setNeedsUpdateConfiguration()
+    }
+
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
         
