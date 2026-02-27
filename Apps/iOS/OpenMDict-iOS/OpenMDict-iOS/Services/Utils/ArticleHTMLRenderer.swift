@@ -52,7 +52,7 @@ enum ArticleHTMLRenderer {
                 .find-overlay {
                     position: fixed;
                     top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(128, 128, 128, 0.3);
+                    background: rgba(0, 0, 0, 0.3);
                     pointer-events: none;
                     z-index: 9998;
                 }
