@@ -661,7 +661,16 @@ class CompactTabBarController: UITabBarController {
 
         groupInfoVC.onCreateComplete = { [weak self] groupId in
             guard let self else { return }
-            managementNav.popToRootViewController(animated: true)
+            managementNav.popToRootViewController(animated: false)
+
+            // Select the newly created group and switch to lookup tab
+            if let group = DictionaryService.shared.group(id: groupId) {
+                currentGroup = group
+                currentDict = nil
+                selectedIndex = 0
+                lookupNav.popToRootViewController(animated: false)
+                lookupWordListVC.loadWords(for: group)
+            }
         }
 
         groupInfoVC.onGroupChanged = { [weak self] groupId in
