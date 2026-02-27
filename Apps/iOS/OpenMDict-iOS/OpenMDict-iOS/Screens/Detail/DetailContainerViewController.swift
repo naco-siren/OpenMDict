@@ -507,17 +507,15 @@ class DetailContainerViewController: UIViewController {
                         image: .init(systemName: "textformat.size"),
                         menu: currentZoomMenu
                     ),
-                    items: [
-                        .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.zoomOut()
-                        }),
-                        .init(title: zoom.displayString, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.resetZoom()
-                        }),
-                        .init(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.zoomIn()
-                        }),
-                    ]
+                    items: {
+                        let out = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
+                        out.isEnabled = zoom.canZoomOut
+                        let reset = UIBarButtonItem(title: zoom.displayString, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
+                        reset.isEnabled = !zoom.isDefault
+                        let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
+                        zIn.isEnabled = zoom.canZoomIn
+                        return [out, reset, zIn]
+                    }()
                 ),
             ]
 
@@ -530,17 +528,13 @@ class DetailContainerViewController: UIViewController {
                 .init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))
             ]
 
-            navigationItem.rightBarButtonItems = [
-                .init(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                    self?.zoomIn()
-                }),
-                .init(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                    self?.resetZoom()
-                }),
-                .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                    self?.zoomOut()
-                }),
-            ]
+            let zoomInItem = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
+            zoomInItem.isEnabled = zoom.canZoomIn
+            let resetItem = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
+            resetItem.isEnabled = !zoom.isDefault
+            let zoomOutItem = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
+            zoomOutItem.isEnabled = zoom.canZoomOut
+            navigationItem.rightBarButtonItems = [zoomInItem, resetItem, zoomOutItem]
         }
     }
 
@@ -566,17 +560,15 @@ class DetailContainerViewController: UIViewController {
                         image: .init(systemName: "textformat.size"),
                         menu: currentZoomMenu
                     ),
-                    items: [
-                        .init(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.zoomOut()
-                        }),
-                        .init(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.resetZoom()
-                        }),
-                        .init(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                            self?.zoomIn()
-                        }),
-                    ]
+                    items: {
+                        let out = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
+                        out.isEnabled = zoom.canZoomOut
+                        let reset = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
+                        reset.isEnabled = !zoom.isDefault
+                        let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
+                        zIn.isEnabled = zoom.canZoomIn
+                        return [out, reset, zIn]
+                    }()
                 ),
             ]
         } else {
