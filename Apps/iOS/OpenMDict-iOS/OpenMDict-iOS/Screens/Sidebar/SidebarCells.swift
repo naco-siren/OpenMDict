@@ -63,8 +63,11 @@ protocol SidebarStateProvider: AnyObject {
     /// Called when sync status button is tapped on a dictionary cell
     func didTapSyncStatus(forDictId dictId: String)
 
-    /// Called when iCloud status icon is tapped on a section header / group cell
+    /// Called when iCloud status icon is tapped on the "All Dictionaries" section header
     func didTapSectionSyncStatus()
+
+    /// Called when iCloud status icon is tapped on the "My Groups" section header
+    func didTapMyGroupsSyncStatus()
 
     /// Called when iCloud status icon is tapped on a user group cell
     func didTapGroupSyncStatus(forGroupId groupId: String)
@@ -656,7 +659,7 @@ final class SidebarHeaderCell: UICollectionViewListCell {
     }
 
     @objc private func syncStatusTapped() {
-        stateProvider?.didTapSectionSyncStatus()
+        stateProvider?.didTapMyGroupsSyncStatus()
     }
 }
 

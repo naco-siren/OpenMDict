@@ -1205,9 +1205,17 @@ nonisolated enum L10n {
         static var iCloudHealthyTitle: String {
             NSLocalizedString("syncStatus.iCloudHealthy.title", value: "iCloud Sync Active", comment: "Sidebar sync status alert: iCloud healthy title")
         }
-        /// Alert message when iCloud is healthy (all synced)
+        /// Alert message when iCloud is healthy (all dicts synced) — "All Dictionaries" section
         static var iCloudHealthyMessage: String {
             NSLocalizedString("syncStatus.iCloudHealthy.message", value: "All dictionaries are synced to iCloud.", comment: "Sidebar sync status alert: iCloud healthy message — all synced")
+        }
+        /// Alert message when iCloud is healthy — "My Groups" section, has groups
+        static var iCloudGroupsHealthyMessage: String {
+            NSLocalizedString("syncStatus.iCloudGroupsHealthy.message", value: "All your groups are synced to iCloud.", comment: "Sidebar sync status alert: iCloud healthy message for My Groups section — all groups synced")
+        }
+        /// Alert message when "My Groups" section is empty
+        static var iCloudNoGroupsMessage: String {
+            NSLocalizedString("syncStatus.iCloudNoGroups.message", value: "You haven't added any dictionary groups yet.", comment: "Sidebar sync status alert: My Groups section is empty — no groups to sync")
         }
         /// Alert title when iCloud is syncing
         static var iCloudSyncingTitle: String {

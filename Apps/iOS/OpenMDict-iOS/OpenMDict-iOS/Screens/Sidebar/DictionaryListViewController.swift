@@ -220,6 +220,29 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         present(alert, animated: true)
     }
 
+    func didTapMyGroupsSyncStatus() {
+        guard let status = iCloudMyGroupsSectionStatus() else { return }
+        let title: String
+        let message: String
+        switch status {
+        case .healthy:
+            title = L10n.SyncStatus.iCloudHealthyTitle
+            let userGroups = DictionaryService.shared.groups.filter { !$0.isDefault }
+            message = userGroups.isEmpty
+                ? L10n.SyncStatus.iCloudNoGroupsMessage
+                : L10n.SyncStatus.iCloudGroupsHealthyMessage
+        case .syncing:
+            title = L10n.SyncStatus.iCloudSyncingTitle
+            message = L10n.SyncStatus.iCloudSyncingMessage
+        case .temporaryIssue, .error:
+            title = L10n.SyncStatus.iCloudIssueTitle
+            message = L10n.SyncStatus.iCloudIssueMessage
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
+        present(alert, animated: true)
+    }
+
     func didTapGroupSyncStatus(forGroupId groupId: String) {
         let group = DictionaryService.shared.group(id: groupId)
         let groupName = group?.name ?? groupId.prefix(16).description
