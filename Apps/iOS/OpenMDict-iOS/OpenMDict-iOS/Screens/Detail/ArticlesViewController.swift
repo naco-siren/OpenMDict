@@ -42,6 +42,10 @@ class ArticlesViewController: UIViewController {
     
     // Track cell that needs to present find after context menu dismisses
     private var pendingFindIndexPath: IndexPath?
+
+    /// Current JS highlight keyword from the DetailContainerVC search bar.
+    /// Stored so off-screen cells can apply it when scrolling into view.
+    private var currentHighlightKeyword: String?
     
     // MARK: - Collection View
     
@@ -589,6 +593,17 @@ class ArticlesViewController: UIViewController {
 // MARK: - UICollectionViewDelegate
 
 extension ArticlesViewController: UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        // Apply pending JS highlight keyword to cells scrolling into view.
+        // The keyword is stored by highlightKeywordInAllCells() and applied
+        // here so off-screen cells get highlighted when they become visible.
+        if #available(iOS 16, *), let keyword = currentHighlightKeyword,
+           let articleCell = cell as? ArticleCell {
+            articleCell.highlightKeyword(keyword)
+        }
+    }
+
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let article = dataSource.itemIdentifier(for: indexPath) else { return }
         if layoutMode == .grid {
@@ -715,8 +730,10 @@ extension ArticlesViewController: UICollectionViewDelegate {
 
 @available(iOS 16.0, *)
 extension ArticlesViewController {
-    /// Highlight keyword in all visible cells using JavaScript
+    /// Highlight keyword in all visible cells using JavaScript.
+    /// Also stores the keyword so off-screen cells apply it when scrolling into view.
     func highlightKeywordInAllCells(_ keyword: String?) {
+        currentHighlightKeyword = keyword
         for cell in collectionView.visibleCells {
             (cell as? ArticleCell)?.highlightKeyword(keyword)
         }

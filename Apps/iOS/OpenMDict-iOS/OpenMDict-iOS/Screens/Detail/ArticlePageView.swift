@@ -82,6 +82,10 @@ class ArticlePageView: UIView {
     private(set) var isBookmarked: Bool = false
     private(set) var currentDictId: String = ""
 
+    /// Keyword to highlight after WebView finishes loading.
+    /// Set by highlightKeyword(); applied in webView(_:didFinish:).
+    private var pendingHighlightKeyword: String?
+
     // MARK: - Views
 
     private let containerView = UIView()
@@ -293,6 +297,7 @@ class ArticlePageView: UIView {
         onJumpSearch = nil
         isBookmarked = false
         currentDictId = ""
+        pendingHighlightKeyword = nil
         updateBookmarkAppearance()
         lookupCountLabel?.isHidden = true
         removePendingOverlay()
@@ -378,6 +383,7 @@ class ArticlePageView: UIView {
     }
 
     func highlightKeyword(_ keyword: String?) {
+        pendingHighlightKeyword = keyword
         let escaped = (keyword ?? "").replacingOccurrences(of: "'", with: "\\'")
         let js = "highlightKeyword('\(escaped)')"
         webView.evaluateJavaScript(js) { _, _ in }
@@ -495,9 +501,16 @@ extension ArticlePageView: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // Apply zoom to this page if non-default
-        guard currentZoomLevel != ZoomLevel.defaultLevel else { return }
-        let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
-        webView.evaluateJavaScript(js, completionHandler: nil)
+        if currentZoomLevel != ZoomLevel.defaultLevel {
+            let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        // Apply pending highlight keyword (set before WebView finished loading)
+        if let keyword = pendingHighlightKeyword, !keyword.isEmpty {
+            let escaped = keyword.replacingOccurrences(of: "'", with: "\\'")
+            webView.evaluateJavaScript("highlightKeyword('\(escaped)')") { _, _ in }
+        }
     }
 }
 
