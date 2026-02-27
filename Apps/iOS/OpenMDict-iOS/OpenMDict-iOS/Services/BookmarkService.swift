@@ -86,12 +86,13 @@ final class BookmarkService {
             NSPredicate(format: "word == %@", word),
             NSPredicate(format: "dictId == %@", dictId),
         ])
-        request.fetchLimit = 1
+        // No fetchLimit — delete ALL duplicates if CloudKit sync created them.
 
         do {
-            if let existing = try ctx.fetch(request).first {
-                // Already bookmarked → remove
-                ctx.delete(existing)
+            let matches = try ctx.fetch(request)
+            if let existing = matches.first {
+                // Already bookmarked → remove all matching records
+                for match in matches { ctx.delete(match) }
                 try ctx.save()
                 revision += 1
                 return false
@@ -162,10 +163,13 @@ final class BookmarkService {
 
     /// Delete a single bookmark by its managed object ID.
     func deleteBookmark(objectID: NSManagedObjectID) {
+        // Use existingObject(with:) — object(with:) returns a fault for
+        // already-deleted objects, causing an uncatchable ObjC exception on save().
+        // This can happen when the dedup service deletes the record concurrently.
         let ctx = stack.viewContext
-        let object = ctx.object(with: objectID)
-        ctx.delete(object)
         do {
+            let object = try ctx.existingObject(with: objectID)
+            ctx.delete(object)
             try ctx.save()
             revision += 1
         } catch {
@@ -178,21 +182,29 @@ final class BookmarkService {
         let ctx = self.stack.newBackgroundContext()
         let viewContext = self.stack.viewContext
         Task.detached {
-            try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
-                let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkRecord")
-                let batchDelete = NSBatchDeleteRequest(fetchRequest: request)
-                batchDelete.resultType = .resultTypeObjectIDs
+            var success = false
+            do {
+                try await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
+                    let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkRecord")
+                    let batchDelete = NSBatchDeleteRequest(fetchRequest: request)
+                    batchDelete.resultType = .resultTypeObjectIDs
 
-                let result = try ctx.execute(batchDelete) as? NSBatchDeleteResult
-                if let objectIDs = result?.result as? [NSManagedObjectID] {
-                    NSManagedObjectContext.mergeChanges(
-                        fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
-                        into: [viewContext]
-                    )
+                    let result = try ctx.execute(batchDelete) as? NSBatchDeleteResult
+                    if let objectIDs = result?.result as? [NSManagedObjectID] {
+                        NSManagedObjectContext.mergeChanges(
+                            fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
+                            into: [viewContext]
+                        )
+                    }
                 }
+                success = true
+            } catch {
+                debugLog("❌ BookmarkService clearAll failed: \(error)")
             }
-            await MainActor.run {
-                BookmarkService.shared.revision += 1
+            if success {
+                await MainActor.run {
+                    BookmarkService.shared.revision += 1
+                }
             }
         }
     }

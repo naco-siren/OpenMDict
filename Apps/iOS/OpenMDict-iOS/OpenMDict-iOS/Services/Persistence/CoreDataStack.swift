@@ -90,6 +90,7 @@ final class CoreDataStack {
         _persistentContainer = createContainer(enableCloudKit: enableCloudKit)
         if enableCloudKit {
             installRemoteChangeObserver()
+            purgeOldPersistentHistory()
         }
     }
 
@@ -175,6 +176,30 @@ final class CoreDataStack {
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
                 debugLog("❌ CoreData failed to load: \(error), \(error.userInfo)")
+
+                // Recovery: delete the corrupt store and retry.
+                // Common causes: lightweight migration failure after schema change,
+                // corrupt WAL journal from force-kill during write.
+                if let url = description.url {
+                    debugLog("⚠️ CoreData: attempting recovery — deleting store at \(url.lastPathComponent)")
+                    for suffix in ["", "-wal", "-shm"] {
+                        let fileURL = URL(fileURLWithPath: url.path + suffix)
+                        try? FileManager.default.removeItem(at: fileURL)
+                    }
+                    // Also remove CloudKit mirror metadata if present
+                    let ckDir = url.deletingLastPathComponent()
+                        .appendingPathComponent("ckAssetFiles")
+                    try? FileManager.default.removeItem(at: ckDir)
+
+                    // Retry load
+                    container.loadPersistentStores { desc2, error2 in
+                        if let error2 = error2 {
+                            debugLog("❌ CoreData recovery also failed: \(error2)")
+                        } else {
+                            debugLog("✅ CoreData store recovered (CloudKit=\(enableCloudKit)): \(desc2.url?.path ?? "?")")
+                        }
+                    }
+                }
             } else {
                 debugLog("✅ CoreData store loaded (CloudKit=\(enableCloudKit)): \(description.url?.path ?? "?")")
             }
@@ -186,6 +211,28 @@ final class CoreDataStack {
         container.viewContext.name = "viewContext"
 
         return container
+    }
+
+    /// Purge persistent history transactions older than 7 days.
+    /// Prevents unbounded WAL growth when CloudKit sync is enabled.
+    /// Safe to call on every launch — deleting already-synced history
+    /// does not affect CloudKit mirroring.
+    func purgeOldPersistentHistory() {
+        let ctx = newBackgroundContext()
+        Task.detached {
+            await ctx.perform {
+                let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 3600)
+                let deleteRequest = NSPersistentHistoryChangeRequest.deleteHistory(
+                    before: sevenDaysAgo
+                )
+                do {
+                    try ctx.execute(deleteRequest)
+                    debugLog("🧹 Purged persistent history older than 7 days")
+                } catch {
+                    debugLog("⚠️ Persistent history purge failed: \(error)")
+                }
+            }
+        }
     }
 
     /// Subscribe to NSPersistentStoreRemoteChange and relay via

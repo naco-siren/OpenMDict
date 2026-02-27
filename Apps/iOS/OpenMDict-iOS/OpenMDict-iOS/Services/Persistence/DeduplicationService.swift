@@ -136,10 +136,14 @@ final class DeduplicationService {
                key.ctxDict == prevKey.ctxDict &&
                key.ctxGroup == prevKey.ctxGroup,
                let winner = currentWinner {
-                // Duplicate — merge into winner, then delete
+                // Duplicate — merge into winner, then delete.
+                // Use max() — consistent with LookupCountRecord strategy.
+                // Two devices creating independent records for the same word
+                // should keep the higher count, not sum them (which inflates
+                // permanently and compounds on subsequent sync cycles).
                 let winnerCount = winner.value(forKey: "lookupCount") as? Int32 ?? 0
                 let dupCount = record.value(forKey: "lookupCount") as? Int32 ?? 0
-                winner.setValue(winnerCount + dupCount, forKey: "lookupCount")
+                winner.setValue(max(winnerCount, dupCount), forKey: "lookupCount")
 
                 // firstLookedUpAt = min
                 let winnerFirst = winner.value(forKey: "firstLookedUpAt") as? Date ?? Date.distantFuture
@@ -199,28 +203,42 @@ final class DeduplicationService {
         return deleted
     }
 
-    // MARK: - DictionaryMetadataRecord  (dictId) → earliest importedAt
+    // MARK: - DictionaryMetadataRecord  (dictId) → earliest importedAt, merge fields
 
     private nonisolated func deduplicateDictionaryMetadata(in ctx: NSManagedObjectContext) -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: "DictionaryMetadataRecord")
         request.sortDescriptors = [
             NSSortDescriptor(key: "dictId", ascending: true),
-            NSSortDescriptor(key: "importedAt", ascending: true),  // earliest first
+            NSSortDescriptor(key: "importedAt", ascending: true),  // earliest first = winner
         ]
 
         guard let records = try? ctx.fetch(request), records.count > 1 else { return 0 }
 
         var deleted = 0
         var prevDictId: String?
+        var currentWinner: NSManagedObject?
 
         for record in records {
             let dictId = record.value(forKey: "dictId") as? String ?? ""
 
-            if dictId == prevDictId {
-                // Duplicate — delete this one (we keep the first = earliest importedAt)
+            if dictId == prevDictId, let winner = currentWinner {
+                // Duplicate — merge fields from loser if it has newer data,
+                // then delete.  The winner has the earliest importedAt, but
+                // the loser may have a more recent displayName (user rename)
+                // or updated resource counts.
+                let winnerUpdated = winner.value(forKey: "updatedAt") as? Date ?? Date.distantPast
+                let loserUpdated = record.value(forKey: "updatedAt") as? Date ?? Date.distantPast
+                if loserUpdated > winnerUpdated {
+                    for key in ["displayName", "updatedAt",
+                                "mddCount", "cssCount", "jsCount",
+                                "totalSizeKB", "cloudSyncStatus"] {
+                        winner.setValue(record.value(forKey: key), forKey: key)
+                    }
+                }
                 ctx.delete(record)
                 deleted += 1
             } else {
+                currentWinner = record
                 prevDictId = dictId
             }
         }

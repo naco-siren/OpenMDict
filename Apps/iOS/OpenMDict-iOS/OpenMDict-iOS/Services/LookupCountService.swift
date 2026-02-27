@@ -238,30 +238,36 @@ final class LookupCountService {
         // Write to CoreData on background context
         let ctx = stack.newBackgroundContext()
         Task.detached {
-            await ctx.perform(schedule: .immediate) {
-                for (key, count) in snapshot {
-                    // Fetch-or-create pattern
-                    let request = LookupCountRecord.fetchRequest()
-                    request.predicate = NSPredicate(format: "contextKey == %@", key)
-                    request.fetchLimit = 1
+            do {
+                try await ctx.perform(schedule: .immediate) {
+                    for (key, count) in snapshot {
+                        // Fetch-or-create pattern
+                        let request = LookupCountRecord.fetchRequest()
+                        request.predicate = NSPredicate(format: "contextKey == %@", key)
+                        request.fetchLimit = 1
 
-                    let record: LookupCountRecord
-                    if let existing = try? ctx.fetch(request).first {
-                        record = existing
-                    } else {
-                        record = LookupCountRecord(context: ctx)
-                        record.contextKey = key
+                        let record: LookupCountRecord
+                        if let existing = try? ctx.fetch(request).first {
+                            record = existing
+                        } else {
+                            record = LookupCountRecord(context: ctx)
+                            record.contextKey = key
+                        }
+                        // Trophy counters are monotonically increasing:
+                        // take the max in case of sync conflicts.
+                        record.count = max(record.count, count)
+                        record.updatedAt = Date()
                     }
-                    // Trophy counters are monotonically increasing:
-                    // take the max in case of sync conflicts.
-                    record.count = max(record.count, count)
-                    record.updatedAt = Date()
-                }
-
-                do {
                     try ctx.save()
-                } catch {
-                    debugLog("❌ LookupCountService: background save failed: \(error)")
+                }
+            } catch {
+                debugLog("❌ LookupCountService: background save failed: \(error)")
+                // Re-add keys to dirtyKeys so they will be retried
+                // on the next flush cycle (threshold / debounce / lifecycle).
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.dirtyKeys.formUnion(keysToFlush)
+                    self.scheduleDeferredPersist()
                 }
             }
         }

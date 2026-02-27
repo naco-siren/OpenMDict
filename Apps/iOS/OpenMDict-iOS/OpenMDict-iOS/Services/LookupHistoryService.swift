@@ -379,10 +379,13 @@ final class LookupHistoryService {
         }
 
         // Immediate CoreData delete
+        // Use existingObject(with:) — object(with:) returns a fault for
+        // already-deleted objects, causing an uncatchable ObjC exception on save().
+        // This can happen when the dedup service deletes the record concurrently.
         let ctx = stack.viewContext
-        let object = ctx.object(with: objectID)
-        ctx.delete(object)
         do {
+            let object = try ctx.existingObject(with: objectID)
+            ctx.delete(object)
             try ctx.save()
         } catch {
             debugLog("❌ LookupHistory deleteRecord failed: \(error)")
@@ -509,46 +512,57 @@ final class LookupHistoryService {
 
         let ctx = stack.newBackgroundContext()
         Task.detached { [entriesToPersist] in
-            try? await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
-                for entry in entriesToPersist {
-                    let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
-                    var subpredicates: [NSPredicate] = [
-                        NSPredicate(format: "word == %@", entry.word),
-                        NSPredicate(format: "dictId == %@", entry.dictId),
-                    ]
-                    if let ctxDictId = entry.lookupContextDictId, !ctxDictId.isEmpty {
-                        subpredicates.append(NSPredicate(format: "lookupContextDictId == %@", ctxDictId))
-                    } else {
-                        subpredicates.append(NSPredicate(format: "lookupContextDictId == nil OR lookupContextDictId == %@", ""))
-                    }
-                    if let ctxGroupId = entry.lookupContextGroupId, !ctxGroupId.isEmpty {
-                        subpredicates.append(NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId))
-                    } else {
-                        subpredicates.append(NSPredicate(format: "lookupContextGroupId == nil OR lookupContextGroupId == %@", ""))
-                    }
-                    request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
-                    request.fetchLimit = 1
+            do {
+                try await ctx.perform(schedule: .immediate as NSManagedObjectContext.ScheduledTaskType) {
+                    for entry in entriesToPersist {
+                        let request = NSFetchRequest<LookupRecord>(entityName: "LookupRecord")
+                        var subpredicates: [NSPredicate] = [
+                            NSPredicate(format: "word == %@", entry.word),
+                            NSPredicate(format: "dictId == %@", entry.dictId),
+                        ]
+                        if let ctxDictId = entry.lookupContextDictId, !ctxDictId.isEmpty {
+                            subpredicates.append(NSPredicate(format: "lookupContextDictId == %@", ctxDictId))
+                        } else {
+                            subpredicates.append(NSPredicate(format: "lookupContextDictId == nil OR lookupContextDictId == %@", ""))
+                        }
+                        if let ctxGroupId = entry.lookupContextGroupId, !ctxGroupId.isEmpty {
+                            subpredicates.append(NSPredicate(format: "lookupContextGroupId == %@", ctxGroupId))
+                        } else {
+                            subpredicates.append(NSPredicate(format: "lookupContextGroupId == nil OR lookupContextGroupId == %@", ""))
+                        }
+                        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
+                        request.fetchLimit = 1
 
-                    if let existing = try ctx.fetch(request).first {
-                        existing.lastLookedUpAt = entry.lastLookedUpAt
-                        existing.lookupCount = entry.lookupCount
-                    } else {
-                        let record = LookupRecord(context: ctx)
-                        record.word = entry.word
-                        record.dictId = entry.dictId
-                        record.lookupContextDictId = entry.lookupContextDictId
-                        record.lookupContextGroupId = entry.lookupContextGroupId
-                        record.firstLookedUpAt = entry.firstLookedUpAt
-                        record.lastLookedUpAt = entry.lastLookedUpAt
-                        record.lookupCount = entry.lookupCount
+                        if let existing = try ctx.fetch(request).first {
+                            existing.lastLookedUpAt = entry.lastLookedUpAt
+                            existing.lookupCount = entry.lookupCount
+                        } else {
+                            let record = LookupRecord(context: ctx)
+                            record.word = entry.word
+                            record.dictId = entry.dictId
+                            record.lookupContextDictId = entry.lookupContextDictId
+                            record.lookupContextGroupId = entry.lookupContextGroupId
+                            record.firstLookedUpAt = entry.firstLookedUpAt
+                            record.lastLookedUpAt = entry.lastLookedUpAt
+                            record.lookupCount = entry.lookupCount
+                        }
                     }
+                    try ctx.save()
                 }
-                try ctx.save()
-            }
 
-            // After save, backfill objectIDs for newly created entries
-            await MainActor.run { [weak self] in
-                self?.backfillObjectIDs(for: keysToFlush)
+                // After save, backfill objectIDs for newly created entries
+                await MainActor.run { [weak self] in
+                    self?.backfillObjectIDs(for: keysToFlush)
+                }
+            } catch {
+                debugLog("❌ LookupHistory flush failed: \(error)")
+                // Re-add keys to dirtyKeys so they will be retried
+                // on the next flush cycle (threshold / debounce / lifecycle).
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.dirtyKeys.formUnion(keysToFlush)
+                    self.scheduleDeferredPersist()
+                }
             }
         }
     }

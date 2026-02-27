@@ -44,17 +44,30 @@ final class SyncModeService {
 
     private static let key = "syncMode"
 
+    /// Shared UserDefaults accessible by the main app and extensions.
+    private static let sharedDefaults = UserDefaults(
+        suiteName: AppIdentifiers.appGroupIdentifier
+    ) ?? UserDefaults.standard
+
     // MARK: - Current Mode
 
     /// The user's persisted sync-mode choice.
-    /// Reads from / writes to `UserDefaults.standard`.
+    /// Stored in App Group UserDefaults so extensions can read it.
     var currentMode: SyncMode {
         get {
-            SyncMode(rawValue: UserDefaults.standard.integer(forKey: Self.key))
-                ?? .notDecided
+            // Check App Group first, fall back to standard for migration
+            let shared = Self.sharedDefaults.integer(forKey: Self.key)
+            if shared != 0 { return SyncMode(rawValue: shared) ?? .notDecided }
+            // Migrate from UserDefaults.standard if present (one-time)
+            let legacy = UserDefaults.standard.integer(forKey: Self.key)
+            if legacy != 0 {
+                Self.sharedDefaults.set(legacy, forKey: Self.key)
+                return SyncMode(rawValue: legacy) ?? .notDecided
+            }
+            return .notDecided
         }
         set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: Self.key)
+            Self.sharedDefaults.set(newValue.rawValue, forKey: Self.key)
         }
     }
 

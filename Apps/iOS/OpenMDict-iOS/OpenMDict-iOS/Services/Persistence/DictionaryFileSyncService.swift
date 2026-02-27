@@ -433,6 +433,7 @@ final class DictionaryFileSyncService {
             }
 
             // Copy each asset to local path
+            var copyFailed = false
             for (recordID, record) in fetchedRecords {
                 guard let asset = record["fileAsset"] as? CKAsset,
                       let assetURL = asset.fileURL,
@@ -449,8 +450,23 @@ final class DictionaryFileSyncService {
                     )
                 } catch {
                     debugLog("❌ Failed to copy \(recordID.recordName): \(error)")
+                    copyFailed = true
+                    break
                 }
             }
+
+            // Abort early if any file copy failed within this batch
+            if copyFailed { break }
+        }
+
+        // Validate download completeness — partial downloads leave a
+        // corrupt dictionary directory that the user cannot open.
+        if downloaded < totalFiles {
+            debugLog("❌ Incomplete download: \(downloaded)/\(totalFiles) files — cleaning up \(dictId.prefix(16))")
+            try? FileManager.default.removeItem(at: dictDir)
+            updateSyncStatus(dictId: dictId, status: .error)
+            syncProgress.removeValue(forKey: dictId)
+            return false
         }
 
         // 5. Save manifest locally
@@ -603,13 +619,20 @@ final class DictionaryFileSyncService {
 
         var recordIDsToDelete: [CKRecord.ID] = []
 
-        // Manifest
+        // Try local manifest first; fall back to remote manifest if
+        // local files were already deleted (prevents CKRecord orphans
+        // that permanently consume the user's iCloud quota).
+        var manifest: DictManifest? = storage.loadDictManifest(id: dictId)
+        if manifest == nil {
+            manifest = await fetchRemoteManifest(dictId: dictId)
+        }
+
+        // Manifest record itself
         recordIDsToDelete.append(CKRecord.ID(
             recordName: manifestRecordName(dictId: dictId)
         ))
 
-        // Enumerate files from local manifest (if still available)
-        if let manifest = storage.loadDictManifest(id: dictId) {
+        if let manifest {
             // MDX
             recordIDsToDelete.append(CKRecord.ID(
                 recordName: recordName(dictId: dictId, fileName: manifest.mdx.fileName)
@@ -632,6 +655,8 @@ final class DictionaryFileSyncService {
                     recordName: recordName(dictId: dictId, fileName: entry.fileName)
                 ))
             }
+        } else {
+            debugLog("⚠️ No manifest (local or remote) for \(dictId.prefix(16)) — only manifest CKRecord will be deleted")
         }
 
         // Batch delete
@@ -693,47 +718,79 @@ final class DictionaryFileSyncService {
 
     /// Upload a batch of CKRecords with .allKeys save policy.
     private func uploadBatch(_ records: [CKRecord]) async throws {
-        let operation = CKModifyRecordsOperation(
-            recordsToSave: records,
-            recordIDsToDelete: nil
-        )
-        operation.savePolicy = .allKeys
-        operation.qualityOfService = .userInitiated
+        try await withCloudKitRetry {
+            let operation = CKModifyRecordsOperation(
+                recordsToSave: records,
+                recordIDsToDelete: nil
+            )
+            operation.savePolicy = .allKeys
+            operation.qualityOfService = .userInitiated
 
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            operation.modifyRecordsResultBlock = { result in
-                switch result {
-                case .success:  cont.resume()
-                case .failure(let error): cont.resume(throwing: error)
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                operation.modifyRecordsResultBlock = { result in
+                    switch result {
+                    case .success:  cont.resume()
+                    case .failure(let error): cont.resume(throwing: error)
+                    }
                 }
+                self.database.add(operation)
             }
-            self.database.add(operation)
         }
     }
 
     /// Fetch a batch of CKRecords by their IDs.
     private func fetchBatch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord.ID: CKRecord] {
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[CKRecord.ID: CKRecord], Error>) in
-            let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
-            operation.qualityOfService = .userInitiated
+        try await withCloudKitRetry {
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[CKRecord.ID: CKRecord], Error>) in
+                let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
+                operation.qualityOfService = .userInitiated
 
-            var results: [CKRecord.ID: CKRecord] = [:]
+                var results: [CKRecord.ID: CKRecord] = [:]
 
-            operation.perRecordResultBlock = { recordID, result in
-                if case .success(let record) = result {
-                    results[recordID] = record
+                operation.perRecordResultBlock = { recordID, result in
+                    switch result {
+                    case .success(let record):
+                        results[recordID] = record
+                    case .failure(let error):
+                        debugLog("⚠️ fetchBatch: per-record failure \(recordID.recordName): \(error.localizedDescription)")
+                    }
                 }
-            }
-            operation.fetchRecordsResultBlock = { result in
-                switch result {
-                case .success:
-                    cont.resume(returning: results)
-                case .failure(let error):
-                    cont.resume(throwing: error)
+                operation.fetchRecordsResultBlock = { result in
+                    switch result {
+                    case .success:
+                        cont.resume(returning: results)
+                    case .failure(let error):
+                        cont.resume(throwing: error)
+                    }
                 }
+                self.database.add(operation)
             }
-            self.database.add(operation)
         }
+    }
+
+    // MARK: - CloudKit Retry
+
+    /// Retry a CloudKit operation up to `maxRetries` times for transient errors.
+    /// Respects `CKError.retryAfterSeconds` when provided by the server.
+    private func withCloudKitRetry<T>(
+        maxRetries: Int = 3,
+        operation: @escaping () async throws -> T
+    ) async throws -> T {
+        var lastError: Error?
+        for attempt in 0...maxRetries {
+            do {
+                return try await operation()
+            } catch let ckError as CKError where ckError.isRetriable {
+                lastError = ckError
+                let delay = ckError.retryAfterSeconds
+                    ?? min(Double(attempt + 1) * 2.0, 15.0)
+                debugLog("☁️ Retry \(attempt + 1)/\(maxRetries) after \(String(format: "%.1f", delay))s — \(ckError.code.rawValue)")
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            } catch {
+                throw error  // Non-retriable → fail immediately
+            }
+        }
+        throw lastError!
     }
 
     // MARK: - Manifest Diff Helpers
@@ -757,5 +814,23 @@ final class DictionaryFileSyncService {
     ) -> [DictManifest.ResourceEntry] {
         let remoteNames = Set(remote.map { $0.fileName })
         return local.filter { !remoteNames.contains($0.fileName) }
+    }
+}
+
+// MARK: - CKError + Retriable
+
+private extension CKError {
+    /// Transient errors that CloudKit expects callers to retry.
+    var isRetriable: Bool {
+        switch code {
+        case .requestRateLimited,   // Server throttling (includes retryAfterSeconds)
+             .zoneBusy,             // Zone temporarily unavailable
+             .serviceUnavailable,   // Server maintenance
+             .networkFailure,       // Temporary network issue
+             .networkUnavailable:   // Connectivity lost
+            return true
+        default:
+            return false
+        }
     }
 }

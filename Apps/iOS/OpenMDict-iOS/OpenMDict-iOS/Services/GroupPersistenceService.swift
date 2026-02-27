@@ -119,7 +119,9 @@ final class GroupPersistenceService {
         do {
             let request = DictionaryGroupRecord.fetchRequest()
             let records = try ctx.fetch(request)
-            existingGroups = Dictionary(uniqueKeysWithValues: records.map { ($0.groupId, $0) })
+            // Use uniquingKeysWith to safely handle CloudKit-synced duplicates
+            // (dedup may not have merged them yet).
+            existingGroups = Dictionary(records.map { ($0.groupId, $0) }, uniquingKeysWith: { first, _ in first })
         } catch {
             debugLog("❌ GroupPersistenceService: failed to fetch existing groups: \(error)")
             return
@@ -216,7 +218,8 @@ final class GroupPersistenceService {
         existing: [GroupEntryRecord]
     ) {
         // Index existing entries by dictId
-        let existingByDictId = Dictionary(uniqueKeysWithValues: existing.map { ($0.dictId, $0) })
+        // Use uniquingKeysWith to safely handle CloudKit-synced duplicates.
+        let existingByDictId = Dictionary(existing.map { ($0.dictId, $0) }, uniquingKeysWith: { first, _ in first })
         let incomingSet = Set(incoming)
 
         // Delete entries no longer in this group
