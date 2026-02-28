@@ -47,7 +47,7 @@ class ArticlePageView: UIView {
         static let regularCell:     Features = [.pendingOverlay, .bookmark, .lookupCount,
                                                 .findInPage, .newWindowButton, .closeButton,
                                                 .dragInteraction, .jumpSearch]
-        static let actionExtension: Features = [.bookmark, .lookupCount]
+        static let actionExtension: Features = [.bookmark, .lookupCount, .jumpSearch]
     }
 
     // MARK: - Configuration

@@ -115,6 +115,8 @@ class ActionViewController: UIViewController {
         // Extensions are short-lived, read-only — never need CloudKit sync.
         CoreDataStack.shared.setup(enableCloudKit: false)
 
+        ArticlePageView.registerJumpSearchMenuItem()
+
         view.backgroundColor = .systemBackground
 
         configureNavigationBar()
@@ -942,6 +944,15 @@ class ActionViewController: UIViewController {
             self.playAudio(url: url, from: pageView)
         }
 
+        pageView.onJumpSearch = { [weak self, weak pageView] text in
+            guard let self, let pageView else { return }
+            guard let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+                  pageIndex < self.results.count else { return }
+            let dictId = self.results[pageIndex].dictId
+            let dictName = self.results[pageIndex].dictName
+            self.performJumpSearch(word: text, dictId: dictId, dictName: dictName)
+        }
+
         return pageView
     }
 
@@ -1001,8 +1012,142 @@ class ActionViewController: UIViewController {
         pageView.loadHTMLContent(renderedHTML)
     }
 
+    /// Insert a jump-searched article at the front (index 0) of the pager.
+    private func insertArticleAtFront(_ result: ArticleResult) {
+        guard let sv = scrollView else { return }
+
+        // 1. Insert into data arrays at index 0
+        results.insert(result, at: 0)
+
+        // 2. Shift all existing pages right by one page width
+        let pageWidth = sv.bounds.width
+        for constraint in pageLeadingConstraints {
+            constraint.constant += pageWidth
+        }
+
+        // 3. Create & insert new page at index 0
+        let pageView = makeArticlePageView(for: result)
+        sv.addSubview(pageView)
+
+        let leadingConstraint = pageView.leadingAnchor.constraint(
+            equalTo: sv.leadingAnchor, constant: 0
+        )
+        NSLayoutConstraint.activate([
+            pageView.topAnchor.constraint(equalTo: sv.topAnchor),
+            pageView.widthAnchor.constraint(equalTo: sv.widthAnchor),
+            pageView.heightAnchor.constraint(equalTo: sv.heightAnchor),
+            leadingConstraint,
+        ])
+
+        pages.insert(pageView, at: 0)
+        pageLeadingConstraints.insert(leadingConstraint, at: 0)
+
+        // 4. Update content size & page control
+        sv.contentSize = CGSize(
+            width: pageWidth * CGFloat(pages.count),
+            height: sv.bounds.height
+        )
+        pageControl?.numberOfPages = results.count
+        pageControl?.isHidden = results.count <= 1
+        pageControlBackdrop?.isHidden = results.count <= 1
+
+        // 5. Keep current view stable: shift contentOffset right by one page
+        sv.contentOffset.x += pageWidth
+
+        // 6. Zoom + render
+        if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
+        let renderedHTML = ArticleHTMLRenderer.renderArticle(
+            html: result.html, dictId: result.dictId,
+            traitCollection: traitCollection
+        )
+        pageView.loadHTMLContent(renderedHTML)
+
+        // 7. Record lookup history
+        LookupHistoryService.shared.recordLookup(
+            word: result.keyword, dictId: result.dictId,
+            lookupContextDictId: nil, lookupContextGroupId: nil
+        )
+
+        // 8. Animate scroll to page 0
+        navigateToPage(0, animated: true)
+    }
+
     @objc private func pageControlValueChanged(_ sender: UIPageControl) {
         navigateToPage(sender.currentPage, animated: true)
+    }
+
+    // MARK: - Jump Search
+
+    /// Look up the selected text in the same dictionary within the extension.
+    /// Found → insert at front of pager. Not found → open main app.
+    private func performJumpSearch(word: String, dictId: String, dictName: String) {
+        let trimmed = word.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        Task.detached { [weak self] in
+            guard let self else { return }
+
+            // 1. Open dictionary (same pattern as loadDictionaryAndLookup)
+            let dictDir = Self.dictionariesRoot.appendingPathComponent(dictId)
+            let manifestURL = dictDir.appendingPathComponent("manifest.json")
+
+            guard let manifestData = try? Data(contentsOf: manifestURL),
+                  let manifest = try? JSONDecoder.isoDate.decode(DictManifestLite.self, from: manifestData) else {
+                await MainActor.run { self.openInApp(word: trimmed) }
+                return
+            }
+
+            let mdxPath = dictDir.appendingPathComponent(manifest.mdx.fileName).path
+            guard FileManager.default.fileExists(atPath: mdxPath),
+                  let reader = try? MDictReader(path: mdxPath) else {
+                await MainActor.run { self.openInApp(word: trimmed) }
+                return
+            }
+
+            // 2. Exact match lookup (same logic as initial scan)
+            let candidates = reader.search(prefix: trimmed, limit: 10)
+            let exactMatches = candidates.filter {
+                $0.caseInsensitiveCompare(trimmed) == .orderedSame
+            }
+
+            guard let keyword = exactMatches.first,
+                  let entry = reader.lookup(keyword) else {
+                // Not found → open main app (no confirmation needed)
+                await MainActor.run { self.openInApp(word: trimmed) }
+                return
+            }
+            let html = entry.article.html
+            // reader deinit → MDX index freed
+
+            // 3. MDD resource extraction (if needed)
+            if !manifest.mdd.isEmpty {
+                let resourcePaths = HTMLResourceRewriter.extractResourcePaths(from: html)
+                if !resourcePaths.isEmpty {
+                    let mddDir = dictDir.appendingPathComponent("mdd", isDirectory: true)
+                    let mddParsers: [MDDParser] = manifest.mdd.compactMap { mddEntry in
+                        let path = mddDir.appendingPathComponent(mddEntry.fileName).path
+                        return try? MDDParser(path: path)
+                    }
+                    if !mddParsers.isEmpty {
+                        MDDResourceExtractor.extractAndCache(
+                            resourcePaths: resourcePaths,
+                            mddParsers: mddParsers,
+                            dictId: dictId
+                        )
+                    }
+                    // mddParsers deinit → MDD index freed
+                }
+            }
+
+            // 4. Insert at front + navigate
+            let result = ArticleResult(
+                dictId: dictId, dictName: dictName,
+                keyword: keyword, html: html
+            )
+            await MainActor.run {
+                self.insertArticleAtFront(result)
+            }
+        }
     }
 
     // MARK: - Status Display
