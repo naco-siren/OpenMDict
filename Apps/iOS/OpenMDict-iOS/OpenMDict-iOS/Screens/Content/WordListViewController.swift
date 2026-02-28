@@ -202,6 +202,18 @@ class WordListViewController: UIViewController {
         updateTitleView()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        // Refresh clipboard when returning from a pushed VC (e.g. article detail)
+        // so it picks up text the user may have copied in the WebView.
+        // iOS 16+: always shows placeholder, no refresh needed.
+        if #unavailable(iOS 16.0), case .activeEmpty = displayState {
+            refreshClipboard()
+            rebuildSections()
+        }
+    }
+
     // MARK: - Display State Management
 
     private func updateDisplayState() {
@@ -241,8 +253,15 @@ class WordListViewController: UIViewController {
             }
 
         case .activeEmpty:
-            // Clipboard (only shown when clipboard has searchable text)
-            if let clipboardText {
+            // Clipboard
+            if #available(iOS 16.0, *) {
+                // Always show actionable placeholder (reads clipboard on tap)
+                newSections.append(SectionData(
+                    type: .clipboard,
+                    rows: [.clipboardContent(nil)]
+                ))
+            } else if let clipboardText {
+                // iOS 15: only show when clipboard has valid text
                 newSections.append(SectionData(
                     type: .clipboard,
                     rows: [.clipboardContent(clipboardText)]
@@ -374,14 +393,22 @@ class WordListViewController: UIViewController {
 
     private func refreshClipboard() {
         if #available(iOS 16.0, *) {
-            guard UIPasteboard.general.hasStrings else {
+            // Don't read clipboard upfront — avoids system paste permission alert.
+            // Clipboard section shows actionable placeholder; actual read happens on tap.
+            clipboardText = nil
+        } else {
+            // iOS 15: Read clipboard directly (no system alert).
+            // Only show if text is reasonable for a dictionary lookup.
+            let text = UIPasteboard.general.string?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if let text, !text.isEmpty,
+               text.count <= 50,
+               text.components(separatedBy: .whitespaces).filter({ !$0.isEmpty }).count <= 10 {
+                clipboardText = text
+            } else {
                 clipboardText = nil
-                return
             }
         }
-        let text = UIPasteboard.general.string?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        clipboardText = (text?.isEmpty ?? true) ? nil : text
     }
 
     /// Inject text into the search bar, triggering the reactive search pipeline.
@@ -595,16 +622,23 @@ extension WordListViewController: UITableViewDataSource {
         switch row {
         case .clipboardContent(let text):
             c.image = UIImage(systemName: "doc.on.clipboard")
-            c.imageProperties.tintColor = .secondaryLabel
             if let text {
-                // Truncate long clipboard text for display
+                // iOS 15: show actual clipboard text + "Paste to search"
+                c.imageProperties.tintColor = .secondaryLabel
                 let truncated = text.count > 60
                     ? String(text.prefix(60)) + "\u{2026}"
                     : text
                 c.text = truncated
                 c.secondaryText = L10n.WordList.clipboardPasteToSearch
                 c.secondaryTextProperties.color = .secondaryLabel
+            } else if #available(iOS 16.0, *) {
+                // iOS 16+: actionable placeholder — tapping triggers paste alert
+                c.imageProperties.tintColor = .tintColor
+                c.text = L10n.WordList.clipboardPasteFromClipboard
+                c.textProperties.color = .tintColor
             } else {
+                // iOS 15: empty clipboard — non-interactive placeholder
+                c.imageProperties.tintColor = .secondaryLabel
                 c.text = L10n.WordList.clipboardEmpty
                 c.textProperties.color = .tertiaryLabel
             }
@@ -683,8 +717,16 @@ extension WordListViewController: UITableViewDelegate {
 
         switch row {
         case .clipboardContent(let text):
-            guard let text else { return }  // placeholder cell — non-interactive
-            injectSearchText(text)
+            if let text {
+                injectSearchText(text)
+            } else if #available(iOS 16.0, *) {
+                // Read clipboard on demand — triggers system paste alert
+                if let pastedText = UIPasteboard.general.string?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !pastedText.isEmpty {
+                    injectSearchText(pastedText)
+                }
+            }
 
         case .historyRecord(let record):
             let wordItem = WordDisplayItem(

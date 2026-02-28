@@ -257,6 +257,9 @@ nonisolated enum L10n {
         static var clipboardEmpty: String {
             NSLocalizedString("wordList.clipboardEmpty", value: "Copy a word to paste here", comment: "Clipboard cell text when clipboard is empty")
         }
+        static var clipboardPasteFromClipboard: String {
+            NSLocalizedString("wordList.clipboardPasteFromClipboard", value: "Paste from clipboard", comment: "Clipboard cell text on iOS 16+ — tapping triggers paste permission alert")
+        }
         static var searchResultsHeader: String {
             NSLocalizedString("wordList.searchResultsHeader", value: "Search Results", comment: "Section header for search results")
         }
