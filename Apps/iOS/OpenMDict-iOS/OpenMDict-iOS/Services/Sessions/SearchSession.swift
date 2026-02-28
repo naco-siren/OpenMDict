@@ -23,6 +23,7 @@ final class SearchSession: ObservableObject {
     // MARK: - Output
 
     @Published private(set) var results: [WordDisplayItem] = []
+    @Published private(set) var lemmaResults: [WordDisplayItem] = []
     @Published private(set) var suggestions: [String] = []
 
     // MARK: - State
@@ -37,6 +38,7 @@ final class SearchSession: ObservableObject {
         self.volumeSubject = CurrentValueSubject(volume)
         subscribeToSettingsChanges()
         setupPipeline()
+        setupLemmaPipeline()
         setupSuggestionsPipeline()
     }
     
@@ -93,16 +95,99 @@ final class SearchSession: ObservableObject {
         .store(in: &cancellables)
     }
 
+    // MARK: - Lemma Resolution
+
+    private var lemmaTask: Task<Void, Never>?
+
+    /// Lemma resolution pipeline:
+    /// - Clears stale lemma results immediately when query changes (switchMap semantics).
+    /// - After direct search results settle (300ms debounce), evaluates whether
+    ///   lemma resolution is needed (results < 3).
+    /// - Runs layered resolution on background thread:
+    ///   Layer 1: Normalize + strip stopwords → search candidates → early stop if enough
+    ///   Layer 2: NLTagger + English inflection rules → search candidates → merge
+    /// - All intermediate state is invisible to user (search bar shows raw query only).
+    private func setupLemmaPipeline() {
+        // 1) Immediate clear + cancel on query change (switchMap semantics)
+        querySubject
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.lemmaTask?.cancel()
+                self?.lemmaResults = []
+            }
+            .store(in: &cancellables)
+
+        // 2) Evaluate after direct results settle
+        $results
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .sink { [weak self] results in
+                self?.evaluateLemmaResolution(for: results)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func evaluateLemmaResolution(for results: [WordDisplayItem]) {
+        lemmaTask?.cancel()
+
+        let query = querySubject.value
+        guard results.count < 3, !query.isEmpty else {
+            lemmaResults = []
+            return
+        }
+
+        let context = contextSubject.value
+        let volume = volumeSubject.value
+        let existingWords = Set(results.map { $0.word.lowercased() })
+
+        // Capture reader+metadata tuples on MainActor — safe to pass to background
+        let readerInfos: [LemmaReaderInfo]
+        switch context {
+        case .dictionary(let dict):
+            if let reader = dict.reader {
+                readerInfos = [LemmaReaderInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle)]
+            } else {
+                readerInfos = []
+            }
+        case .group(let group):
+            readerInfos = group.active.compactMap { dict in
+                guard let reader = dict.reader else { return nil }
+                return LemmaReaderInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle)
+            }
+        case .none:
+            readerInfos = []
+        }
+
+        guard !readerInfos.isEmpty else {
+            lemmaResults = []
+            return
+        }
+
+        lemmaTask = Task { [weak self] in
+            let items = await resolveLemmaInBackground(
+                query: query,
+                readerInfos: readerInfos,
+                perDictLimit: volume.perDictLimit,
+                existingResultCount: results.count,
+                existingWords: existingWords
+            )
+
+            guard !Task.isCancelled else { return }
+            self?.lemmaResults = items
+        }
+    }
+
     // MARK: - Suggestions
 
     private var suggestionsTask: Task<Void, Never>?
 
     /// Derived suggestions pipeline:
     /// - Clears stale suggestions immediately when query changes.
-    /// - After results settle (300ms debounce, avoids premature firing during
-    ///   progressive group results), evaluates whether suggestions are needed.
-    /// - When results < 3 and query is non-empty, runs Levenshtein-ranked
+    /// - After BOTH results and lemmaResults settle (300ms debounce), evaluates
+    ///   whether suggestions are needed.
+    /// - When total results < 3 and query is non-empty, runs Levenshtein-ranked
     ///   suggestions on a background thread (`@concurrent`).
+    /// - Deduplicates against both direct results and lemma results.
     /// - Previous computation is auto-cancelled when new results arrive.
     private func setupSuggestionsPipeline() {
         // 1) Clear stale suggestions immediately when query changes
@@ -115,26 +200,31 @@ final class SearchSession: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // 2) Evaluate after results settle
-        $results
+        // 2) Evaluate after both results and lemmaResults settle
+        $results.combineLatest($lemmaResults)
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-            .sink { [weak self] results in
-                self?.evaluateSuggestions(for: results)
+            .sink { [weak self] results, lemmaResults in
+                self?.evaluateSuggestions(for: results, lemmaResults: lemmaResults)
             }
             .store(in: &cancellables)
     }
 
-    private func evaluateSuggestions(for results: [WordDisplayItem]) {
+    private func evaluateSuggestions(for results: [WordDisplayItem], lemmaResults: [WordDisplayItem]) {
         suggestionsTask?.cancel()
 
         let query = querySubject.value
-        guard results.count < 3, !query.isEmpty else {
+        let totalResults = results.count + lemmaResults.count
+        guard totalResults < 3, !query.isEmpty else {
             suggestions = []
             return
         }
 
         let context = contextSubject.value
-        let existingWords = Set(results.map(\.word))
+        // Deduplicate against both direct results and lemma results (case-insensitive)
+        let existingWords = Set(
+            results.map { $0.word.lowercased() } +
+            lemmaResults.map { $0.word.lowercased() }
+        )
 
         // Capture Sendable readers on MainActor — safe to pass to background
         let readers: [MDictReader]
@@ -232,10 +322,136 @@ private nonisolated func computeSuggestionsInBackground(
 
     return Array(
         allSuggestions
-            .filter { !existingWords.contains($0) }
+            .filter { !existingWords.contains($0.lowercased()) }
             .sorted()
             .prefix(5)
     )
+}
+
+// MARK: - Lemma Reader Info
+
+/// Reader + dictionary metadata tuple for background lemma resolution.
+/// Captured on MainActor, safe to pass to `@concurrent` background tasks.
+private struct LemmaReaderInfo: Sendable {
+    let reader: MDictReader
+    let dictId: String
+    let dictName: String
+}
+
+// MARK: - Background Lemma Resolution
+
+/// Layered lemma resolution on a background thread.
+///
+/// Layer 1: Normalize + strip stopwords → search candidates → early stop if enough.
+/// Layer 2: NLTagger + English inflection rules → search candidates → merge.
+///
+/// All intermediate state is invisible to the user.
+/// Checks `Task.isCancelled` between phases for switchMap cancellation.
+@concurrent
+private nonisolated func resolveLemmaInBackground(
+    query: String,
+    readerInfos: [LemmaReaderInfo],
+    perDictLimit: Int,
+    existingResultCount: Int,
+    existingWords: Set<String>
+) async -> [WordDisplayItem] {
+    let threshold = 3
+
+    // Phase 1: Normalize
+    let normalized = LemmaResolver.normalize(query)
+    guard !normalized.isEmpty else { return [] }
+
+    // Phase 2: Strip stopwords → candidates
+    let strippedCandidates = LemmaResolver.stripStopwords(normalized)
+    guard !Task.isCancelled else { return [] }
+
+    // Search stripped candidates (these may differ from the original query)
+    // Only search candidates that differ from the original normalized query
+    let originalTokens = Set(normalized.components(separatedBy: " "))
+    let newCandidates = strippedCandidates.filter { !originalTokens.contains($0) }
+
+    var allLemmaResults: [WordDisplayItem] = []
+    var seenWords = existingWords  // case-insensitive dedup against direct results
+
+    if !newCandidates.isEmpty {
+        let strippedResults = searchCandidates(
+            newCandidates, in: readerInfos, limit: perDictLimit, excluding: &seenWords
+        )
+        allLemmaResults.append(contentsOf: strippedResults)
+    }
+
+    guard !Task.isCancelled else { return [] }
+
+    // Check if we have enough total results — early stop (避免画蛇添足)
+    if existingResultCount + allLemmaResults.count >= threshold {
+        return allLemmaResults
+    }
+
+    // Phase 3: Inflection resolution (NLTagger + rules, parallel)
+    // Use the first stripped candidate as primary, or fall back to full normalized string
+    let primaryWord = strippedCandidates.first ?? normalized
+
+    // Run NLTagger and rule-based resolution
+    let nlCandidates = LemmaResolver.nltaggerLemmas(primaryWord)
+    let ruleCandidates = EnglishInflectionRules.resolve(primaryWord)
+
+    guard !Task.isCancelled else { return [] }
+
+    // Also resolve each stripped candidate individually if there are multiple
+    var allInflectionCandidates = Set(nlCandidates + ruleCandidates)
+    for candidate in strippedCandidates where candidate != primaryWord {
+        guard !Task.isCancelled else { return [] }
+        let nlExtra = LemmaResolver.nltaggerLemmas(candidate)
+        let ruleExtra = EnglishInflectionRules.resolve(candidate)
+        allInflectionCandidates.formUnion(nlExtra)
+        allInflectionCandidates.formUnion(ruleExtra)
+    }
+
+    // Remove candidates we've already searched
+    let alreadySearched = Set(strippedCandidates + Array(originalTokens))
+    let inflectionOnly = allInflectionCandidates.filter { !alreadySearched.contains($0) }
+
+    guard !inflectionOnly.isEmpty, !Task.isCancelled else {
+        return allLemmaResults
+    }
+
+    let inflectionResults = searchCandidates(
+        Array(inflectionOnly), in: readerInfos, limit: perDictLimit, excluding: &seenWords
+    )
+    allLemmaResults.append(contentsOf: inflectionResults)
+
+    guard !Task.isCancelled else { return [] }
+    return allLemmaResults
+}
+
+/// Search candidate words across all readers, building WordDisplayItem results.
+/// Deduplicates (case-insensitive) against `seenWords` and updates it.
+/// Called from within `resolveLemmaInBackground` (already on background thread).
+private nonisolated func searchCandidates(
+    _ candidates: [String],
+    in readerInfos: [LemmaReaderInfo],
+    limit: Int,
+    excluding seenWords: inout Set<String>
+) -> [WordDisplayItem] {
+    var results: [WordDisplayItem] = []
+
+    for candidate in candidates {
+        guard !Task.isCancelled else { return [] }
+        for info in readerInfos {
+            guard !Task.isCancelled else { return [] }
+            let matches = info.reader.search(prefix: candidate, limit: limit)
+            for match in matches {
+                let key = match.lowercased()
+                guard !seenWords.contains(key) else { continue }
+                seenWords.insert(key)
+                results.append(WordDisplayItem(
+                    word: match, dictId: info.dictId, dictName: info.dictName
+                ))
+            }
+        }
+    }
+
+    return results
 }
 
 // MARK: - Search Result Volume

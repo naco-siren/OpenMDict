@@ -269,6 +269,9 @@ nonisolated enum L10n {
         static var searchResultsHeader: String {
             NSLocalizedString("wordList.searchResultsHeader", value: "Search Results", comment: "Section header for search results")
         }
+        static var relatedFormsHeader: String {
+            NSLocalizedString("wordList.relatedFormsHeader", value: "Related Forms", comment: "Section header for lemma-resolved related word forms (inflections, base forms)")
+        }
         static var suggestionsHeader: String {
             NSLocalizedString("wordList.suggestionsHeader", value: "Suggestions", comment: "Section header for suggested similar words")
         }

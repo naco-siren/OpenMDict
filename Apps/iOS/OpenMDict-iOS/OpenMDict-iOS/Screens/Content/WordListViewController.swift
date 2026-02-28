@@ -32,6 +32,7 @@ class WordListViewController: UIViewController {
         case clipboard
         case history(String)      // title = date string ("Today", "Yesterday", …)
         case searchResults
+        case relatedForms         // lemma-resolved related forms (inflections, base forms)
         case suggestions
     }
 
@@ -44,6 +45,7 @@ class WordListViewController: UIViewController {
         case clipboardContent(String?)   // nil = clipboard empty → placeholder
         case historyRecord(HistoryItem)
         case searchResult(WordDisplayItem)
+        case relatedForm(WordDisplayItem) // lemma-derived result (tap opens article)
         case suggestion(String)
     }
 
@@ -62,6 +64,9 @@ class WordListViewController: UIViewController {
 
     /// Current displayed words (bound to SearchSession.$results)
     private var displayedWords: [WordDisplayItem] = []
+
+    /// Lemma-resolved related forms (bound to SearchSession.$lemmaResults)
+    private var lemmaWords: [WordDisplayItem] = []
 
     /// Suggested words when search results are few (bound to SearchSession.$suggestions)
     private var suggestedWords: [String] = []
@@ -195,6 +200,7 @@ class WordListViewController: UIViewController {
         ])
 
         subscribeToSearchResults()
+        subscribeToLemmaResults()
         subscribeToSuggestions()
         subscribeToHistoryChanges()
         loadHistory()
@@ -283,6 +289,13 @@ class WordListViewController: UIViewController {
                     rows: displayedWords.map { .searchResult($0) }
                 ))
             }
+            // Related forms (lemma-resolved)
+            if !lemmaWords.isEmpty {
+                newSections.append(SectionData(
+                    type: .relatedForms,
+                    rows: lemmaWords.map { .relatedForm($0) }
+                ))
+            }
             // Suggestions (only when few results)
             if !suggestedWords.isEmpty {
                 newSections.append(SectionData(
@@ -305,6 +318,17 @@ class WordListViewController: UIViewController {
             .sink { [weak self] results in
                 guard let self else { return }
                 self.displayedWords = results
+                self.rebuildSections()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func subscribeToLemmaResults() {
+        searchSession?.$lemmaResults
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] results in
+                guard let self else { return }
+                self.lemmaWords = results
                 self.rebuildSections()
             }
             .store(in: &cancellables)
@@ -508,7 +532,7 @@ class WordListViewController: UIViewController {
                 )
                 emptyStateView.isHidden = false
                 tableView.isHidden = true
-            } else if displayedWords.isEmpty && suggestedWords.isEmpty {
+            } else if displayedWords.isEmpty && lemmaWords.isEmpty && suggestedWords.isEmpty {
                 configureEmptyState(
                     icon: "magnifyingglass",
                     title: L10n.WordList.noResults(
@@ -603,6 +627,7 @@ extension WordListViewController: UITableViewDataSource {
         case .clipboard:       return L10n.WordList.clipboardHeader
         case .history(let t):  return t
         case .searchResults:   return L10n.WordList.searchResultsHeader
+        case .relatedForms:    return L10n.WordList.relatedFormsHeader
         case .suggestions:     return L10n.WordList.suggestionsHeader
         }
     }
@@ -657,13 +682,25 @@ extension WordListViewController: UITableViewDataSource {
 
         case .searchResult(let wordItem):
             c.text = wordItem.word
-            let iconName: String
-            if #available(iOS 17.0, *) {
-                iconName = "book.pages"
+            if #available(iOS 18.0, *) {
+                c.image = UIImage(systemName: "richtext.page")
             } else {
-                iconName = "menucard"
+                c.image = UIImage(systemName: "menucard")
             }
-            c.image = UIImage(systemName: iconName)
+            c.imageProperties.tintColor = .secondaryLabel
+            // Show dictionary name as secondary text when displaying a group
+            if case .group = searchSession?.currentContext {
+                c.secondaryText = wordItem.dictName
+                c.secondaryTextProperties.color = .secondaryLabel
+            }
+
+        case .relatedForm(let wordItem):
+            c.text = wordItem.word
+            if #available(iOS 18.0, *) {
+                c.image = UIImage(systemName: "richtext.page")
+            } else {
+                c.image = UIImage(systemName: "menucard")
+            }
             c.imageProperties.tintColor = .secondaryLabel
             // Show dictionary name as secondary text when displaying a group
             if case .group = searchSession?.currentContext {
@@ -673,7 +710,11 @@ extension WordListViewController: UITableViewDataSource {
 
         case .suggestion(let word):
             c.text = word
-            c.image = UIImage(systemName: "lightbulb")
+            if #available(iOS 18.0, *) {
+                c.image = UIImage(systemName: "questionmark.text.page")
+            } else {
+                c.image = UIImage(systemName: "lightbulb")
+            }
             c.imageProperties.tintColor = .secondaryLabel
         }
 
@@ -739,6 +780,9 @@ extension WordListViewController: UITableViewDelegate {
         case .searchResult(let wordItem):
             onWordSelected?(wordItem)
 
+        case .relatedForm(let wordItem):
+            onWordSelected?(wordItem)
+
         case .suggestion(let word):
             injectSearchText(word)
         }
@@ -748,9 +792,12 @@ extension WordListViewController: UITableViewDelegate {
         guard indexPath.section < sections.count,
               indexPath.row < sections[indexPath.section].rows.count else { return nil }
 
-        // Context menu only for search result rows
-        guard case .searchResult(let word) = sections[indexPath.section].rows[indexPath.row] else {
-            return nil
+        // Context menu for search result and related form rows
+        let word: WordDisplayItem
+        switch sections[indexPath.section].rows[indexPath.row] {
+        case .searchResult(let w): word = w
+        case .relatedForm(let w):  word = w
+        default: return nil
         }
 
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
