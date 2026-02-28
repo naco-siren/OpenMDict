@@ -24,28 +24,43 @@ final class WelcomePageViewController: UIViewController {
         let body: String
     }
 
-    private let features: [Feature] = [
-        Feature(
-            symbolName: "text.and.command.macwindow",
-            title: L10n.Welcome.layoutsTitle,
-            body: L10n.Welcome.layoutsBody
-        ),
-        Feature(
-            symbolName: "macwindow.on.rectangle",
-            title: L10n.Welcome.multiWindowTitle,
-            body: L10n.Welcome.multiWindowBody
-        ),
-        Feature(
-            symbolName: "infinity",
-            title: L10n.Welcome.noLimitsTitle,
-            body: L10n.Welcome.noLimitsBody
-        ),
-        Feature(
-            symbolName: "gift",
-            title: L10n.Welcome.presetsTitle,
-            body: L10n.Welcome.presetsBody
-        ),
-    ]
+    private var features: [Feature] {
+        let extensionsIcon: String
+        if #available(iOS 18.0, *) {
+            extensionsIcon = traitCollection.horizontalSizeClass == .compact
+                ? "widget.small.badge.plus"
+                : "widget.large.badge.plus"
+        } else {
+            extensionsIcon = "square.text.square"
+        }
+        return [
+            Feature(
+                symbolName: "text.and.command.macwindow",
+                title: L10n.Welcome.layoutsTitle,
+                body: L10n.Welcome.layoutsBody
+            ),
+            Feature(
+                symbolName: "macwindow.on.rectangle",
+                title: L10n.Welcome.multiWindowTitle,
+                body: L10n.Welcome.multiWindowBody
+            ),
+            Feature(
+                symbolName: extensionsIcon,
+                title: L10n.Welcome.extensionsTitle,
+                body: L10n.Welcome.extensionsBody
+            ),
+            Feature(
+                symbolName: "gift",
+                title: L10n.Welcome.presetsTitle,
+                body: L10n.Welcome.presetsBody
+            ),
+            Feature(
+                symbolName: "infinity",
+                title: L10n.Welcome.noLimitsTitle,
+                body: L10n.Welcome.noLimitsBody
+            ),
+        ]
+    }
 
     // MARK: - Upper Zone (white)
 

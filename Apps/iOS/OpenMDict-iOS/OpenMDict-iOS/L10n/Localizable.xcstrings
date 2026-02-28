@@ -22575,6 +22575,174 @@
         }
       }
     },
+    "welcome.feature.extensions.body" : {
+      "comment" : "Feature card body for Action Extension + jump search",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابحث عن الكلمات من أي تطبيق في نافذة منبثقة، ثم تابع البحث المتسلسل عن المصطلحات غير المألوفة في التعريفات حتى تتضح كل كلمة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlagen Sie Wörter aus jeder App in einem Pop-up nach und suchen Sie unbekannte Begriffe in Definitionen per Sprungsuche weiter — bis jedes Wort klar ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look up words from any app in a pop-up, then keep jump-searching unfamiliar terms within definitions until every word is clear."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca palabras desde cualquier app en una ventana emergente y sigue buscando términos desconocidos en las definiciones hasta que cada palabra quede clara."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherchez des mots depuis n'importe quelle app dans une fenêtre contextuelle, puis enchaînez les recherches sur les termes inconnus dans les définitions jusqu'à ce que tout soit clair."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "किसी भी ऐप से पॉप-अप में शब्द खोजें, फिर परिभाषा में अपरिचित शब्दों को जंप-सर्च करते रहें — जब तक हर शब्द स्पष्ट न हो जाए।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どのアプリからでもポップアップで単語を検索。定義の中の知らない単語をジャンプ検索し続けて、すべての単語が分かるまで掘り下げましょう。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어떤 앱에서든 팝업으로 단어를 검색한 후, 정의 안의 모르는 단어를 점프 검색하며 모든 단어가 명확해질 때까지 이어가세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consulte palavras de qualquer app em um pop-up e continue pesquisando termos desconhecidos nas definições até que cada palavra fique clara."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ищите слова из любого приложения во всплывающем окне, а затем продолжайте искать незнакомые термины в определениях, пока каждое слово не станет понятным."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шукайте слова з будь-якого застосунку у спливаючому вікні, а потім продовжуйте шукати незнайомі терміни у визначеннях, доки кожне слово не стане зрозумілим."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在任何 App 中通过弹窗查词，再对释义中的生词连续跳查，直到每个词都弄清楚。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在任何 App 中透過彈窗查詞，再對釋義中的生詞連續跳查，直到每個詞都弄清楚。"
+          }
+        }
+      }
+    },
+    "welcome.feature.extensions.title" : {
+      "comment" : "Feature card title for Action Extension + jump search",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الاستعلام السريع والبحث المتسلسل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofortsuche und Sprungsuche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Lookup and Jump Search"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consulta rápida y búsqueda encadenada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche instantanée et recherche enchaînée"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "त्वरित लुकअप और जंप सर्च"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック検索とジャンプ検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 조회와 점프 검색"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consulta rápida e pesquisa encadeada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрый поиск и цепной поиск"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Швидкий пошук і ланцюговий пошук"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速查词与跳查"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速查詞與跳查"
+          }
+        }
+      }
+    },
     "welcome.feature.layouts.body" : {
       "comment" : "Feature card body",
       "extractionState" : "manual",
@@ -22666,79 +22834,79 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ثلاثة تخطيطات للمقالات على iPadOS"
+            "value" : "ثلاثة أوضاع تخطيط على iPadOS"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drei Artikellayouts auf iPadOS"
+            "value" : "Drei Layoutmodi auf iPadOS"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Three Article Layouts on iPadOS"
+            "value" : "Three Layout Modes on iPadOS"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tres diseños de artículos en iPadOS"
+            "value" : "Tres modos de diseño en iPadOS"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trois dispositions d’articles sur iPadOS"
+            "value" : "Trois modes de disposition sur iPadOS"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOS पर तीन आर्टिकल लेआउट"
+            "value" : "iPadOS पर तीन लेआउट मोड"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOSの3つの記事レイアウト"
+            "value" : "iPadOSの3つのレイアウトモード"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOS에서 3가지 아티클 레이아웃"
+            "value" : "iPadOS에서 3가지 레이아웃 모드"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Três layouts de artigos no iPadOS"
+            "value" : "Três modos de layout no iPadOS"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Три макета статей на iPadOS"
+            "value" : "Три режима макета на iPadOS"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Три макети статей на iPadOS"
+            "value" : "Три режими макету на iPadOS"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOS 三种文章布局"
+            "value" : "iPadOS 三种布局模式"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOS 三種文章佈局"
+            "value" : "iPadOS 三種佈局模式"
           }
         }
       }
@@ -22750,79 +22918,79 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "استمتع بإنتاجية بمستوى سطح المكتب على iPadOS مع دعم النوافذ المتعددة ولوحة المفاتيح الكاملة."
+            "value" : "استمتع بإنتاجية بمستوى سطح المكتب من خلال استخدام النوافذ المتعددة واختصارات لوحة المفاتيح."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Genießen Sie Desktop-Produktivität auf iPadOS mit Multi-Fenster- und voller Tastaturunterstützung."
+            "value" : "Genießen Sie Desktop-Produktivität durch die Nutzung mehrerer Fenster und Tastaturkurzbefehle."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enjoy desktop-class productivity on iPadOS with multi-window and full keyboard support."
+            "value" : "Enjoy desktop-class productivity by utilizing multiple windows and keyboard shortcuts."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disfruta de productividad de escritorio en iPadOS con soporte multiventana y teclado completo."
+            "value" : "Disfruta de productividad de escritorio utilizando múltiples ventanas y atajos de teclado."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Profitez d’une productivité digne d’un ordinateur sur iPadOS avec le multifênêtrage et la prise en charge complète du clavier."
+            "value" : "Profitez d’une productivité digne d’un ordinateur grâce au multifenêtrage et aux raccourcis clavier."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOS पर मल्टी-विंडो और पूर्ण कीबोर्ड सपोर्ट के साथ डेस्कटॉप जैसी उत्पादकता का आनंद लें।"
+            "value" : "कई विंडो और कीबोर्ड शॉर्टकट का उपयोग करके डेस्कटॉप जैसी उत्पादकता का आनंद लें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOSでマルチウインドウとフルキーボードに対応し、デスクトップ級の生産性を実現。"
+            "value" : "複数のウインドウとキーボードショートカットを活用して、デスクトップ級の生産性を実現。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPadOS에서 멀티 윈도우와 풀 키보드를 지원하여 데스크톱급 생산성을 경험하세요."
+            "value" : "여러 창과 키보드 단축키를 활용하여 데스크톱급 생산성을 경험하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aproveite produtividade de desktop no iPadOS com suporte a múltiplas janelas e teclado completo."
+            "value" : "Aproveite produtividade de desktop utilizando múltiplas janelas e atalhos de teclado."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Наслаждайтесь продуктивностью настольного класса на iPadOS с поддержкой нескольких окон и полной клавиатуры."
+            "value" : "Наслаждайтесь продуктивностью настольного класса, используя несколько окон и сочетания клавиш."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Насолоджуйтесь продуктивністю настільного класу на iPadOS з підтримкою кількох вікон та повної клавіатури."
+            "value" : "Насолоджуйтесь продуктивністю настільного класу, використовуючи кілька вікон та комбінації клавіш."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 iPadOS 上享受桌面级工作效率，支持多窗口和全键盘操作。"
+            "value" : "利用多窗口和键盘快捷键，享受桌面级工作效率。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 iPadOS 上享受桌面級工作效率，支援多視窗和全鍵盤操作。"
+            "value" : "利用多視窗和鍵盤快捷鍵，享受桌面級工作效率。"
           }
         }
       }

@@ -71,9 +71,9 @@ nonisolated enum L10n {
             NSLocalizedString("welcome.footer", value: "OpenMDict is an MDict (MDX) format dictionary reader. For richer content, you can import your own .mdx files \u{2014} refer to the thriving MDict ecosystem and its communities for resources and format specifications.", comment: "Welcome screen footer paragraph")
         }
 
-        // Feature cards
+        // Feature cards (order matches WelcomePageViewController)
         static var layoutsTitle: String {
-            NSLocalizedString("welcome.feature.layouts.title", value: "Three Article Layouts on iPadOS", comment: "Feature card title")
+            NSLocalizedString("welcome.feature.layouts.title", value: "Three Layout Modes on iPadOS", comment: "Feature card title")
         }
         static var layoutsBody: String {
             NSLocalizedString("welcome.feature.layouts.body", value: "View multiple definitions from different dictionaries in Columns, Grid or List, all at once.", comment: "Feature card body")
@@ -82,19 +82,25 @@ nonisolated enum L10n {
             NSLocalizedString("welcome.feature.multiWindow.title", value: "Multi-Window on iPadOS", comment: "Feature card title")
         }
         static var multiWindowBody: String {
-            NSLocalizedString("welcome.feature.multiWindow.body", value: "Enjoy desktop-class productivity on iPadOS with multi-window and full keyboard support.", comment: "Feature card body")
+            NSLocalizedString("welcome.feature.multiWindow.body", value: "Enjoy desktop-class productivity by utilizing multiple windows and keyboard shortcuts.", comment: "Feature card body")
         }
-        static var noLimitsTitle: String {
-            NSLocalizedString("welcome.feature.noLimits.title", value: "No Limits, Free Forever", comment: "Feature card title")
+        static var extensionsTitle: String {
+            NSLocalizedString("welcome.feature.extensions.title", value: "Quick Lookup and Jump Search", comment: "Feature card title for Action Extension + jump search")
         }
-        static var noLimitsBody: String {
-            NSLocalizedString("welcome.feature.noLimits.body", value: "Import unlimited dictionaries and create unlimited groups, without any subscriptions or paid memberships.", comment: "Feature card body")
+        static var extensionsBody: String {
+            NSLocalizedString("welcome.feature.extensions.body", value: "Look up words from any app in a pop-up, then keep jump-searching unfamiliar terms within definitions until every word is clear.", comment: "Feature card body for Action Extension + jump search")
         }
         static var presetsTitle: String {
             NSLocalizedString("welcome.feature.presets.title", value: "Preset Dictionaries Included", comment: "Feature card title")
         }
         static var presetsBody: String {
             NSLocalizedString("welcome.feature.presets.body", value: "Pick your starter pack from our curated selection of open-source dictionaries, ready to use with minimum setup.", comment: "Feature card body")
+        }
+        static var noLimitsTitle: String {
+            NSLocalizedString("welcome.feature.noLimits.title", value: "No Limits, Free Forever", comment: "Feature card title")
+        }
+        static var noLimitsBody: String {
+            NSLocalizedString("welcome.feature.noLimits.body", value: "Import unlimited dictionaries and create unlimited groups, without any subscriptions or paid memberships.", comment: "Feature card body")
         }
     }
 
