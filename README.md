@@ -1,8 +1,8 @@
 # OpenMDict
 
-A pure Swift library for parsing MDict dictionary files (.mdx/.mdd).
+A pure Swift library for parsing MDict dictionary files (.mdx/.mdd), with a companion iOS/iPadOS dictionary reader app.
 
-## Features
+## Library Features
 
 - ✅ **MDX V2 (2.0)** - Full support with zlib decompression
 - ✅ **MDX V1 (1.x)** - Full support with LZO decompression (official minilzo 2.10)
@@ -10,10 +10,22 @@ A pure Swift library for parsing MDict dictionary files (.mdx/.mdd).
 - ✅ **Salted Dictionaries** - RIPEMD128 decryption for obfuscated dictionaries
 - ✅ **Cross-platform** - macOS, iOS, iPadOS (Swift Package Manager)
 
+## iOS / iPadOS App
+
+A full-featured MDict dictionary reader built with UIKit and Swift 6.
+
+- **Unlimited Dictionaries** — Import and manage MDX/MDD files with no limits
+- **Article Layouts** — Three layout modes on iPadOS (Columns, Grid, List) for comparing definitions across dictionaries
+- **Multi-Window & Shortcuts** — Full split-screen, multi-window, and keyboard shortcut support on iPadOS
+- **iCloud Sync** — Dictionaries, bookmarks, lookup history, and groups sync across devices via CloudKit, with hardened persistence (CKError retry with exponential backoff, download validation, deduplication, corrupt store recovery, and persistent history cleanup)
+- **Preset Dictionaries** — Curated open-source dictionaries for quick setup
+- **Action Extension** — Look up words from any app via the share sheet
+- **13 Languages** — English, 简体中文, 繁體中文, Русский, Español, Deutsch, 日本語, Français, Português (BR), 한국어, Українська, العربية, हिन्दी
+
 ## Requirements
 
 - Swift 5.9+
-- macOS 12+ / iOS 15+
+- macOS 12+ / iOS 15.6+
 
 ## Installation
 
@@ -138,8 +150,8 @@ OpenMDict/
 │   └── CLZ/                # LZO C library (minilzo 2.10)
 ├── Apps/
 │   ├── CLI/                # Command-line tool
-│   ├── iOS/                # iOS/iPadOS app (planned)
-│   └── Shared/             # Shared ViewModels
+│   ├── iOS/                # iOS/iPadOS app
+│   └── Shared/             # Shared code
 ├── Tests/
 └── Package.swift
 ```
