@@ -26,6 +26,10 @@ final class SearchSession: ObservableObject {
     @Published private(set) var lemmaResults: [WordDisplayItem] = []
     @Published private(set) var suggestions: [String] = []
 
+    /// Whether the full search pipeline (results → lemma → suggestions) has settled
+    /// for the current query. Consumers show "Searching…" when false + query non-empty.
+    @Published private(set) var isSearchSettled: Bool = true
+
     // MARK: - State
 
     private var cancellables = Set<AnyCancellable>()
@@ -54,14 +58,14 @@ final class SearchSession: ObservableObject {
     private func setupPipeline() {
         Publishers.CombineLatest3(
             querySubject
-                .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+                .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
                 .removeDuplicates(),
             contextSubject
                 .removeDuplicates(),
             volumeSubject
                 .removeDuplicates()
         )
-        .map { query, context, volume -> AnyPublisher<[WordDisplayItem], Never> in
+        .map { query, context, volume -> AnyPublisher<[WordSearchResult], Never> in
             guard !query.isEmpty,
                   let lookupable = context.lookupable else {
                 return Just([]).eraseToAnyPublisher()
@@ -79,15 +83,23 @@ final class SearchSession: ObservableObject {
             let limit = volume.perDictLimit
 
             return lookupable.lookupPublisher(prefix: query, limit: limit)
-                .map { results in
-                    results.map { WordDisplayItem(from: $0) }
-                }
                 .eraseToAnyPublisher()
         }
         .switchToLatest()
+        // lookupPublisher emits on background thread. Hop to main BEFORE any
+        // @MainActor code (WordDisplayItem mapping, @Published assignment).
+        // No debounce needed: each lookupPublisher now emits exactly once
+        // (single Future for all dicts), not N times per dictionary.
         .receive(on: DispatchQueue.main)
+        .map { results in
+            results.map { WordDisplayItem(from: $0) }
+        }
         .sink { [weak self] results in
             self?.results = results
+            // Fast path: enough direct results → lemma/suggestions will be skipped.
+            if results.count >= 3, self?.isSearchSettled == false {
+                self?.isSearchSettled = true
+            }
             if !results.isEmpty {
                 print("🔍 Results: \(results.count) items")
             }
@@ -133,6 +145,7 @@ final class SearchSession: ObservableObject {
         let query = querySubject.value
         guard results.count < 3, !query.isEmpty else {
             lemmaResults = []
+            evaluateSuggestions(for: results, lemmaResults: [])
             return
         }
 
@@ -160,6 +173,7 @@ final class SearchSession: ObservableObject {
 
         guard !readerInfos.isEmpty else {
             lemmaResults = []
+            evaluateSuggestions(for: results, lemmaResults: [])
             return
         }
 
@@ -174,6 +188,10 @@ final class SearchSession: ObservableObject {
 
             guard !Task.isCancelled else { return }
             self?.lemmaResults = items
+            // Chain to suggestions (terminal stage that marks isSearchSettled)
+            if let self {
+                self.evaluateSuggestions(for: self.results, lemmaResults: items)
+            }
         }
     }
 
@@ -183,14 +201,15 @@ final class SearchSession: ObservableObject {
 
     /// Derived suggestions pipeline:
     /// - Clears stale suggestions immediately when query changes.
-    /// - After BOTH results and lemmaResults settle (300ms debounce), evaluates
-    ///   whether suggestions are needed.
+    /// - Triggered by `evaluateLemmaResolution` chaining to `evaluateSuggestions`
+    ///   (sequential: results → lemma → suggestions), NOT by Combine subscription.
+    ///   This avoids race conditions where combineLatest would fire before lemma completes.
     /// - When total results < 3 and query is non-empty, runs Levenshtein-ranked
     ///   suggestions on a background thread (`@concurrent`).
     /// - Deduplicates against both direct results and lemma results.
-    /// - Previous computation is auto-cancelled when new results arrive.
+    /// - `evaluateSuggestions` is the terminal stage that marks `isSearchSettled = true`.
     private func setupSuggestionsPipeline() {
-        // 1) Clear stale suggestions immediately when query changes
+        // Clear stale suggestions immediately when query changes
         querySubject
             .removeDuplicates()
             .dropFirst()
@@ -199,16 +218,11 @@ final class SearchSession: ObservableObject {
                 self?.suggestions = []
             }
             .store(in: &cancellables)
-
-        // 2) Evaluate after both results and lemmaResults settle
-        $results.combineLatest($lemmaResults)
-            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-            .sink { [weak self] results, lemmaResults in
-                self?.evaluateSuggestions(for: results, lemmaResults: lemmaResults)
-            }
-            .store(in: &cancellables)
+        // Suggestions are now triggered by evaluateLemmaResolution → evaluateSuggestions chain
     }
 
+    /// Terminal stage of the search pipeline (results → lemma → suggestions).
+    /// Marks `isSearchSettled = true` on all exit paths (sync and async).
     private func evaluateSuggestions(for results: [WordDisplayItem], lemmaResults: [WordDisplayItem]) {
         suggestionsTask?.cancel()
 
@@ -216,6 +230,7 @@ final class SearchSession: ObservableObject {
         let totalResults = results.count + lemmaResults.count
         guard totalResults < 3, !query.isEmpty else {
             suggestions = []
+            isSearchSettled = true
             return
         }
 
@@ -236,6 +251,7 @@ final class SearchSession: ObservableObject {
 
         guard !readers.isEmpty else {
             suggestions = []
+            isSearchSettled = true
             return
         }
 
@@ -250,6 +266,7 @@ final class SearchSession: ObservableObject {
 
             guard !Task.isCancelled else { return }
             self?.suggestions = filtered
+            self?.isSearchSettled = true
         }
     }
 
@@ -270,6 +287,9 @@ final class SearchSession: ObservableObject {
     // MARK: - API
     
     func updateQuery(_ query: String) {
+        if !query.isEmpty {
+            isSearchSettled = false
+        }
         querySubject.send(query)
     }
     
@@ -287,6 +307,7 @@ final class SearchSession: ObservableObject {
     
     func clearSearch() {
         querySubject.send("")
+        isSearchSettled = true
     }
     
     var currentQuery: String {

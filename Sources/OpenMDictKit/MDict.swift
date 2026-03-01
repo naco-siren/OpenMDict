@@ -305,24 +305,40 @@ public final class MDict: ObservableObject, Identifiable {
 
 extension MDict: @MainActor Lookupable {
     
-    /// Reactive lookup - waits for dictionary to load, then emits results once
+    /// Reactive lookup - waits for dictionary to load, then searches on background thread.
+    ///
+    /// `MDictReader` is `@unchecked Sendable` with thread safety via internal NSLock.
+    /// Reader + metadata are captured on MainActor, then the actual binary search
+    /// runs on a background queue to keep the main thread responsive.
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
         let dictId = self.id
-        
+
         return $state
             .first { $0 == .loaded || $0.isError }
-            .map { [weak self] currentState -> [WordSearchResult] in
+            .flatMap { [weak self] currentState -> AnyPublisher<[WordSearchResult], Never> in
                 guard currentState == .loaded,
-                      let self = self else { return [] }
-                
-                let keys = self.search(prefix: prefix, limit: limit)
-                let dictName = self.preferredTitle
-                
-                return keys.map { key in
-                    WordSearchResult(word: key, dictId: dictId, dictName: dictName)
+                      let self = self,
+                      let reader = self.reader else {
+                    return Just([]).eraseToAnyPublisher()
                 }
+
+                // Capture Sendable reader + metadata on MainActor
+                let dictName = self.preferredTitle
+
+                // Move binary search to background thread
+                return Future<[WordSearchResult], Never> { promise in
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let keys = reader.search(prefix: prefix, limit: limit)
+                        let results = keys.map { key in
+                            WordSearchResult(word: key, dictId: dictId, dictName: dictName)
+                        }
+                        promise(.success(results))
+                    }
+                }
+                .eraseToAnyPublisher()
             }
-            .receive(on: DispatchQueue.main)
+            // No .receive(on: .main) — let downstream (SearchSession) handle thread hop.
+            // This allows MDicts.scan(stableSortByWord) to also run on background.
             .eraseToAnyPublisher()
     }
 }

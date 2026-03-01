@@ -249,52 +249,60 @@ public final class MDicts: ObservableObject, Identifiable {
 // MARK: - MDicts + Lookupable
 
 extension MDicts: @MainActor Lookupable {
-    
-    /// Reactive lookup - merges results from all enabled dictionaries progressively
-    /// Results are emitted cumulatively as each dictionary responds (渐进显示)
+
+    /// Reactive lookup - searches all enabled dictionaries on a background thread.
     ///
-    /// Data flow:
-    /// ```
-    /// dict1.lookupPublisher() ──┐
-    /// dict2.lookupPublisher() ──┼──► MergeMany ──► scan (accumulate) ──► sorted results
-    /// dict3.lookupPublisher() ──┘
-    /// ```
+    /// Captures `MDictReader` references (Sendable, thread-safe via internal NSLock)
+    /// and dictionary metadata on MainActor, then dispatches all binary searches
+    /// to a single background block. Emits **once** with sorted results.
     ///
-    /// - Parameters:
-    ///   - prefix: Search prefix
-    ///   - limit: Maximum results per dictionary
-    /// - Returns: Publisher that emits cumulative sorted results as dictionaries load
+    /// This avoids the previous MergeMany+scan pattern which caused N emissions
+    /// per query (one per dictionary) and `@MainActor` data-race warnings when
+    /// scan/sort closures ran on background threads.
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
         let enabledItems = items.filter { $0.isEnabled }
-        
+
         guard !enabledItems.isEmpty else {
             return Just([]).eraseToAnyPublisher()
         }
-        
-        // Create a publisher for each dictionary
-        let publishers = enabledItems.map { dict in
-            dict.lookupPublisher(prefix: prefix, limit: limit)
+
+        // Capture Sendable readers + metadata on MainActor.
+        // Dicts that haven't loaded yet (reader == nil) are skipped for this query.
+        let dictInfos: [(reader: MDictReader, dictId: String, dictName: String)] = enabledItems.compactMap { dict in
+            guard let reader = dict.reader else { return nil }
+            return (reader: reader, dictId: dict.id, dictName: dict.preferredTitle)
         }
-        
-        // MergeMany: each dict emits once when ready
-        // scan: accumulates results progressively (A → A+B → A+B+C...)
-        return Publishers.MergeMany(publishers)
-            .scan([WordSearchResult]()) { accumulated, newBatch in
-                var combined = accumulated
-                combined.append(contentsOf: newBatch)
-                return Self.stableSortByWord(combined)
+
+        guard !dictInfos.isEmpty else {
+            return Just([]).eraseToAnyPublisher()
+        }
+
+        // Single background operation: search all dicts → sort → emit once.
+        // Deferred ensures work starts on subscription (respects switchToLatest cancellation timing).
+        return Deferred {
+            Future<[WordSearchResult], Never> { promise in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    var allResults: [WordSearchResult] = []
+                    for info in dictInfos {
+                        let keys = info.reader.search(prefix: prefix, limit: limit)
+                        allResults.append(contentsOf: keys.map {
+                            WordSearchResult(word: $0, dictId: info.dictId, dictName: info.dictName)
+                        })
+                    }
+
+                    // Stable sort: alphabetical by word, preserving dictionary order for ties
+                    let sorted = allResults.enumerated()
+                        .sorted { a, b in
+                            let cmp = a.element.word.localizedCaseInsensitiveCompare(b.element.word)
+                            return cmp == .orderedSame ? a.offset < b.offset : cmp == .orderedAscending
+                        }
+                        .map { $0.element }
+
+                    promise(.success(sorted))
+                }
             }
-            .eraseToAnyPublisher()
-    }
-    
-    /// Stable sort by word - preserves dictionary order for same word
-    private static func stableSortByWord(_ items: [WordSearchResult]) -> [WordSearchResult] {
-        items.enumerated()
-            .sorted { a, b in
-                let cmp = a.element.word.localizedCaseInsensitiveCompare(b.element.word)
-                return cmp == .orderedSame ? a.offset < b.offset : cmp == .orderedAscending
-            }
-            .map { $0.element }
+        }
+        .eraseToAnyPublisher()
     }
 }
 

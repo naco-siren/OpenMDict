@@ -275,6 +275,9 @@ nonisolated enum L10n {
         static var suggestionsHeader: String {
             NSLocalizedString("wordList.suggestionsHeader", value: "Suggestions", comment: "Section header for suggested similar words")
         }
+        static var searching: String {
+            NSLocalizedString("wordList.searching", value: "Searching\u{2026}", comment: "Empty state shown while search pipeline is still running")
+        }
 
         // Empty state (context-filtered history)
         static var noHistoryInContext: String {

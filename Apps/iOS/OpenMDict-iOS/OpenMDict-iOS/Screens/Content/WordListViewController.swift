@@ -71,6 +71,10 @@ class WordListViewController: UIViewController {
     /// Suggested words when search results are few (bound to SearchSession.$suggestions)
     private var suggestedWords: [String] = []
 
+    /// Whether the full search pipeline has settled for the current query.
+    /// When false + query non-empty + all results empty → show "Searching…" instead of "No results".
+    private var isSearchSettled: Bool = true
+
     /// History records grouped by date
     private var historyGroups: [HistorySection] = []
 
@@ -202,6 +206,7 @@ class WordListViewController: UIViewController {
         subscribeToSearchResults()
         subscribeToLemmaResults()
         subscribeToSuggestions()
+        subscribeToSearchSettled()
         subscribeToHistoryChanges()
         loadHistory()
         rebuildSections()
@@ -341,6 +346,19 @@ class WordListViewController: UIViewController {
                 guard let self else { return }
                 self.suggestedWords = suggestions
                 self.rebuildSections()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func subscribeToSearchSettled() {
+        searchSession?.$isSearchSettled
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] settled in
+                guard let self else { return }
+                self.isSearchSettled = settled
+                // Only update overlay — no need to rebuild table data
+                self.updateEmptyState()
             }
             .store(in: &cancellables)
     }
@@ -533,13 +551,30 @@ class WordListViewController: UIViewController {
                 emptyStateView.isHidden = false
                 tableView.isHidden = true
             } else if displayedWords.isEmpty && lemmaWords.isEmpty && suggestedWords.isEmpty {
-                configureEmptyState(
-                    icon: "magnifyingglass",
-                    title: L10n.WordList.noResults(
-                        query: searchController.searchBar.text ?? ""),
-                    message: nil,
-                    buttonTitle: nil
-                )
+                if !isSearchSettled {
+                    // Pipeline still running — show searching indicator
+                    configureEmptyState(
+                        icon: "text.magnifyingglass",
+                        title: L10n.WordList.searching,
+                        message: nil,
+                        buttonTitle: nil
+                    )
+                } else {
+                    // All pipelines settled with no results
+                    let noResultsIcon: String
+                    if #available(iOS 16.0, *) {
+                        noResultsIcon = "info.bubble"
+                    } else {
+                        noResultsIcon = "info.circle"
+                    }
+                    configureEmptyState(
+                        icon: noResultsIcon,
+                        title: L10n.WordList.noResults(
+                            query: searchController.searchBar.text ?? ""),
+                        message: nil,
+                        buttonTitle: nil
+                    )
+                }
                 emptyStateView.isHidden = false
                 tableView.isHidden = true
             } else {
