@@ -1,18 +1,18 @@
 //
-//  SearchSession.swift
+//  LookupSession.swift
 //  OpenMDict-iOS
 //
-//  Per-scene search session with reactive pipeline
+//  Per-scene lookup session with reactive pipeline
 //
 
 import Foundation
 import Combine
 import OpenMDictKit
 
-/// Independent search session for each scene
+/// Independent lookup session for each scene
 /// Manages its own query, context, and results
 @MainActor
-final class SearchSession: ObservableObject {
+final class LookupSession: ObservableObject {
     
     // MARK: - Inputs
 
@@ -58,7 +58,7 @@ final class SearchSession: ObservableObject {
     private func setupPipeline() {
         Publishers.CombineLatest3(
             querySubject
-                .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+                .debounce(for: .milliseconds(LookupPipelineConfig.queryDebounceMs), scheduler: RunLoop.main)
                 .removeDuplicates(),
             contextSubject
                 .removeDuplicates(),
@@ -97,7 +97,7 @@ final class SearchSession: ObservableObject {
         .sink { [weak self] results in
             self?.results = results
             // Fast path: enough direct results → lemma/suggestions will be skipped.
-            if results.count >= 3, self?.isSearchSettled == false {
+            if results.count >= LookupPipelineConfig.resultThreshold, self?.isSearchSettled == false {
                 self?.isSearchSettled = true
             }
             if !results.isEmpty {
@@ -132,7 +132,7 @@ final class SearchSession: ObservableObject {
 
         // 2) Evaluate after direct results settle
         $results
-            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .debounce(for: .milliseconds(LookupPipelineConfig.lemmaDebounceMs), scheduler: DispatchQueue.main)
             .sink { [weak self] results in
                 self?.evaluateLemmaResolution(for: results)
             }
@@ -143,7 +143,7 @@ final class SearchSession: ObservableObject {
         lemmaTask?.cancel()
 
         let query = querySubject.value
-        guard results.count < 3, !query.isEmpty else {
+        guard results.count < LookupPipelineConfig.resultThreshold, !query.isEmpty else {
             if !query.isEmpty {
                 print("🔍 Lemma: skipped (\(results.count) direct results ≥ 3)")
             }
@@ -237,7 +237,7 @@ final class SearchSession: ObservableObject {
 
         let query = querySubject.value
         let totalResults = results.count + lemmaResults.count
-        guard totalResults < 3, !query.isEmpty else {
+        guard totalResults < LookupPipelineConfig.resultThreshold, !query.isEmpty else {
             if !query.isEmpty {
                 print("🔍 Suggestions: skipped (\(totalResults) total results ≥ 3) → settled")
             }
@@ -339,32 +339,42 @@ final class SearchSession: ObservableObject {
 
 // MARK: - Background Suggestions Computation
 
-/// Compute Levenshtein-ranked suggestions on a background thread.
+/// Compute distance-ranked suggestions on a background thread.
 /// `MDictReader` is `@unchecked Sendable` with thread safety guaranteed by
 /// internal NSLock guards (BinaryReader.atomicRead, ResourceProvider.cacheLock).
 /// `suggestions()` operates on immutable in-memory keyword data — no I/O, no locks needed.
+///
+/// Each reader returns `[ScoredSuggestion]` (word + distance). This function merges
+/// across readers, deduplicates (keeping min distance), and returns globally ranked results.
 @concurrent
 private nonisolated func computeSuggestionsInBackground(
     readers: [MDictReader],
     query: String,
     existingWords: Set<String>
 ) async -> [String] {
-    var allSuggestions = Set<String>()
+    // Collect from all readers, dedup case-insensitively keeping best (min) distance.
+    var best: [String: ScoredSuggestion] = [:]  // lowercased key → best scored suggestion
 
     for reader in readers {
         guard !Task.isCancelled else { return [] }
-        let s = reader.suggestions(for: query, limit: 8)
-        allSuggestions.formUnion(s)
+        for s in reader.suggestions(for: query, limit: LookupPipelineConfig.suggestionsPerReader) {
+            let key = s.word.lowercased()
+            guard !existingWords.contains(key) else { continue }
+            if let existing = best[key] {
+                if s.distance < existing.distance { best[key] = s }
+            } else {
+                best[key] = s
+            }
+        }
     }
 
-    guard !Task.isCancelled else { return [] }
+    guard !Task.isCancelled, !best.isEmpty else { return [] }
 
-    return Array(
-        allSuggestions
-            .filter { !existingWords.contains($0.lowercased()) }
-            .sorted()
-            .prefix(5)
-    )
+    // Global rank: distance ascending, alphabetical for ties.
+    return best.values
+        .sorted { $0.distance != $1.distance ? $0.distance < $1.distance : $0.word < $1.word }
+        .prefix(LookupPipelineConfig.maxSuggestions)
+        .map(\.word)
 }
 
 // MARK: - Lemma Reader Info
@@ -394,7 +404,7 @@ private nonisolated func resolveLemmaInBackground(
     existingResultCount: Int,
     existingWords: Set<String>
 ) async -> [WordDisplayItem] {
-    let threshold = 3
+    let threshold = LookupPipelineConfig.resultThreshold
 
     // Phase 1: Normalize
     let normalized = LemmaResolver.normalize(query)
@@ -405,9 +415,10 @@ private nonisolated func resolveLemmaInBackground(
     guard !Task.isCancelled else { return [] }
 
     // Search stripped candidates (these may differ from the original query)
-    // Only search candidates that differ from the original normalized query
-    let originalTokens = Set(normalized.components(separatedBy: " "))
-    let newCandidates = strippedCandidates.filter { !originalTokens.contains($0) }
+    // Only search candidates that differ from the full normalized query.
+    // Direct search matches "to fun" as a prefix; individual tokens like "fun"
+    // are NOT searched directly, so they ARE new candidates worth searching.
+    let newCandidates = strippedCandidates.filter { $0 != normalized }
 
     var allLemmaResults: [WordDisplayItem] = []
     var seenWords = existingWords  // case-insensitive dedup against direct results
@@ -447,7 +458,7 @@ private nonisolated func resolveLemmaInBackground(
     }
 
     // Remove candidates we've already searched
-    let alreadySearched = Set(strippedCandidates + Array(originalTokens))
+    let alreadySearched = Set(strippedCandidates + [normalized])
     let inflectionOnly = allInflectionCandidates.filter { !alreadySearched.contains($0) }
 
     guard !inflectionOnly.isEmpty, !Task.isCancelled else {

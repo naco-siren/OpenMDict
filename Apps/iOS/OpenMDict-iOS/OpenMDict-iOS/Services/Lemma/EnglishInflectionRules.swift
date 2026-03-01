@@ -2,182 +2,139 @@
 //  EnglishInflectionRules.swift
 //  OpenMDict-iOS
 //
-//  Rule-based English inflection resolution.
-//  Given an inflected form, produces candidate base forms.
-//  Dictionary search determines which candidates actually exist.
-//
-//  Two strategies:
-//  1. Irregular forms table (wrote→write, children→child, etc.)
-//  2. Suffix rules ordered by specificity (-ied→-y, -ed→base, -ing→base, etc.)
+//  English inflection data: irregular forms table + suffix rules.
+//  The resolution algorithm is provided by the InflectionRules protocol extension.
 //
 
 import Foundation
 
-/// English inflection resolution — generates candidate base forms from inflected words.
-/// Thread-safe: all methods are pure functions on immutable data.
-nonisolated enum EnglishInflectionRules {
+/// English inflection data — irregular forms + suffix rules.
+/// Thread-safe: all properties are immutable static data.
+nonisolated enum EnglishInflectionRules: InflectionRules {
 
-    // MARK: - Public API
-
-    /// Given an inflected word, return all plausible base forms.
-    /// Returns empty array if no rules apply.
-    /// Results are lowercased and deduplicated.
-    static func resolve(_ word: String) -> [String] {
-        let lower = word.lowercased()
-        guard lower.count >= 2 else { return [] }
-
-        var candidates = Set<String>()
-
-        // 1. Check irregular forms table first (highest priority)
-        if let base = irregularForms[lower] {
-            candidates.insert(base)
-        }
-
-        // 2. Apply suffix rules (may produce multiple candidates per rule)
-        for rule in suffixRules {
-            guard lower.hasSuffix(rule.suffix), lower.count > rule.suffix.count else { continue }
-            let stem = String(lower.dropLast(rule.suffix.count))
-            for replacement in rule.replacements {
-                let candidate = replacement(stem)
-                if !candidate.isEmpty && candidate != lower {
-                    candidates.insert(candidate)
-                }
-            }
-        }
-
-        // Remove the original word if it somehow appeared
-        candidates.remove(lower)
-
-        return Array(candidates).sorted()
-    }
+    static let languageCode = "en"
 
     // MARK: - Suffix Rules
 
-    private struct SuffixRule: Sendable {
-        let suffix: String
-        /// Each replacement closure takes the stem (word minus suffix) and returns a candidate.
-        let replacements: [@Sendable (String) -> String]
-    }
-
     /// Ordered by specificity (longer/more specific suffixes first).
     /// Each rule may produce multiple candidates since English is ambiguous.
-    private static let suffixRules: [SuffixRule] = [
+    static let suffixRules: [InflectionSuffixRule] = [
         // -ied → -y (carried → carry, studied → study)
-        SuffixRule(suffix: "ied", replacements: [
+        InflectionSuffixRule(suffix: "ied", replacements: [
             { stem in stem + "y" },
         ]),
 
         // -ies → -y (carries → carry, studies → study)
-        SuffixRule(suffix: "ies", replacements: [
+        InflectionSuffixRule(suffix: "ies", replacements: [
             { stem in stem + "y" },
         ]),
 
         // -ves → -f / -fe (wolves → wolf, knives → knife, lives → life)
-        SuffixRule(suffix: "ves", replacements: [
+        InflectionSuffixRule(suffix: "ves", replacements: [
             { stem in stem + "f" },
             { stem in stem + "fe" },
         ]),
 
         // -ness → base (happiness → happy needs -iness rule, sadness → sad)
-        SuffixRule(suffix: "iness", replacements: [
+        InflectionSuffixRule(suffix: "iness", replacements: [
             { stem in stem + "y" },
         ]),
-        SuffixRule(suffix: "ness", replacements: [
+        InflectionSuffixRule(suffix: "ness", replacements: [
             { stem in stem },
         ]),
 
         // -ment → base (movement → move, agreement → agree)
-        SuffixRule(suffix: "ment", replacements: [
+        InflectionSuffixRule(suffix: "ment", replacements: [
             { stem in stem },
             { stem in stem + "e" },
         ]),
 
         // -ation → base (creation → create, information → inform)
-        SuffixRule(suffix: "ation", replacements: [
+        InflectionSuffixRule(suffix: "ation", replacements: [
             { stem in stem + "ate" },
             { stem in stem },
         ]),
 
         // -tion → base (reduction → reduce, addition → add)
-        SuffixRule(suffix: "tion", replacements: [
+        InflectionSuffixRule(suffix: "tion", replacements: [
             { stem in stem + "e" },
             { stem in stem },
         ]),
 
         // -zing → -ze (analyzing → analyze)
-        SuffixRule(suffix: "zing", replacements: [
+        InflectionSuffixRule(suffix: "zing", replacements: [
             { stem in stem + "ze" },
         ]),
 
         // -ling → -le (handling → handle, but also: darling)
-        SuffixRule(suffix: "ling", replacements: [
+        InflectionSuffixRule(suffix: "ling", replacements: [
             { stem in stem + "le" },
         ]),
 
         // -ying → -y (studying → study, applying → apply)
-        SuffixRule(suffix: "ying", replacements: [
+        InflectionSuffixRule(suffix: "ying", replacements: [
             { stem in stem + "y" },
         ]),
 
         // -ing → base / +e / undouble (walking → walk, making → make, running → run)
-        SuffixRule(suffix: "ing", replacements: [
+        InflectionSuffixRule(suffix: "ing", replacements: [
             { stem in stem },                               // walk
             { stem in stem + "e" },                         // make
             { stem in undoubleConsonant(stem) },            // running → run
         ]),
 
         // -iest → -y (happiest → happy)
-        SuffixRule(suffix: "iest", replacements: [
+        InflectionSuffixRule(suffix: "iest", replacements: [
             { stem in stem + "y" },
         ]),
 
         // -est → base / undouble (tallest → tall, biggest → big)
-        SuffixRule(suffix: "est", replacements: [
+        InflectionSuffixRule(suffix: "est", replacements: [
             { stem in stem },
             { stem in stem + "e" },
             { stem in undoubleConsonant(stem) },
         ]),
 
         // -ier → -y (happier → happy)
-        SuffixRule(suffix: "ier", replacements: [
+        InflectionSuffixRule(suffix: "ier", replacements: [
             { stem in stem + "y" },
         ]),
 
         // -er → base / undouble (taller → tall, bigger → big, nicer → nice)
-        SuffixRule(suffix: "er", replacements: [
+        InflectionSuffixRule(suffix: "er", replacements: [
             { stem in stem },
             { stem in stem + "e" },
             { stem in undoubleConsonant(stem) },
         ]),
 
         // -ably → -able (probably → probable, comfortably → comfortable)
-        SuffixRule(suffix: "ably", replacements: [
+        InflectionSuffixRule(suffix: "ably", replacements: [
             { stem in stem + "able" },
         ]),
 
         // -ibly → -ible (terribly → terrible)
-        SuffixRule(suffix: "ibly", replacements: [
+        InflectionSuffixRule(suffix: "ibly", replacements: [
             { stem in stem + "ible" },
         ]),
 
         // -ily → -y (happily → happy, easily → easy)
-        SuffixRule(suffix: "ily", replacements: [
+        InflectionSuffixRule(suffix: "ily", replacements: [
             { stem in stem + "y" },
         ]),
 
         // -ly → base (quickly → quick, slowly → slow)
-        SuffixRule(suffix: "ly", replacements: [
+        InflectionSuffixRule(suffix: "ly", replacements: [
             { stem in stem },
         ]),
 
         // -es → base (watches → watch, goes → go, boxes → box)
-        SuffixRule(suffix: "es", replacements: [
+        InflectionSuffixRule(suffix: "es", replacements: [
             { stem in stem },
             { stem in stem + "e" },
         ]),
 
         // -ed → base / +e / undouble (walked → walk, loped → lope, stopped → stop)
-        SuffixRule(suffix: "ed", replacements: [
+        InflectionSuffixRule(suffix: "ed", replacements: [
             { stem in stem },
             { stem in stem + "e" },
             { stem in undoubleConsonant(stem) },
@@ -185,12 +142,12 @@ nonisolated enum EnglishInflectionRules {
 
         // -s → base (cats → cat, dogs → dog)
         // Must be last among s-rules (least specific)
-        SuffixRule(suffix: "s", replacements: [
+        InflectionSuffixRule(suffix: "s", replacements: [
             { stem in stem },
         ]),
     ]
 
-    // MARK: - Helpers
+    // MARK: - English-Specific Helpers
 
     /// Undo consonant doubling: "stopp" → "stop", "runn" → "run"
     /// Only applies when the stem ends with two identical consonants.
@@ -216,7 +173,7 @@ nonisolated enum EnglishInflectionRules {
 
     /// Irregular English forms → base form.
     /// Covers common verbs, nouns, adjectives.
-    private static let irregularForms: [String: String] = [
+    static let irregularForms: [String: String] = [
         // be
         "am": "be", "is": "be", "are": "be",
         "was": "be", "were": "be", "been": "be", "being": "be",

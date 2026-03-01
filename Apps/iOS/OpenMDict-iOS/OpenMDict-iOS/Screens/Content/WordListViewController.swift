@@ -7,7 +7,7 @@
 //  - Active + empty query: search bar focused — shows clipboard + history
 //  - Active + query: search bar has text — shows search results (+ suggestions if few)
 //
-//  All search logic is handled by the reactive pipeline in SearchSession.
+//  All search logic is handled by the reactive pipeline in LookupSession.
 //  History data is fetched from LookupHistoryService.
 //
 
@@ -55,20 +55,20 @@ class WordListViewController: UIViewController {
     var onViewAllHistory: (() -> Void)?
 
     /// Per-scene search session (injected by MainSplitVC)
-    var searchSession: SearchSession?
+    var searchSession: LookupSession?
 
     private var cancellables = Set<AnyCancellable>()
 
     private var displayState: DisplayState = .idle
     private var sections: [SectionData] = []
 
-    /// Current displayed words (bound to SearchSession.$results)
+    /// Current displayed words (bound to LookupSession.$results)
     private var displayedWords: [WordDisplayItem] = []
 
-    /// Lemma-resolved related forms (bound to SearchSession.$lemmaResults)
+    /// Lemma-resolved related forms (bound to LookupSession.$lemmaResults)
     private var lemmaWords: [WordDisplayItem] = []
 
-    /// Suggested words when search results are few (bound to SearchSession.$suggestions)
+    /// Suggested words when search results are few (bound to LookupSession.$suggestions)
     private var suggestedWords: [String] = []
 
     /// Whether the full search pipeline has settled for the current query.

@@ -125,7 +125,7 @@ class CompactTabBarController: UITabBarController {
     var currentDict: MDict?
 
     /// Per-scene search session (injected by MainSplitVC on transfer)
-    private var searchSession: SearchSession?
+    private var searchSession: LookupSession?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -145,10 +145,10 @@ class CompactTabBarController: UITabBarController {
         super.viewDidLoad()
 
         // On iPhone the app starts directly in compact mode — splitViewControllerWillCollapse
-        // is never called, so transferStateIn() never runs.  Create a local SearchSession
+        // is never called, so transferStateIn() never runs.  Create a local LookupSession
         // so the Lookup tab's reactive search pipeline works from the start.
         if searchSession == nil {
-            let session = DictionaryService.shared.createSearchSession()
+            let session = DictionaryService.shared.createLookupSession()
             searchSession = session
             lookupWordListVC.searchSession = session
         }
@@ -707,7 +707,7 @@ class CompactTabBarController: UITabBarController {
     func transferStateIn(
         group: MDicts?,
         dict: MDict?,
-        searchSession: SearchSession,
+        searchSession: LookupSession,
         articles: [ArticleDisplayItem],
         currentArticleIndex: Int,
         columnTarget: MainSplitViewController.ColumnTargetSnapshot
