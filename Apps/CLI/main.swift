@@ -235,7 +235,7 @@ func performLookup(dict: MDictReader, word: String) {
         if !suggestions.isEmpty {
             print()
             print(colored("Did you mean:", .yellow))
-            for s in suggestions { print("  • \(s)") }
+            for s in suggestions { print("  • \(s.word) (distance: \(s.distance))") }
         }
     }
     print()

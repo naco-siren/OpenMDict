@@ -215,7 +215,7 @@ internal final class MDXParser {
     
     /// Get suggestions for a keyword (did you mean?).
     ///
-    /// 1. **Candidate generation**: tries progressively shorter prefixes (5→1 chars),
+    /// 1. **Candidate generation**: tries progressively shorter prefixes (8→1 chars),
     ///    collecting ALL matches across every prefix length (not stopping at the first hit).
     /// 2. **Ranking**: candidates are sorted by Levenshtein edit distance to `keyword`.
     /// 3. **Filtering**: exact matches and candidates beyond a dynamic distance threshold
@@ -225,21 +225,23 @@ internal final class MDXParser {
     ///   - keyword: The word to find suggestions for
     ///   - limit: Maximum suggestions
     /// - Returns: Array of similar keywords, closest matches first
-    func suggestions(for keyword: String, limit: Int = 5) -> [String] {
+    func suggestions(for keyword: String, limit: Int = 5) -> [ScoredSuggestion] {
         let lower = keyword.lowercased()
         let keyLen = lower.count
 
         guard keyLen >= 2 else {
-            // Very short keyword — prefix search on the single character
             return search(prefix: keyword, limit: limit)
+                .map { ScoredSuggestion(word: $0, distance: levenshteinDistance(lower, $0.lowercased())) }
         }
 
-        // Phase 1: Candidate generation — collect from ALL prefix lengths
-        let candidateLimit = limit * 10
+        // Phase 1: Candidate generation
+        // Scale prefix search depth with keyword length for better coverage
+        let maxPrefixLen = min(keyLen, 8)
+        let candidateLimit = limit * 20
         var seen = Set<String>()
         var candidates: [String] = []
 
-        for prefixLen in stride(from: min(keyLen, 5), through: 1, by: -1) {
+        for prefixLen in stride(from: maxPrefixLen, through: 1, by: -1) {
             let prefix = String(lower.prefix(prefixLen))
             for match in search(prefix: prefix, limit: candidateLimit) {
                 let key = match.lowercased()
@@ -247,17 +249,18 @@ internal final class MDXParser {
                     candidates.append(match)
                 }
             }
+            // Stop early once we have a large enough pool from longer prefixes
             if candidates.count >= candidateLimit { break }
         }
 
         // Phase 2: Rank by Levenshtein edit distance
         let maxDist = max(keyLen / 2, 2)
         let ranked = candidates
-            .map { (word: $0, dist: levenshteinDistance(lower, $0.lowercased())) }
-            .filter { $0.dist > 0 && $0.dist <= maxDist }  // exclude exact match + too distant
-            .sorted { $0.dist < $1.dist }
+            .map { ScoredSuggestion(word: $0, distance: levenshteinDistance(lower, $0.lowercased())) }
+            .filter { $0.distance > 0 && $0.distance <= maxDist }
+            .sorted { $0.distance < $1.distance }
 
-        return Array(ranked.prefix(limit).map(\.word))
+        return Array(ranked.prefix(limit))
     }
     
     // MARK: - Private: Record Loading

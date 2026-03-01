@@ -6,10 +6,21 @@
 //  Used by MDXParser.suggestions() for ranking candidates.
 //
 
+/// A suggestion candidate paired with its Levenshtein edit distance.
+public struct ScoredSuggestion: Sendable {
+    public let word: String
+    public let distance: Int
+
+    public init(word: String, distance: Int) {
+        self.word = word
+        self.distance = distance
+    }
+}
+
 /// Compute Levenshtein edit distance between two strings.
 /// Uses Unicode scalars for O(1) indexing (avoids Character's grapheme cluster overhead).
 /// Space: O(min(n, m)).  Time: O(n * m).
-func levenshteinDistance(_ a: String, _ b: String) -> Int {
+public func levenshteinDistance(_ a: String, _ b: String) -> Int {
     let a = Array(a.unicodeScalars)
     let b = Array(b.unicodeScalars)
     let n = a.count

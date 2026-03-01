@@ -346,8 +346,8 @@ public final class MDictReader: @unchecked Sendable {
     /// - Parameters:
     ///   - key: The word to find suggestions for
     ///   - limit: Maximum suggestions
-    /// - Returns: Array of similar word keys
-    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [MDictWordKey] {
+    /// - Returns: Array of scored suggestions, closest matches first
+    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [ScoredSuggestion] {
         parser.suggestions(for: key, limit: limit)
     }
     

@@ -262,7 +262,7 @@ public final class MDict: ObservableObject, Identifiable {
     
     /// Get suggestions for a misspelled word.
     /// For background use, capture `reader` (Sendable) and call `.suggestions()` directly.
-    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [MDictWordKey] {
+    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [ScoredSuggestion] {
         _reader?.suggestions(for: key, limit: limit) ?? []
     }
     
@@ -342,7 +342,7 @@ extension MDict: @MainActor Lookupable {
                 }
                 .eraseToAnyPublisher()
             }
-            // No .receive(on: .main) — let downstream (SearchSession) handle thread hop.
+            // No .receive(on: .main) — let downstream (LookupSession) handle thread hop.
             .eraseToAnyPublisher()
     }
 }

@@ -197,16 +197,26 @@ public final class MDicts: ObservableObject, Identifiable {
         return results
     }
     
-    /// Get suggestions across all active dictionaries
-    public func suggestions(for key: MDictWordKey, limit: Int = 10) -> [MDictWordKey] {
-        var allSuggestions: Set<MDictWordKey> = []
-        
+    /// Get suggestions across all active dictionaries, globally ranked by edit distance.
+    public func suggestions(for key: MDictWordKey, limit: Int = 10) -> [ScoredSuggestion] {
+        // Collect from all dicts, dedup case-insensitively keeping best (min) distance.
+        var best: [String: ScoredSuggestion] = [:]  // lowercased key → best scored suggestion
+
         for item in active {
-            let suggestions = item.suggestions(for: key, limit: limit)
-            allSuggestions.formUnion(suggestions)
+            for s in item.suggestions(for: key, limit: limit) {
+                let lc = s.word.lowercased()
+                if let existing = best[lc] {
+                    if s.distance < existing.distance { best[lc] = s }
+                } else {
+                    best[lc] = s
+                }
+            }
         }
-        
-        return Array(allSuggestions).sorted().prefix(limit).map { $0 }
+
+        return best.values
+            .sorted { $0.distance != $1.distance ? $0.distance < $1.distance : $0.word < $1.word }
+            .prefix(limit)
+            .map { $0 }
     }
     
     // MARK: - Resource API
