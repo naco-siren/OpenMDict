@@ -325,22 +325,42 @@ extension MDict: @MainActor Lookupable {
                 // Capture Sendable reader + metadata on MainActor
                 let dictName = self.preferredTitle
 
-                // Move binary search to background thread
-                return Future<[WordSearchResult], Never> { promise in
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        let keys = reader.search(prefix: prefix, limit: limit)
-                        let results = keys.map { key in
-                            WordSearchResult(word: key, dictId: dictId, dictName: dictName)
+                // Bridge Swift Concurrency → Combine: Task.detached runs the
+                // search off MainActor; promise fulfills the Future on completion.
+                // UncheckedSendableBox wraps promise to satisfy `sending` parameter.
+                return Deferred {
+                    Future<[WordSearchResult], Never> { promise in
+                        let box = UncheckedSendableBox(value: promise)
+                        Task.detached(priority: .userInitiated) {
+                            let results = await performDictSearch(
+                                reader: reader, prefix: prefix, limit: limit,
+                                dictId: dictId, dictName: dictName
+                            )
+                            box.value(.success(results))
                         }
-                        promise(.success(results))
                     }
                 }
                 .eraseToAnyPublisher()
             }
             // No .receive(on: .main) — let downstream (SearchSession) handle thread hop.
-            // This allows MDicts.scan(stableSortByWord) to also run on background.
             .eraseToAnyPublisher()
     }
+}
+
+// MARK: - Background Single-Dict Search
+
+/// Binary search a single dictionary on a background thread.
+/// `MDictReader` is `@unchecked Sendable` (thread-safe via internal NSLock).
+@concurrent
+private nonisolated func performDictSearch(
+    reader: MDictReader,
+    prefix: String,
+    limit: Int,
+    dictId: String,
+    dictName: String
+) async -> [WordSearchResult] {
+    let keys = reader.search(prefix: prefix, limit: limit)
+    return keys.map { WordSearchResult(word: $0, dictId: dictId, dictName: dictName) }
 }
 
 // MARK: - Background Loading (nonisolated)

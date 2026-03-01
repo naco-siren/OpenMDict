@@ -24085,26 +24085,170 @@
         }
       }
     },
-    "wordList.noHistoryInContext" : {
-      "comment" : "Empty state when selected group/dictionary has no lookup history",
+    "wordList.noHistoryInSource" : {
+      "comment" : "Empty state when selected group/dictionary has no lookup history; %@ is the group/dictionary name",
       "extractionState" : "manual",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يوجد سجلّ بحث في \u201C%@\u201D"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Suchverlauf in \u201C%@\u201D"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No lookup history in this source"
+            "value" : "No lookup history in \u201C%@\u201D"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin historial de búsqueda en \u201C%@\u201D"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun historique de recherche dans \u201C%@\u201D"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201D में कोई खोज इतिहास नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201Dに検索履歴がありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201D에 검색 기록이 없습니다"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem histórico de consultas em \u201C%@\u201D"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет истории поиска в \u201C%@\u201D"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Немає історії пошуку в \u201C%@\u201D"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201D中没有查词记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201D中沒有查詞記錄"
           }
         }
       }
     },
     "wordList.noHistoryInContextMessage" : {
-      "comment" : "Message suggesting user check centralized history",
+      "comment" : "Message shown when selected group/dictionary has no lookup history",
       "extractionState" : "manual",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ستظهر الكلمات التي تبحث عنها هنا كسجلّ حديث."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wörter, die Sie hier nachschlagen, werden als letzte Einträge angezeigt."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "View all history in My Lookup History."
+            "value" : "Words you look up here will appear as recent history."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las palabras que busques aquí aparecerán como historial reciente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les mots que vous recherchez ici apparaîtront dans l'historique récent."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप यहाँ जो शब्द खोजेंगे वे हाल के इतिहास में दिखेंगे।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここで調べた単語は最近の履歴として表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여기서 검색한 단어가 최근 기록으로 표시됩니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As palavras que você pesquisar aqui aparecerão como histórico recente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слова, которые вы ищете здесь, будут отображаться как недавняя история."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слова, які ви шукаєте тут, з'являться як нещодавня історія."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你在这里查过的词会显示为最近记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你在這裡查過的詞會顯示為最近記錄。"
           }
         }
       }

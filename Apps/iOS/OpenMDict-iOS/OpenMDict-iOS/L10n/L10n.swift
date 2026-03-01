@@ -280,11 +280,11 @@ nonisolated enum L10n {
         }
 
         // Empty state (context-filtered history)
-        static var noHistoryInContext: String {
-            NSLocalizedString("wordList.noHistoryInContext", value: "No lookup history in this source", comment: "Empty state when selected group/dictionary has no lookup history")
+        static func noHistoryInSource(_ name: String) -> String {
+            String(format: NSLocalizedString("wordList.noHistoryInSource", value: "No lookup history in \u{201C}%@\u{201D}", comment: "Empty state when selected group/dictionary has no lookup history. %@ = group or dictionary name"), name)
         }
         static var noHistoryInContextMessage: String {
-            NSLocalizedString("wordList.noHistoryInContextMessage", value: "View all history in My Lookup History.", comment: "Message suggesting user check centralized history")
+            NSLocalizedString("wordList.noHistoryInContextMessage", value: "Words you look up here will appear as recent history.", comment: "Message explaining that history will populate with use")
         }
         static var viewAllHistory: String {
             NSLocalizedString("wordList.viewAllHistory", value: "View All History", comment: "Button to navigate to centralized lookup history")

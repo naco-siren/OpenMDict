@@ -268,42 +268,71 @@ extension MDicts: @MainActor Lookupable {
 
         // Capture Sendable readers + metadata on MainActor.
         // Dicts that haven't loaded yet (reader == nil) are skipped for this query.
-        let dictInfos: [(reader: MDictReader, dictId: String, dictName: String)] = enabledItems.compactMap { dict in
+        let dictInfos: [GroupSearchInfo] = enabledItems.compactMap { dict in
             guard let reader = dict.reader else { return nil }
-            return (reader: reader, dictId: dict.id, dictName: dict.preferredTitle)
+            return GroupSearchInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle)
         }
 
         guard !dictInfos.isEmpty else {
             return Just([]).eraseToAnyPublisher()
         }
 
-        // Single background operation: search all dicts → sort → emit once.
-        // Deferred ensures work starts on subscription (respects switchToLatest cancellation timing).
+        // Bridge Swift Concurrency → Combine: Task.detached runs all searches
+        // off MainActor; promise fulfills the Future on completion.
+        // Deferred ensures work starts on subscription (respects switchToLatest timing).
+        // UncheckedSendableBox wraps promise to satisfy `sending` parameter.
         return Deferred {
             Future<[WordSearchResult], Never> { promise in
-                DispatchQueue.global(qos: .userInitiated).async {
-                    var allResults: [WordSearchResult] = []
-                    for info in dictInfos {
-                        let keys = info.reader.search(prefix: prefix, limit: limit)
-                        allResults.append(contentsOf: keys.map {
-                            WordSearchResult(word: $0, dictId: info.dictId, dictName: info.dictName)
-                        })
-                    }
-
-                    // Stable sort: alphabetical by word, preserving dictionary order for ties
-                    let sorted = allResults.enumerated()
-                        .sorted { a, b in
-                            let cmp = a.element.word.localizedCaseInsensitiveCompare(b.element.word)
-                            return cmp == .orderedSame ? a.offset < b.offset : cmp == .orderedAscending
-                        }
-                        .map { $0.element }
-
-                    promise(.success(sorted))
+                let box = UncheckedSendableBox(value: promise)
+                Task.detached(priority: .userInitiated) {
+                    let results = await performGroupSearch(
+                        dictInfos: dictInfos, prefix: prefix, limit: limit
+                    )
+                    box.value(.success(results))
                 }
             }
         }
         .eraseToAnyPublisher()
     }
+}
+
+// MARK: - Background Group Search
+
+/// Reader + metadata tuple for background group search.
+/// Captured on MainActor, passed to `@concurrent` task.
+private struct GroupSearchInfo: Sendable {
+    let reader: MDictReader
+    let dictId: String
+    let dictName: String
+}
+
+/// Search all dictionaries in a group on a background thread.
+/// `MDictReader` is `@unchecked Sendable` (thread-safe via internal NSLock).
+/// Checks `Task.isCancelled` between dictionaries for cooperative cancellation.
+@concurrent
+private nonisolated func performGroupSearch(
+    dictInfos: [GroupSearchInfo],
+    prefix: String,
+    limit: Int
+) async -> [WordSearchResult] {
+    var allResults: [WordSearchResult] = []
+    for info in dictInfos {
+        guard !Task.isCancelled else { return [] }
+        let keys = info.reader.search(prefix: prefix, limit: limit)
+        allResults.append(contentsOf: keys.map {
+            WordSearchResult(word: $0, dictId: info.dictId, dictName: info.dictName)
+        })
+    }
+
+    guard !Task.isCancelled else { return [] }
+
+    // Stable sort: alphabetical by word, preserving dictionary order for ties
+    return allResults.enumerated()
+        .sorted { a, b in
+            let cmp = a.element.word.localizedCaseInsensitiveCompare(b.element.word)
+            return cmp == .orderedSame ? a.offset < b.offset : cmp == .orderedAscending
+        }
+        .map { $0.element }
 }
 
 // MARK: - Hashable

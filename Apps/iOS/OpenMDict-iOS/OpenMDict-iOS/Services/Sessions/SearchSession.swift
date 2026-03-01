@@ -144,10 +144,14 @@ final class SearchSession: ObservableObject {
 
         let query = querySubject.value
         guard results.count < 3, !query.isEmpty else {
+            if !query.isEmpty {
+                print("🔍 Lemma: skipped (\(results.count) direct results ≥ 3)")
+            }
             lemmaResults = []
             evaluateSuggestions(for: results, lemmaResults: [])
             return
         }
+        print("🔍 Lemma: resolving '\(query)' (\(results.count) direct results)")
 
         let context = contextSubject.value
         let volume = volumeSubject.value
@@ -188,6 +192,11 @@ final class SearchSession: ObservableObject {
 
             guard !Task.isCancelled else { return }
             self?.lemmaResults = items
+            if !items.isEmpty {
+                print("🔍 Lemma: found \(items.count) results")
+            } else {
+                print("🔍 Lemma: no results")
+            }
             // Chain to suggestions (terminal stage that marks isSearchSettled)
             if let self {
                 self.evaluateSuggestions(for: self.results, lemmaResults: items)
@@ -229,10 +238,14 @@ final class SearchSession: ObservableObject {
         let query = querySubject.value
         let totalResults = results.count + lemmaResults.count
         guard totalResults < 3, !query.isEmpty else {
+            if !query.isEmpty {
+                print("🔍 Suggestions: skipped (\(totalResults) total results ≥ 3) → settled")
+            }
             suggestions = []
             isSearchSettled = true
             return
         }
+        print("🔍 Suggestions: computing for '\(query)' (\(totalResults) total results)")
 
         let context = contextSubject.value
         // Deduplicate against both direct results and lemma results (case-insensitive)
@@ -267,6 +280,11 @@ final class SearchSession: ObservableObject {
             guard !Task.isCancelled else { return }
             self?.suggestions = filtered
             self?.isSearchSettled = true
+            if !filtered.isEmpty {
+                print("🔍 Suggestions: found \(filtered.count) → settled")
+            } else {
+                print("🔍 Suggestions: none → settled")
+            }
         }
     }
 

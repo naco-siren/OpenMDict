@@ -523,7 +523,7 @@ class WordListViewController: UIViewController {
                 // Context selected but no history in this source
                 configureEmptyState(
                     icon: "clock",
-                    title: L10n.WordList.noHistoryInContext,
+                    title: L10n.WordList.noHistoryInSource(contextDisplayName(for: context)),
                     message: L10n.WordList.noHistoryInContextMessage,
                     buttonTitle: L10n.WordList.viewAllHistory
                 )
@@ -535,9 +535,21 @@ class WordListViewController: UIViewController {
             }
 
         case .activeEmpty:
-            // Always show table (clipboard + history)
-            emptyStateView.isHidden = true
-            tableView.isHidden = false
+            if sections.isEmpty {
+                // No clipboard and no history — show placeholder
+                let context = searchSession?.currentContext ?? .none
+                configureEmptyState(
+                    icon: "clock",
+                    title: L10n.WordList.noHistoryInSource(contextDisplayName(for: context)),
+                    message: L10n.WordList.noHistoryInContextMessage,
+                    buttonTitle: L10n.WordList.viewAllHistory
+                )
+                emptyStateView.isHidden = false
+                tableView.isHidden = true
+            } else {
+                emptyStateView.isHidden = true
+                tableView.isHidden = false
+            }
 
         case .activeWithQuery:
             let context = searchSession?.currentContext ?? .none
@@ -598,6 +610,15 @@ class WordListViewController: UIViewController {
         emptyStateMessage.isHidden = (message == nil)
         emptyStateButton.setTitle(buttonTitle, for: .normal)
         emptyStateButton.isHidden = (buttonTitle == nil)
+    }
+
+    /// Human-readable name for the current search context (group or dictionary).
+    private func contextDisplayName(for context: SearchContext) -> String {
+        switch context {
+        case .group(let g):      return g.name
+        case .dictionary(let d): return d.preferredTitle
+        case .none:              return ""
+        }
     }
 
     private func updateTitleView() {
