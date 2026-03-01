@@ -319,6 +319,7 @@ class WordListViewController: UIViewController {
 
     private func subscribeToSearchResults() {
         searchSession?.$results
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
                 guard let self else { return }
@@ -330,6 +331,7 @@ class WordListViewController: UIViewController {
 
     private func subscribeToLemmaResults() {
         searchSession?.$lemmaResults
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
                 guard let self else { return }
@@ -341,6 +343,7 @@ class WordListViewController: UIViewController {
 
     private func subscribeToSuggestions() {
         searchSession?.$suggestions
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] suggestions in
                 guard let self else { return }
@@ -352,6 +355,7 @@ class WordListViewController: UIViewController {
 
     private func subscribeToSearchSettled() {
         searchSession?.$isSearchSettled
+            .dropFirst()
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] settled in
