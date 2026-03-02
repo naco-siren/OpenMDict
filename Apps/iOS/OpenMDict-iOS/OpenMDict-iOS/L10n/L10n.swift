@@ -1273,36 +1273,74 @@ nonisolated enum L10n {
         static var title: String {
             NSLocalizedString("troubleshoot.title", value: "iCloud Troubleshooting", comment: "Title: iCloud troubleshooting screen")
         }
+
+        // MARK: Section headers
+        static var sectionStatus: String {
+            NSLocalizedString("troubleshoot.section.status", value: "Current Status", comment: "Section header: iCloud status")
+        }
+        static var sectionCloudData: String {
+            NSLocalizedString("troubleshoot.section.cloudData", value: "Data Stored on iCloud", comment: "Section header: cloud data counts")
+        }
         static var dangerZone: String {
             NSLocalizedString("troubleshoot.dangerZone", value: "Danger Zone", comment: "Section header: destructive iCloud actions")
         }
+
+        // MARK: Status
+        static var statusEnabled: String {
+            NSLocalizedString("troubleshoot.status.enabled", value: "iCloud Sync Enabled", comment: "Cell: iCloud sync is on")
+        }
+        static var statusDisabled: String {
+            NSLocalizedString("troubleshoot.status.disabled", value: "iCloud Sync Disabled", comment: "Cell: iCloud sync is off")
+        }
+
+        // MARK: Cloud data counts
+        static func dictCount(_ n: Int) -> String {
+            String(format: NSLocalizedString("troubleshoot.count.dict", value: "%d Dictionaries", comment: "Cell: number of synced dictionaries"), n)
+        }
+        static func groupCount(_ n: Int) -> String {
+            String(format: NSLocalizedString("troubleshoot.count.group", value: "%d Groups", comment: "Cell: number of synced groups"), n)
+        }
+        static func bookmarkCountLabel(_ n: Int) -> String {
+            String(format: NSLocalizedString("troubleshoot.count.bookmark", value: "%d Bookmarks", comment: "Cell: number of synced bookmarks"), n)
+        }
+        static func historyCount(_ n: Int) -> String {
+            String(format: NSLocalizedString("troubleshoot.count.history", value: "%d Lookup History", comment: "Cell: number of synced lookup history entries"), n)
+        }
+
+        // MARK: Danger Zone cell
         static var clearCloudTitle: String {
             NSLocalizedString("troubleshoot.clearCloud.title", value: "Clear All iCloud Data", comment: "Button: nuclear reset — delete all synced data")
         }
         static var clearCloudDescription: String {
             NSLocalizedString("troubleshoot.clearCloud.description", value: "Deletes ALL synced data from iCloud and ALL devices using this iCloud account.", comment: "Description for the nuclear reset button")
         }
-        static var clearCloudConfirmTitle: String {
-            NSLocalizedString("troubleshoot.clearCloud.confirmTitle", value: "Clear All iCloud Data?", comment: "Alert title: first confirmation for nuclear reset")
+
+        // MARK: Alert 1 — explain impact
+        static var confirm1Title: String {
+            NSLocalizedString("troubleshoot.confirm1.title", value: "Clear ALL iCloud Data?", comment: "Alert 1 title: first confirmation for nuclear reset")
         }
-        static var clearCloudConfirmMessage: String {
-            NSLocalizedString("troubleshoot.clearCloud.confirmMessage", value: "This will permanently delete all synced bookmarks, history, groups, and dictionary files from iCloud.\n\nAll other devices using this iCloud account will also be reset automatically.", comment: "Alert message: first confirmation for nuclear reset")
+        static var confirm1Message: String {
+            NSLocalizedString("troubleshoot.confirm1.message", value: "This will permanently delete ALL synced bookmarks, history, groups, and dictionary files from iCloud.\n\nALL other devices using this iCloud account will also be reset.", comment: "Alert 1 message: first confirmation for nuclear reset")
         }
-        static var continueButton: String {
-            NSLocalizedString("troubleshoot.continue", value: "Continue", comment: "Button: proceed to second confirmation")
+        static var confirm1Proceed: String {
+            NSLocalizedString("troubleshoot.confirm1.proceed", value: "Proceed", comment: "Alert 1 destructive button: proceed to final confirmation")
         }
-        static var cancel: String {
-            NSLocalizedString("troubleshoot.cancel", value: "Cancel", comment: "Button: cancel the reset")
+
+        // MARK: Alert 2 — final confirmation (swapped buttons)
+        static var confirm2Title: String {
+            NSLocalizedString("troubleshoot.confirm2.title", value: "ARE YOU SURE YOU WANT TO CLEAR ALL ICLOUD DATA FOR THIS APP?", comment: "Alert 2 title: final confirmation, all caps")
         }
-        static var typeDeleteTitle: String {
-            NSLocalizedString("troubleshoot.typeDelete.title", value: "Final Confirmation", comment: "Alert title: type DELETE to confirm")
+        static var confirm2Message: String {
+            NSLocalizedString("troubleshoot.confirm2.message", value: "THIS CANNOT BE UNDONE!\nYou will need to set up this app again and import your dictionaries.", comment: "Alert 2 message: final warning, partially caps")
         }
-        static var typeDeleteMessage: String {
-            NSLocalizedString("troubleshoot.typeDelete.message", value: "Type DELETE to confirm. This action cannot be undone.", comment: "Alert message: type DELETE to confirm")
+        static var confirm2Abort: String {
+            NSLocalizedString("troubleshoot.confirm2.abort", value: "Abort", comment: "Alert 2 cancel button: abort the reset")
         }
-        static var clearCloudButton: String {
-            NSLocalizedString("troubleshoot.clearCloud.button", value: "Clear All Data", comment: "Button: execute the nuclear reset")
+        static var confirm2Confirm: String {
+            NSLocalizedString("troubleshoot.confirm2.confirm", value: "Confirm", comment: "Alert 2 destructive button: confirm the nuclear reset")
         }
+
+        // MARK: Progress
         static var resettingTitle: String {
             NSLocalizedString("troubleshoot.resetting.title", value: "Resetting…", comment: "Progress alert title during nuclear reset")
         }
@@ -1318,6 +1356,8 @@ nonisolated enum L10n {
         static var recreatingDatabase: String {
             NSLocalizedString("troubleshoot.progress.recreating", value: "Rebuilding database…", comment: "Progress: recreating CoreData container")
         }
+
+        // MARK: Error
         static var resetFailed: String {
             NSLocalizedString("troubleshoot.resetFailed", value: "Reset Failed", comment: "Alert title: nuclear reset failed")
         }

@@ -712,15 +712,15 @@ class CompactTabBarController: UITabBarController {
 
     // MARK: - iCloud Troubleshooting
 
-    private lazy var troubleshootVC = iCloudTroubleshootingViewController()
-
     private func showTroubleshootingScreen() {
+        let troubleshootVC = iCloudTroubleshootingViewController()
         troubleshootVC.onResetComplete = { [weak self] in
             self?.handlePostReset()
         }
-        selectedIndex = 3
-        managementNav.popToRootViewController(animated: false)
-        managementNav.pushViewController(troubleshootVC, animated: true)
+
+        let nav = UINavigationController(rootViewController: troubleshootVC)
+        nav.modalPresentationStyle = .pageSheet
+        present(nav, animated: true)
     }
 
     private func handlePostReset() {

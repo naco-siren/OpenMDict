@@ -481,25 +481,19 @@ class MainSplitViewController: UISplitViewController {
 
     // MARK: - iCloud Troubleshooting
 
-    private lazy var troubleshootVC = iCloudTroubleshootingViewController()
-
     private func showTroubleshootingScreen() {
+        let troubleshootVC = iCloudTroubleshootingViewController()
         troubleshootVC.onResetComplete = { [weak self] in
             self?.handlePostReset()
         }
 
-        if isCollapsed {
-            // Compact: push onto sidebar nav
-            show(.primary)
-            if let nav = dictionaryListVC.navigationController {
-                nav.pushViewController(troubleshootVC, animated: true)
-            }
-        } else {
-            // Regular: present as modal nav
-            let nav = UINavigationController(rootViewController: troubleshootVC)
+        let nav = UINavigationController(rootViewController: troubleshootVC)
+        if traitCollection.horizontalSizeClass == .regular {
             nav.modalPresentationStyle = .formSheet
-            present(nav, animated: true)
+        } else {
+            nav.modalPresentationStyle = .pageSheet
         }
+        present(nav, animated: true)
     }
 
     /// After nuclear reset: tear down all extra scenes, replace root with a fresh MainSplitVC.

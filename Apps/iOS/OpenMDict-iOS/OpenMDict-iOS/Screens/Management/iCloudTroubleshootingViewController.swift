@@ -2,13 +2,14 @@
 //  iCloudTroubleshootingViewController.swift
 //  OpenMDict-iOS
 //
-//  iCloud troubleshooting screen with the nuclear reset button.
-//  Accessible from the Management section when iCloud sync is enabled.
+//  iCloud troubleshooting screen: status overview, cloud data counts,
+//  and a nuclear reset button in the Danger Zone.
 //
-//  MVP: only Tier 3 ("Clear All iCloud Data") is implemented.
-//  Tier 1 (re-download) and Tier 2 (disconnect) are deferred.
+//  Presented as a modal (formSheet / pageSheet) from both regular and
+//  compact layouts.  Dismissible by tapping outside.
 //
 
+import CoreData
 import UIKit
 
 final class iCloudTroubleshootingViewController: UIViewController {
@@ -20,15 +21,28 @@ final class iCloudTroubleshootingViewController: UIViewController {
     // MARK: - Data Source
 
     private nonisolated enum Section: Hashable, Sendable {
-        case nuclear
+        case status
+        case cloudData
+        case dangerZone
     }
 
     private nonisolated enum Item: Hashable, Sendable {
+        case iCloudToggle
+        case dictCount
+        case groupCount
+        case bookmarkCount
+        case historyCount
         case clearAllCloudData
     }
 
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var collectionView: UICollectionView!
+
+    // MARK: - State
+
+    private var isCloudEnabled: Bool {
+        SyncModeService.shared.isCloudSyncEnabled
+    }
 
     // MARK: - Lifecycle
 
@@ -38,10 +52,35 @@ final class iCloudTroubleshootingViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         navigationItem.largeTitleDisplayMode = .never
 
+        // Dismiss button (leading, just like Download Presets modal)
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
+            target: self,
+            action: #selector(dismissSelf)
+        )
+
         configureCollectionView()
         configureDataSource()
         applySnapshot()
     }
+
+    @objc private func dismissSelf() {
+        dismiss(animated: true)
+    }
+
+    // MARK: - Cloud Data Counts
+
+    private func countRecords<T: NSManagedObject>(ofType _: T.Type) -> Int {
+        let ctx = CoreDataStack.shared.viewContext
+        let request = T.fetchRequest()
+        request.resultType = .countResultType
+        return (try? ctx.count(for: request)) ?? 0
+    }
+
+    private var dictionaryCount: Int { countRecords(ofType: DictionaryMetadataRecord.self) }
+    private var groupCount: Int { countRecords(ofType: DictionaryGroupRecord.self) }
+    private var bookmarkCount: Int { countRecords(ofType: BookmarkRecord.self) }
+    private var historyCount: Int { countRecords(ofType: LookupRecord.self) }
 
     // MARK: - Collection View
 
@@ -58,26 +97,88 @@ final class iCloudTroubleshootingViewController: UIViewController {
 
     private func configureDataSource() {
         let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, Item> {
-            (cell: UICollectionViewListCell, _: IndexPath, item: Item) in
+            [weak self] (cell, _, item) in
+            guard let self else { return }
 
             var config = cell.defaultContentConfiguration()
+            let enabled = self.isCloudEnabled
+
             switch item {
+            case .iCloudToggle:
+                config.image = UIImage(systemName: enabled ? "person.icloud" : "icloud.slash")
+                config.imageProperties.tintColor = enabled ? .systemBlue : .secondaryLabel
+                config.text = enabled
+                    ? L10n.Troubleshoot.statusEnabled
+                    : L10n.Troubleshoot.statusDisabled
+
+                let toggle = UISwitch()
+                toggle.isOn = enabled
+                toggle.isUserInteractionEnabled = false
+                cell.accessories = [.customView(configuration: .init(
+                    customView: toggle,
+                    placement: .trailing(displayed: .always)
+                ))]
+
+            case .dictCount:
+                config.image = UIImage(systemName: "books.vertical")
+                let count = enabled ? self.dictionaryCount : 0
+                config.text = L10n.Troubleshoot.dictCount(count)
+                if !enabled { applyDisabledStyle(&config) }
+
+            case .groupCount:
+                config.image = UIImage(systemName: "folder")
+                let count = enabled ? self.groupCount : 0
+                config.text = L10n.Troubleshoot.groupCount(count)
+                if !enabled { applyDisabledStyle(&config) }
+
+            case .bookmarkCount:
+                config.image = UIImage(systemName: "bookmark")
+                let count = enabled ? self.bookmarkCount : 0
+                config.text = L10n.Troubleshoot.bookmarkCountLabel(count)
+                if !enabled { applyDisabledStyle(&config) }
+
+            case .historyCount:
+                config.image = UIImage(systemName: "clock.arrow.circlepath")
+                let count = enabled ? self.historyCount : 0
+                config.text = L10n.Troubleshoot.historyCount(count)
+                if !enabled { applyDisabledStyle(&config) }
+
             case .clearAllCloudData:
                 config.text = L10n.Troubleshoot.clearCloudTitle
-                config.textProperties.color = .systemRed
                 config.secondaryText = L10n.Troubleshoot.clearCloudDescription
                 config.secondaryTextProperties.numberOfLines = 0
-                config.image = UIImage(systemName: "exclamationmark.icloud")
-                config.imageProperties.tintColor = .systemRed
+                config.image = UIImage(systemName: "exclamationmark.icloud.fill")
+                if enabled {
+                    config.textProperties.color = .systemRed
+                    config.imageProperties.tintColor = .systemRed
+                } else {
+                    applyDisabledStyle(&config)
+                }
             }
+
             cell.contentConfiguration = config
+            // Remove accessories for non-toggle items
+            if item != .iCloudToggle {
+                cell.accessories = []
+            }
         }
 
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
-        ) { (header, _, indexPath) in
+        ) { [weak self] (header, _, indexPath) in
+            guard let self else { return }
             var config = header.defaultContentConfiguration()
-            config.text = L10n.Troubleshoot.dangerZone
+            let section = self.dataSource.sectionIdentifier(for: indexPath.section)
+            switch section {
+            case .status:
+                config.text = L10n.Troubleshoot.sectionStatus
+            case .cloudData:
+                config.text = L10n.Troubleshoot.sectionCloudData
+            case .dangerZone:
+                config.text = L10n.Troubleshoot.dangerZone
+            case .none:
+                break
+            }
             header.contentConfiguration = config
         }
 
@@ -96,83 +197,102 @@ final class iCloudTroubleshootingViewController: UIViewController {
         }
     }
 
+    private func applyDisabledStyle(_ config: inout UIListContentConfiguration) {
+        config.textProperties.color = .tertiaryLabel
+        config.imageProperties.tintColor = .tertiaryLabel
+    }
+
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-        snapshot.appendSections([.nuclear])
-        snapshot.appendItems([.clearAllCloudData], toSection: .nuclear)
+
+        snapshot.appendSections([.status])
+        snapshot.appendItems([.iCloudToggle], toSection: .status)
+
+        snapshot.appendSections([.cloudData])
+        snapshot.appendItems(
+            [.dictCount, .groupCount, .bookmarkCount, .historyCount],
+            toSection: .cloudData
+        )
+
+        snapshot.appendSections([.dangerZone])
+        snapshot.appendItems([.clearAllCloudData], toSection: .dangerZone)
+
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     // MARK: - Nuclear Reset Flow
 
     private func beginNuclearReset() {
-        // Step 1: First confirmation — explain impact
+        guard isCloudEnabled else { return }
+
+        // Alert 1: Explain impact.
+        // Button order: [Proceed (destructive)] [Cancel]
         let alert1 = UIAlertController(
-            title: L10n.Troubleshoot.clearCloudConfirmTitle,
-            message: L10n.Troubleshoot.clearCloudConfirmMessage,
+            title: L10n.Troubleshoot.confirm1Title,
+            message: L10n.Troubleshoot.confirm1Message,
             preferredStyle: .alert
         )
         alert1.addAction(UIAlertAction(
-            title: L10n.Troubleshoot.continueButton,
+            title: L10n.Troubleshoot.confirm1Proceed,
             style: .destructive
         ) { [weak self] _ in
-            self?.showDeleteConfirmation()
+            self?.showFinalConfirmation()
         })
-        alert1.addAction(UIAlertAction(title: L10n.Troubleshoot.cancel, style: .cancel))
+        alert1.addAction(UIAlertAction(
+            title: L10n.cancel,
+            style: .cancel
+        ))
         present(alert1, animated: true)
     }
 
-    /// Step 2: Type "DELETE" to confirm
-    private func showDeleteConfirmation() {
+    /// Alert 2: Final confirmation with swapped button positions.
+    /// Button order: [Abort (cancel)] [Confirm (destructive)]
+    private func showFinalConfirmation() {
         let alert2 = UIAlertController(
-            title: L10n.Troubleshoot.typeDeleteTitle,
-            message: L10n.Troubleshoot.typeDeleteMessage,
+            title: L10n.Troubleshoot.confirm2Title,
+            message: L10n.Troubleshoot.confirm2Message,
             preferredStyle: .alert
         )
-        alert2.addTextField { textField in
-            textField.placeholder = "DELETE"
-            textField.autocapitalizationType = .allCharacters
-            textField.autocorrectionType = .no
-        }
-
-        let confirmAction = UIAlertAction(
-            title: L10n.Troubleshoot.clearCloudButton,
+        // Cancel FIRST (left) — prevents accidental double-tap
+        alert2.addAction(UIAlertAction(
+            title: L10n.Troubleshoot.confirm2Abort,
+            style: .cancel
+        ))
+        alert2.addAction(UIAlertAction(
+            title: L10n.Troubleshoot.confirm2Confirm,
             style: .destructive
         ) { [weak self] _ in
-            guard let text = alert2.textFields?.first?.text,
-                  text.uppercased() == "DELETE" else {
-                return
-            }
             self?.executeNuclearReset()
-        }
-        alert2.addAction(confirmAction)
-        alert2.addAction(UIAlertAction(title: L10n.Troubleshoot.cancel, style: .cancel))
+        })
         present(alert2, animated: true)
     }
 
-    /// Step 3: Show progress and execute
+    /// Show progress and execute the reset.
     private func executeNuclearReset() {
-        // Non-dismissible progress alert
         let progressAlert = UIAlertController(
             title: L10n.Troubleshoot.resettingTitle,
             message: L10n.Troubleshoot.starting,
             preferredStyle: .alert
         )
-        // Add a spinner
         let spinner = UIActivityIndicatorView(style: .medium)
         spinner.startAnimating()
         spinner.translatesAutoresizingMaskIntoConstraints = false
         progressAlert.view.addSubview(spinner)
         NSLayoutConstraint.activate([
-            spinner.centerYAnchor.constraint(equalTo: progressAlert.view.bottomAnchor, constant: -45),
-            spinner.trailingAnchor.constraint(equalTo: progressAlert.view.trailingAnchor, constant: -20),
+            spinner.centerYAnchor.constraint(
+                equalTo: progressAlert.view.bottomAnchor, constant: -45
+            ),
+            spinner.trailingAnchor.constraint(
+                equalTo: progressAlert.view.trailingAnchor, constant: -20
+            ),
         ])
 
         present(progressAlert, animated: true)
 
         Task {
             var resetError: Error?
-            await iCloudResetOrchestrator.shared.performClearAll { [weak progressAlert] progress in
+            await iCloudResetOrchestrator.shared.performClearAll {
+                [weak progressAlert] progress in
                 switch progress {
                 case .starting:
                     progressAlert?.message = L10n.Troubleshoot.starting
@@ -189,7 +309,6 @@ final class iCloudTroubleshootingViewController: UIViewController {
                 }
             }
 
-            // Dismiss progress alert, then handle result
             progressAlert.dismiss(animated: true) { [weak self] in
                 if resetError != nil {
                     self?.showResetFailedAlert()
@@ -199,6 +318,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
             }
         }
     }
+
     private func showResetFailedAlert() {
         let alert = UIAlertController(
             title: L10n.Troubleshoot.resetFailed,
@@ -213,6 +333,16 @@ final class iCloudTroubleshootingViewController: UIViewController {
 // MARK: - UICollectionViewDelegate
 
 extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        shouldSelectItemAt indexPath: IndexPath
+    ) -> Bool {
+        guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
+        // Only the nuclear button is tappable, and only when iCloud is on
+        return item == .clearAllCloudData && isCloudEnabled
+    }
+
     func collectionView(
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
@@ -223,6 +353,8 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
         switch item {
         case .clearAllCloudData:
             beginNuclearReset()
+        default:
+            break
         }
     }
 }
