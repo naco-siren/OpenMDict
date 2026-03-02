@@ -710,7 +710,7 @@ final class ManagementActionCell: UICollectionViewListCell {
             content.image = UIImage(systemName: "icloud.and.arrow.down")
         case .iCloudTroubleshoot:
             content.text = L10n.Troubleshoot.title
-            content.image = UIImage(systemName: "exclamationmark.icloud")
+            content.image = UIImage(systemName: "key.icloud")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

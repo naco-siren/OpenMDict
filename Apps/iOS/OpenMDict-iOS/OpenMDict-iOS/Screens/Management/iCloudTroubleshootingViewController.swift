@@ -105,7 +105,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
 
             switch item {
             case .iCloudToggle:
-                config.image = UIImage(systemName: enabled ? "person.icloud" : "icloud.slash")
+                config.image = UIImage(systemName: enabled ? "person.icloud.fill" : "icloud.slash")
                 config.imageProperties.tintColor = enabled ? .systemBlue : .secondaryLabel
                 config.text = enabled
                     ? L10n.Troubleshoot.statusEnabled
@@ -226,7 +226,9 @@ final class iCloudTroubleshootingViewController: UIViewController {
         guard isCloudEnabled else { return }
 
         // Alert 1: Explain impact.
-        // Button order: [Proceed (destructive)] [Cancel]
+        // Visual order: [Proceed (red, left)] [Cancel (bold blue, right)]
+        // .cancel style is NOT used — it forces left position on iOS.
+        // Instead: .destructive first, .default second, preferredAction = cancel.
         let alert1 = UIAlertController(
             title: L10n.Troubleshoot.confirm1Title,
             message: L10n.Troubleshoot.confirm1Message,
@@ -238,32 +240,37 @@ final class iCloudTroubleshootingViewController: UIViewController {
         ) { [weak self] _ in
             self?.showFinalConfirmation()
         })
-        alert1.addAction(UIAlertAction(
+        let cancel1 = UIAlertAction(
             title: L10n.cancel,
-            style: .cancel
-        ))
+            style: .default
+        )
+        alert1.addAction(cancel1)
+        alert1.preferredAction = cancel1  // bold → "safe" choice
         present(alert1, animated: true)
     }
 
-    /// Alert 2: Final confirmation with swapped button positions.
-    /// Button order: [Abort (cancel)] [Confirm (destructive)]
+    /// Alert 2: Final confirmation with SWAPPED button positions.
+    /// Visual order: [Abort (bold blue, left)] [Confirm (red, right)]
+    /// The destructive button moved from left to right, forcing the user
+    /// to read the button text instead of muscle-memory double-tapping.
     private func showFinalConfirmation() {
         let alert2 = UIAlertController(
             title: L10n.Troubleshoot.confirm2Title,
             message: L10n.Troubleshoot.confirm2Message,
             preferredStyle: .alert
         )
-        // Cancel FIRST (left) — prevents accidental double-tap
-        alert2.addAction(UIAlertAction(
+        let abort = UIAlertAction(
             title: L10n.Troubleshoot.confirm2Abort,
-            style: .cancel
-        ))
+            style: .default
+        )
+        alert2.addAction(abort)
         alert2.addAction(UIAlertAction(
             title: L10n.Troubleshoot.confirm2Confirm,
             style: .destructive
         ) { [weak self] _ in
             self?.executeNuclearReset()
         })
+        alert2.preferredAction = abort  // bold → "safe" choice
         present(alert2, animated: true)
     }
 

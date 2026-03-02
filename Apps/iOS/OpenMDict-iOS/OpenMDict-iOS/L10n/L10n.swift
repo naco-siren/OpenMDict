@@ -1320,7 +1320,7 @@ nonisolated enum L10n {
             NSLocalizedString("troubleshoot.confirm1.title", value: "Clear ALL iCloud Data?", comment: "Alert 1 title: first confirmation for nuclear reset")
         }
         static var confirm1Message: String {
-            NSLocalizedString("troubleshoot.confirm1.message", value: "This will permanently delete ALL synced bookmarks, history, groups, and dictionary files from iCloud.\n\nALL other devices using this iCloud account will also be reset.", comment: "Alert 1 message: first confirmation for nuclear reset")
+            NSLocalizedString("troubleshoot.confirm1.message", value: "This will permanently delete ALL synced bookmarks, history, groups, and dictionary files from iCloud.\n\nThis app on ALL other devices using this iCloud account will also be reset.", comment: "Alert 1 message: first confirmation for nuclear reset")
         }
         static var confirm1Proceed: String {
             NSLocalizedString("troubleshoot.confirm1.proceed", value: "Proceed", comment: "Alert 1 destructive button: proceed to final confirmation")

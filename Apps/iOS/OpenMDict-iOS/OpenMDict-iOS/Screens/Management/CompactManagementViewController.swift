@@ -101,7 +101,7 @@ class CompactManagementViewController: UIViewController {
                 config.image = UIImage(systemName: "icloud.and.arrow.down")
             case .iCloudTroubleshoot:
                 config.text = L10n.Troubleshoot.title
-                config.image = UIImage(systemName: "exclamationmark.icloud")
+                config.image = UIImage(systemName: "key.icloud")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")
