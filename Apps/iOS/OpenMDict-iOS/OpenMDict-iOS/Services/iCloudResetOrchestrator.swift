@@ -7,12 +7,13 @@
 //  Two roles:
 //
 //  A. **Active reset** (Device A — the device that initiates the nuke):
-//     1. Write NuclearResetSignal to default zone (propagation flag)
-//     2. Delete CloudKit zone  → if this fails, ABORT (don't touch local data)
-//     3. Delete DictionaryFile records → non-fatal, orphans are harmless
-//     4. Clear all Service in-memory caches
-//     5. Delete local dictionary files and MDD cache
-//     6. Reset and recreate CoreData container
+//     0. Write NuclearResetSignal to default zone (propagation flag)
+//     1. Delete CloudKit zone  → if this fails, ABORT (don't touch local data)
+//     2. Delete DictionaryFile records → non-fatal, orphans are harmless
+//     3. Clear all Service in-memory caches
+//     4. Delete local dictionary files and MDD cache
+//     5. Reset sync mode → .notDecided (triggers full setup flow)
+//     6. Reset and recreate CoreData container (CloudKit disabled)
 //     7. Re-install remote change preprocessor
 //
 //  B. **Passive reset** (Device B/C/… — other devices that detect the signal):
@@ -21,11 +22,12 @@
 //     1. Mark signal as processed (prevent re-trigger)
 //     2. Clear all Service in-memory caches
 //     3. Delete local dictionary files and MDD cache
-//     4. Reset and recreate CoreData container (stops re-export)
-//     5. Delete CloudKit zone again (clean up re-exported corrupt data)
-//     6. Delete DictionaryFile records (non-fatal)
-//     7. Re-install remote change preprocessor
-//     8. Post notification → UI replaces rootViewController
+//     4. Reset sync mode → .notDecided
+//     5. Reset and recreate CoreData container (CloudKit disabled)
+//     6. Delete CloudKit zone again (clean up re-exported corrupt data)
+//     7. Delete DictionaryFile records (non-fatal)
+//     8. Re-install remote change preprocessor
+//     9. Post notification → UI replaces rootViewController
 //
 //  The caller (UI layer) is responsible for post-reset app state transition
 //  (destroying extra scenes, replacing rootViewController, etc.).
@@ -102,11 +104,20 @@ final class iCloudResetOrchestrator {
         LocalDataResetService.shared.deleteAllDictionaryFiles()
         LocalDataResetService.shared.deleteMDDCache()
 
-        // ── Step 5: Reset and recreate CoreData container ────────────
-        onProgress(.recreatingDatabase)
-        CoreDataStack.shared.resetAndRecreateContainer(enableCloudKit: true)
+        // ── Step 5: Reset sync mode → .notDecided ─────────────────────
+        // Forces the full setup flow (sync mode chooser) on next UI reset,
+        // just like a fresh install.
+        SyncModeService.shared.currentMode = .notDecided
 
-        // ── Step 6: Re-install remote change preprocessor ────────────
+        // ── Step 6: Reset and recreate CoreData container ────────────
+        // CloudKit disabled — the setup flow will re-enable it if the
+        // user chooses iCloud again.
+        onProgress(.recreatingDatabase)
+        CoreDataStack.shared.resetAndRecreateContainer(enableCloudKit: false)
+
+        // ── Step 7: Re-install remote change preprocessor ────────────
+        // Harmless when CloudKit is disabled (observer not installed).
+        // Will be active once setup flow calls reloadWithCloudKit().
         installPreprocessor()
 
         onProgress(.complete)
@@ -150,15 +161,17 @@ final class iCloudResetOrchestrator {
         LocalDataResetService.shared.deleteAllDictionaryFiles()
         LocalDataResetService.shared.deleteMDDCache()
 
-        // 4. Reset and recreate CoreData container.
-        //    This stops the container from re-exporting any more data.
-        CoreDataStack.shared.resetAndRecreateContainer(enableCloudKit: true)
+        // 4. Reset sync mode → .notDecided (full setup flow on UI reset).
+        SyncModeService.shared.currentMode = .notDecided
 
-        // 5. Delete the CoreData zone AGAIN.
+        // 5. Reset and recreate CoreData container (CloudKit disabled).
+        //    Stops re-export. Setup flow will re-enable if user picks iCloud.
+        CoreDataStack.shared.resetAndRecreateContainer(enableCloudKit: false)
+
+        // 6. Delete the CoreData zone AGAIN.
         //    The original container may have already re-exported corrupt
         //    local data before we caught the signal. Deleting the zone
-        //    wipes that re-exported data. The new container will recreate
-        //    an empty zone with nothing to export.
+        //    wipes that re-exported data.
         do {
             try await CloudKitResetService.shared.deleteCoreDataZone()
             debugLog("☁️🗑️ Passive reset: deleted CoreData zone (cleanup re-exported data)")
@@ -166,19 +179,19 @@ final class iCloudResetOrchestrator {
             debugLog("⚠️ Passive reset: zone re-deletion failed (non-fatal): \(error)")
         }
 
-        // 6. Delete DictionaryFile records (non-fatal).
+        // 7. Delete DictionaryFile records (non-fatal).
         do {
             try await CloudKitResetService.shared.deleteAllDictionaryFileRecords()
         } catch {
             debugLog("⚠️ Passive reset: DictionaryFile cleanup failed (non-fatal): \(error)")
         }
 
-        // 7. Re-install remote change preprocessor.
+        // 8. Re-install remote change preprocessor.
         installPreprocessor()
 
         isPassiveResetInProgress = false
 
-        // 8. Notify UI to reset.
+        // 9. Notify UI to reset.
         debugLog("✅ Passive reset complete — posting notification")
         NotificationCenter.default.post(name: .passiveResetDidComplete, object: nil)
 
