@@ -125,6 +125,73 @@ final class CoreDataStack {
         }
     }
 
+    // MARK: - Reset
+
+    /// Tear down the current container, delete all local stores and mirror
+    /// metadata, and recreate a fresh container.
+    ///
+    /// Used by the iCloud reset flow (nuclear option) to clear all local
+    /// CoreData state and start over.
+    ///
+    /// - Parameter enableCloudKit: Whether the new container should have
+    ///   CloudKit sync enabled.
+    func resetAndRecreateContainer(enableCloudKit: Bool) {
+        // 1. Remove remote change observer and cancel pending work.
+        if let obs = remoteChangeObserver {
+            NotificationCenter.default.removeObserver(obs)
+            remoteChangeObserver = nil
+        }
+        remoteChangeWorkItem?.cancel()
+        remoteChangeWorkItem = nil
+        isProcessingRemoteChange = false
+
+        // 2. Reset the viewContext to detach all managed objects.
+        _persistentContainer?.viewContext.reset()
+
+        // 3. Remove persistent stores from the coordinator.
+        if let coordinator = _persistentContainer?.persistentStoreCoordinator {
+            for store in coordinator.persistentStores {
+                try? coordinator.remove(store)
+            }
+        }
+
+        // 4. Delete SQLite files.
+        let url = Self.storeURL()
+        for suffix in ["", "-wal", "-shm"] {
+            let fileURL = URL(fileURLWithPath: url.path + suffix)
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+
+        // 5. Delete CloudKit mirror metadata directory.
+        let ckDir = url.deletingLastPathComponent()
+            .appendingPathComponent("ckAssetFiles")
+        try? FileManager.default.removeItem(at: ckDir)
+
+        // 6. Nil out the container.
+        _persistentContainer = nil
+
+        // 7. Recreate.
+        _persistentContainer = createContainer(enableCloudKit: enableCloudKit)
+        if enableCloudKit {
+            installRemoteChangeObserver()
+            purgeOldPersistentHistory()
+        }
+
+        debugLog("🔄 CoreDataStack: container reset and recreated (CloudKit=\(enableCloudKit))")
+    }
+
+    /// The SQLite store URL inside the App Group shared container.
+    static func storeURL() -> URL {
+        guard let groupURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AppIdentifiers.appGroupIdentifier
+        ) else {
+            fatalError("App Group container unavailable")
+        }
+        return groupURL
+            .appendingPathComponent("Library/Application Support", isDirectory: true)
+            .appendingPathComponent("OpenMDict_iOS.sqlite")
+    }
+
     // MARK: - Private
 
     /// Build and load a persistent container.
