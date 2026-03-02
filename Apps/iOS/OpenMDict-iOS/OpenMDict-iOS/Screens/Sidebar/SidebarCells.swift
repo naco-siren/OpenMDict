@@ -708,6 +708,9 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .managePresets:
             content.text = L10n.Sidebar.downloadPresets
             content.image = UIImage(systemName: "icloud.and.arrow.down")
+        case .iCloudTroubleshoot:
+            content.text = L10n.Troubleshoot.title
+            content.image = UIImage(systemName: "exclamationmark.icloud")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

@@ -1266,4 +1266,63 @@ nonisolated enum L10n {
             NSLocalizedString("tabBar.management", value: "Management", comment: "Tab bar item: dictionary management")
         }
     }
+
+    // MARK: - iCloud Troubleshooting
+
+    enum Troubleshoot {
+        static var title: String {
+            NSLocalizedString("troubleshoot.title", value: "iCloud Troubleshooting", comment: "Title: iCloud troubleshooting screen")
+        }
+        static var dangerZone: String {
+            NSLocalizedString("troubleshoot.dangerZone", value: "Danger Zone", comment: "Section header: destructive iCloud actions")
+        }
+        static var clearCloudTitle: String {
+            NSLocalizedString("troubleshoot.clearCloud.title", value: "Clear All iCloud Data", comment: "Button: nuclear reset — delete all synced data")
+        }
+        static var clearCloudDescription: String {
+            NSLocalizedString("troubleshoot.clearCloud.description", value: "Deletes ALL synced data from iCloud and ALL devices using this iCloud account.", comment: "Description for the nuclear reset button")
+        }
+        static var clearCloudConfirmTitle: String {
+            NSLocalizedString("troubleshoot.clearCloud.confirmTitle", value: "Clear All iCloud Data?", comment: "Alert title: first confirmation for nuclear reset")
+        }
+        static var clearCloudConfirmMessage: String {
+            NSLocalizedString("troubleshoot.clearCloud.confirmMessage", value: "This will permanently delete all synced bookmarks, history, groups, and dictionary files from iCloud.\n\nAll other devices using this iCloud account will also be reset automatically.", comment: "Alert message: first confirmation for nuclear reset")
+        }
+        static var continueButton: String {
+            NSLocalizedString("troubleshoot.continue", value: "Continue", comment: "Button: proceed to second confirmation")
+        }
+        static var cancel: String {
+            NSLocalizedString("troubleshoot.cancel", value: "Cancel", comment: "Button: cancel the reset")
+        }
+        static var typeDeleteTitle: String {
+            NSLocalizedString("troubleshoot.typeDelete.title", value: "Final Confirmation", comment: "Alert title: type DELETE to confirm")
+        }
+        static var typeDeleteMessage: String {
+            NSLocalizedString("troubleshoot.typeDelete.message", value: "Type DELETE to confirm. This action cannot be undone.", comment: "Alert message: type DELETE to confirm")
+        }
+        static var clearCloudButton: String {
+            NSLocalizedString("troubleshoot.clearCloud.button", value: "Clear All Data", comment: "Button: execute the nuclear reset")
+        }
+        static var resettingTitle: String {
+            NSLocalizedString("troubleshoot.resetting.title", value: "Resetting…", comment: "Progress alert title during nuclear reset")
+        }
+        static var starting: String {
+            NSLocalizedString("troubleshoot.progress.starting", value: "Preparing…", comment: "Progress: starting the reset")
+        }
+        static var deletingCloudData: String {
+            NSLocalizedString("troubleshoot.progress.deletingCloud", value: "Deleting cloud data…", comment: "Progress: deleting CloudKit data")
+        }
+        static var deletingLocalData: String {
+            NSLocalizedString("troubleshoot.progress.deletingLocal", value: "Deleting local data…", comment: "Progress: deleting local files")
+        }
+        static var recreatingDatabase: String {
+            NSLocalizedString("troubleshoot.progress.recreating", value: "Rebuilding database…", comment: "Progress: recreating CoreData container")
+        }
+        static var resetFailed: String {
+            NSLocalizedString("troubleshoot.resetFailed", value: "Reset Failed", comment: "Alert title: nuclear reset failed")
+        }
+        static var resetFailedMessage: String {
+            NSLocalizedString("troubleshoot.resetFailed.message", value: "Could not delete cloud data. Your local data has not been modified. Please check your network connection and try again.", comment: "Alert message: nuclear reset failed")
+        }
+    }
 }

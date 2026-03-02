@@ -458,6 +458,12 @@ class CompactTabBarController: UITabBarController {
             hideSidebar()
             presentPresetManager()
         }
+
+        sidebarVC.onTroubleshootSelected = { [weak self] in
+            guard let self else { return }
+            hideSidebar()
+            showTroubleshootingScreen()
+        }
     }
 
     // MARK: - Word Selection (Lookup tab)
@@ -595,6 +601,10 @@ class CompactTabBarController: UITabBarController {
             self?.presentPresetManager()
         }
 
+        managementVC.onTroubleshootSelected = { [weak self] in
+            self?.showTroubleshootingScreen()
+        }
+
         managementVC.onAppSettingsSelected = {
             if let url = URL(string: UIApplication.openSettingsURLString) {
                 UIApplication.shared.open(url)
@@ -698,6 +708,36 @@ class CompactTabBarController: UITabBarController {
         setupVC.onComplete = { }
 
         present(setupVC, animated: true)
+    }
+
+    // MARK: - iCloud Troubleshooting
+
+    private lazy var troubleshootVC = iCloudTroubleshootingViewController()
+
+    private func showTroubleshootingScreen() {
+        troubleshootVC.onResetComplete = { [weak self] in
+            self?.handlePostReset()
+        }
+        selectedIndex = 3
+        managementNav.popToRootViewController(animated: false)
+        managementNav.pushViewController(troubleshootVC, animated: true)
+    }
+
+    private func handlePostReset() {
+        guard let windowScene = view.window?.windowScene else { return }
+
+        // Destroy all other scenes
+        for session in UIApplication.shared.openSessions where session.scene !== windowScene {
+            UIApplication.shared.requestSceneSessionDestruction(session, options: nil)
+        }
+
+        // Replace root view controller
+        let freshSplitVC = MainSplitViewController(
+            initialArticles: [],
+            initialGroupId: "",
+            initialLayoutMode: 0
+        )
+        view.window?.rootViewController = freshSplitVC
     }
 
     // MARK: - State Transfer API (called by MainSplitVC)

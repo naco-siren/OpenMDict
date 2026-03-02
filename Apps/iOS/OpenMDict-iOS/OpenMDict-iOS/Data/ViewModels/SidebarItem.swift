@@ -21,6 +21,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     case mgmtAddGroup          // Management section: redundant "Add New Group" (always visible)
     case mgmtImportDictionary  // Management section: redundant "Import Dictionary" (always visible)
     case managePresets         // Management section: add/remove preset dictionaries
+    case iCloudTroubleshoot    // Management section: iCloud troubleshooting (visible only when sync enabled)
     case settings
 
     var itemId: String {
@@ -35,6 +36,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
         case .mgmtAddGroup: return "action:mgmtAddGroup"
         case .mgmtImportDictionary: return "action:mgmtImport"
         case .managePresets: return "action:managePresets"
+        case .iCloudTroubleshoot: return "action:iCloudTroubleshoot"
         case .settings: return "action:settings"
         }
     }

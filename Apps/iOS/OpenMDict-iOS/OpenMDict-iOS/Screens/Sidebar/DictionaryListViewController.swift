@@ -30,7 +30,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onBookmarksSelected: (() -> Void)?
     var onLookupHistorySelected: (() -> Void)?
     var onManagePresetsSelected: (() -> Void)?
-    
+    var onTroubleshootSelected: (() -> Void)?
+
     // MARK: - Compact Sidebar Mode
 
     /// When `true`, the sidebar is configured for compact tab bar mode:
@@ -643,7 +644,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                     )
                 
             case .importDictionary, .addGroup, .bookmarks, .lookupHistory,
-                 .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings:
+                 .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
+                 .iCloudTroubleshoot, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -689,10 +691,20 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
         if isEditing || userGroups.isEmpty { userItems.append(.addGroup) }
 
-        let mgmtItems: [SidebarItem] = isCompactSidebarMode ? [] : [
-            .header(L10n.Sidebar.management, isBold: false),
-            .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings
-        ]
+        let mgmtItems: [SidebarItem]
+        if isCompactSidebarMode {
+            mgmtItems = []
+        } else {
+            var actions: [SidebarItem] = [
+                .header(L10n.Sidebar.management, isBold: false),
+                .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
+            ]
+            if SyncModeService.shared.isCloudSyncEnabled {
+                actions.append(.iCloudTroubleshoot)
+            }
+            actions.append(.settings)
+            mgmtItems = actions
+        }
 
         return [.defaultGroup: defaultItems, .userGroups: userItems, .management: mgmtItems]
     }
@@ -749,7 +761,12 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
             let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
             mgmtSnapshot.append([mgmtHeader])
-            mgmtSnapshot.append([.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets, .settings], to: mgmtHeader)
+            var mgmtChildren: [SidebarItem] = [.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets]
+            if SyncModeService.shared.isCloudSyncEnabled {
+                mgmtChildren.append(.iCloudTroubleshoot)
+            }
+            mgmtChildren.append(.settings)
+            mgmtSnapshot.append(mgmtChildren, to: mgmtHeader)
             mgmtSnapshot.expand([mgmtHeader])
             dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
         }
@@ -927,6 +944,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Management actions are disabled in edit mode
             return !isEditing
 
+        case .iCloudTroubleshoot:
+            return !isEditing
+
         case .settings:
             // Management actions are disabled in edit mode
             return !isEditing
@@ -1063,6 +1083,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .managePresets:
             collectionView.deselectItem(at: indexPath, animated: true)
             onManagePresetsSelected?()
+
+        case .iCloudTroubleshoot:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onTroubleshootSelected?()
 
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)

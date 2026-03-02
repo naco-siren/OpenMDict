@@ -25,6 +25,7 @@ private nonisolated enum MgmtItem: Hashable, Sendable {
     case addGroup
     case importDictionary
     case downloadPresets
+    case iCloudTroubleshoot
     case appSettings
 }
 
@@ -42,6 +43,9 @@ class CompactManagementViewController: UIViewController {
 
     /// "Download Presets" tapped
     var onDownloadPresetsSelected: (() -> Void)?
+
+    /// "iCloud Troubleshooting" tapped
+    var onTroubleshootSelected: (() -> Void)?
 
     /// "App Settings" tapped
     var onAppSettingsSelected: (() -> Void)?
@@ -95,6 +99,9 @@ class CompactManagementViewController: UIViewController {
             case .downloadPresets:
                 config.text = L10n.Sidebar.downloadPresets
                 config.image = UIImage(systemName: "icloud.and.arrow.down")
+            case .iCloudTroubleshoot:
+                config.text = L10n.Troubleshoot.title
+                config.image = UIImage(systemName: "exclamationmark.icloud")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")
@@ -117,8 +124,12 @@ class CompactManagementViewController: UIViewController {
     private func rebuildSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<MgmtSection, MgmtItem>()
         snapshot.appendSections([.actions])
-        snapshot.appendItems([.addGroup, .importDictionary, .downloadPresets, .appSettings],
-                            toSection: .actions)
+        var items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets]
+        if SyncModeService.shared.isCloudSyncEnabled {
+            items.append(.iCloudTroubleshoot)
+        }
+        items.append(.appSettings)
+        snapshot.appendItems(items, toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
@@ -145,6 +156,8 @@ extension CompactManagementViewController: UICollectionViewDelegate {
             onAddGroupSelected?()
         case .downloadPresets:
             onDownloadPresetsSelected?()
+        case .iCloudTroubleshoot:
+            onTroubleshootSelected?()
         case .appSettings:
             onAppSettingsSelected?()
         }

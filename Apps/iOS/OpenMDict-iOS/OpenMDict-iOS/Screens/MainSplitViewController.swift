@@ -193,7 +193,11 @@ class MainSplitViewController: UISplitViewController {
         dictionaryListVC.onManagePresetsSelected = { [weak self] in
             self?.presentPresetManager()
         }
-        
+
+        dictionaryListVC.onTroubleshootSelected = { [weak self] in
+            self?.showTroubleshootingScreen()
+        }
+
         wordListVC.onWordSelected = { [weak self] word in
             self?.select(word: word)
         }
@@ -473,6 +477,47 @@ class MainSplitViewController: UISplitViewController {
         }
 
         present(setupVC, animated: true)
+    }
+
+    // MARK: - iCloud Troubleshooting
+
+    private lazy var troubleshootVC = iCloudTroubleshootingViewController()
+
+    private func showTroubleshootingScreen() {
+        troubleshootVC.onResetComplete = { [weak self] in
+            self?.handlePostReset()
+        }
+
+        if isCollapsed {
+            // Compact: push onto sidebar nav
+            show(.primary)
+            if let nav = dictionaryListVC.navigationController {
+                nav.pushViewController(troubleshootVC, animated: true)
+            }
+        } else {
+            // Regular: present as modal nav
+            let nav = UINavigationController(rootViewController: troubleshootVC)
+            nav.modalPresentationStyle = .formSheet
+            present(nav, animated: true)
+        }
+    }
+
+    /// After nuclear reset: tear down all extra scenes, replace root with a fresh MainSplitVC.
+    private func handlePostReset() {
+        guard let windowScene = view.window?.windowScene else { return }
+
+        // Destroy all other scenes (multi-window support)
+        for session in UIApplication.shared.openSessions where session.scene !== windowScene {
+            UIApplication.shared.requestSceneSessionDestruction(session, options: nil)
+        }
+
+        // Replace root view controller to get a clean state
+        let freshSplitVC = MainSplitViewController(
+            initialArticles: [],
+            initialGroupId: "",
+            initialLayoutMode: 0
+        )
+        view.window?.rootViewController = freshSplitVC
     }
 
     // MARK: - Selection
