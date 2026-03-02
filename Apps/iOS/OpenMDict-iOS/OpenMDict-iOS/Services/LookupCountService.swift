@@ -55,6 +55,19 @@ final class LookupCountService {
     /// Cancellable for CloudKit remote change subscription.
     private var remoteChangeCancellable: AnyCancellable?
 
+    // MARK: - Reset
+
+    /// Discard all in-memory state.  Called during iCloud nuclear reset
+    /// after the CoreData store has been deleted and recreated.
+    func resetCaches() {
+        deferredPersistWorkItem?.cancel()
+        deferredPersistWorkItem = nil
+        cache.removeAll()
+        dirtyKeys.removeAll()
+        isCachePopulated = false
+        revision &+= 1
+    }
+
     // MARK: - Init
 
     private init() {

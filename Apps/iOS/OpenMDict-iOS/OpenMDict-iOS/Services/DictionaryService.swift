@@ -82,6 +82,22 @@ final class DictionaryService: ObservableObject {
 
     private init() {}
 
+    // MARK: - Reset
+
+    /// Discard all in-memory dictionaries and groups.
+    /// Called during iCloud nuclear reset after the CoreData store and
+    /// dictionary files have been deleted.
+    func resetAllState() {
+        remoteChangeCancellable?.cancel()
+        remoteChangeCancellable = nil
+
+        allDictionaries.removeAll()
+        groups.removeAll()
+
+        resourceRevision &+= 1
+        displayNameRevision &+= 1
+    }
+
     // MARK: - Search Session Factory
     
     /// Create a new search session for a scene

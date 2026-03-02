@@ -93,6 +93,14 @@ final class DictionaryFileSyncService {
 
     private init() {}
 
+    // MARK: - Reset
+
+    /// Cancel tracking of any in-flight sync operations.
+    /// Called during iCloud nuclear reset.
+    func cancelAllOperations() {
+        syncProgress.removeAll()
+    }
+
     // MARK: - Record Name Helpers
 
     /// Build a CKRecord name for a file in a dictionary.

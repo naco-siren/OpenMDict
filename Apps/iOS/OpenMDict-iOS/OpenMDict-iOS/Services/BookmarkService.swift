@@ -62,6 +62,14 @@ final class BookmarkService {
     /// Cancellable for CloudKit remote change subscription.
     private var remoteChangeCancellable: AnyCancellable?
 
+    // MARK: - Reset
+
+    /// Bump revision so any surviving UI re-fetches from the new (empty) store.
+    /// Called during iCloud nuclear reset.
+    func resetCaches() {
+        revision &+= 1
+    }
+
     private init() {
         // CloudKit remote change — bump revision so UI re-fetches from CoreData
         remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher

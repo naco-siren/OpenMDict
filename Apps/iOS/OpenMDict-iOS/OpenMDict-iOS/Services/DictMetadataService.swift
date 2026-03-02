@@ -48,6 +48,15 @@ final class DictMetadataService {
     /// Cancellable for CloudKit remote change subscription.
     private var remoteChangeCancellable: AnyCancellable?
 
+    // MARK: - Reset
+
+    /// Clear transient state and bump revision.
+    /// Called during iCloud nuclear reset.
+    func resetCaches() {
+        downloadingDictIds.removeAll()
+        revision &+= 1
+    }
+
     private init() {
         // CloudKit remote change — bump revision so DictionaryService re-reads metadata
         remoteChangeCancellable = CoreDataStack.shared.remoteChangePublisher
