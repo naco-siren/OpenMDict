@@ -53,13 +53,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let syncMode = SyncModeService.shared.currentMode
         CoreDataStack.shared.setup(enableCloudKit: syncMode == .cloudSync)
 
-        // Install deduplication as the remote-change preprocessor.
-        // Runs on a background context before downstream caches refresh,
-        // ensuring they see clean, deduplicated data after CloudKit sync.
-        // Harmless when no remote changes arrive (offline mode).
-        CoreDataStack.shared.remoteChangePreprocessor = {
-            await DeduplicationService.shared.deduplicateAll()
-        }
+        // Install the remote-change preprocessor.
+        // Checks for a nuclear reset signal (from another device) before
+        // running dedup.  If a signal is found, performs a passive reset
+        // and skips dedup entirely.
+        iCloudResetOrchestrator.shared.installPreprocessor()
 
         // Register for remote notifications (CloudKit uses silent push for sync)
         application.registerForRemoteNotifications()
@@ -69,6 +67,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // user chooses cloud sync or offline.
         if syncMode != .notDecided {
             DictionaryService.shared.setup()
+        }
+
+        // Check for an unprocessed nuclear reset signal from another device.
+        // Handles the case where this device was offline/killed when the
+        // nuke happened.  The check is async and non-blocking — if a signal
+        // is found, it performs a passive reset and posts a notification
+        // that SceneDelegate observes to reset the UI.
+        if syncMode == .cloudSync {
+            Task {
+                await iCloudResetOrchestrator.shared.checkAndHandlePassiveReset()
+            }
         }
 
         // iPadOS 26+: use UIMainMenuSystem.Configuration to declaratively

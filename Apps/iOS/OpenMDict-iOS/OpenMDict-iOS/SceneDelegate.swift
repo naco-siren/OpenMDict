@@ -10,6 +10,7 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
+    private var passiveResetObserver: Any?
 
     func scene(
         _ scene: UIScene,
@@ -72,6 +73,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         self.window = window
         window.makeKeyAndVisible()
+
+        // Observe passive reset from another device's nuclear reset.
+        // When triggered, replace rootViewController with a fresh MainSplitVC.
+        passiveResetObserver = NotificationCenter.default.addObserver(
+            forName: .passiveResetDidComplete,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePassiveReset()
+        }
 
         // Set window title (shown in App Switcher)
         if let firstArticle = initialArticles.first {
@@ -198,7 +209,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        // Scene released by system. Resources cleaned up automatically.
+        if let obs = passiveResetObserver {
+            NotificationCenter.default.removeObserver(obs)
+            passiveResetObserver = nil
+        }
+    }
+
+    /// Another device performed a nuclear reset — this device's data has
+    /// been wiped by the passive reset flow.  Replace the UI with a fresh
+    /// MainSplitViewController (empty state).
+    private func handlePassiveReset() {
+        guard let windowScene = window?.windowScene else { return }
+
+        // Destroy all other scenes (multi-window)
+        for session in UIApplication.shared.openSessions where session.scene !== windowScene {
+            UIApplication.shared.requestSceneSessionDestruction(session, options: nil)
+        }
+
+        // Replace root view controller
+        let freshSplitVC = MainSplitViewController(
+            initialArticles: [],
+            initialGroupId: "",
+            initialLayoutMode: 0
+        )
+        window?.rootViewController = freshSplitVC
+        debugLog("🔄 SceneDelegate: UI reset after passive nuclear reset")
     }
 
     func windowScene(
