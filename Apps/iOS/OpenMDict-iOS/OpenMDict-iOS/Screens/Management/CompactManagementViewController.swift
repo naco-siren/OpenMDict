@@ -124,11 +124,7 @@ class CompactManagementViewController: UIViewController {
     private func rebuildSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<MgmtSection, MgmtItem>()
         snapshot.appendSections([.actions])
-        var items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets]
-        if SyncModeService.shared.isCloudSyncEnabled {
-            items.append(.iCloudTroubleshoot)
-        }
-        items.append(.appSettings)
+        let items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets, .iCloudTroubleshoot, .appSettings]
         snapshot.appendItems(items, toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }

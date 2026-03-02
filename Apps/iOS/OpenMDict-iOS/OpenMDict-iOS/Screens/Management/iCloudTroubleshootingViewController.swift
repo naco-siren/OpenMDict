@@ -3,7 +3,11 @@
 //  OpenMDict-iOS
 //
 //  iCloud troubleshooting screen: status overview, cloud data counts,
-//  and a nuclear reset button in the Danger Zone.
+//  and a danger zone with reset actions.
+//
+//  Visible to ALL users (iCloud and offline).  When iCloud is disabled,
+//  the cloud data section is hidden and the danger zone offers local-only
+//  reset instead of the iCloud nuclear reset.
 //
 //  Presented as a modal (formSheet / pageSheet) from both regular and
 //  compact layouts.  Dismissible by tapping outside.
@@ -14,8 +18,7 @@ import UIKit
 
 final class iCloudTroubleshootingViewController: UIViewController {
 
-    /// Called after a successful nuclear reset.  The parent is responsible for
-    /// destroying extra scenes and replacing `window.rootViewController`.
+    /// Called after a successful reset (cloud or local).
     var onResetComplete: (() -> Void)?
 
     // MARK: - Data Source
@@ -27,12 +30,13 @@ final class iCloudTroubleshootingViewController: UIViewController {
     }
 
     private nonisolated enum Item: Hashable, Sendable {
-        case iCloudToggle
+        case syncStatus
         case dictCount
         case groupCount
         case bookmarkCount
         case historyCount
         case clearAllCloudData
+        case clearAllLocalData
     }
 
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
@@ -52,7 +56,6 @@ final class iCloudTroubleshootingViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         navigationItem.largeTitleDisplayMode = .never
 
-        // Dismiss button (leading, just like Download Presets modal)
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .close,
             target: self,
@@ -87,6 +90,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
     private func configureCollectionView() {
         var config = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
         config.headerMode = .supplementary
+        config.footerMode = .supplementary
         let layout = UICollectionViewCompositionalLayout.list(using: config)
 
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
@@ -104,12 +108,14 @@ final class iCloudTroubleshootingViewController: UIViewController {
             let enabled = self.isCloudEnabled
 
             switch item {
-            case .iCloudToggle:
+            case .syncStatus:
                 config.image = UIImage(systemName: enabled ? "person.icloud.fill" : "icloud.slash")
                 config.imageProperties.tintColor = enabled ? .systemBlue : .secondaryLabel
-                config.text = enabled
-                    ? L10n.Troubleshoot.statusEnabled
-                    : L10n.Troubleshoot.statusDisabled
+                config.text = L10n.Troubleshoot.syncStatusTitle
+                config.secondaryText = enabled
+                    ? L10n.Troubleshoot.syncStatusSubtitleEnabled
+                    : L10n.Troubleshoot.syncStatusSubtitleDisabled
+                config.secondaryTextProperties.numberOfLines = 0
 
                 let toggle = UISwitch()
                 toggle.isOn = enabled
@@ -121,44 +127,39 @@ final class iCloudTroubleshootingViewController: UIViewController {
 
             case .dictCount:
                 config.image = UIImage(systemName: "books.vertical")
-                let count = enabled ? self.dictionaryCount : 0
-                config.text = L10n.Troubleshoot.dictCount(count)
-                if !enabled { applyDisabledStyle(&config) }
+                config.text = L10n.Troubleshoot.dictCount(self.dictionaryCount)
 
             case .groupCount:
                 config.image = UIImage(systemName: "folder")
-                let count = enabled ? self.groupCount : 0
-                config.text = L10n.Troubleshoot.groupCount(count)
-                if !enabled { applyDisabledStyle(&config) }
+                config.text = L10n.Troubleshoot.groupCount(self.groupCount)
 
             case .bookmarkCount:
                 config.image = UIImage(systemName: "bookmark")
-                let count = enabled ? self.bookmarkCount : 0
-                config.text = L10n.Troubleshoot.bookmarkCountLabel(count)
-                if !enabled { applyDisabledStyle(&config) }
+                config.text = L10n.Troubleshoot.bookmarkCountLabel(self.bookmarkCount)
 
             case .historyCount:
                 config.image = UIImage(systemName: "clock.arrow.circlepath")
-                let count = enabled ? self.historyCount : 0
-                config.text = L10n.Troubleshoot.historyCount(count)
-                if !enabled { applyDisabledStyle(&config) }
+                config.text = L10n.Troubleshoot.historyCount(self.historyCount)
 
             case .clearAllCloudData:
                 config.text = L10n.Troubleshoot.clearCloudTitle
+                config.textProperties.color = .systemRed
                 config.secondaryText = L10n.Troubleshoot.clearCloudDescription
                 config.secondaryTextProperties.numberOfLines = 0
                 config.image = UIImage(systemName: "exclamationmark.icloud.fill")
-                if enabled {
-                    config.textProperties.color = .systemRed
-                    config.imageProperties.tintColor = .systemRed
-                } else {
-                    applyDisabledStyle(&config)
-                }
+                config.imageProperties.tintColor = .systemRed
+
+            case .clearAllLocalData:
+                config.text = L10n.Troubleshoot.clearLocalTitle
+                config.textProperties.color = .systemRed
+                config.secondaryText = L10n.Troubleshoot.clearLocalDescription
+                config.secondaryTextProperties.numberOfLines = 0
+                config.image = UIImage(systemName: "exclamationmark.triangle.fill")
+                config.imageProperties.tintColor = .systemRed
             }
 
             cell.contentConfiguration = config
-            // Remove accessories for non-toggle items
-            if item != .iCloudToggle {
+            if item != .syncStatus {
                 cell.accessories = []
             }
         }
@@ -170,16 +171,37 @@ final class iCloudTroubleshootingViewController: UIViewController {
             var config = header.defaultContentConfiguration()
             let section = self.dataSource.sectionIdentifier(for: indexPath.section)
             switch section {
-            case .status:
-                config.text = L10n.Troubleshoot.sectionStatus
-            case .cloudData:
-                config.text = L10n.Troubleshoot.sectionCloudData
-            case .dangerZone:
-                config.text = L10n.Troubleshoot.dangerZone
-            case .none:
-                break
+            case .status:     config.text = L10n.Troubleshoot.sectionStatus
+            case .cloudData:  config.text = L10n.Troubleshoot.sectionCloudData
+            case .dangerZone: config.text = L10n.Troubleshoot.dangerZone
+            case .none:       break
             }
             header.contentConfiguration = config
+        }
+
+        let footerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
+            elementKind: UICollectionView.elementKindSectionFooter
+        ) { [weak self] (footer, _, indexPath) in
+            guard let self else { return }
+            var config = footer.defaultContentConfiguration()
+            let section = self.dataSource.sectionIdentifier(for: indexPath.section)
+            let enabled = self.isCloudEnabled
+            switch section {
+            case .status:
+                config.text = enabled
+                    ? L10n.Troubleshoot.statusFooterEnabled
+                    : L10n.Troubleshoot.statusFooterDisabled
+            case .dangerZone:
+                config.text = enabled
+                    ? L10n.Troubleshoot.dangerZoneFooterCloud
+                    : L10n.Troubleshoot.dangerZoneFooterLocal
+            default:
+                break
+            }
+            config.textProperties.font = .preferredFont(forTextStyle: .footnote)
+            config.textProperties.color = .secondaryLabel
+            config.textProperties.numberOfLines = 0
+            footer.contentConfiguration = config
         }
 
         dataSource = UICollectionViewDiffableDataSource(
@@ -191,91 +213,120 @@ final class iCloudTroubleshootingViewController: UIViewController {
         }
 
         dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
-            collectionView.dequeueConfiguredReusableSupplementary(
-                using: headerReg, for: indexPath
-            )
+            switch kind {
+            case UICollectionView.elementKindSectionHeader:
+                return collectionView.dequeueConfiguredReusableSupplementary(
+                    using: headerReg, for: indexPath
+                )
+            default:
+                return collectionView.dequeueConfiguredReusableSupplementary(
+                    using: footerReg, for: indexPath
+                )
+            }
         }
-    }
-
-    private func applyDisabledStyle(_ config: inout UIListContentConfiguration) {
-        config.textProperties.color = .tertiaryLabel
-        config.imageProperties.tintColor = .tertiaryLabel
     }
 
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
         snapshot.appendSections([.status])
-        snapshot.appendItems([.iCloudToggle], toSection: .status)
+        snapshot.appendItems([.syncStatus], toSection: .status)
 
-        snapshot.appendSections([.cloudData])
-        snapshot.appendItems(
-            [.dictCount, .groupCount, .bookmarkCount, .historyCount],
-            toSection: .cloudData
-        )
+        if isCloudEnabled {
+            snapshot.appendSections([.cloudData])
+            snapshot.appendItems(
+                [.dictCount, .groupCount, .bookmarkCount, .historyCount],
+                toSection: .cloudData
+            )
+        }
 
         snapshot.appendSections([.dangerZone])
-        snapshot.appendItems([.clearAllCloudData], toSection: .dangerZone)
+        snapshot.appendItems(
+            [isCloudEnabled ? .clearAllCloudData : .clearAllLocalData],
+            toSection: .dangerZone
+        )
 
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    // MARK: - Nuclear Reset Flow
+    // MARK: - Reset Flow (shared two-alert pattern)
 
-    private func beginNuclearReset() {
-        guard isCloudEnabled else { return }
-
-        // Alert 1: Explain impact.
-        // Visual order: [Proceed (red, left)] [Cancel (bold blue, right)]
-        // .cancel style is NOT used — it forces left position on iOS.
-        // Instead: .destructive first, .default second, preferredAction = cancel.
+    /// Present the two-alert confirmation flow.
+    /// Alert 1: [Proceed (red, left)] [Cancel (bold, right)]
+    /// Alert 2: [Abort (bold, left)] [Confirm (red, right)]
+    private func beginReset(
+        alert1Title: String, alert1Message: String,
+        alert2Title: String, alert2Message: String,
+        execute: @escaping () -> Void
+    ) {
         let alert1 = UIAlertController(
-            title: L10n.Troubleshoot.confirm1Title,
-            message: L10n.Troubleshoot.confirm1Message,
-            preferredStyle: .alert
+            title: alert1Title, message: alert1Message, preferredStyle: .alert
         )
         alert1.addAction(UIAlertAction(
-            title: L10n.Troubleshoot.confirm1Proceed,
-            style: .destructive
-        ) { [weak self] _ in
-            self?.showFinalConfirmation()
+            title: L10n.Troubleshoot.confirm1Proceed, style: .destructive
+        ) { _ in
+            let alert2 = UIAlertController(
+                title: alert2Title, message: alert2Message, preferredStyle: .alert
+            )
+            let abort = UIAlertAction(
+                title: L10n.Troubleshoot.confirm2Abort, style: .default
+            )
+            alert2.addAction(abort)
+            alert2.addAction(UIAlertAction(
+                title: L10n.Troubleshoot.confirm2Confirm, style: .destructive
+            ) { _ in execute() })
+            alert2.preferredAction = abort
+            self.present(alert2, animated: true)
         })
-        let cancel1 = UIAlertAction(
-            title: L10n.cancel,
-            style: .default
-        )
-        alert1.addAction(cancel1)
-        alert1.preferredAction = cancel1  // bold → "safe" choice
+        let cancel = UIAlertAction(title: L10n.cancel, style: .default)
+        alert1.addAction(cancel)
+        alert1.preferredAction = cancel
         present(alert1, animated: true)
     }
 
-    /// Alert 2: Final confirmation with SWAPPED button positions.
-    /// Visual order: [Abort (bold blue, left)] [Confirm (red, right)]
-    /// The destructive button moved from left to right, forcing the user
-    /// to read the button text instead of muscle-memory double-tapping.
-    private func showFinalConfirmation() {
-        let alert2 = UIAlertController(
-            title: L10n.Troubleshoot.confirm2Title,
-            message: L10n.Troubleshoot.confirm2Message,
-            preferredStyle: .alert
-        )
-        let abort = UIAlertAction(
-            title: L10n.Troubleshoot.confirm2Abort,
-            style: .default
-        )
-        alert2.addAction(abort)
-        alert2.addAction(UIAlertAction(
-            title: L10n.Troubleshoot.confirm2Confirm,
-            style: .destructive
-        ) { [weak self] _ in
-            self?.executeNuclearReset()
-        })
-        alert2.preferredAction = abort  // bold → "safe" choice
-        present(alert2, animated: true)
+    // MARK: - iCloud Nuclear Reset
+
+    private func beginCloudReset() {
+        beginReset(
+            alert1Title: L10n.Troubleshoot.confirm1Title,
+            alert1Message: L10n.Troubleshoot.confirm1Message,
+            alert2Title: L10n.Troubleshoot.confirm2Title,
+            alert2Message: L10n.Troubleshoot.confirm2Message
+        ) { [weak self] in
+            self?.executeCloudReset()
+        }
     }
 
-    /// Show progress and execute the reset.
-    private func executeNuclearReset() {
+    private func executeCloudReset() {
+        showProgressAndRun { onProgress in
+            await iCloudResetOrchestrator.shared.performClearAll(onProgress: onProgress)
+        }
+    }
+
+    // MARK: - Local-Only Reset
+
+    private func beginLocalReset() {
+        beginReset(
+            alert1Title: L10n.Troubleshoot.localConfirm1Title,
+            alert1Message: L10n.Troubleshoot.localConfirm1Message,
+            alert2Title: L10n.Troubleshoot.localConfirm2Title,
+            alert2Message: L10n.Troubleshoot.localConfirm2Message
+        ) { [weak self] in
+            self?.executeLocalReset()
+        }
+    }
+
+    private func executeLocalReset() {
+        showProgressAndRun { onProgress in
+            await iCloudResetOrchestrator.shared.performLocalClearAll(onProgress: onProgress)
+        }
+    }
+
+    // MARK: - Shared Progress UI
+
+    private func showProgressAndRun(
+        _ work: @escaping (@escaping (iCloudResetOrchestrator.Progress) -> Void) async -> Void
+    ) {
         let progressAlert = UIAlertController(
             title: L10n.Troubleshoot.resettingTitle,
             message: L10n.Troubleshoot.starting,
@@ -298,8 +349,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
 
         Task {
             var resetError: Error?
-            await iCloudResetOrchestrator.shared.performClearAll {
-                [weak progressAlert] progress in
+            await work { [weak progressAlert] progress in
                 switch progress {
                 case .starting:
                     progressAlert?.message = L10n.Troubleshoot.starting
@@ -346,8 +396,7 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
         shouldSelectItemAt indexPath: IndexPath
     ) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
-        // Only the nuclear button is tappable, and only when iCloud is on
-        return item == .clearAllCloudData && isCloudEnabled
+        return item == .clearAllCloudData || item == .clearAllLocalData
     }
 
     func collectionView(
@@ -358,10 +407,9 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
-        case .clearAllCloudData:
-            beginNuclearReset()
-        default:
-            break
+        case .clearAllCloudData: beginCloudReset()
+        case .clearAllLocalData: beginLocalReset()
+        default: break
         }
     }
 }

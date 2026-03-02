@@ -2,9 +2,10 @@
 //  iCloudResetOrchestrator.swift
 //  OpenMDict-iOS
 //
-//  Coordinates the multi-step iCloud nuclear reset (Tier 3).
+//  Coordinates the multi-step iCloud nuclear reset (Tier 3)
+//  and local-only factory reset.
 //
-//  Two roles:
+//  Three roles:
 //
 //  A. **Active reset** (Device A — the device that initiates the nuke):
 //     0. Write NuclearResetSignal to default zone (propagation flag)
@@ -15,6 +16,13 @@
 //     5. Reset sync mode → .notDecided (triggers full setup flow)
 //     6. Reset and recreate CoreData container (CloudKit disabled)
 //     7. Re-install remote change preprocessor
+//
+//  A½. **Local-only reset** (offline users):
+//     1. Clear all Service in-memory caches
+//     2. Delete local dictionary files and MDD cache
+//     3. Reset sync mode → .notDecided
+//     4. Reset and recreate CoreData container (CloudKit disabled)
+//     5. Re-install remote change preprocessor
 //
 //  B. **Passive reset** (Device B/C/… — other devices that detect the signal):
 //     Called from remoteChangePreprocessor or app launch when an
@@ -122,6 +130,38 @@ final class iCloudResetOrchestrator {
 
         onProgress(.complete)
         debugLog("✅ Nuclear reset complete — app is in clean state")
+    }
+
+    // MARK: - Local-Only Reset (offline users)
+
+    /// Clear all local data without touching CloudKit.
+    /// Used when the user has NOT enabled iCloud sync but wants to
+    /// factory-reset the app.
+    ///
+    /// - Parameter onProgress: Called on MainActor with each progress step.
+    func performLocalClearAll(onProgress: @escaping (Progress) -> Void) async {
+        onProgress(.starting)
+
+        // ── Step 1: Clear all Service in-memory caches ───────────────
+        clearAllServiceCaches()
+
+        // ── Step 2: Delete local files ───────────────────────────────
+        onProgress(.deletingLocalData)
+        LocalDataResetService.shared.deleteAllDictionaryFiles()
+        LocalDataResetService.shared.deleteMDDCache()
+
+        // ── Step 3: Reset sync mode → .notDecided ────────────────────
+        SyncModeService.shared.currentMode = .notDecided
+
+        // ── Step 4: Reset and recreate CoreData container ────────────
+        onProgress(.recreatingDatabase)
+        CoreDataStack.shared.resetAndRecreateContainer(enableCloudKit: false)
+
+        // ── Step 5: Re-install remote change preprocessor ────────────
+        installPreprocessor()
+
+        onProgress(.complete)
+        debugLog("✅ Local reset complete — app is in clean state")
     }
 
     // MARK: - Passive Reset (Device B/C/…)

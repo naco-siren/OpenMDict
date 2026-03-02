@@ -1286,11 +1286,20 @@ nonisolated enum L10n {
         }
 
         // MARK: Status
-        static var statusEnabled: String {
-            NSLocalizedString("troubleshoot.status.enabled", value: "iCloud Sync Enabled", comment: "Cell: iCloud sync is on")
+        static var syncStatusTitle: String {
+            NSLocalizedString("troubleshoot.syncStatus.title", value: "iCloud Sync", comment: "Cell title: iCloud sync toggle (non-interactive)")
         }
-        static var statusDisabled: String {
-            NSLocalizedString("troubleshoot.status.disabled", value: "iCloud Sync Disabled", comment: "Cell: iCloud sync is off")
+        static var syncStatusSubtitleEnabled: String {
+            NSLocalizedString("troubleshoot.syncStatus.subtitle.enabled", value: "Your app data on this device is synced.", comment: "Short subtitle when iCloud sync is on")
+        }
+        static var syncStatusSubtitleDisabled: String {
+            NSLocalizedString("troubleshoot.syncStatus.subtitle.disabled", value: "Your app data on this device is NOT synced.", comment: "Short subtitle when iCloud sync is off")
+        }
+        static var statusFooterEnabled: String {
+            NSLocalizedString("troubleshoot.status.footer.enabled", value: "To change your sync mode, use the reset option below or reinstall the app.", comment: "Section footer: how to change sync mode when enabled")
+        }
+        static var statusFooterDisabled: String {
+            NSLocalizedString("troubleshoot.status.footer.disabled", value: "To enable iCloud sync, use the reset option below or reinstall the app.", comment: "Section footer: how to enable sync when disabled")
         }
 
         // MARK: Cloud data counts
@@ -1307,15 +1316,29 @@ nonisolated enum L10n {
             String(format: NSLocalizedString("troubleshoot.count.history", value: "%d Lookup History", comment: "Cell: number of synced lookup history entries"), n)
         }
 
-        // MARK: Danger Zone cell
+        // MARK: Danger Zone — iCloud
         static var clearCloudTitle: String {
             NSLocalizedString("troubleshoot.clearCloud.title", value: "Clear All iCloud Data", comment: "Button: nuclear reset — delete all synced data")
         }
         static var clearCloudDescription: String {
-            NSLocalizedString("troubleshoot.clearCloud.description", value: "Deletes ALL synced data from iCloud and ALL devices using this iCloud account.", comment: "Description for the nuclear reset button")
+            NSLocalizedString("troubleshoot.clearCloud.description", value: "Delete ALL your synced data on iCloud.", comment: "Short description for the nuclear reset button")
+        }
+        static var dangerZoneFooterCloud: String {
+            NSLocalizedString("troubleshoot.dangerZone.footer.cloud", value: "If you have installed this app and enabled iCloud sync on other devices, they will be affected and be reset too.", comment: "Danger zone footer: warns about cross-device impact")
         }
 
-        // MARK: Alert 1 — explain impact
+        // MARK: Danger Zone — Local
+        static var clearLocalTitle: String {
+            NSLocalizedString("troubleshoot.clearLocal.title", value: "Clear All Local Data", comment: "Button: local reset — delete all local data")
+        }
+        static var clearLocalDescription: String {
+            NSLocalizedString("troubleshoot.clearLocal.description", value: "Delete your local data on this device.", comment: "Short description for the local reset button")
+        }
+        static var dangerZoneFooterLocal: String {
+            NSLocalizedString("troubleshoot.dangerZone.footer.local", value: "If you installed this app on other devices, they will NOT be affected.", comment: "Danger zone footer: reassures no cross-device impact")
+        }
+
+        // MARK: Alert 1 — iCloud explain impact
         static var confirm1Title: String {
             NSLocalizedString("troubleshoot.confirm1.title", value: "Clear ALL iCloud Data?", comment: "Alert 1 title: first confirmation for nuclear reset")
         }
@@ -1338,6 +1361,20 @@ nonisolated enum L10n {
         }
         static var confirm2Confirm: String {
             NSLocalizedString("troubleshoot.confirm2.confirm", value: "Confirm", comment: "Alert 2 destructive button: confirm the nuclear reset")
+        }
+
+        // MARK: Local reset alerts (reuses confirm1Proceed, confirm2Abort, confirm2Confirm)
+        static var localConfirm1Title: String {
+            NSLocalizedString("troubleshoot.localConfirm1.title", value: "Clear ALL Local Data?", comment: "Alert 1 title: local reset confirmation")
+        }
+        static var localConfirm1Message: String {
+            NSLocalizedString("troubleshoot.localConfirm1.message", value: "This will permanently delete all dictionaries, bookmarks, history, and groups on this device.", comment: "Alert 1 message: local reset confirmation")
+        }
+        static var localConfirm2Title: String {
+            NSLocalizedString("troubleshoot.localConfirm2.title", value: "ARE YOU SURE YOU WANT TO CLEAR ALL LOCAL DATA?", comment: "Alert 2 title: local reset final confirmation, all caps")
+        }
+        static var localConfirm2Message: String {
+            NSLocalizedString("troubleshoot.localConfirm2.message", value: "THIS CANNOT BE UNDONE!\nYou will need to set up this app again and import your dictionaries.", comment: "Alert 2 message: local reset final warning")
         }
 
         // MARK: Progress

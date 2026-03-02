@@ -695,14 +695,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         if isCompactSidebarMode {
             mgmtItems = []
         } else {
-            var actions: [SidebarItem] = [
+            let actions: [SidebarItem] = [
                 .header(L10n.Sidebar.management, isBold: false),
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
+                .iCloudTroubleshoot, .settings,
             ]
-            if SyncModeService.shared.isCloudSyncEnabled {
-                actions.append(.iCloudTroubleshoot)
-            }
-            actions.append(.settings)
             mgmtItems = actions
         }
 
@@ -761,11 +758,10 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
             let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
             mgmtSnapshot.append([mgmtHeader])
-            var mgmtChildren: [SidebarItem] = [.bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets]
-            if SyncModeService.shared.isCloudSyncEnabled {
-                mgmtChildren.append(.iCloudTroubleshoot)
-            }
-            mgmtChildren.append(.settings)
+            let mgmtChildren: [SidebarItem] = [
+                .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
+                .iCloudTroubleshoot, .settings,
+            ]
             mgmtSnapshot.append(mgmtChildren, to: mgmtHeader)
             mgmtSnapshot.expand([mgmtHeader])
             dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
