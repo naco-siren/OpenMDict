@@ -1149,6 +1149,10 @@ class MainSplitViewController: UISplitViewController {
             keyboardTarget = .detailSearch
         } else if wordListVC.isSearchBarActive {
             keyboardTarget = .wordList
+            // Re-focus if search bar lost first responder to the other search bar
+            if !wordListVC.isSearchBarFirstResponder {
+                wordListVC.refocusSearchBar()
+            }
         } else {
             keyboardTarget = .none
         }

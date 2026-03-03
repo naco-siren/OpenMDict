@@ -519,6 +519,12 @@ class WordListViewController: UIViewController {
         searchController.isActive = false
     }
 
+    /// Re-focus the search bar without changing isActive (avoids delegate re-fire).
+    /// Used when keyboard focus returns from another search bar.
+    func refocusSearchBar() {
+        searchController.searchBar.becomeFirstResponder()
+    }
+
     // MARK: - UI Updates
 
     private func updateEmptyState() {
