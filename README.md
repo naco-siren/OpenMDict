@@ -14,17 +14,19 @@ A pure Swift library for parsing MDict dictionary files (.mdx/.mdd), with a comp
 
 A full-featured MDict dictionary reader built with UIKit and Swift 6.
 
-- **Unlimited Dictionaries** — Import and manage MDX/MDD files with no limits
 - **Article Layouts** — Three layout modes on iPadOS (Columns, Grid, List) for comparing definitions across dictionaries
 - **Multi-Window & Shortcuts** — Full split-screen, multi-window, and keyboard shortcut support on iPadOS
-- **iCloud Sync** — Dictionaries, bookmarks, lookup history, and groups sync across devices via CloudKit, with hardened persistence (CKError retry with exponential backoff, download validation, deduplication, corrupt store recovery, and persistent history cleanup)
-- **Preset Dictionaries** — Curated open-source dictionaries for quick setup
 - **Action Extension** — Look up words from any app via the share sheet
+- **Smart Search** — Lemma resolution (NLTagger + inflection rules), Levenshtein-ranked suggestions, and device-adaptive search pipeline
+- **Bookmarks & History** — Bookmark entries across dictionaries; lookup history with per-dictionary trophy counts
+- **Unlimited Imports & Groups** — Import and manage MDX/MDD files as well as groups with no limits
+- **iCloud Sync** — Dictionaries, bookmarks, lookup history, and groups sync across devices via CloudKit, with cross-device nuclear reset and built-in troubleshooting UI
+- **Preset Dictionaries** — 65 curated open-source dictionaries (WordNet, JMdict, CC-CEDICT, Wiktionary, and more) for quick setup
 - **13 Languages** — English, 简体中文, 繁體中文, Русский, Español, Deutsch, 日本語, Français, Português (BR), 한국어, Українська, العربية, हिन्दी
 
 ## Requirements
 
-- Swift 5.9+
+- Swift 6.0+
 - macOS 12+ / iOS 15.6+
 
 ## Installation
