@@ -53,6 +53,8 @@ class WordListViewController: UIViewController {
 
     var onWordSelected: ((WordDisplayItem) -> Void)?
     var onViewAllHistory: (() -> Void)?
+    var onSearchActivated: (() -> Void)?
+    var onSearchDeactivated: (() -> Void)?
 
     /// Per-scene search session (injected by MainSplitVC)
     var searchSession: LookupSession?
@@ -502,6 +504,16 @@ class WordListViewController: UIViewController {
         searchController.searchBar.isFirstResponder
     }
 
+    /// Whether the search controller is active (bar visible, not necessarily first responder)
+    var isSearchBarActive: Bool {
+        searchController.isActive
+    }
+
+    /// Whether the search bar contains non-empty text
+    var hasSearchText: Bool {
+        !(searchController.searchBar.text ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     /// Deactivate the search bar (used by Esc smart dismiss)
     func dismissSearchBar() {
         searchController.isActive = false
@@ -908,11 +920,13 @@ extension WordListViewController: UISearchControllerDelegate {
     func willPresentSearchController(_ searchController: UISearchController) {
         refreshClipboard()
         updateDisplayState()
+        onSearchActivated?()
     }
 
     func willDismissSearchController(_ searchController: UISearchController) {
         clipboardText = nil
         updateDisplayState()
+        onSearchDeactivated?()
     }
 }
 

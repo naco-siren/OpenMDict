@@ -35,7 +35,11 @@ class DetailContainerViewController: UIViewController {
     /// Called when Jump Search fails to find the word in the same dictionary.
     /// Fallback: put the word in the search bar (wired by MainSplitVC).
     var onJumpSearchFallback: ((String) -> Void)?
-    
+
+    /// Called when find-in-page search bar becomes active / is dismissed.
+    var onSearchActivated: (() -> Void)?
+    var onSearchDeactivated: (() -> Void)?
+
     /// True while a `willTransition(to:with:)` animation is in-flight.
     /// Prevents `ensureCorrectChild()` in `viewDidLayoutSubviews` from
     /// fighting with the transition (self.traitCollection is still the OLD
@@ -993,15 +997,15 @@ extension DetailContainerViewController: UISearchControllerDelegate {
     }
     
     func didPresentSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+        onSearchActivated?()
     }
-    
+
     func willDismissSearchController(_ searchController: UISearchController) {
         //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
     }
-    
+
     func didDismissSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+        onSearchDeactivated?()
     }
 }
 

@@ -52,6 +52,10 @@ class MainSplitViewController: UISplitViewController {
     private var currentGroup: MDicts?
     private var currentDict: MDict?
 
+    /// Tracks which search bar should receive keyboard input.
+    private enum KeyboardTarget { case none, wordList, detailSearch }
+    private var keyboardTarget: KeyboardTarget = .none
+
     /// Loading modal for long-running operations
     private weak var loadingVC: LoadingViewController?
 
@@ -213,6 +217,20 @@ class MainSplitViewController: UISplitViewController {
 
         detailContainer.onJumpSearchFallback = { [weak self] word in
             self?.focusSearchAndLookup(word: word)
+        }
+
+        // Keyboard target routing callbacks
+        wordListVC.onSearchActivated = { [weak self] in
+            self?.wordListSearchDidActivate()
+        }
+        wordListVC.onSearchDeactivated = { [weak self] in
+            self?.searchBarDidDeactivate()
+        }
+        detailContainer.onSearchActivated = { [weak self] in
+            self?.detailSearchDidActivate()
+        }
+        detailContainer.onSearchDeactivated = { [weak self] in
+            self?.searchBarDidDeactivate()
         }
     }
     
@@ -1008,17 +1026,18 @@ class MainSplitViewController: UISplitViewController {
     }
 
     @objc func dismissShortcut() {
-        // 1. Search bar active → dismiss search bar
-        if wordListVC.isSearchBarFirstResponder {
+        // Dismiss whichever search bar is the current keyboard target
+        switch keyboardTarget {
+        case .wordList:
             wordListVC.dismissSearchBar()
             return
-        }
-        // 2. Find in page active → dismiss find
-        if detailContainer.isSearchActive {
+        case .detailSearch:
             detailContainer.dismissSearch()
             return
+        case .none:
+            break
         }
-        // 3. Modal presented → dismiss modal
+        // Fallback: dismiss modal if present
         if let presented = presentedViewController {
             presented.dismiss(animated: true)
             return
@@ -1103,12 +1122,44 @@ class MainSplitViewController: UISplitViewController {
         return super.canPerformAction(action, withSender: sender)
     }
 
+    // MARK: - Keyboard Target Routing
+
+    /// WordListVC search bar gained focus (tap / Cmd+L / pressesBegan auto-focus).
+    /// Rule 2.1: lookup > find-in-page — always dismiss Detail search.
+    func wordListSearchDidActivate() {
+        keyboardTarget = .wordList
+        if detailContainer.isSearchActive {
+            detailContainer.dismissSearch()
+        }
+    }
+
+    /// DetailContainerVC search bar gained focus (Cmd+F / tap).
+    /// Rule 2.2: if WordList search is active but empty, dismiss it;
+    /// if it has text, keep it (user may return to modify query).
+    func detailSearchDidActivate() {
+        keyboardTarget = .detailSearch
+        if wordListVC.isSearchBarActive && !wordListVC.hasSearchText {
+            wordListVC.dismissSearchBar()
+        }
+    }
+
+    /// Any search bar dismissed — recalculate keyboardTarget from remaining state.
+    func searchBarDidDeactivate() {
+        if detailContainer.isSearchActive {
+            keyboardTarget = .detailSearch
+        } else if wordListVC.isSearchBarActive {
+            keyboardTarget = .wordList
+        } else {
+            keyboardTarget = .none
+        }
+    }
+
     // MARK: Auto-focus Search on Typing
 
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         guard currentMode == .lookup,
               currentColumnTarget == .lookup,
-              !wordListVC.isSearchBarFirstResponder,
+              keyboardTarget == .none,
               let key = presses.first?.key else {
             super.pressesBegan(presses, with: event)
             return
