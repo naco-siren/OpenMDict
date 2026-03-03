@@ -22,6 +22,12 @@ class DetailContainerViewController: UIViewController {
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
     private var zoom = ZoomLevel()
 
+    /// Stored references for in-place zoom updates (avoids rebuilding entire nav bar)
+    private weak var zoomOutItem: UIBarButtonItem?
+    private weak var zoomResetItem: UIBarButtonItem?
+    private weak var zoomInItem: UIBarButtonItem?
+    private weak var zoomRepresentativeItem: UIBarButtonItem?
+
     /// Current articles capacity limit from Settings.bundle, scaled by device RAM.
     private var articlesCapacityLimit: Int = UserDefaults.standard.articlesCapacity.limit
      
@@ -503,23 +509,21 @@ class DetailContainerViewController: UIViewController {
                 ),
             ]
 
+            let zOut = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
+            zOut.isEnabled = zoom.canZoomOut
+            let zReset = UIBarButtonItem(title: zoom.displayString, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
+            zReset.isEnabled = !zoom.isDefault
+            let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
+            zIn.isEnabled = zoom.canZoomIn
+            let zRep = UIBarButtonItem(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu)
+
+            zoomOutItem = zOut; zoomResetItem = zReset; zoomInItem = zIn; zoomRepresentativeItem = zRep
+
             navigationItem.centerItemGroups = [
                 .optionalGroup(
                     customizationIdentifier: "zoom",
-                    representativeItem: .init(
-                        title: L10n.Detail.zoom,
-                        image: .init(systemName: "textformat.size"),
-                        menu: currentZoomMenu
-                    ),
-                    items: {
-                        let out = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
-                        out.isEnabled = zoom.canZoomOut
-                        let reset = UIBarButtonItem(title: zoom.displayString, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
-                        reset.isEnabled = !zoom.isDefault
-                        let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
-                        zIn.isEnabled = zoom.canZoomIn
-                        return [out, reset, zIn]
-                    }()
+                    representativeItem: zRep,
+                    items: [zOut, zReset, zIn]
                 ),
             ]
 
@@ -532,13 +536,14 @@ class DetailContainerViewController: UIViewController {
                 .init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))
             ]
 
-            let zoomInItem = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
-            zoomInItem.isEnabled = zoom.canZoomIn
-            let resetItem = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
-            resetItem.isEnabled = !zoom.isDefault
-            let zoomOutItem = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
-            zoomOutItem.isEnabled = zoom.canZoomOut
-            navigationItem.rightBarButtonItems = [zoomInItem, resetItem, zoomOutItem]
+            let zIn15 = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
+            zIn15.isEnabled = zoom.canZoomIn
+            let zReset15 = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
+            zReset15.isEnabled = !zoom.isDefault
+            let zOut15 = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
+            zOut15.isEnabled = zoom.canZoomOut
+            zoomInItem = zIn15; zoomResetItem = zReset15; zoomOutItem = zOut15
+            navigationItem.rightBarButtonItems = [zIn15, zReset15, zOut15]
         }
     }
 
@@ -557,28 +562,24 @@ class DetailContainerViewController: UIViewController {
                     ),
                     items: [.init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))]
                 ),
-                .optionalGroup(
-                    customizationIdentifier: "zoom",
-                    representativeItem: .init(
-                        title: L10n.Detail.currentLevel(zoom.displayString),
-                        image: .init(systemName: "textformat.size"),
-                        menu: currentZoomMenu
-                    ),
-                    items: {
-                        let out = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
-                        out.isEnabled = zoom.canZoomOut
-                        let reset = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
-                        reset.isEnabled = !zoom.isDefault
-                        let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
-                        zIn.isEnabled = zoom.canZoomIn
-                        return [out, reset, zIn]
-                    }()
-                ),
+                {
+                    let zOut = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
+                    zOut.isEnabled = zoom.canZoomOut
+                    let zReset = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
+                    zReset.isEnabled = !zoom.isDefault
+                    let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
+                    zIn.isEnabled = zoom.canZoomIn
+                    let zRep = UIBarButtonItem(title: L10n.Detail.currentLevel(zoom.displayString), image: .init(systemName: "textformat.size"), menu: currentZoomMenu)
+                    zoomOutItem = zOut; zoomResetItem = zReset; zoomInItem = zIn; zoomRepresentativeItem = zRep
+                    return .optionalGroup(customizationIdentifier: "zoom", representativeItem: zRep, items: [zOut, zReset, zIn])
+                }(),
             ]
         } else {
             navigationItem.leftBarButtonItems = []
+            let zMenu = UIBarButtonItem(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu)
+            zoomRepresentativeItem = zMenu
             navigationItem.rightBarButtonItems = [
-                .init(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu),
+                zMenu,
                 .init(title: L10n.Detail.appearance, image: .init(systemName: "circle.lefthalf.filled"),
                       menu: appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }),
             ]
@@ -756,14 +757,22 @@ class DetailContainerViewController: UIViewController {
     }
 
     private func applyZoom() {
-        print("🔍 Zoom level: \(zoom.displayString)")
+        debugLog("🔍 Zoom level: \(zoom.displayString)")
 
         // Apply to child VCs
         articlesVC.setZoomLevel(zoom.current)
         articleVC.setZoomLevel(zoom.current)
 
-        // Update nav bar to refresh zoom menu
-        updateNavigationBar(for: traitCollection)
+        // Update zoom controls in-place (avoids rebuilding entire nav bar)
+        zoomOutItem?.isEnabled = zoom.canZoomOut
+        zoomResetItem?.isEnabled = !zoom.isDefault
+        zoomResetItem?.title = zoom.displayString
+        zoomInItem?.isEnabled = zoom.canZoomIn
+        zoomRepresentativeItem?.menu = currentZoomMenu
+        // Compact representative shows current level in title
+        if traitCollection.horizontalSizeClass != .regular {
+            zoomRepresentativeItem?.title = L10n.Detail.currentLevel(zoom.displayString)
+        }
     }
 
     // MARK: - Find in Page
