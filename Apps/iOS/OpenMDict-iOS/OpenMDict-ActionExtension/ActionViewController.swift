@@ -68,6 +68,12 @@ class ActionViewController: UIViewController {
     private var zoomInButton: UIBarButtonItem?       // iOS 15 individual zoom-in
     private var zoomOutButton: UIBarButtonItem?      // iOS 15 individual zoom-out
 
+    // iOS 16+ stored refs for in-place zoom updates (avoids full nav bar rebuild)
+    private weak var zoomOutItem: UIBarButtonItem?
+    private weak var zoomResetItem: UIBarButtonItem?
+    private weak var zoomInItem: UIBarButtonItem?
+    private weak var zoomRepresentativeItem: UIBarButtonItem?
+
     // MARK: - State
 
     /// The word/phrase selected by the user.
@@ -253,13 +259,21 @@ class ActionViewController: UIViewController {
             })
             zoomInItem.isEnabled = zoom.canZoomIn
 
+            let representative = UIBarButtonItem(
+                title: L10n.Detail.currentLevel(zoom.displayString),
+                image: .init(systemName: "textformat.size"),
+                menu: currentZoomMenu
+            )
+
+            // Store weak refs for in-place updates
+            self.zoomOutItem = zoomOutItem
+            self.zoomResetItem = resetItem
+            self.zoomInItem = zoomInItem
+            self.zoomRepresentativeItem = representative
+
             navigationItem.trailingItemGroups = [
                 .fixedGroup(
-                    representativeItem: .init(
-                        title: L10n.Detail.currentLevel(zoom.displayString),
-                        image: .init(systemName: "textformat.size"),
-                        menu: currentZoomMenu
-                    ),
+                    representativeItem: representative,
                     items: [zoomOutItem, resetItem, zoomInItem]
                 )
             ]
@@ -440,7 +454,11 @@ class ActionViewController: UIViewController {
 
     private func refreshZoomUI() {
         if #available(iOS 16, *) {
-            configureNavigationBar()
+            // In-place update: mutate stored item refs instead of rebuilding entire nav bar
+            zoomOutItem?.isEnabled = zoom.canZoomOut
+            zoomResetItem?.isEnabled = !zoom.isDefault
+            zoomInItem?.isEnabled = zoom.canZoomIn
+            zoomRepresentativeItem?.title = L10n.Detail.currentLevel(zoom.displayString)
         } else {
             updateZoomButtonStates()
         }
