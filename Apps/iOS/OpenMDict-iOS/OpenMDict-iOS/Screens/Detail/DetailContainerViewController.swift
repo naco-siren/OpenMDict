@@ -742,16 +742,19 @@ class DetailContainerViewController: UIViewController {
     // MARK: - Zoom
 
     func zoomIn() {
+        guard !articles.isEmpty else { return }
         zoom.zoomIn()
         applyZoom()
     }
 
     func zoomOut() {
+        guard !articles.isEmpty else { return }
         zoom.zoomOut()
         applyZoom()
     }
 
     func resetZoom() {
+        guard !articles.isEmpty else { return }
         zoom.reset()
         applyZoom()
     }

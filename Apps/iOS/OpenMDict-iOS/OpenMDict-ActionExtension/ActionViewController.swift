@@ -435,18 +435,21 @@ class ActionViewController: UIViewController {
     @objc private func zoomOutTapped() { zoomOut() }
 
     private func zoomIn() {
+        guard !pages.isEmpty else { return }
         zoom.zoomIn()
         applyZoomToAllPages()
         refreshZoomUI()
     }
 
     private func zoomOut() {
+        guard !pages.isEmpty else { return }
         zoom.zoomOut()
         applyZoomToAllPages()
         refreshZoomUI()
     }
 
     private func resetZoom() {
+        guard !pages.isEmpty else { return }
         zoom.reset()
         applyZoomToAllPages()
         refreshZoomUI()
