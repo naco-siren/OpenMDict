@@ -79,8 +79,11 @@ class ArticleCell: UICollectionViewCell {
         let count = LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
         pageView.setLookupCount(count)
 
-        // Grid mode: disable webView scroll & interaction
+        // Grid mode: disable webView scroll & interaction, hide per-cell find
         pageView.webView.scrollView.isScrollEnabled = (layoutMode != .grid)
+        if #available(iOS 16, *) {
+            pageView.setFindInPageHidden(layoutMode == .grid)
+        }
         if layoutMode == .grid {
             pageView.setWebViewInteractive(false)
         }

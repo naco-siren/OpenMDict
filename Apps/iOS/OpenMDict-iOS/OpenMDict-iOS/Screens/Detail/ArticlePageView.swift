@@ -362,6 +362,12 @@ class ArticlePageView: UIView {
         containerView.alpha = interactive ? 1.0 : 0.95
     }
 
+    /// Hide or show the Find in Page header button.
+    /// Called by ArticleCell when layout switches to/from grid mode.
+    func setFindInPageHidden(_ hidden: Bool) {
+        findButton?.isHidden = hidden
+    }
+
     func isPointInHeader(_ point: CGPoint) -> Bool {
         let pointInContainer = convert(point, to: containerView)
         return headerView.frame.contains(pointInContainer)

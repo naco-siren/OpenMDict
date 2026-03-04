@@ -295,7 +295,14 @@ class ArticlesViewController: UIViewController {
     func applyLayout(_ mode: ArticleLayoutMode, animated: Bool) {
         let oldMode = self.layoutMode
         self.layoutMode = mode
-        
+
+        // Dismiss per-cell find navigators when entering grid mode
+        if mode == .grid {
+            if #available(iOS 16, *) {
+                dismissAllFindsExcept(nil)
+            }
+        }
+
         // List mode uses paging behavior
         collectionView.isPagingEnabled = (mode == .list)
         
