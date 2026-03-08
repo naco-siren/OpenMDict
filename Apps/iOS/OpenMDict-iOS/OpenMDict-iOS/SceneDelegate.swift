@@ -195,6 +195,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
         }
         window?.overrideUserInterfaceStyle = mode.userInterfaceStyle
+
+        // Auto-focus search bar when returning to foreground in compact mode
+        if let splitVC = window?.rootViewController as? MainSplitViewController,
+           splitVC.isCollapsed {
+            splitVC.compactTabBarController.focusLookupSearchBarIfVisible()
+        }
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {

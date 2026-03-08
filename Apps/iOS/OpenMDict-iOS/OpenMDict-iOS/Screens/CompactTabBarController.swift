@@ -194,6 +194,24 @@ class CompactTabBarController: UITabBarController {
             .store(in: &cancellables)
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Async to ensure view hierarchy is fully stabilized
+        DispatchQueue.main.async { [weak self] in
+            self?.focusLookupSearchBarIfVisible()
+        }
+    }
+
+    // MARK: - Auto-Focus Search Bar
+
+    /// Activate the search bar keyboard when the Lookup tab is visible.
+    /// Guards: Tab 0 selected AND WordListVC is topViewController (not pushed to Detail).
+    func focusLookupSearchBarIfVisible() {
+        guard selectedIndex == 0,
+              lookupNav.topViewController === lookupWordListVC else { return }
+        lookupWordListVC.focusSearchBar()
+    }
+
     // MARK: - Sidebar Toggle Button
 
     private func setupSidebarToggleButton() {
