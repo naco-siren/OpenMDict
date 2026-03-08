@@ -1316,26 +1316,25 @@ nonisolated enum L10n {
             String(format: NSLocalizedString("troubleshoot.count.history", value: "%d Lookup History", comment: "Cell: number of synced lookup history entries"), n)
         }
 
+        // MARK: Danger Zone
+        static var dangerZoneFooter: String {
+            NSLocalizedString("troubleshoot.dangerZone.footer", value: "Use this as a last resort if your data is corrupted, tampered with, or the app malfunctions beyond basic troubleshooting.", comment: "Danger zone footer: explains when to use reset")
+        }
+
         // MARK: Danger Zone — iCloud
         static var clearCloudTitle: String {
-            NSLocalizedString("troubleshoot.clearCloud.title", value: "Clear All iCloud Data", comment: "Button: nuclear reset — delete all synced data")
+            NSLocalizedString("troubleshoot.clearCloud.title", value: "Clear iCloud Data and Reset App", comment: "Button: nuclear reset — delete all synced data and reset app")
         }
         static var clearCloudDescription: String {
-            NSLocalizedString("troubleshoot.clearCloud.description", value: "Delete ALL your synced data on iCloud.", comment: "Short description for the nuclear reset button")
-        }
-        static var dangerZoneFooterCloud: String {
-            NSLocalizedString("troubleshoot.dangerZone.footer.cloud", value: "If you have installed this app and enabled iCloud sync on other devices, they will be affected and be reset too.", comment: "Danger zone footer: warns about cross-device impact")
+            NSLocalizedString("troubleshoot.clearCloud.description", value: "Deletes ALL your synced data on iCloud, as listed above.", comment: "Subtitle for the nuclear reset button")
         }
 
         // MARK: Danger Zone — Local
         static var clearLocalTitle: String {
-            NSLocalizedString("troubleshoot.clearLocal.title", value: "Clear All Local Data", comment: "Button: local reset — delete all local data")
+            NSLocalizedString("troubleshoot.clearLocal.title", value: "Clear Local Data and Reset App", comment: "Button: local reset — delete all local data and reset app")
         }
         static var clearLocalDescription: String {
-            NSLocalizedString("troubleshoot.clearLocal.description", value: "Delete your local data on this device.", comment: "Short description for the local reset button")
-        }
-        static var dangerZoneFooterLocal: String {
-            NSLocalizedString("troubleshoot.dangerZone.footer.local", value: "If you installed this app on other devices, they will NOT be affected.", comment: "Danger zone footer: reassures no cross-device impact")
+            NSLocalizedString("troubleshoot.clearLocal.description", value: "Deletes ALL your local data on this device alone.", comment: "Subtitle for the local reset button")
         }
 
         // MARK: Alert 1 — iCloud explain impact

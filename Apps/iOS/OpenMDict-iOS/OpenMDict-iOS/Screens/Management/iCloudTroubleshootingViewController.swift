@@ -145,6 +145,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
                 config.text = L10n.Troubleshoot.clearCloudTitle
                 config.textProperties.color = .systemRed
                 config.secondaryText = L10n.Troubleshoot.clearCloudDescription
+                config.secondaryTextProperties.color = .secondaryLabel
                 config.secondaryTextProperties.numberOfLines = 0
                 config.image = UIImage(systemName: "exclamationmark.icloud.fill")
                 config.imageProperties.tintColor = .systemRed
@@ -153,6 +154,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
                 config.text = L10n.Troubleshoot.clearLocalTitle
                 config.textProperties.color = .systemRed
                 config.secondaryText = L10n.Troubleshoot.clearLocalDescription
+                config.secondaryTextProperties.color = .secondaryLabel
                 config.secondaryTextProperties.numberOfLines = 0
                 config.image = UIImage(systemName: "exclamationmark.triangle.fill")
                 config.imageProperties.tintColor = .systemRed
@@ -185,18 +187,8 @@ final class iCloudTroubleshootingViewController: UIViewController {
             guard let self else { return }
             var config = footer.defaultContentConfiguration()
             let section = self.dataSource.sectionIdentifier(for: indexPath.section)
-            let enabled = self.isCloudEnabled
-            switch section {
-            case .status:
-                config.text = enabled
-                    ? L10n.Troubleshoot.statusFooterEnabled
-                    : L10n.Troubleshoot.statusFooterDisabled
-            case .dangerZone:
-                config.text = enabled
-                    ? L10n.Troubleshoot.dangerZoneFooterCloud
-                    : L10n.Troubleshoot.dangerZoneFooterLocal
-            default:
-                break
+            if section == .dangerZone {
+                config.text = L10n.Troubleshoot.dangerZoneFooter
             }
             config.textProperties.font = .preferredFont(forTextStyle: .footnote)
             config.textProperties.color = .secondaryLabel
@@ -396,7 +388,7 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
         shouldSelectItemAt indexPath: IndexPath
     ) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
-        return item == .clearAllCloudData || item == .clearAllLocalData
+        return item == .syncStatus || item == .clearAllCloudData || item == .clearAllLocalData
     }
 
     func collectionView(
@@ -407,9 +399,23 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
+        case .syncStatus:       showSyncModeAlert()
         case .clearAllCloudData: beginCloudReset()
         case .clearAllLocalData: beginLocalReset()
         default: break
         }
+    }
+
+    private func showSyncModeAlert() {
+        let message = isCloudEnabled
+            ? L10n.Troubleshoot.statusFooterEnabled
+            : L10n.Troubleshoot.statusFooterDisabled
+        let alert = UIAlertController(
+            title: L10n.Troubleshoot.syncStatusTitle,
+            message: message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
+        present(alert, animated: true)
     }
 }
