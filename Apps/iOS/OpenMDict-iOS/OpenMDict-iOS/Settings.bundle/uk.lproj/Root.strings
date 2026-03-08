@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "За замовчуванням";
 "SEARCH_RESULT_MORE" = "Більше";
 "SEARCH_RESULT_A_LOT" = "Дуже багато";
+"SEARCH_AUTO_FOCUS" = "Автофокус поля пошуку";
 
 "ARTICLES_GROUP" = "Статті";
 "ARTICLES_CAPACITY" = "Ємність";

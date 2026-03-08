@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "기본값";
 "SEARCH_RESULT_MORE" = "많이";
 "SEARCH_RESULT_A_LOT" = "매우 많이";
+"SEARCH_AUTO_FOCUS" = "검색 입력란 자동 포커스";
 
 "ARTICLES_GROUP" = "기사";
 "ARTICLES_CAPACITY" = "기사 용량";

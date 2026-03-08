@@ -13,6 +13,7 @@
 "SEARCH_RESULT_DEFAULT" = "Default";
 "SEARCH_RESULT_MORE" = "More";
 "SEARCH_RESULT_A_LOT" = "A Lot";
+"SEARCH_AUTO_FOCUS" = "Auto-Focus Lookup Input";
 
 "ARTICLES_GROUP" = "Articles";
 "ARTICLES_CAPACITY" = "Articles Capacity";

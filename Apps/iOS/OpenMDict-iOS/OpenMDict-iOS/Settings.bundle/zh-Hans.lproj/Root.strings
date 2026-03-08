@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "默认";
 "SEARCH_RESULT_MORE" = "较多";
 "SEARCH_RESULT_A_LOT" = "很多";
+"SEARCH_AUTO_FOCUS" = "自动聚焦查词输入框";
 
 "ARTICLES_GROUP" = "文章";
 "ARTICLES_CAPACITY" = "文章容量";

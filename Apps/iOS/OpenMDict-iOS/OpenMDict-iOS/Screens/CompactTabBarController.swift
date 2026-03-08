@@ -19,6 +19,14 @@ import UIKit
 import Combine
 import OpenMDictKit
 
+extension UserDefaults {
+    private static let searchAutoFocusKey = "searchAutoFocus"
+
+    var searchAutoFocus: Bool {
+        bool(forKey: Self.searchAutoFocusKey)
+    }
+}
+
 class CompactTabBarController: UITabBarController {
 
     // MARK: - Tab VCs
@@ -207,7 +215,8 @@ class CompactTabBarController: UITabBarController {
     /// Activate the search bar keyboard when the Lookup tab is visible.
     /// Guards: Tab 0 selected AND WordListVC is topViewController (not pushed to Detail).
     func focusLookupSearchBarIfVisible() {
-        guard selectedIndex == 0,
+        guard UserDefaults.standard.searchAutoFocus,
+              selectedIndex == 0,
               lookupNav.topViewController === lookupWordListVC else { return }
         lookupWordListVC.focusSearchBar()
     }

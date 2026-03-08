@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "標準";
 "SEARCH_RESULT_MORE" = "多め";
 "SEARCH_RESULT_A_LOT" = "最大";
+"SEARCH_AUTO_FOCUS" = "検索入力欄を自動フォーカス";
 
 "ARTICLES_GROUP" = "記事";
 "ARTICLES_CAPACITY" = "記事の容量";

@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "الافتراضي";
 "SEARCH_RESULT_MORE" = "أكثر";
 "SEARCH_RESULT_A_LOT" = "كثير جدًا";
+"SEARCH_AUTO_FOCUS" = "التركيز التلقائي على حقل البحث";
 
 "ARTICLES_GROUP" = "المقالات";
 "ARTICLES_CAPACITY" = "سعة المقالات";

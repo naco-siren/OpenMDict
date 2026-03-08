@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "Standard";
 "SEARCH_RESULT_MORE" = "Mehr";
 "SEARCH_RESULT_A_LOT" = "Sehr viele";
+"SEARCH_AUTO_FOCUS" = "Suchfeld autofokussieren";
 
 "ARTICLES_GROUP" = "Artikel";
 "ARTICLES_CAPACITY" = "Artikelkapazität";

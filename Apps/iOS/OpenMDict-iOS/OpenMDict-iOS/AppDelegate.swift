@@ -18,6 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "appearanceMode": 1,    // .system
             "searchResultVolume": 2, // .normal (Default)
             "articlesCapacity": 1,  // .normal (Default)
+            "searchAutoFocus": true,
         ]
         UserDefaults.standard.register(defaults: defaults)
         UserDefaults.shared.register(defaults: defaults)

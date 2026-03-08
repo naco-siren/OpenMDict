@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "По умолчанию";
 "SEARCH_RESULT_MORE" = "Больше";
 "SEARCH_RESULT_A_LOT" = "Очень много";
+"SEARCH_AUTO_FOCUS" = "Автофокус поля поиска";
 
 "ARTICLES_GROUP" = "Статьи";
 "ARTICLES_CAPACITY" = "Ёмкость статей";

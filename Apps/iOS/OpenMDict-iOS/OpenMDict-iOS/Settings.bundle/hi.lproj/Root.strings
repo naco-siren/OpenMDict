@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "डिफ़ॉल्ट";
 "SEARCH_RESULT_MORE" = "अधिक";
 "SEARCH_RESULT_A_LOT" = "बहुत अधिक";
+"SEARCH_AUTO_FOCUS" = "खोज फ़ील्ड ऑटो-फ़ोकस";
 
 "ARTICLES_GROUP" = "लेख";
 "ARTICLES_CAPACITY" = "लेख क्षमता";

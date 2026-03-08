@@ -12,6 +12,7 @@
 "SEARCH_RESULT_DEFAULT" = "預設";
 "SEARCH_RESULT_MORE" = "較多";
 "SEARCH_RESULT_A_LOT" = "很多";
+"SEARCH_AUTO_FOCUS" = "自動聚焦查詞輸入框";
 
 "ARTICLES_GROUP" = "文章";
 "ARTICLES_CAPACITY" = "文章容量";
