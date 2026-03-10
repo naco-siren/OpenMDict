@@ -231,7 +231,8 @@ final class DeduplicationService {
                 if loserUpdated > winnerUpdated {
                     for key in ["displayName", "updatedAt",
                                 "mddCount", "cssCount", "jsCount",
-                                "totalSizeKB", "cloudSyncStatus"] {
+                                "totalSizeKB", "cloudSyncStatus",
+                                "enhanceDarkMode"] {
                         winner.setValue(record.value(forKey: key), forKey: key)
                     }
                 }

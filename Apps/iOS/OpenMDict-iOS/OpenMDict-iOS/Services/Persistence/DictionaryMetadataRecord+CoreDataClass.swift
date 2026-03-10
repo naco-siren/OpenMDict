@@ -57,4 +57,10 @@ nonisolated public class DictionaryMetadataRecord: NSManagedObject {
     /// CKRecord.ID.recordName for the manually-managed DictionaryArchive
     /// CKRecord in CloudKit.  Nil if the archive hasn't been uploaded yet.
     @NSManaged public var cloudArchiveRecordName: String?
+
+    // MARK: - Display Settings
+
+    /// When true, apply CSS `filter: invert(1) hue-rotate(180deg)` in dark mode
+    /// to fix readability for dictionaries that hardcode light-mode colors.
+    @NSManaged public var enhanceDarkMode: Bool
 }

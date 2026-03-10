@@ -30,6 +30,7 @@ struct DictMetadata {
     var jsCount: Int32
     var fontsCount: Int32
     var cloudSyncStatus: Int16
+    var enhanceDarkMode: Bool
 }
 
 // MARK: - Service
@@ -189,6 +190,16 @@ final class DictMetadataService {
         save(ctx)
     }
 
+    /// Toggle dark mode enhancement for a dictionary.
+    func updateEnhanceDarkMode(dictId: String, enhance: Bool) {
+        let ctx = stack.viewContext
+        guard let record = fetchRecord(dictId: dictId) else { return }
+        record.enhanceDarkMode = enhance
+        record.updatedAt = Date()
+        save(ctx)
+        revision += 1
+    }
+
     /// In-memory set of dictionaries currently downloading from CloudKit.
     /// Used by UI to show "syncing" state without writing `.pending` to CoreData
     /// (which would get exported back to CloudKit and overwrite the sender's `.synced`).
@@ -247,7 +258,8 @@ extension DictionaryMetadataRecord {
             cssCount: cssCount,
             jsCount: jsCount,
             fontsCount: fontsCount,
-            cloudSyncStatus: cloudSyncStatus
+            cloudSyncStatus: cloudSyncStatus,
+            enhanceDarkMode: enhanceDarkMode
         )
     }
 }
