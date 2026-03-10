@@ -69,9 +69,7 @@ class ActionViewController: UIViewController {
     private var zoomOutButton: UIBarButtonItem?      // iOS 15 individual zoom-out
 
     // iOS 16+ stored refs for in-place zoom updates (avoids full nav bar rebuild)
-    private weak var zoomOutItem: UIBarButtonItem?
-    private weak var zoomResetItem: UIBarButtonItem?
-    private weak var zoomInItem: UIBarButtonItem?
+    private weak var zoomSlider: UISlider?
     private weak var zoomRepresentativeItem: UIBarButtonItem?
 
     // MARK: - State
@@ -245,37 +243,20 @@ class ActionViewController: UIViewController {
 
             navigationItem.centerItemGroups = []
 
-            let zoomOutItem = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                self?.zoomOut()
-            })
-            zoomOutItem.isEnabled = zoom.canZoomOut
-
-            let resetItem = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                self?.resetZoom()
-            })
-            resetItem.isEnabled = !zoom.isDefault
-
-            let zoomInItem = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in
-                self?.zoomIn()
-            })
-            zoomInItem.isEnabled = zoom.canZoomIn
+            let sliderContainer = makeZoomSliderContainer()
+            let sliderItem = UIBarButtonItem(customView: sliderContainer)
 
             let representative = UIBarButtonItem(
                 title: L10n.Detail.currentLevel(zoom.displayString),
                 image: .init(systemName: "textformat.size"),
                 menu: currentZoomMenu
             )
-
-            // Store weak refs for in-place updates
-            self.zoomOutItem = zoomOutItem
-            self.zoomResetItem = resetItem
-            self.zoomInItem = zoomInItem
             self.zoomRepresentativeItem = representative
 
             navigationItem.trailingItemGroups = [
                 .fixedGroup(
                     representativeItem: representative,
-                    items: [zoomOutItem, resetItem, zoomInItem]
+                    items: [sliderItem]
                 )
             ]
 
@@ -458,10 +439,10 @@ class ActionViewController: UIViewController {
 
     private func refreshZoomUI() {
         if #available(iOS 16, *) {
-            // In-place update: mutate stored item refs instead of rebuilding entire nav bar
-            zoomOutItem?.isEnabled = zoom.canZoomOut
-            zoomResetItem?.isEnabled = !zoom.isDefault
-            zoomInItem?.isEnabled = zoom.canZoomIn
+            // In-place update: slider + representative
+            if let idx = ZoomLevel.levels.firstIndex(of: zoom.current) {
+                zoomSlider?.value = Float(idx)
+            }
             zoomRepresentativeItem?.title = L10n.Detail.currentLevel(zoom.displayString)
         } else {
             updateZoomButtonStates()
@@ -477,6 +458,57 @@ class ActionViewController: UIViewController {
         for page in pages {
             page.setZoomLevel(zoom.current)
         }
+    }
+
+    // MARK: - Zoom Slider
+
+    private func makeZoomSliderContainer() -> UIView {
+        let slider = UISlider()
+        slider.minimumValue = 0
+        slider.maximumValue = Float(ZoomLevel.levels.count - 1)
+        slider.value = Float(ZoomLevel.levels.firstIndex(of: zoom.current) ?? 2)
+        slider.isContinuous = true
+        slider.addTarget(self, action: #selector(zoomSliderChanged(_:)), for: .valueChanged)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        self.zoomSlider = slider
+
+        let smallerIcon = UIImageView(image: UIImage(systemName: "textformat.size.smaller"))
+        smallerIcon.tintColor = .secondaryLabel
+        smallerIcon.contentMode = .scaleAspectFit
+        smallerIcon.translatesAutoresizingMaskIntoConstraints = false
+        smallerIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let largerIcon = UIImageView(image: UIImage(systemName: "textformat.size.larger"))
+        largerIcon.tintColor = .secondaryLabel
+        largerIcon.contentMode = .scaleAspectFit
+        largerIcon.translatesAutoresizingMaskIntoConstraints = false
+        largerIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = UIStackView(arrangedSubviews: [smallerIcon, slider, largerIcon])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            slider.widthAnchor.constraint(equalToConstant: 140),
+            smallerIcon.widthAnchor.constraint(equalToConstant: 16),
+            smallerIcon.heightAnchor.constraint(equalToConstant: 16),
+            largerIcon.widthAnchor.constraint(equalToConstant: 16),
+            largerIcon.heightAnchor.constraint(equalToConstant: 16),
+        ])
+
+        return stack
+    }
+
+    @objc private func zoomSliderChanged(_ sender: UISlider) {
+        let index = Int(sender.value.rounded())
+        sender.value = Float(index)
+        let newLevel = ZoomLevel.levels[index]
+        guard newLevel != zoom.current else { return }
+        zoom = ZoomLevel(newLevel)
+        applyZoomToAllPages()
+        refreshZoomUI()
     }
 
     // MARK: - Loading UI
