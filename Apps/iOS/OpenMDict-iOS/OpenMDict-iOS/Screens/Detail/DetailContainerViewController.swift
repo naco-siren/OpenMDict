@@ -1058,12 +1058,6 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
     func articleViewController(_ vc: ArticleViewController, didCloseArticle article: ArticleDisplayItem) {
         closeArticle(article)
     }
-
-    func articleViewController(_ vc: ArticleViewController, didRequestNewWindow article: ArticleDisplayItem) {
-        let session = view.window?.windowScene?.session
-        SceneDelegate.openNewWindow(for: article, sourceSession: session)
-        closeArticle(article)
-    }
 }
 
 extension DetailContainerViewController: UISearchControllerDelegate {

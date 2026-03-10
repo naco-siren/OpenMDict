@@ -662,12 +662,8 @@ extension ArticlePageView.Configuration {
     /// Compact pager pages (ArticleViewController) — 64pt header, no rounded corners.
     /// On iPad (supportsMultipleScenes), includes the "Open in New Window" button;
     /// on iPhone, the button is omitted because multi-scene is not available.
-    static func compactPager(webViewConfig: WKWebViewConfiguration, supportsMultipleScenes: Bool = false) -> Self {
-        var features: ArticlePageView.Features = .compactPager
-        if supportsMultipleScenes {
-            features.insert(.newWindowButton)
-        }
-        return .init(features: features, webViewConfiguration: webViewConfig)
+    static func compactPager(webViewConfig: WKWebViewConfiguration) -> Self {
+        .init(features: .compactPager, webViewConfiguration: webViewConfig)
     }
 
     /// Regular collection view cells (ArticleCell) — 46pt header, rounded corners.

@@ -19,7 +19,6 @@ protocol ArticleViewControllerDelegate: AnyObject {
     func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String)
     func articleViewController(_ vc: ArticleViewController, didChangePage index: Int)
     func articleViewController(_ vc: ArticleViewController, didCloseArticle article: ArticleDisplayItem)
-    func articleViewController(_ vc: ArticleViewController, didRequestNewWindow article: ArticleDisplayItem)
 }
 
 class ArticleViewController: UIViewController {
@@ -328,8 +327,7 @@ class ArticleViewController: UIViewController {
     /// Create a page view for the given article.
     private func makeArticlePageView(for article: ArticleDisplayItem) -> ArticlePageView {
         let config = ArticlePageView.Configuration.compactPager(
-            webViewConfig: webViewConfiguration,
-            supportsMultipleScenes: UIApplication.shared.supportsMultipleScenes
+            webViewConfig: webViewConfiguration
         )
         let pageView = ArticlePageView(configuration: config)
         pageView.translatesAutoresizingMaskIntoConstraints = false
@@ -373,14 +371,6 @@ class ArticleViewController: UIViewController {
                pageIndex < self.articles.count {
                 let article = self.articles[pageIndex]
                 self.delegate?.articleViewController(self, didCloseArticle: article)
-            }
-        }
-        pageView.onNewWindowTapped = { [weak self] in
-            guard let self else { return }
-            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
-               pageIndex < self.articles.count {
-                let article = self.articles[pageIndex]
-                self.delegate?.articleViewController(self, didRequestNewWindow: article)
             }
         }
         pageView.onFindTapped = { [weak self] in
