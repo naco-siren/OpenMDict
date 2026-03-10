@@ -84,9 +84,7 @@ class ArticleCell: UICollectionViewCell {
         if #available(iOS 16, *) {
             pageView.setFindInPageHidden(layoutMode == .grid)
         }
-        if layoutMode == .grid {
-            pageView.setWebViewInteractive(false)
-        }
+        pageView.setWebViewInteractive(layoutMode != .grid)
 
         // Wire internal callbacks that depend on the current article
         pageView.onEntryLinkTapped = { [weak self] word in
