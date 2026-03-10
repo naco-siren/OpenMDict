@@ -870,11 +870,13 @@ extension WordListViewController: UITableViewDelegate {
         guard indexPath.section < sections.count,
               indexPath.row < sections[indexPath.section].rows.count else { return nil }
 
-        // Context menu for search result and related form rows
+        // Context menu for search result, related form, and history rows
         let word: WordDisplayItem
         switch sections[indexPath.section].rows[indexPath.row] {
         case .searchResult(let w): word = w
         case .relatedForm(let w):  word = w
+        case .historyRecord(let record):
+            word = WordDisplayItem(word: record.word, dictId: record.dictId, dictName: record.dictName)
         default: return nil
         }
 
