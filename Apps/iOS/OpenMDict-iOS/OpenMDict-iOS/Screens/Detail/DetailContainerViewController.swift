@@ -981,6 +981,12 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
     func articlesViewController(_ vc: ArticlesViewController, didRequestJumpSearch word: String, inDict dictId: String) {
         performJumpSearch(word: word, dictId: dictId)
     }
+
+    func articlesViewController(_ vc: ArticlesViewController, didRequestNewWindow article: ArticleDisplayItem) {
+        let session = view.window?.windowScene?.session
+        SceneDelegate.openNewWindow(for: article, sourceSession: session)
+        closeArticle(article)
+    }
 }
 
 // MARK: - ArticleCellDelegate (Entry Links)

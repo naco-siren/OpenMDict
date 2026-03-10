@@ -117,9 +117,17 @@ class MainSplitViewController: UISplitViewController {
         // Check for first-install setup (before article restoration)
         presentSetupIfNeeded()
 
-        if !isCollapsed, !detailContainer.allArticles.isEmpty {
-            debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
-            show(.secondary)
+        if !detailContainer.allArticles.isEmpty {
+            if isCollapsed {
+                // iPhone / compact: articles were preloaded into the regular detailContainer
+                // during init(), but compact tab bar is actually displayed. Transfer them now
+                // that trait collection has settled.
+                transferStateToCompact()
+                debugLog("📱 viewDidAppear: transferred \(detailContainer.allArticles.count) preloaded articles to compact")
+            } else {
+                debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
+                show(.secondary)
+            }
         }
     }
     
@@ -1308,9 +1316,4 @@ extension MainSplitViewController {
 // MARK: - Multi-Window Support
 
 extension MainSplitViewController {
-    
-    func openInNewWindow(_ article: ArticleDisplayItem) {
-        let session = view.window?.windowScene?.session
-        SceneDelegate.openNewWindow(for: article, sourceSession: session)
-    }
 }

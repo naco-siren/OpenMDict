@@ -17,6 +17,7 @@ protocol ArticlesViewControllerDelegate: AnyObject {
     func articlesViewController(_ vc: ArticlesViewController, didSelectArticle article: ArticleDisplayItem)
     func articlesViewController(_ vc: ArticlesViewController, didRequestFocusOn article: ArticleDisplayItem)
     func articlesViewController(_ vc: ArticlesViewController, didRequestJumpSearch word: String, inDict dictId: String)
+    func articlesViewController(_ vc: ArticlesViewController, didRequestNewWindow article: ArticleDisplayItem)
 }
 
 // MARK: - Articles View Controller
@@ -209,8 +210,8 @@ class ArticlesViewController: UIViewController {
                 self.delegate?.articlesViewController(self, didCloseArticle: article)
             }
             cell.pageView.onNewWindowTapped = { [weak self] in
-                let session = self?.view.window?.windowScene?.session
-                SceneDelegate.openNewWindow(for: article, sourceSession: session)
+                guard let self else { return }
+                self.delegate?.articlesViewController(self, didRequestNewWindow: article)
             }
             cell.pageView.onBookmarkTapped = { [weak self, weak cell] isCurrentlyBookmarked in
                 if isCurrentlyBookmarked {
@@ -707,9 +708,9 @@ extension ArticlesViewController: UICollectionViewDelegate {
             })
         }
         if UIApplication.shared.supportsMultipleScenes {
-            actions.append(.init(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "rectangle.badge.plus")) { _ in
-                let session = self.view.window?.windowScene?.session
-                SceneDelegate.openNewWindow(for: article, sourceSession: session)
+            actions.append(.init(title: L10n.Articles.openInNewWindow, image: UIImage(systemName: "rectangle.badge.plus")) { [weak self] _ in
+                guard let self else { return }
+                self.delegate?.articlesViewController(self, didRequestNewWindow: article)
             })
         }
         actions.append(.init(title: L10n.Articles.close, image: UIImage(systemName: "xmark"), attributes: .destructive) { [weak self] _ in
