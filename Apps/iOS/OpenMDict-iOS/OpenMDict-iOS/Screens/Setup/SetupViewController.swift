@@ -160,6 +160,10 @@ final class SetupViewController: UIViewController {
             // Persist choice
             SyncModeService.shared.currentMode = .cloudSync
 
+            // Suppress passive reset for stale NuclearResetSignal from a
+            // previous device — this is a brand-new install, not a passive target.
+            iCloudResetOrchestrator.shared.suppressPassiveResetOnce = true
+
             // Enable CloudKit on the existing CoreData stack
             CoreDataStack.shared.reloadWithCloudKit()
 

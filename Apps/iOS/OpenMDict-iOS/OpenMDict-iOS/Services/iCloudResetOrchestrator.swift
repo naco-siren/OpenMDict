@@ -52,6 +52,22 @@ final class iCloudResetOrchestrator {
     /// Guards against concurrent passive reset runs.
     private var isPassiveResetInProgress = false
 
+    /// When `true`, the next `checkAndHandlePassiveReset()` call marks any
+    /// existing signal as processed WITHOUT performing a reset, then clears
+    /// the flag.
+    ///
+    /// **Why**: On a fresh install that chooses iCloud, `reloadWithCloudKit()`
+    /// triggers `NSPersistentStoreRemoteChange` → preprocessor →
+    /// `checkAndHandlePassiveReset()`.  If a previous device had done a
+    /// nuclear reset, the stale `NuclearResetSignal` record still exists in
+    /// the default zone.  This new device has never seen it, so
+    /// `hasProcessedSignal()` returns `false` and a spurious passive reset
+    /// fires, bouncing the user back to the welcome screen.
+    ///
+    /// Setting this flag before the first `reloadWithCloudKit()` call
+    /// prevents that false trigger while still consuming the stale signal.
+    var suppressPassiveResetOnce = false
+
     // MARK: - Progress
 
     enum Progress {
@@ -178,6 +194,17 @@ final class iCloudResetOrchestrator {
     func checkAndHandlePassiveReset() async -> Bool {
         // Prevent concurrent runs (remote change can fire multiple times).
         guard !isPassiveResetInProgress else { return true }
+
+        // During first-time setup, suppress the reset but consume any stale signal
+        // so it won't fire on the next app launch either.
+        if suppressPassiveResetOnce {
+            suppressPassiveResetOnce = false
+            if let uuid = await CloudKitResetService.shared.fetchResetSignalUUID() {
+                CloudKitResetService.shared.markSignalProcessed(uuid: uuid)
+                debugLog("☁️ Suppressed passive reset during setup — marked stale signal \(uuid) as processed")
+            }
+            return false
+        }
 
         guard let uuid = await CloudKitResetService.shared.fetchResetSignalUUID() else {
             return false
