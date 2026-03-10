@@ -201,7 +201,7 @@ class ArticlesViewController: UIViewController {
         let cellReg = UICollectionView.CellRegistration<ArticleCell, ArticleDisplayItem> { [weak self] cell, indexPath, article in
             cell.delegate = self?.cellDelegate
             cell.configure(with: article, layoutMode: self?.layoutMode ?? .columns)
-            cell.setZoomLevel(self?.zoomLevel ?? 100)
+            cell.setZoomLevel(self?.zoomLevel ?? ZoomLevel.defaultLevel)
 
             // Wire pageView callbacks
             cell.pageView.onCloseTapped = { [weak self] in

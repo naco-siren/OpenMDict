@@ -21,12 +21,13 @@ class DetailContainerViewController: UIViewController {
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
     private var zoom = ZoomLevel()
-
-    /// Stored references for in-place zoom updates (avoids rebuilding entire nav bar)
+    /// Stored references for in-place zoom/slider updates (avoids rebuilding entire nav bar)
+    private weak var zoomSlider: UISlider?
+    private weak var zoomRepresentativeItem: UIBarButtonItem?
+    /// iOS 15 fallback: stored references for 3 dedicated zoom buttons
     private weak var zoomOutItem: UIBarButtonItem?
     private weak var zoomResetItem: UIBarButtonItem?
     private weak var zoomInItem: UIBarButtonItem?
-    private weak var zoomRepresentativeItem: UIBarButtonItem?
 
     /// Current articles capacity limit from Settings.bundle, scaled by device RAM.
     private var articlesCapacityLimit: Int = UserDefaults.standard.articlesCapacity.limit
@@ -509,21 +510,16 @@ class DetailContainerViewController: UIViewController {
                 ),
             ]
 
-            let zOut = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
-            zOut.isEnabled = zoom.canZoomOut
-            let zReset = UIBarButtonItem(title: zoom.displayString, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
-            zReset.isEnabled = !zoom.isDefault
-            let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
-            zIn.isEnabled = zoom.canZoomIn
-            let zRep = UIBarButtonItem(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu)
+            let sliderContainer = makeZoomSliderContainer()
+            let sliderItem = UIBarButtonItem(customView: sliderContainer)
 
-            zoomOutItem = zOut; zoomResetItem = zReset; zoomInItem = zIn; zoomRepresentativeItem = zRep
+            let zRep = UIBarButtonItem(title: L10n.Detail.zoom, image: .init(systemName: "textformat.size"), menu: currentZoomMenu)
+            zoomRepresentativeItem = zRep
 
             navigationItem.centerItemGroups = [
-                .optionalGroup(
-                    customizationIdentifier: "zoom",
+                .fixedGroup(
                     representativeItem: zRep,
-                    items: [zOut, zReset, zIn]
+                    items: [sliderItem]
                 ),
             ]
 
@@ -533,7 +529,7 @@ class DetailContainerViewController: UIViewController {
             // iOS 15: Best effort with standard items
             navigationItem.leftBarButtonItems = [
                 .init(customView: layoutSegment),
-                .init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))
+                .init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged))),
             ]
 
             let zIn15 = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
@@ -552,6 +548,7 @@ class DetailContainerViewController: UIViewController {
             navigationItem.style = .browser
             navigationItem.leadingItemGroups = []
             navigationItem.centerItemGroups = []
+
             navigationItem.trailingItemGroups = [
                 .optionalGroup(
                     customizationIdentifier: "appearance",
@@ -563,15 +560,11 @@ class DetailContainerViewController: UIViewController {
                     items: [.init(customView: appearanceMode.segmentedControl(target: self, action: #selector(appearanceChanged)))]
                 ),
                 {
-                    let zOut = UIBarButtonItem(title: L10n.Detail.zoomOut, image: .init(systemName: "minus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomOut() })
-                    zOut.isEnabled = zoom.canZoomOut
-                    let zReset = UIBarButtonItem(title: L10n.Detail.reset, image: .init(systemName: "1.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.resetZoom() })
-                    zReset.isEnabled = !zoom.isDefault
-                    let zIn = UIBarButtonItem(title: L10n.Detail.zoomIn, image: .init(systemName: "plus.magnifyingglass"), primaryAction: UIAction { [weak self] _ in self?.zoomIn() })
-                    zIn.isEnabled = zoom.canZoomIn
-                    let zRep = UIBarButtonItem(title: L10n.Detail.currentLevel(zoom.displayString), image: .init(systemName: "textformat.size"), menu: currentZoomMenu)
-                    zoomOutItem = zOut; zoomResetItem = zReset; zoomInItem = zIn; zoomRepresentativeItem = zRep
-                    return .optionalGroup(customizationIdentifier: "zoom", representativeItem: zRep, items: [zOut, zReset, zIn])
+                    let sliderContainer = self.makeZoomSliderContainer()
+                    let sliderItem = UIBarButtonItem(customView: sliderContainer)
+                    let zRep = UIBarButtonItem(title: L10n.Detail.currentLevel(self.zoom.displayString), image: .init(systemName: "textformat.size"), menu: self.currentZoomMenu)
+                    self.zoomRepresentativeItem = zRep
+                    return .optionalGroup(customizationIdentifier: "zoom", representativeItem: zRep, items: [sliderItem])
                 }(),
             ]
         } else {
@@ -734,11 +727,11 @@ class DetailContainerViewController: UIViewController {
     
     private func applyAppearance() {
         view.window?.overrideUserInterfaceStyle = appearanceMode.userInterfaceStyle
-   
+
         // Refresh nav bar to update representativeItem icon
         updateNavigationBar(for: traitCollection)
     }
-    
+
     // MARK: - Zoom
 
     func zoomIn() {
@@ -767,6 +760,10 @@ class DetailContainerViewController: UIViewController {
         articleVC.setZoomLevel(zoom.current)
 
         // Update zoom controls in-place (avoids rebuilding entire nav bar)
+        if let idx = ZoomLevel.levels.firstIndex(of: zoom.current) {
+            zoomSlider?.value = Float(idx)  // iOS 16+ slider
+        }
+        // iOS 15 fallback: dedicated buttons
         zoomOutItem?.isEnabled = zoom.canZoomOut
         zoomResetItem?.isEnabled = !zoom.isDefault
         zoomResetItem?.title = zoom.displayString
@@ -776,6 +773,56 @@ class DetailContainerViewController: UIViewController {
         if traitCollection.horizontalSizeClass != .regular {
             zoomRepresentativeItem?.title = L10n.Detail.currentLevel(zoom.displayString)
         }
+    }
+
+    // MARK: - Zoom Slider
+
+    private func makeZoomSliderContainer() -> UIView {
+        let slider = UISlider()
+        slider.minimumValue = 0
+        slider.maximumValue = Float(ZoomLevel.levels.count - 1)
+        slider.value = Float(ZoomLevel.levels.firstIndex(of: zoom.current) ?? 2)
+        slider.isContinuous = true
+        slider.addTarget(self, action: #selector(zoomSliderChanged(_:)), for: .valueChanged)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        self.zoomSlider = slider
+
+        let smallerIcon = UIImageView(image: UIImage(systemName: "textformat.size.smaller"))
+        smallerIcon.tintColor = .secondaryLabel
+        smallerIcon.contentMode = .scaleAspectFit
+        smallerIcon.translatesAutoresizingMaskIntoConstraints = false
+        smallerIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let largerIcon = UIImageView(image: UIImage(systemName: "textformat.size.larger"))
+        largerIcon.tintColor = .secondaryLabel
+        largerIcon.contentMode = .scaleAspectFit
+        largerIcon.translatesAutoresizingMaskIntoConstraints = false
+        largerIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = UIStackView(arrangedSubviews: [smallerIcon, slider, largerIcon])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            slider.widthAnchor.constraint(equalToConstant: 140),
+            smallerIcon.widthAnchor.constraint(equalToConstant: 16),
+            smallerIcon.heightAnchor.constraint(equalToConstant: 16),
+            largerIcon.widthAnchor.constraint(equalToConstant: 16),
+            largerIcon.heightAnchor.constraint(equalToConstant: 16),
+        ])
+
+        return stack
+    }
+
+    @objc private func zoomSliderChanged(_ sender: UISlider) {
+        let index = Int(sender.value.rounded())
+        sender.value = Float(index)
+        let newLevel = ZoomLevel.levels[index]
+        guard newLevel != zoom.current else { return }
+        zoom = ZoomLevel(newLevel)
+        applyZoom()
     }
 
     // MARK: - Find in Page
