@@ -172,6 +172,10 @@ class ArticleCell: UICollectionViewCell {
         pageView.setZoomLevel(level)
     }
 
+    func setDarkModeEnhance(_ enhance: Bool) {
+        pageView.setDarkModeEnhance(enhance)
+    }
+
     /// Present system Find UI (iOS 16+)
     @available(iOS 16.0, *)
     func presentFind() {

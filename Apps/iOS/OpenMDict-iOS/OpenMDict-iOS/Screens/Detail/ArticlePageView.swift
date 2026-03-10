@@ -105,6 +105,7 @@ class ArticlePageView: UIView {
 
     private let features: Features
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
+    private var isDarkModeEnhanced: Bool = false
     private static let pendingOverlayTag = 9876
     /// Uniform size for all header toolbar buttons (bookmark, find, new-window, close).
     private static let headerButtonSize: CGFloat = 44
@@ -327,6 +328,46 @@ class ArticlePageView: UIView {
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
+    func setDarkModeEnhance(_ enhance: Bool) {
+        isDarkModeEnhanced = enhance
+        webView.overrideUserInterfaceStyle = enhance ? .light : .unspecified
+        applyDarkModeFilter()
+    }
+
+    /// Inject or remove CSS `filter: invert(1) hue-rotate(180deg)` on the HTML element.
+    /// Images/video/SVG get a double-invert to restore their original colors.
+    /// Also strips legacy `<font color>` attributes so colored text inherits the inverted body color.
+    private func applyDarkModeFilter() {
+        let isDark = traitCollection.userInterfaceStyle == .dark
+        if isDarkModeEnhanced && isDark {
+            let js = """
+            (function(){
+                var s = document.getElementById('_omdict_invert');
+                if (!s) { s = document.createElement('style'); s.id = '_omdict_invert'; document.head.appendChild(s); }
+                s.textContent = 'html { filter: invert(1) hue-rotate(180deg); background: #fff !important; } body { color: #000 !important; } img, video, svg, picture { filter: invert(1) hue-rotate(180deg); }';
+                document.querySelectorAll('font[color]').forEach(function(el){ el.removeAttribute('color'); });
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        } else {
+            let js = """
+            (function(){
+                var s = document.getElementById('_omdict_invert');
+                if (s) s.remove();
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if isDarkModeEnhanced,
+           traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            applyDarkModeFilter()
+        }
+    }
+
     // MARK: - Public: Content
 
     func loadHTMLContent(_ html: String, baseURL: URL? = nil) {
@@ -510,6 +551,11 @@ extension ArticlePageView: WKNavigationDelegate {
         if currentZoomLevel != ZoomLevel.defaultLevel {
             let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
             webView.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        // Apply dark mode filter if enabled for this dictionary
+        if isDarkModeEnhanced {
+            applyDarkModeFilter()
         }
 
         // Apply pending highlight keyword (set before WebView finished loading)

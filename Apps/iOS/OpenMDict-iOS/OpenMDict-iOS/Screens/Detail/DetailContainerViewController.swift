@@ -74,7 +74,7 @@ class DetailContainerViewController: UIViewController {
         vc.cellDelegate = self
         return vc
     }()
-    
+
     private lazy var articleVC: ArticleViewController = {
         let vc = ArticleViewController()
         vc.delegate = self
@@ -131,6 +131,7 @@ class DetailContainerViewController: UIViewController {
         subscribeToAppearanceChanges()
         subscribeToArticlesCapacityChanges()
         subscribeToArticleMoved()
+        subscribeToDictMetadataChanges()
 
         loadPendingArticlesIfReady()
     }
@@ -283,6 +284,20 @@ class DetailContainerViewController: UIViewController {
                 self.handleArticleMovedToNewScene(articleId: articleId, sourceSessionId: sourceSessionId)
             }
         }
+    }
+
+    /// React to DictMetadataService changes (e.g. user toggled enhanceDarkMode).
+    /// Re-applies per-dict dark mode enhancement on all visible articles.
+    private func subscribeToDictMetadataChanges() {
+        DictMetadataService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.articlesVC.refreshDarkModeEnhance()
+                self.articleVC.refreshDarkModeEnhance()
+            }
+            .store(in: &cancellables)
     }
 
     /// Handle notification when an article was dragged to a new window
@@ -522,7 +537,7 @@ class DetailContainerViewController: UIViewController {
                     items: [sliderItem]
                 ),
             ]
-
+            
             navigationItem.trailingItemGroups = []
 
         } else {

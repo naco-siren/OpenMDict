@@ -39,7 +39,7 @@ class ArticlesViewController: UIViewController {
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
     private var zoomLevel: Int = ZoomLevel.defaultLevel
-    
+
     // Track cell that needs to present find after context menu dismisses
     private var pendingFindIndexPath: IndexPath?
 
@@ -391,7 +391,19 @@ class ArticlesViewController: UIViewController {
             }
         }
     }
-    
+
+    /// Re-apply per-dict dark mode enhancement to all visible cells.
+    /// Called when DictMetadataService revision changes (e.g. user toggled enhanceDarkMode).
+    func refreshDarkModeEnhance() {
+        for cell in collectionView.visibleCells {
+            guard let articleCell = cell as? ArticleCell,
+                  let indexPath = collectionView.indexPath(for: cell),
+                  let article = dataSource.itemIdentifier(for: indexPath) else { continue }
+            let shouldEnhance = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
+            articleCell.setDarkModeEnhance(shouldEnhance)
+        }
+    }
+
     // MARK: - Layouts
     
     private func createLayout(for mode: ArticleLayoutMode) -> UICollectionViewLayout {
@@ -602,11 +614,18 @@ class ArticlesViewController: UIViewController {
 extension ArticlesViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard let articleCell = cell as? ArticleCell else { return }
+
+        // Apply per-dict dark mode enhancement to cells scrolling into view.
+        if let article = dataSource.itemIdentifier(for: indexPath) {
+            let shouldEnhance = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
+            articleCell.setDarkModeEnhance(shouldEnhance)
+        }
+
         // Apply pending JS highlight keyword to cells scrolling into view.
         // The keyword is stored by highlightKeywordInAllCells() and applied
         // here so off-screen cells get highlighted when they become visible.
-        if #available(iOS 16, *), let keyword = currentHighlightKeyword,
-           let articleCell = cell as? ArticleCell {
+        if #available(iOS 16, *), let keyword = currentHighlightKeyword {
             articleCell.highlightKeyword(keyword)
         }
     }

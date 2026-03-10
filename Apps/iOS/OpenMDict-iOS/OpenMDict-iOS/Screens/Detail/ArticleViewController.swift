@@ -313,6 +313,10 @@ class ArticleViewController: UIViewController {
         pages.append(pageView)
         pageLeadingConstraints.append(leadingConstraint)
 
+        // Apply per-dict dark mode enhancement.
+        let shouldEnhance = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
+        pageView.setDarkModeEnhance(shouldEnhance)
+
         loadContent(for: article, in: pageView)
 
         // Native pending overlay while dictionary loads
@@ -527,6 +531,15 @@ class ArticleViewController: UIViewController {
         currentZoomLevel = level
         for page in pages {
             page.setZoomLevel(level)
+        }
+    }
+
+    /// Re-apply per-dict dark mode enhancement to all pages.
+    /// Called when DictMetadataService revision changes (e.g. user toggled enhanceDarkMode).
+    func refreshDarkModeEnhance() {
+        for (index, page) in pages.enumerated() where index < articles.count {
+            let shouldEnhance = DictMetadataService.shared.find(dictId: articles[index].dictId)?.enhanceDarkMode ?? false
+            page.setDarkModeEnhance(shouldEnhance)
         }
     }
 
