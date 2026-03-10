@@ -424,6 +424,17 @@ nonisolated enum L10n {
             NSLocalizedString("dictInfo.meta.caseSensitive", value: "Case Sensitive", comment: "Metadata label")
         }
 
+        // Display Settings
+        static var displaySettings: String {
+            NSLocalizedString("dictInfo.displaySettings", value: "Display", comment: "Section header for per-dict display preferences")
+        }
+        static var enhanceDarkMode: String {
+            NSLocalizedString("dictInfo.enhanceDarkMode", value: "Dark Mode Enhancement", comment: "Toggle label for per-dict dark mode enhancement")
+        }
+        static var enhanceDarkModeDescription: String {
+            NSLocalizedString("dictInfo.enhanceDarkModeDescription", value: "Improve readability if this dictionary has custom styles.", comment: "Subtitle explaining the dark mode enhancement toggle")
+        }
+
         // Alerts
         static var importQuestion: String {
             NSLocalizedString("dictInfo.importQuestion", value: "Import Dictionary?", comment: "Alert title to confirm import")
@@ -800,6 +811,7 @@ nonisolated enum L10n {
         static var importingDictionary: String {
             NSLocalizedString("detail.importingDictionary", value: "Importing dictionary\u{2026}", comment: "Loading modal text during dict import")
         }
+
     }
 
     // MARK: - Group Info (additional nav titles)

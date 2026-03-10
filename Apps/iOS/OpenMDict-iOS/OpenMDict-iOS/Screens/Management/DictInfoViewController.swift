@@ -126,7 +126,7 @@ class DictInfoViewController: UIViewController {
         case advancedMetadata // Engine, Format, Encoding, flags
         case description      // Description (standalone, bottom of page)
         case dangerZone       // Delete button (edit mode only)
-        
+
         var title: String? {
             switch self {
             case .status: return nil
@@ -169,7 +169,7 @@ class DictInfoViewController: UIViewController {
         case encoding(String)
         case isEncrypted(Bool)
         case isCaseSensitive(Bool)
-        
+
         // Danger Zone
         case deleteButton
     }
@@ -616,7 +616,7 @@ class DictInfoViewController: UIViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("lock.shield", L10n.DictInfo.metaEncrypted, value))
             case .isCaseSensitive(let value):
                 return collectionView.dequeueConfiguredReusableCell(using: booleanReg, for: indexPath, item: ("textformat.abc", L10n.DictInfo.metaCaseSensitive, value))
-                
+
             // Danger Zone
             case .deleteButton:
                 return collectionView.dequeueConfiguredReusableCell(using: deleteReg, for: indexPath, item: ())
@@ -812,7 +812,7 @@ class DictInfoViewController: UIViewController {
             }
             
             snapshot.appendItems(basicItems, toSection: .basicMetadata)
-            
+
             // SECTION: Advanced Metadata
             snapshot.appendSections([.advancedMetadata])
             snapshot.appendItems([
@@ -822,13 +822,13 @@ class DictInfoViewController: UIViewController {
                 .isEncrypted(metadata.isEncrypted),
                 .isCaseSensitive(metadata.isCaseSensitive)
             ], toSection: .advancedMetadata)
-            
+
             // SECTION: Description (standalone, bottom)
             if !descHTML.isEmpty {
                 snapshot.appendSections([.description])
                 snapshot.appendItems([.description(descHTML)], toSection: .description)
             }
-            
+
         } else {
             // No file selected - show file selection button
             snapshot.appendSections([.selectFile])
@@ -862,33 +862,33 @@ class DictInfoViewController: UIViewController {
             
         } else {
             // VIEWING MODE: Show read-only label, manage resources, and all metadata
-            
+
             // SECTION: Manage Resources (compact mode only)
             if isSplitViewCollapsed {
                 snapshot.appendSections([.manageResources])
                 snapshot.appendItems([.manageResourcesButton], toSection: .manageResources)
             }
-            
+
             // SECTION: Display Name (read-only)
             snapshot.appendSections([.displayName])
             snapshot.appendItems([.displayNameLabel(current: displayName)], toSection: .displayName)
-            
+
             // SECTION: Basic Metadata (only show if metadata loaded)
             if let metadata = dict.metadata {
                 snapshot.appendSections([.basicMetadata])
                 let descHTML = MDictDescriptionParser.cleanHTMLForDisplay(metadata.description)
-                
+
                 var basicItems: [Item] = [.title(dict.displayTitle)]
-                
+
                 if let date = Self.parseCreationDate(metadata.creationDate) {
                     basicItems.append(.date(title: L10n.DictInfo.metaDateCreated, icon: "calendar", date: date))
                 }
-                
+
                 // Date Imported (from manifest, only for existing dictionaries)
                 if let importedDate = DictionaryService.shared.importedDate(dictId) {
                     basicItems.append(.date(title: L10n.DictInfo.metaDateImported, icon: "square.and.arrow.down", date: importedDate))
                 }
-                
+
                 if let count = metadata.entryCount, count > 0 {
                     basicItems.append(.entryCount(count))
                 }
@@ -912,7 +912,7 @@ class DictInfoViewController: UIViewController {
                     .isEncrypted(metadata.isEncrypted),
                     .isCaseSensitive(metadata.isCaseSensitive)
                 ], toSection: .advancedMetadata)
-                
+
                 // SECTION: Description (standalone, bottom)
                 if !descHTML.isEmpty {
                     snapshot.appendSections([.description])
@@ -1328,6 +1328,7 @@ extension DictInfoViewController: UICollectionViewDelegate {
             break
         }
     }
+
 }
 
 // MARK: - UITextViewDelegate

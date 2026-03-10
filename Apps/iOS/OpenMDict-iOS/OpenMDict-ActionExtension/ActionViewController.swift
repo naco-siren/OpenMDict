@@ -129,6 +129,7 @@ class ActionViewController: UIViewController {
         configureLoadingUI()
         applyAppearance()
         configureAudioSession()
+
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -1020,10 +1021,8 @@ class ActionViewController: UIViewController {
             height: sv.bounds.height
         )
 
-        // Set zoom level before loading content (ArticlePageView auto-applies on didFinish)
-        if !zoom.isDefault {
-            pageView.setZoomLevel(zoom.current)
-        }
+        // Apply display settings before loading content (ArticlePageView auto-applies on didFinish)
+        if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
 
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html,
@@ -1075,7 +1074,7 @@ class ActionViewController: UIViewController {
         // 5. Keep current view stable: shift contentOffset right by one page
         sv.contentOffset.x += pageWidth
 
-        // 6. Zoom + render
+        // 6. Display settings + render
         if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html, dictId: result.dictId,

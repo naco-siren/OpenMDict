@@ -15,28 +15,35 @@ class DictResourceEditorViewController: UIViewController {
     // MARK: - Types
     
     nonisolated enum Section: Int, CaseIterable {
+        case displaySettings  // Per-dict display preferences (editing mode only)
         case mdx, mdd, css, js
-        
+
+        /// Resource-only sections (excludes displaySettings).
+        static let resourceSections: [Section] = [.mdx, .mdd, .css, .js]
+
         var title: String {
             switch self {
+            case .displaySettings: return L10n.DictInfo.displaySettings
             case .mdx: return L10n.ResourceEditor.sectionMdx
             case .mdd: return L10n.ResourceEditor.sectionMdd
             case .css: return L10n.ResourceEditor.sectionCss
             case .js: return L10n.ResourceEditor.sectionJs
             }
         }
-        
+
         var resourceType: ResourceFile.ResourceType {
             switch self {
+            case .displaySettings: return .mdx  // Unused placeholder
             case .mdx: return .mdx
             case .mdd: return .mdd
             case .css: return .css
             case .js: return .js
             }
         }
-        
+
         var allowedUTTypes: [UTType] {
             switch self {
+            case .displaySettings: return []
             case .mdx: return []  // Not editable
             case .mdd: return [AppIdentifiers.ResourceType.mdd]
             case .css: return [AppIdentifiers.ResourceType.css]
@@ -50,6 +57,7 @@ class DictResourceEditorViewController: UIViewController {
         case addButton(Section)
         case emptyPlaceholder(Section)
         case pendingFile(PendingFile)  // For importing mode
+        case enhanceDarkMode(Bool)     // Display settings toggle
     }
     
     enum Mode: Equatable {
@@ -226,18 +234,38 @@ class DictResourceEditorViewController: UIViewController {
             cell.accessories = []
         }
         
+        // Enhance dark mode toggle cell (display settings)
+        let enhanceDarkModeReg = UICollectionView.CellRegistration<UICollectionViewListCell, Bool> {
+            [weak self] cell, indexPath, isOn in
+            var content = UIListContentConfiguration.subtitleCell()
+            content.text = L10n.DictInfo.enhanceDarkMode
+            content.secondaryText = L10n.DictInfo.enhanceDarkModeDescription
+            content.image = UIImage(systemName: "moon.circle")
+            content.imageProperties.tintColor = .secondaryLabel
+            cell.contentConfiguration = content
+
+            let toggle = UISwitch()
+            toggle.isOn = isOn
+            toggle.addAction(UIAction { [weak self] action in
+                guard let self, let sw = action.sender as? UISwitch else { return }
+                self.handleEnhanceDarkModeToggle(sw.isOn)
+            }, for: .valueChanged)
+            cell.accessories = [.customView(configuration: .init(customView: toggle, placement: .trailing()))]
+        }
+
         // Pending file cell (for importing mode) - uses outlined icons to indicate "not yet imported"
         let pendingFileRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, PendingFile> {
-            cell, indexPath, file in
-            
+            [weak self] cell, indexPath, file in
+
             var content = cell.defaultContentConfiguration()
             content.text = file.fileName
             content.secondaryText = ByteCountFormatter.string(fromByteCount: file.fileSize, countStyle: .file)
-            
+
             // Icon based on section - use OUTLINED variants (not .fill) for pending files
-            let section = Section(rawValue: indexPath.section) ?? .mdx
+            let section = self?.dataSource.sectionIdentifier(for: indexPath.section) ?? .mdx
             let iconName: String
             switch section {
+            case .displaySettings: iconName = "doc"  // Should never appear
             case .mdx: iconName = "doc"              // outlined, vs "doc.fill" for stored
             case .mdd: iconName = "archivebox"       // outlined
             case .css: iconName = "paintbrush"       // outlined
@@ -261,8 +289,8 @@ class DictResourceEditorViewController: UIViewController {
         // Header registration
         let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
-        ) { headerView, elementKind, indexPath in
-            guard let section = Section(rawValue: indexPath.section) else { return }
+        ) { [weak self] headerView, elementKind, indexPath in
+            guard let section = self?.dataSource.sectionIdentifier(for: indexPath.section) else { return }
             
             var content = headerView.defaultContentConfiguration()
             content.text = section.title
@@ -288,6 +316,10 @@ class DictResourceEditorViewController: UIViewController {
             case .pendingFile(let file):
                 return collectionView.dequeueConfiguredReusableCell(
                     using: pendingFileRegistration, for: indexPath, item: file
+                )
+            case .enhanceDarkMode(let value):
+                return collectionView.dequeueConfiguredReusableCell(
+                    using: enhanceDarkModeReg, for: indexPath, item: value
                 )
             }
         }
@@ -357,9 +389,17 @@ class DictResourceEditorViewController: UIViewController {
     
     private func applySnapshot(animated: Bool = false) {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-        snapshot.appendSections(Section.allCases)
-        
-        for section in Section.allCases {
+
+        // Display Settings section (editing mode only, before resource sections)
+        if case .editing(let dictId) = mode,
+           let dictMeta = DictMetadataService.shared.find(dictId: dictId) {
+            snapshot.appendSections([.displaySettings])
+            snapshot.appendItems([.enhanceDarkMode(dictMeta.enhanceDarkMode)], toSection: .displaySettings)
+        }
+
+        snapshot.appendSections(Section.resourceSections)
+
+        for section in Section.resourceSections {
             let sectionResources = resources.filter { $0.type == section.resourceType }
             
             if sectionResources.isEmpty && section != .mdx {
@@ -387,8 +427,8 @@ class DictResourceEditorViewController: UIViewController {
         debugLog("📋 applyImportingSnapshot: mdxPendingFile=\(session.mdxPendingFile?.fileName ?? "nil"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count)")
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-        snapshot.appendSections(Section.allCases)
-        
+        snapshot.appendSections(Section.resourceSections)
+
         // MDX section - show pending MDX if available
         if let mdxFile = session.mdxPendingFile {
             snapshot.appendItems([.pendingFile(mdxFile)], toSection: .mdx)
@@ -517,7 +557,7 @@ class DictResourceEditorViewController: UIViewController {
             Task {
                 do {
                     switch section {
-                    case .mdx:
+                    case .displaySettings, .mdx:
                         break  // Not addable
                     case .mdd:
                         _ = try await DictionaryService.shared.addMDD(to: dictId, from: url)
@@ -560,7 +600,7 @@ class DictResourceEditorViewController: UIViewController {
             // Add to session (PendingFile.init will capture bookmark while scope is active)
             let session = DictionaryService.shared.importSession
             switch section {
-            case .mdx:
+            case .displaySettings, .mdx:
                 break  // Not addable (MDX is set via DictInfoVC)
             case .mdd:
                 session.addMDD(url, fileSize: fileSize)
@@ -623,9 +663,16 @@ extension DictResourceEditorViewController: UICollectionViewDelegate {
         switch item {
         case .addButton(let section):
             handleAddButton(for: section)
-        case .resourceFile, .emptyPlaceholder, .pendingFile:
+        case .resourceFile, .emptyPlaceholder, .pendingFile, .enhanceDarkMode:
             break
         }
+    }
+
+    // MARK: - Display Settings
+
+    private func handleEnhanceDarkModeToggle(_ isOn: Bool) {
+        guard case .editing(let dictId) = mode else { return }
+        DictMetadataService.shared.updateEnhanceDarkMode(dictId: dictId, enhance: isOn)
     }
 }
 
