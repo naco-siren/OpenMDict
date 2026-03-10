@@ -94,6 +94,7 @@ class ArticlePageView: UIView {
     let titleLabel = UILabel()
     let subtitleLabel = UILabel()
     private var lookupCountLabel: UILabel?
+    private var infoRowView: UIView?
     private(set) var webView: WKWebView!
 
     // Trailing toolbar buttons (optional)
@@ -151,20 +152,20 @@ class ArticlePageView: UIView {
         subtitleLabel.font = configuration.subtitleFont
         subtitleLabel.textColor = .secondaryLabel
 
-        var titleStackViews: [UIView] = [titleLabel, subtitleLabel]
+        let titleStackViews: [UIView] = [titleLabel, subtitleLabel]
 
+        // Lookup count label is created here but added to a separate info row below
         if features.contains(.lookupCount) {
             let lbl = UILabel()
             lbl.translatesAutoresizingMaskIntoConstraints = false
             lbl.font = .italicSystemFont(ofSize: 11)
             lbl.isHidden = true
             lookupCountLabel = lbl
-            titleStackViews.append(lbl)
         }
 
         let titleStack = UIStackView(arrangedSubviews: titleStackViews)
         titleStack.axis = .vertical
-        titleStack.spacing = configuration.headerHeight >= 64 ? 3 : 1
+        titleStack.spacing = 3
         titleStack.translatesAutoresizingMaskIntoConstraints = false
 
         // Trailing toolbar (optional)
@@ -249,7 +250,27 @@ class ArticlePageView: UIView {
         headerStack.layoutMargins = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
         headerView.addSubview(headerStack)
 
+        // Info row (lookup count) — thin strip below header, hidden by default
+        if features.contains(.lookupCount), let lbl = lookupCountLabel {
+            let infoRow = UIView()
+            infoRow.translatesAutoresizingMaskIntoConstraints = false
+            infoRow.backgroundColor = .quaternarySystemFill
+            infoRow.isHidden = true
+            containerView.addSubview(infoRow)
+
+            infoRow.addSubview(lbl)
+            NSLayoutConstraint.activate([
+                lbl.leadingAnchor.constraint(equalTo: infoRow.leadingAnchor, constant: 60),
+                lbl.trailingAnchor.constraint(lessThanOrEqualTo: infoRow.trailingAnchor, constant: -16),
+                lbl.centerYAnchor.constraint(equalTo: infoRow.centerYAnchor),
+            ])
+
+            infoRowView = infoRow
+        }
+
         // Constraints
+        let webViewTopAnchor = infoRowView?.bottomAnchor ?? headerView.bottomAnchor
+
         NSLayoutConstraint.activate([
             // Self → containerView
             containerView.topAnchor.constraint(equalTo: self.topAnchor),
@@ -270,11 +291,21 @@ class ArticlePageView: UIView {
             headerStack.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
 
             // WebView
-            webView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            webView.topAnchor.constraint(equalTo: webViewTopAnchor),
             webView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
         ])
+
+        // Info row constraints (if present)
+        if let infoRow = infoRowView {
+            NSLayoutConstraint.activate([
+                infoRow.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+                infoRow.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+                infoRow.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+                infoRow.heightAnchor.constraint(equalToConstant: 22),
+            ])
+        }
     }
 
     // MARK: - Public: Configure
@@ -301,6 +332,7 @@ class ArticlePageView: UIView {
         pendingHighlightKeyword = nil
         updateBookmarkAppearance()
         lookupCountLabel?.isHidden = true
+        infoRowView?.isHidden = true
         removePendingOverlay()
     }
 
@@ -317,8 +349,10 @@ class ArticlePageView: UIView {
             label.text = L10n.Articles.lookupCount(count)
             label.textColor = lookupCountColor(for: count)
             label.isHidden = false
+            infoRowView?.isHidden = false
         } else {
             label.isHidden = true
+            infoRowView?.isHidden = true
         }
     }
 
@@ -636,11 +670,11 @@ extension ArticlePageView.Configuration {
         return .init(features: features, webViewConfiguration: webViewConfig)
     }
 
-    /// Regular collection view cells (ArticleCell) — 54pt header, rounded corners.
-    /// 54pt accommodates 3 lines (title 15pt + subtitle 12pt + lookup count 11pt).
+    /// Regular collection view cells (ArticleCell) — 46pt header, rounded corners.
+    /// 46pt accommodates 2 lines (title + subtitle). Lookup count is in a separate info row.
     static func regularCell(webViewConfig: WKWebViewConfiguration) -> Self {
         .init(features: .regularCell, webViewConfiguration: webViewConfig,
-              headerHeight: 54, cornerRadius: 12,
+              headerHeight: 46, cornerRadius: 12,
               titleFont: .systemFont(ofSize: 15, weight: .semibold),
               subtitleFont: .systemFont(ofSize: 12))
     }
