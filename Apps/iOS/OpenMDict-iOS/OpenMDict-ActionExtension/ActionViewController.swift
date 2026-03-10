@@ -145,6 +145,30 @@ class ActionViewController: UIViewController {
         }
     }
 
+    // MARK: - Trait Collection
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            reloadAllPages()
+        }
+    }
+
+    /// Re-render all article pages with the current traitCollection.
+    /// Called when appearance mode changes so that static CSS colors
+    /// (baked by ArticleHTMLRenderer at render time) are refreshed.
+    private func reloadAllPages() {
+        for (index, page) in pages.enumerated() where index < results.count {
+            let result = results[index]
+            let renderedHTML = ArticleHTMLRenderer.renderArticle(
+                html: result.html,
+                dictId: result.dictId,
+                traitCollection: traitCollection
+            )
+            page.loadHTMLContent(renderedHTML)
+        }
+    }
+
     // MARK: - Keyboard Shortcuts
 
     override var keyCommands: [UIKeyCommand]? {
@@ -1055,6 +1079,9 @@ class ActionViewController: UIViewController {
 
         // Apply display settings before loading content (ArticlePageView auto-applies on didFinish)
         if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
+        if let meta = DictMetadataService.shared.find(dictId: result.dictId), meta.enhanceDarkMode {
+            pageView.setDarkModeEnhance(true)
+        }
 
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html,
@@ -1108,6 +1135,9 @@ class ActionViewController: UIViewController {
 
         // 6. Display settings + render
         if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
+        if let meta = DictMetadataService.shared.find(dictId: result.dictId), meta.enhanceDarkMode {
+            pageView.setDarkModeEnhance(true)
+        }
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html, dictId: result.dictId,
             traitCollection: traitCollection

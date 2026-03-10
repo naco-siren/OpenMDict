@@ -226,6 +226,7 @@
 				Screens/Detail/ArticlePlaceholderView.swift,
 				Services/BookmarkService.swift,
 				Services/DateGroupingHelper.swift,
+				Services/DictMetadataService.swift,
 				Services/LookupCountService.swift,
 				Services/LookupHistoryService.swift,
 				"Services/Persistence/BookmarkRecord+CoreDataClass.swift",
