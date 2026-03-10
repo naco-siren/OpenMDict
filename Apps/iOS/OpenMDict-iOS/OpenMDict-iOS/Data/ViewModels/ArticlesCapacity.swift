@@ -47,4 +47,16 @@ extension UserDefaults {
         get { ArticlesCapacity(rawValue: integer(forKey: Self.articlesCapacityKey)) ?? .normal }
         set { set(newValue.rawValue, forKey: Self.articlesCapacityKey) }
     }
+
+    private static let showEnhanceDarkModeKey = "showEnhanceDarkMode"
+
+    /// Whether to show the per-dict dark mode enhance toggle in article headers.
+    /// Defaults to `true` when the key is absent (fresh install before register).
+    var showEnhanceDarkMode: Bool {
+        get {
+            if object(forKey: Self.showEnhanceDarkModeKey) == nil { return true }
+            return bool(forKey: Self.showEnhanceDarkModeKey)
+        }
+        set { set(newValue, forKey: Self.showEnhanceDarkModeKey) }
+    }
 }

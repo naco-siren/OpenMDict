@@ -36,6 +36,16 @@
 		</dict>
 		<dict>
 			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>APPEARANCE_SHOW_ENHANCE_DARK_MODE</string>
+			<key>Key</key>
+			<string>showEnhanceDarkMode</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
 			<string>SEARCH_GROUP</string>

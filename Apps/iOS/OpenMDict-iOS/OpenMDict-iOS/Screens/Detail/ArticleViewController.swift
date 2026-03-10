@@ -365,6 +365,14 @@ class ArticleViewController: UIViewController {
                 self.delegate?.articleViewController(self, didRequestJumpSearch: text, inDict: dictId)
             }
         }
+        pageView.onEnhanceDarkModeTapped = { [weak self] isCurrentlyEnhanced in
+            guard let self else { return }
+            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+               pageIndex < self.articles.count {
+                let dictId = self.articles[pageIndex].dictId
+                DictMetadataService.shared.updateEnhanceDarkMode(dictId: dictId, enhance: !isCurrentlyEnhanced)
+            }
+        }
         pageView.onCloseTapped = { [weak self] in
             guard let self else { return }
             if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
@@ -530,6 +538,14 @@ class ArticleViewController: UIViewController {
         for (index, page) in pages.enumerated() where index < articles.count {
             let shouldEnhance = DictMetadataService.shared.find(dictId: articles[index].dictId)?.enhanceDarkMode ?? false
             page.setDarkModeEnhance(shouldEnhance)
+        }
+    }
+
+    /// Re-evaluate visibility of the enhance dark mode button on all pages.
+    /// Called when the Settings toggle changes.
+    func refreshEnhanceDarkModeVisibility() {
+        for page in pages {
+            page.updateEnhanceDarkModeButtonVisibility()
         }
     }
 

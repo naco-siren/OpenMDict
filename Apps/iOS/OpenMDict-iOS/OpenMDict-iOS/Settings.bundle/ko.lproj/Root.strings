@@ -5,6 +5,7 @@
 "APPEARANCE_LIGHT" = "라이트";
 "APPEARANCE_SYSTEM" = "시스템";
 "APPEARANCE_DARK" = "다크";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "다크 모드에서 강화 옵션 표시";
 "SEARCH_GROUP" = "검색";
 "SEARCH_RESULT_VOLUME" = "검색 결과 수";
 "SEARCH_RESULT_A_FEW" = "매우 적게";

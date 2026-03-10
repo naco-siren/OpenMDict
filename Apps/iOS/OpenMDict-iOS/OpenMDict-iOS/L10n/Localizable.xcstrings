@@ -6693,7 +6693,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dark Mode Enhancement"
+            "value" : "Enhance Dark Mode"
           }
         },
         "es" : {
@@ -6747,13 +6747,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "深色模式增强"
+            "value" : "增强深色模式"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "深色模式增強"
+            "value" : "增強深色模式"
           }
         }
       }

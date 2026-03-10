@@ -5,6 +5,7 @@
 "APPEARANCE_LIGHT" = "Світла";
 "APPEARANCE_SYSTEM" = "Системна";
 "APPEARANCE_DARK" = "Темна";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Опція покращення у темному режимі";
 "SEARCH_GROUP" = "Пошук";
 "SEARCH_RESULT_VOLUME" = "Обсяг результатів";
 "SEARCH_RESULT_A_FEW" = "Дуже мало";

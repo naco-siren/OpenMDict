@@ -5,6 +5,7 @@
 "APPEARANCE_LIGHT" = "Claro";
 "APPEARANCE_SYSTEM" = "Sistema";
 "APPEARANCE_DARK" = "Oscuro";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Opción de mejora en modo oscuro";
 "SEARCH_GROUP" = "Búsqueda";
 "SEARCH_RESULT_VOLUME" = "Resultados de búsqueda";
 "SEARCH_RESULT_A_FEW" = "Muy pocos";

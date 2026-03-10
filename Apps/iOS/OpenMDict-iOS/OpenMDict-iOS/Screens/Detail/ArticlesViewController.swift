@@ -243,6 +243,10 @@ class ArticlesViewController: UIViewController {
                 guard let self else { return }
                 self.delegate?.articlesViewController(self, didRequestJumpSearch: text, inDict: article.dictId)
             }
+            cell.pageView.setGridLayout(self?.layoutMode == .grid)
+            cell.pageView.onEnhanceDarkModeTapped = { isCurrentlyEnhanced in
+                DictMetadataService.shared.updateEnhanceDarkMode(dictId: article.dictId, enhance: !isCurrentlyEnhanced)
+            }
         }
         
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, article in
@@ -405,8 +409,17 @@ class ArticlesViewController: UIViewController {
         }
     }
 
+    /// Re-evaluate visibility of the enhance dark mode button on all visible cells.
+    /// Called when the Settings toggle changes.
+    func refreshEnhanceDarkModeVisibility() {
+        for cell in collectionView.visibleCells {
+            guard let articleCell = cell as? ArticleCell else { continue }
+            articleCell.pageView.updateEnhanceDarkModeButtonVisibility()
+        }
+    }
+
     // MARK: - Layouts
-    
+
     private func createLayout(for mode: ArticleLayoutMode) -> UICollectionViewLayout {
         let configuration = UICollectionViewCompositionalLayoutConfiguration()
         
@@ -702,6 +715,13 @@ extension ArticlesViewController: UICollectionViewDelegate {
                 BookmarkCountService.shared.incrementAll(dictId: article.dictId)
             }
         })
+        if layoutMode != .grid, traitCollection.userInterfaceStyle == .dark, UserDefaults.shared.showEnhanceDarkMode {
+            let isEnhanced = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
+            let enhanceIcon = isEnhanced ? "moon.stars.fill" : "moon.stars"
+            actions.append(.init(title: L10n.DictInfo.enhanceDarkMode, image: UIImage(systemName: enhanceIcon), state: isEnhanced ? .on : .off) { _ in
+                DictMetadataService.shared.updateEnhanceDarkMode(dictId: article.dictId, enhance: !isEnhanced)
+            })
+        }
         if #available(iOS 16, *) {
             actions.append(.init(title: L10n.Articles.findInPage, image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
                 self?.pendingFindIndexPath = indexPath

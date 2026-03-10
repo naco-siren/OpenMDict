@@ -5,6 +5,7 @@
 "APPEARANCE_LIGHT" = "Hell";
 "APPEARANCE_SYSTEM" = "System";
 "APPEARANCE_DARK" = "Dunkel";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Verbesserungsoption im Dunkelmodus";
 "SEARCH_GROUP" = "Suche";
 "SEARCH_RESULT_VOLUME" = "Suchergebnisse";
 "SEARCH_RESULT_A_FEW" = "Sehr wenige";

@@ -1022,6 +1022,11 @@ class ActionViewController: UIViewController {
             self.playAudio(url: url, from: pageView)
         }
 
+        pageView.onEnhanceDarkModeTapped = { [weak pageView] isCurrentlyEnhanced in
+            let newValue = !isCurrentlyEnhanced
+            DictMetadataService.shared.updateEnhanceDarkMode(dictId: result.dictId, enhance: newValue)
+            pageView?.setDarkModeEnhance(newValue)
+        }
         pageView.onJumpSearch = { [weak self, weak pageView] text in
             guard let self, let pageView else { return }
             guard let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),

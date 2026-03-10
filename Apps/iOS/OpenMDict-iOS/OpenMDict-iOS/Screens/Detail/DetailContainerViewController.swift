@@ -236,9 +236,14 @@ class DetailContainerViewController: UIViewController {
         ) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                let newLimit = UserDefaults.standard.articlesCapacity.limit
                 // Bridge to shared (Action Extension reads shared)
                 UserDefaults.shared.articlesCapacity = UserDefaults.standard.articlesCapacity
+                UserDefaults.shared.showEnhanceDarkMode = UserDefaults.standard.showEnhanceDarkMode
+
+                self.articlesVC.refreshEnhanceDarkModeVisibility()
+                self.articleVC.refreshEnhanceDarkModeVisibility()
+
+                let newLimit = UserDefaults.standard.articlesCapacity.limit
                 guard newLimit != self.articlesCapacityLimit else { return }
                 self.articlesCapacityLimit = newLimit
                 self.enforceCapacity()

@@ -429,7 +429,7 @@ nonisolated enum L10n {
             NSLocalizedString("dictInfo.displaySettings", value: "Display", comment: "Section header for per-dict display preferences")
         }
         static var enhanceDarkMode: String {
-            NSLocalizedString("dictInfo.enhanceDarkMode", value: "Dark Mode Enhancement", comment: "Toggle label for per-dict dark mode enhancement")
+            NSLocalizedString("dictInfo.enhanceDarkMode", value: "Enhance Dark Mode", comment: "Toggle label for per-dict dark mode enhancement")
         }
         static var enhanceDarkModeDescription: String {
             NSLocalizedString("dictInfo.enhanceDarkModeDescription", value: "Improve readability if this dictionary has custom styles.", comment: "Subtitle explaining the dark mode enhancement toggle")

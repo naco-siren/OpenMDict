@@ -240,7 +240,7 @@ class DictResourceEditorViewController: UIViewController {
             var content = UIListContentConfiguration.subtitleCell()
             content.text = L10n.DictInfo.enhanceDarkMode
             content.secondaryText = L10n.DictInfo.enhanceDarkModeDescription
-            content.image = UIImage(systemName: "moon.circle")
+            content.image = UIImage(systemName: "moon.stars.fill")
             content.imageProperties.tintColor = .secondaryLabel
             cell.contentConfiguration = content
 

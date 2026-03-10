@@ -35,6 +35,7 @@ class ArticlePageView: UIView {
         static let findInPage       = Features(rawValue: 1 << 10) // Find button + WKFindInteraction (iOS 16+)
         static let newWindowButton  = Features(rawValue: 1 << 11) // Trailing "open in new scene" button
         static let closeButton      = Features(rawValue: 1 << 12) // Trailing close button
+        static let enhanceDarkMode  = Features(rawValue: 1 << 13) // Per-dict dark mode toggle
 
         // ── Special triggers (bits 16–23) ──
         static let dragInteraction  = Features(rawValue: 1 << 16) // UIDragInteraction on header
@@ -42,12 +43,14 @@ class ArticlePageView: UIView {
 
         // Presets
         static let compactPager:    Features = [.pendingOverlay, .bookmark, .lookupCount,
-                                                .findInPage, .closeButton,
+                                                .findInPage, .enhanceDarkMode, .closeButton,
                                                 .jumpSearch]
         static let regularCell:     Features = [.pendingOverlay, .bookmark, .lookupCount,
-                                                .findInPage, .newWindowButton, .closeButton,
+                                                .findInPage, .enhanceDarkMode,
+                                                .newWindowButton, .closeButton,
                                                 .dragInteraction, .jumpSearch]
-        static let actionExtension: Features = [.bookmark, .lookupCount, .jumpSearch]
+        static let actionExtension: Features = [.bookmark, .lookupCount,
+                                                .enhanceDarkMode, .jumpSearch]
     }
 
     // MARK: - Configuration
@@ -74,6 +77,7 @@ class ArticlePageView: UIView {
     var onFindTapped: (() -> Void)?                                      // .findInPage
     var onNewWindowTapped: (() -> Void)?                                 // .newWindowButton
     var onCloseTapped: (() -> Void)?                                     // .closeButton
+    var onEnhanceDarkModeTapped: ((_ isCurrentlyEnhanced: Bool) -> Void)? // .enhanceDarkMode
     var onDragItemRequested: (() -> UIDragItem?)?                        // .dragInteraction
     var onJumpSearch: ((_ selectedText: String) -> Void)?                // .jumpSearch
 
@@ -98,6 +102,7 @@ class ArticlePageView: UIView {
     private(set) var webView: WKWebView!
 
     // Trailing toolbar buttons (optional)
+    private var enhanceDarkModeButton: UIButton?
     private var findButton: UIButton?
     private var newWindowButton: UIButton?
     private var closeButton: UIButton?
@@ -107,6 +112,7 @@ class ArticlePageView: UIView {
     private let features: Features
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
     private var isDarkModeEnhanced: Bool = false
+    private var isGridLayout: Bool = false
     private static let pendingOverlayTag = 9876
     /// Uniform size for all header toolbar buttons (bookmark, find, new-window, close).
     private static let headerButtonSize: CGFloat = 44
@@ -170,6 +176,13 @@ class ArticlePageView: UIView {
 
         // Trailing toolbar (optional)
         var toolbarButtons: [UIView] = []
+
+        if features.contains(.enhanceDarkMode) {
+            let btn = Self.makeHeaderButton(systemName: "moon.stars")
+            btn.addTarget(self, action: #selector(enhanceDarkModeButtonTapped), for: .touchUpInside)
+            enhanceDarkModeButton = btn
+            toolbarButtons.append(btn)
+        }
 
         if features.contains(.findInPage) {
             if #available(iOS 16, *) {
@@ -327,10 +340,14 @@ class ArticlePageView: UIView {
         onCloseTapped = nil
         onDragItemRequested = nil
         onJumpSearch = nil
+        onEnhanceDarkModeTapped = nil
         isBookmarked = false
+        isDarkModeEnhanced = false
+        isGridLayout = false
         currentDictId = ""
         pendingHighlightKeyword = nil
         updateBookmarkAppearance()
+        updateEnhanceDarkModeButtonAppearance()
         lookupCountLabel?.isHidden = true
         infoRowView?.isHidden = true
         removePendingOverlay()
@@ -362,10 +379,17 @@ class ArticlePageView: UIView {
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
+    func setGridLayout(_ grid: Bool) {
+        isGridLayout = grid
+        updateEnhanceDarkModeButtonVisibility()
+    }
+
     func setDarkModeEnhance(_ enhance: Bool) {
         isDarkModeEnhanced = enhance
         webView.overrideUserInterfaceStyle = enhance ? .light : .unspecified
         applyDarkModeFilter()
+        updateEnhanceDarkModeButtonAppearance()
+        updateEnhanceDarkModeButtonVisibility()
     }
 
     /// Inject or remove CSS `filter: invert(1) hue-rotate(180deg)` on the HTML element.
@@ -396,9 +420,11 @@ class ArticlePageView: UIView {
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        if isDarkModeEnhanced,
-           traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            applyDarkModeFilter()
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            if isDarkModeEnhanced {
+                applyDarkModeFilter()
+            }
+            updateEnhanceDarkModeButtonVisibility()
         }
     }
 
@@ -542,6 +568,25 @@ class ArticlePageView: UIView {
 
     @objc private func closeButtonTapped() {
         onCloseTapped?()
+    }
+
+    @objc private func enhanceDarkModeButtonTapped() {
+        onEnhanceDarkModeTapped?(isDarkModeEnhanced)
+    }
+
+    private func updateEnhanceDarkModeButtonAppearance() {
+        guard let btn = enhanceDarkModeButton else { return }
+        var config = btn.configuration
+        let imageName = isDarkModeEnhanced ? "moon.stars.fill" : "moon.stars"
+        config?.image = UIImage(systemName: imageName)
+        config?.baseForegroundColor = isDarkModeEnhanced ? .systemYellow : .secondaryLabel
+        btn.configuration = config
+    }
+
+    func updateEnhanceDarkModeButtonVisibility() {
+        guard let btn = enhanceDarkModeButton else { return }
+        let isDark = traitCollection.userInterfaceStyle == .dark
+        btn.isHidden = isGridLayout || !isDark || !UserDefaults.shared.showEnhanceDarkMode
     }
 }
 
