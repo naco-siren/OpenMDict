@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "Дуже багато";
 "SEARCH_AUTO_FOCUS" = "Автофокус поля пошуку";
 
-"ARTICLES_GROUP" = "Статті";
-"ARTICLES_CAPACITY" = "Ємність";
+"ARTICLES_GROUP" = "Записи";
+"ARTICLES_CAPACITY" = "Макс. відкритих записів";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "Кількість переглядів у записі";
 "ARTICLES_FEWER" = "Менше";
 "ARTICLES_DEFAULT" = "За замовч.";
 "ARTICLES_MORE" = "Більше";

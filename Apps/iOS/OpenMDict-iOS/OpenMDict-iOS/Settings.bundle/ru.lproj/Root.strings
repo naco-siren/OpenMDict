@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "Очень много";
 "SEARCH_AUTO_FOCUS" = "Автофокус поля поиска";
 
-"ARTICLES_GROUP" = "Статьи";
-"ARTICLES_CAPACITY" = "Ёмкость статей";
+"ARTICLES_GROUP" = "Записи";
+"ARTICLES_CAPACITY" = "Макс. открытых записей";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "Число просмотров в записи";
 "ARTICLES_FEWER" = "Меньше";
 "ARTICLES_DEFAULT" = "По умолч.";
 "ARTICLES_MORE" = "Больше";

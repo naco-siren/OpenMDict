@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "Muchos";
 "SEARCH_AUTO_FOCUS" = "Enfocar campo de búsqueda";
 
-"ARTICLES_GROUP" = "Artículos";
-"ARTICLES_CAPACITY" = "Capacidad";
+"ARTICLES_GROUP" = "Entradas";
+"ARTICLES_CAPACITY" = "Máx. entradas abiertas";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "Consultas por entrada";
 "ARTICLES_FEWER" = "Menos";
 "ARTICLES_DEFAULT" = "Predeterm.";
 "ARTICLES_MORE" = "Más";

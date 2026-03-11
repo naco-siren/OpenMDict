@@ -114,6 +114,16 @@
 				<integer>2</integer>
 			</array>
 		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>ARTICLES_SHOW_LOOKUP_COUNT</string>
+			<key>Key</key>
+			<string>showLookupCount</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
 	</array>
 </dict>
 </plist>

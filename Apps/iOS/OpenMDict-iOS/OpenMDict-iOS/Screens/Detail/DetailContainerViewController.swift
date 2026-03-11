@@ -238,6 +238,7 @@ class DetailContainerViewController: UIViewController {
             Task { @MainActor in
                 // Bridge to shared (Action Extension reads shared)
                 UserDefaults.shared.articlesCapacity = UserDefaults.standard.articlesCapacity
+                UserDefaults.shared.showLookupCount = UserDefaults.standard.showLookupCount
                 UserDefaults.shared.showEnhanceDarkMode = UserDefaults.standard.showEnhanceDarkMode
 
                 self.articlesVC.refreshEnhanceDarkModeVisibility()

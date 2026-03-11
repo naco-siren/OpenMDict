@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "最大";
 "SEARCH_AUTO_FOCUS" = "検索入力欄を自動フォーカス";
 
-"ARTICLES_GROUP" = "記事";
-"ARTICLES_CAPACITY" = "記事の容量";
+"ARTICLES_GROUP" = "項目";
+"ARTICLES_CAPACITY" = "同時に開ける項目の上限";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "項目ごとに検索回数を表示";
 "ARTICLES_FEWER" = "少なめ";
 "ARTICLES_DEFAULT" = "標準";
 "ARTICLES_MORE" = "多め";

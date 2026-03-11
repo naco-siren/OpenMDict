@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "매우 많이";
 "SEARCH_AUTO_FOCUS" = "검색 입력란 자동 포커스";
 
-"ARTICLES_GROUP" = "기사";
-"ARTICLES_CAPACITY" = "기사 용량";
+"ARTICLES_GROUP" = "항목";
+"ARTICLES_CAPACITY" = "최대 열린 항목 수";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "항목별 조회 횟수 표시";
 "ARTICLES_FEWER" = "적게";
 "ARTICLES_DEFAULT" = "기본값";
 "ARTICLES_MORE" = "많이";

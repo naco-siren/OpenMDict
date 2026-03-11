@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "Sehr viele";
 "SEARCH_AUTO_FOCUS" = "Suchfeld autofokussieren";
 
-"ARTICLES_GROUP" = "Artikel";
-"ARTICLES_CAPACITY" = "Artikelkapazität";
+"ARTICLES_GROUP" = "Einträge";
+"ARTICLES_CAPACITY" = "Max. offene Einträge";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "Nachschlageanzahl pro Eintrag";
 "ARTICLES_FEWER" = "Weniger";
 "ARTICLES_DEFAULT" = "Standard";
 "ARTICLES_MORE" = "Mehr";

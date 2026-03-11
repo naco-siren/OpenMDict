@@ -362,7 +362,7 @@ class ArticlePageView: UIView {
 
     func setLookupCount(_ count: Int) {
         guard let label = lookupCountLabel else { return }
-        if count > 0 {
+        if count > 0, UserDefaults.shared.showLookupCount {
             label.text = L10n.Articles.lookupCount(count)
             label.textColor = lookupCountColor(for: count)
             label.isHidden = false

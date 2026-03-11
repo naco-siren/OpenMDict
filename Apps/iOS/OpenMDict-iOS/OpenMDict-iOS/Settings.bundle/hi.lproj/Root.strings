@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "बहुत अधिक";
 "SEARCH_AUTO_FOCUS" = "खोज फ़ील्ड ऑटो-फ़ोकस";
 
-"ARTICLES_GROUP" = "लेख";
-"ARTICLES_CAPACITY" = "लेख क्षमता";
+"ARTICLES_GROUP" = "प्रविष्टियाँ";
+"ARTICLES_CAPACITY" = "अधिकतम खुली प्रविष्टियाँ";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "प्रविष्टि में खोज संख्या दिखाएं";
 "ARTICLES_FEWER" = "कम";
 "ARTICLES_DEFAULT" = "डिफ़ॉल्ट";
 "ARTICLES_MORE" = "अधिक";

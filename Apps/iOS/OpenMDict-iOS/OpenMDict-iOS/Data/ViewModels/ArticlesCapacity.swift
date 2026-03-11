@@ -48,6 +48,18 @@ extension UserDefaults {
         set { set(newValue.rawValue, forKey: Self.articlesCapacityKey) }
     }
 
+    private static let showLookupCountKey = "showLookupCount"
+
+    /// Whether to display the "looked up N time(s)" info row below article headers.
+    /// Defaults to `true` when the key is absent (fresh install before register).
+    var showLookupCount: Bool {
+        get {
+            if object(forKey: Self.showLookupCountKey) == nil { return true }
+            return bool(forKey: Self.showLookupCountKey)
+        }
+        set { set(newValue, forKey: Self.showLookupCountKey) }
+    }
+
     private static let showEnhanceDarkModeKey = "showEnhanceDarkMode"
 
     /// Whether to show the per-dict dark mode enhance toggle in article headers.

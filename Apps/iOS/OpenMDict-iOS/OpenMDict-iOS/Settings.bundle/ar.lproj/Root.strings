@@ -15,8 +15,9 @@
 "SEARCH_RESULT_A_LOT" = "كثير جدًا";
 "SEARCH_AUTO_FOCUS" = "التركيز التلقائي على حقل البحث";
 
-"ARTICLES_GROUP" = "المقالات";
-"ARTICLES_CAPACITY" = "سعة المقالات";
+"ARTICLES_GROUP" = "المدخلات";
+"ARTICLES_CAPACITY" = "الحد الأقصى للمدخلات المفتوحة";
+"ARTICLES_SHOW_LOOKUP_COUNT" = "عدد مرات البحث لكل مدخل";
 "ARTICLES_FEWER" = "أقل";
 "ARTICLES_DEFAULT" = "الافتراضي";
 "ARTICLES_MORE" = "أكثر";

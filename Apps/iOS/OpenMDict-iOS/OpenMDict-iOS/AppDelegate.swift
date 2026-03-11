@@ -19,14 +19,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "searchResultVolume": 2, // .normal (Default)
             "articlesCapacity": 1,  // .normal (Default)
             "searchAutoFocus": true,
+            "showLookupCount": true,
             "showEnhanceDarkMode": true,
         ]
         UserDefaults.standard.register(defaults: defaults)
         UserDefaults.shared.register(defaults: defaults)
 
-        // Bridge articles capacity from standard (Settings.bundle) to shared (Action Extension).
-        // Settings.bundle writes to standard; Extension reads from shared.
+        // Bridge Settings.bundle values from standard to shared (Action Extension reads shared).
         UserDefaults.shared.articlesCapacity = UserDefaults.standard.articlesCapacity
+        UserDefaults.shared.showLookupCount = UserDefaults.standard.showLookupCount
         UserDefaults.shared.showEnhanceDarkMode = UserDefaults.standard.showEnhanceDarkMode
 
         // Merge appearance mode between standard (Settings.bundle) and shared (Extension).

@@ -1967,13 +1967,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "انقر على أيقونة الإشارة المرجعية في أي مقالة لحفظها هنا"
+            "value" : "انقر على أيقونة الإشارة المرجعية في أي مدخل لحفظه هنا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippe auf das Lesezeichen-Symbol bei einem beliebigen Artikel, um ihn hier zu speichern"
+            "value" : "Tippe auf das Lesezeichen-Symbol bei einem beliebigen Eintrag, um ihn hier zu speichern"
           }
         },
         "en" : {
@@ -1985,25 +1985,25 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toca el icono de marcador en cualquier artículo para guardarlo aquí"
+            "value" : "Toca el icono de marcador en cualquier entrada para guardarla aquí"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Touchez l'icône de signet sur n'importe quel article pour l'enregistrer ici"
+            "value" : "Touchez l'icône de signet sur n'importe quelle entrée pour l'enregistrer ici"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "किसी भी लेख पर बुकमार्क आइकन टैप करके यहाँ सहेजें"
+            "value" : "किसी भी प्रविष्टि पर बुकमार्क आइकन टैप करके यहाँ सहेजें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "任意の記事のブックマークアイコンをタップしてここに保存できます"
+            "value" : "任意の項目のブックマークアイコンをタップしてここに保存できます"
           }
         },
         "ko" : {
@@ -2015,19 +2015,19 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toque no ícone de favorito em qualquer artigo para salvá-lo aqui"
+            "value" : "Toque no ícone de favorito em qualquer verbete para salvá-lo aqui"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Нажмите значок закладки на любой статье, чтобы сохранить её здесь"
+            "value" : "Нажмите значок закладки на любой записи, чтобы сохранить её здесь"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Натисніть значок закладки на будь-якій статті, щоб зберегти її тут"
+            "value" : "Натисніть значок закладки на будь-якому записі, щоб зберегти його тут"
           }
         },
         "zh-Hans" : {
@@ -15508,13 +15508,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إغلاق المقالة"
+            "value" : "إغلاق المدخل"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Artikel schließen"
+            "value" : "Eintrag schließen"
           }
         },
         "en" : {
@@ -15526,25 +15526,25 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cerrar artículo"
+            "value" : "Cerrar entrada"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fermer l'article"
+            "value" : "Fermer l'entrée"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लेख बंद करें"
+            "value" : "प्रविष्टि बंद करें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "記事を閉じる"
+            "value" : "項目を閉じる"
           }
         },
         "ko" : {
@@ -15556,19 +15556,19 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fechar artigo"
+            "value" : "Fechar verbete"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Закрыть статью"
+            "value" : "Закрыть запись"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Закрити статтю"
+            "value" : "Закрити запис"
           }
         },
         "zh-Hans" : {
