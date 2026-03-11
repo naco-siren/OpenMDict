@@ -45,12 +45,18 @@ class MainSplitViewController: UISplitViewController {
     private(set) lazy var compactTabBarController = CompactTabBarController()
     
     // MARK: - State
-    
+
     private(set) var currentMode: AppMode = .lookup
     private let searchSession = DictionaryService.shared.createLookupSession()
     private var initialGroupId: String = ""
     private var currentGroup: MDicts?
     private var currentDict: MDict?
+
+    /// Tracks which layout currently owns the articles (single source of truth).
+    /// Prevents stale `viewDidAppear` re-triggers from overwriting compact articles
+    /// with the regular detailContainer's stale copy.
+    private enum ActiveLayout { case regular, compact }
+    private var activeLayout: ActiveLayout = .regular
 
     /// Tracks which search bar should receive keyboard input.
     private enum KeyboardTarget { case none, wordList, detailSearch }
@@ -117,24 +123,49 @@ class MainSplitViewController: UISplitViewController {
         // Check for first-install setup (before article restoration)
         presentSetupIfNeeded()
 
-        if !detailContainer.allArticles.isEmpty {
-            if isCollapsed {
-                // iPhone / compact: articles were preloaded into the regular detailContainer
-                // during init(), but compact tab bar is actually displayed. Transfer them now
-                // that trait collection has settled.
-                transferStateToCompact()
-                debugLog("📱 viewDidAppear: transferred \(detailContainer.allArticles.count) preloaded articles to compact")
-            } else {
-                debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
-                show(.secondary)
+        if isCollapsed {
+            // iPhone / compact: articles were preloaded into the regular detailContainer
+            // during init(), but compact tab bar is actually displayed.  Transfer once,
+            // then mark activeLayout = .compact so subsequent viewDidAppear calls
+            // (e.g. after modal dismiss) don't overwrite compact's live articles
+            // with the stale detailContainer copy.
+            if activeLayout == .regular {
+                if !detailContainer.allArticles.isEmpty {
+                    transferStateToCompact()
+                }
+                activeLayout = .compact
+                debugLog("📱 viewDidAppear: activeLayout → compact (transferred \(detailContainer.allArticles.count) articles)")
             }
+        } else if !detailContainer.allArticles.isEmpty {
+            debugLog("📱 viewDidAppear: showing secondary with \(detailContainer.allArticles.count) articles")
+            show(.secondary)
         }
     }
     
     override func willTransition(to newCollection: UITraitCollection, with coordinator: UIViewControllerTransitionCoordinator) {
         super.willTransition(to: newCollection, with: coordinator)
-        // Compact layout is handled by CompactTabBarController via .compact column.
-        // No manual show(.supplementary)/show(.secondary) needed on collapse.
+
+        // When a .compact column is registered, UIKit does NOT call
+        // splitViewControllerWillCollapse / splitViewControllerDidExpand.
+        // Detect the collapse/expand here via horizontal size class change
+        // and transfer state between the two DetailContainerVC instances.
+        let wasRegular = traitCollection.horizontalSizeClass == .regular
+        let willBeCompact = newCollection.horizontalSizeClass == .compact
+
+        if wasRegular && willBeCompact && activeLayout == .regular {
+            transferStateToCompact()
+            activeLayout = .compact
+            debugLog("📱 willTransition: regular → compact, transferred state to compact tab bar")
+        }
+
+        let wasCompact = traitCollection.horizontalSizeClass == .compact
+        let willBeRegular = newCollection.horizontalSizeClass == .regular
+
+        if wasCompact && willBeRegular && activeLayout == .compact {
+            transferStateFromCompact()
+            activeLayout = .regular
+            debugLog("📱 willTransition: compact → regular, transferred state from compact tab bar")
+        }
     }
     
     // MARK: - Setup
@@ -1223,16 +1254,25 @@ class MainSplitViewController: UISplitViewController {
 
 extension MainSplitViewController: UISplitViewControllerDelegate {
 
-    // topColumnForCollapsingToProposedTopColumn is NOT called when a .compact
-    // column is registered.  State transfer uses willCollapse/willExpand instead.
+    // When a .compact column is registered, UIKit does NOT call willCollapse/
+    // willExpand (nor topColumnForCollapsingToProposedTopColumn).
+    // Primary transfer path is willTransition(to:with:) above.
+
+    // NOTE: When a .compact column is registered, UIKit does NOT call these
+    // delegate methods.  The primary transfer path is willTransition(to:with:).
+    // These are kept as fallbacks with activeLayout guards to prevent double-transfer.
 
     func splitViewControllerWillCollapse(_ svc: UISplitViewController) {
+        guard activeLayout == .regular else { return }
         transferStateToCompact()
+        activeLayout = .compact
         debugLog("📱 splitViewControllerWillCollapse: transferred state to compact tab bar")
     }
 
     func splitViewControllerDidExpand(_ svc: UISplitViewController) {
+        guard activeLayout == .compact else { return }
         transferStateFromCompact()
+        activeLayout = .regular
         debugLog("📱 splitViewControllerDidExpand: transferred state from compact tab bar")
     }
 }
@@ -1252,18 +1292,21 @@ extension MainSplitViewController {
     }
 
     /// Push current regular-mode state into the compact tab bar controller.
+    /// The compact side's articles are fully overwritten (even with an empty array),
+    /// so stale data from a previous collapse is always replaced.
     private func transferStateToCompact() {
         compactTabBarController.transferStateIn(
             group: currentGroup,
             dict: currentDict,
             searchSession: searchSession,
             articles: detailContainer.allArticles,
-            currentArticleIndex: 0,
+            currentArticleIndex: detailContainer.currentVisibleArticleIndex,
             columnTarget: columnTargetSnapshot
         )
     }
 
     /// Read state from the compact tab bar controller and apply to regular-mode VCs.
+    /// The regular side's articles are fully overwritten by the compact side's current state.
     private func transferStateFromCompact() {
         let state = compactTabBarController.transferStateOut()
 
@@ -1280,10 +1323,9 @@ extension MainSplitViewController {
             dictionaryListVC.setActiveDictionary(dict)
         }
 
-        // Restore articles into the regular detail container
-        if !state.articles.isEmpty {
-            detailContainer.restoreArticles(state.articles, currentIndex: state.currentArticleIndex)
-        }
+        // ALWAYS overwrite — ensures stale articles from a previous expand
+        // are replaced, even when the compact side sends an empty array.
+        detailContainer.restoreArticles(state.articles, currentIndex: state.currentArticleIndex)
 
         // Restore column target based on selected tab
         switch state.selectedTab {

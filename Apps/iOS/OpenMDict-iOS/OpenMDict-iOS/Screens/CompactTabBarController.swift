@@ -135,6 +135,10 @@ class CompactTabBarController: UITabBarController {
     /// Per-scene search session (injected by MainSplitVC on transfer)
     private var searchSession: LookupSession?
 
+    /// Deferred tab selection from `transferStateIn` when called before `viewDidLoad`.
+    /// Applied once `viewControllers` is set.
+    private var pendingColumnTarget: MainSplitViewController.ColumnTargetSnapshot?
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Loading modal for long-running operations (import)
@@ -170,6 +174,13 @@ class CompactTabBarController: UITabBarController {
         setupHistoryCallbacks()
         setupSidebarCallbacks()
         setupManagementCallbacks()
+
+        // Apply deferred tab selection from transferStateIn (called before viewDidLoad
+        // on iPad's first collapse, where compactTabBarController's view wasn't loaded).
+        if let target = pendingColumnTarget {
+            applyTabSelection(for: target)
+            pendingColumnTarget = nil
+        }
 
         // If no group/dict was provided via transferStateIn(), load the default group
         // so the word list shows a title and is ready for searching.
@@ -770,7 +781,7 @@ class CompactTabBarController: UITabBarController {
     // MARK: - State Transfer API (called by MainSplitVC)
 
     /// Configure compact tabs with state from the regular split view.
-    /// Called by MainSplitVC in `splitViewControllerWillCollapse`.
+    /// Called by MainSplitVC in `splitViewControllerWillCollapse` or `viewDidAppear`.
     func transferStateIn(
         group: MDicts?,
         dict: MDict?,
@@ -786,32 +797,26 @@ class CompactTabBarController: UITabBarController {
         // Inject search session into lookup word list
         lookupWordListVC.searchSession = searchSession
 
-        // Restore articles into lookup detail container
+        // ALWAYS overwrite — ensures stale articles from a previous collapse
+        // are replaced, even when the regular side sends an empty array.
+        lookupDetailContainer.restoreArticles(articles, currentIndex: currentArticleIndex)
+
+        // Push/pop lookup detail based on whether articles exist.
         if !articles.isEmpty {
-            lookupDetailContainer.restoreArticles(articles, currentIndex: currentArticleIndex)
+            if lookupNav.viewControllers.last !== lookupDetailContainer {
+                lookupNav.pushViewController(lookupDetailContainer, animated: false)
+            }
+        } else {
+            lookupNav.popToRootViewController(animated: false)
         }
 
-        // Select the appropriate tab based on column target
-        switch columnTarget {
-        case .lookup:
-            selectedIndex = 0
-            // If articles exist, show detail on the lookup nav stack
-            if !articles.isEmpty {
-                if lookupNav.viewControllers.last !== lookupDetailContainer {
-                    lookupNav.pushViewController(lookupDetailContainer, animated: false)
-                }
-            } else {
-                // Ensure we're at root (word list)
-                lookupNav.popToRootViewController(animated: false)
-            }
-        case .bookmarks:
-            selectedIndex = 1
-            bookmarkListVC.reload()
-        case .lookupHistory:
-            selectedIndex = 2
-            historyListVC.reload()
-        case .management:
-            selectedIndex = 3
+        // Select the appropriate tab.  On iPad's first collapse compactTabBarController
+        // may not have loaded yet (viewControllers is nil), so defer the selection
+        // until viewDidLoad applies it.
+        if isViewLoaded {
+            applyTabSelection(for: columnTarget)
+        } else {
+            pendingColumnTarget = columnTarget
         }
 
         // Reload word list with current context
@@ -828,9 +833,26 @@ class CompactTabBarController: UITabBarController {
             group: currentGroup,
             dict: currentDict,
             articles: lookupDetailContainer.allArticles,
-            currentArticleIndex: 0, // DetailContainerVC tracks this internally
+            currentArticleIndex: lookupDetailContainer.currentVisibleArticleIndex,
             selectedTab: selectedIndex
         )
+    }
+
+    // MARK: - Tab Selection
+
+    private func applyTabSelection(for target: MainSplitViewController.ColumnTargetSnapshot) {
+        switch target {
+        case .lookup:
+            selectedIndex = 0
+        case .bookmarks:
+            selectedIndex = 1
+            bookmarkListVC.reload()
+        case .lookupHistory:
+            selectedIndex = 2
+            historyListVC.reload()
+        case .management:
+            selectedIndex = 3
+        }
     }
 
     struct CompactState {

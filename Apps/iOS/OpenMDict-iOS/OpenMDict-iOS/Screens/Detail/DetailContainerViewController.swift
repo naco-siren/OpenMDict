@@ -62,7 +62,18 @@ class DetailContainerViewController: UIViewController {
     
     /// All articles (for state restoration)
     var allArticles: [ArticleDisplayItem] { articles }
-    
+
+    /// Index of the article currently visible to the user.
+    /// Regular mode: visible cell in articlesVC. Compact: current pager page.
+    var currentVisibleArticleIndex: Int {
+        if activeChild === articlesVC {
+            return articlesVC.visibleArticleIndex ?? 0
+        } else if activeChild === articleVC {
+            return articleVC.currentPageIndex
+        }
+        return currentCompactIndex
+    }
+
     /// Current layout mode (for state restoration)
     var currentLayoutMode: ArticleLayoutMode { layoutMode }
     
@@ -467,6 +478,8 @@ class DetailContainerViewController: UIViewController {
     }
     
     private func syncStateToActiveChild() {
+        let childName = activeChild === articlesVC ? "articlesVC" : activeChild === articleVC ? "articleVC" : "nil"
+        debugLog("🔄 [\(instanceID)] syncStateToActiveChild: \(articles.count) articles, activeChild=\(childName), compactIdx=\(currentCompactIndex)")
         if activeChild === articlesVC {
             articlesVC.configure(articles: articles, animated: false)
             articlesVC.applyLayout(layoutMode, animated: false)
@@ -685,12 +698,40 @@ class DetailContainerViewController: UIViewController {
         }
     }
     
+    /// Clear all articles and cancel pending subscriptions.
+    /// Called after a layout transfer so only the receiving side owns the data.
+    func clearArticles() {
+        articles = []
+        currentCompactIndex = 0
+        pendingDictSubscriptions.removeAll()
+        if isViewLoaded {
+            syncStateToActiveChild()
+        }
+        // Note: do NOT fire onArticlesEmptied — this is a transfer cleanup,
+        // not a user-initiated close.  The nav stack should stay as-is.
+    }
+
     /// Restore articles from state transfer (compact ↔ regular).
     /// Replaces all current articles and syncs to active child.
     func restoreArticles(_ newArticles: [ArticleDisplayItem], currentIndex: Int) {
+        debugLog("🔄 [\(instanceID)] restoreArticles: \(newArticles.count) articles, currentIndex=\(currentIndex), isViewLoaded=\(isViewLoaded), activeChild=\(activeChild === articlesVC ? "articlesVC" : activeChild === articleVC ? "articleVC" : "nil")")
+
+        // Cancel stale subscriptions from previous transfer
+        pendingDictSubscriptions.removeAll()
+
         articles = newArticles
-        currentCompactIndex = min(currentIndex, max(0, articles.count - 1))
+        currentCompactIndex = newArticles.isEmpty ? 0 : min(currentIndex, newArticles.count - 1)
+
+        // Subscribe to pending dict loads — articles transferred from another
+        // DetailContainer lose their Combine subscriptions, so we must re-subscribe.
+        for article in articles {
+            if case .pending = article.contentState {
+                subscribeToDict(id: article.dictId)
+            }
+        }
+
         if isViewLoaded {
+            loadPendingArticlesIfReady()
             syncStateToActiveChild()
         }
     }
