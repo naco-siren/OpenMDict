@@ -497,6 +497,15 @@ class CompactTabBarController: UITabBarController {
             presentPresetManager()
         }
 
+        sidebarVC.onChangeAppIconSelected = { [weak self] in
+            guard let self else { return }
+            hideSidebar()
+            let vc = AppIconChooserViewController()
+            let nav = UINavigationController(rootViewController: vc)
+            nav.modalPresentationStyle = .pageSheet
+            present(nav, animated: true)
+        }
+
         sidebarVC.onTroubleshootSelected = { [weak self] in
             guard let self else { return }
             hideSidebar()
@@ -637,6 +646,14 @@ class CompactTabBarController: UITabBarController {
 
         managementVC.onDownloadPresetsSelected = { [weak self] in
             self?.presentPresetManager()
+        }
+
+        managementVC.onChangeAppIconSelected = { [weak self] in
+            guard let self else { return }
+            let vc = AppIconChooserViewController()
+            let nav = UINavigationController(rootViewController: vc)
+            nav.modalPresentationStyle = .pageSheet
+            present(nav, animated: true)
         }
 
         managementVC.onTroubleshootSelected = { [weak self] in

@@ -1279,6 +1279,55 @@ nonisolated enum L10n {
         }
     }
 
+    // MARK: - App Icon Chooser
+
+    enum AppIcon {
+        static var title: String {
+            NSLocalizedString("appIcon.title", value: "App Icon", comment: "Title: app icon chooser screen / sidebar item")
+        }
+        static var sectionStandard: String {
+            NSLocalizedString("appIcon.section.standard", value: "Standard", comment: "Section header: standard app icons")
+        }
+        static var sectionClassic: String {
+            NSLocalizedString("appIcon.section.classic", value: "Classic", comment: "Section header: classic easter egg icons")
+        }
+        static var defaultIcon: String {
+            NSLocalizedString("appIcon.default", value: "Default", comment: "App icon name: default icon")
+        }
+        static var west: String {
+            NSLocalizedString("appIcon.west", value: "Latin", comment: "App icon name: Latin alphabet variant (Aa)")
+        }
+        static var east1: String {
+            NSLocalizedString("appIcon.east1", value: "Chinese Character", comment: "App icon name: Chinese character variant (辞)")
+        }
+        static var east2: String {
+            NSLocalizedString("appIcon.east2", value: "Chinese Character - Traditional", comment: "App icon name: traditional Chinese character variant (詞)")
+        }
+        static var east3: String {
+            NSLocalizedString("appIcon.east3", value: "Chinese Character - Simplified", comment: "App icon name: simplified Chinese character variant (词)")
+        }
+        static var east4: String {
+            NSLocalizedString("appIcon.east4", value: "Hiragana", comment: "App icon name: Japanese hiragana variant (ひ)")
+        }
+        static var east5: String {
+            NSLocalizedString("appIcon.east5", value: "Hangul", comment: "App icon name: Korean hangul variant (한)")
+        }
+        static var east114514: String {
+            NSLocalizedString("appIcon.east114514", value: "114514", comment: "App icon name: easter egg variant")
+        }
+        static var classicLiquidGlass: String {
+            NSLocalizedString("appIcon.classicLiquidGlass", value: "Liquid Glass", comment: "App icon name: liquid glass style")
+        }
+        static var classicNormal: String {
+            NSLocalizedString("appIcon.classicNormal", value: "Normal", comment: "App icon name: normal style")
+        }
+        /// Format string for dark variant labels on iOS 15–17.
+        /// %@ is the base icon name, e.g. "Default" → "Default (Dark)".
+        static var darkFormat: String {
+            NSLocalizedString("appIcon.darkFormat", value: "%@ (Dark)", comment: "Format: dark variant of an icon name. %@ = base name")
+        }
+    }
+
     // MARK: - iCloud Troubleshooting
 
     enum Troubleshoot {

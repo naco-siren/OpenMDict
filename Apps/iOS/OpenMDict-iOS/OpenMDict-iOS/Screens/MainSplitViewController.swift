@@ -237,6 +237,10 @@ class MainSplitViewController: UISplitViewController {
             self?.presentPresetManager()
         }
 
+        dictionaryListVC.onChangeAppIconSelected = { [weak self] in
+            self?.showAppIconChooser()
+        }
+
         dictionaryListVC.onTroubleshootSelected = { [weak self] in
             self?.showTroubleshootingScreen()
         }
@@ -534,6 +538,16 @@ class MainSplitViewController: UISplitViewController {
         }
 
         present(setupVC, animated: true)
+    }
+
+    // MARK: - App Icon Chooser
+
+    private func showAppIconChooser() {
+        let chooserVC = AppIconChooserViewController()
+        let nav = UINavigationController(rootViewController: chooserVC)
+        nav.modalPresentationStyle = traitCollection.horizontalSizeClass == .regular
+            ? .formSheet : .pageSheet
+        present(nav, animated: true)
     }
 
     // MARK: - iCloud Troubleshooting

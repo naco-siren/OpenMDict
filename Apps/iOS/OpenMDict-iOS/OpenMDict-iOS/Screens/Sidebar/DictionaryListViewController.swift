@@ -30,6 +30,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onBookmarksSelected: (() -> Void)?
     var onLookupHistorySelected: (() -> Void)?
     var onManagePresetsSelected: (() -> Void)?
+    var onChangeAppIconSelected: (() -> Void)?
     var onTroubleshootSelected: (() -> Void)?
 
     // MARK: - Compact Sidebar Mode
@@ -645,7 +646,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 
             case .importDictionary, .addGroup, .bookmarks, .lookupHistory,
                  .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                 .iCloudTroubleshoot, .settings:
+                 .changeAppIcon, .iCloudTroubleshoot, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -698,7 +699,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             let actions: [SidebarItem] = [
                 .header(L10n.Sidebar.management, isBold: false),
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                .iCloudTroubleshoot, .settings,
+                .iCloudTroubleshoot, .changeAppIcon, .settings,
             ]
             mgmtItems = actions
         }
@@ -760,7 +761,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             mgmtSnapshot.append([mgmtHeader])
             let mgmtChildren: [SidebarItem] = [
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                .iCloudTroubleshoot, .settings,
+                .iCloudTroubleshoot, .changeAppIcon, .settings,
             ]
             mgmtSnapshot.append(mgmtChildren, to: mgmtHeader)
             mgmtSnapshot.expand([mgmtHeader])
@@ -940,6 +941,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             // Management actions are disabled in edit mode
             return !isEditing
 
+        case .changeAppIcon:
+            return !isEditing
+
         case .iCloudTroubleshoot:
             return !isEditing
 
@@ -1079,6 +1083,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .managePresets:
             collectionView.deselectItem(at: indexPath, animated: true)
             onManagePresetsSelected?()
+
+        case .changeAppIcon:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onChangeAppIconSelected?()
 
         case .iCloudTroubleshoot:
             collectionView.deselectItem(at: indexPath, animated: true)

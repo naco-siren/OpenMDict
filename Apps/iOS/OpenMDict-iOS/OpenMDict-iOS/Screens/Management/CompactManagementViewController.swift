@@ -25,6 +25,7 @@ private nonisolated enum MgmtItem: Hashable, Sendable {
     case addGroup
     case importDictionary
     case downloadPresets
+    case changeAppIcon
     case iCloudTroubleshoot
     case appSettings
 }
@@ -43,6 +44,9 @@ class CompactManagementViewController: UIViewController {
 
     /// "Download Presets" tapped
     var onDownloadPresetsSelected: (() -> Void)?
+
+    /// "App Icon" tapped
+    var onChangeAppIconSelected: (() -> Void)?
 
     /// "iCloud Troubleshooting" tapped
     var onTroubleshootSelected: (() -> Void)?
@@ -99,6 +103,9 @@ class CompactManagementViewController: UIViewController {
             case .downloadPresets:
                 config.text = L10n.Sidebar.downloadPresets
                 config.image = UIImage(systemName: "icloud.and.arrow.down")
+            case .changeAppIcon:
+                config.text = L10n.AppIcon.title
+                config.image = UIImage(systemName: "app.badge.checkmark")
             case .iCloudTroubleshoot:
                 config.text = L10n.Troubleshoot.title
                 config.image = UIImage(systemName: "key.icloud")
@@ -124,7 +131,7 @@ class CompactManagementViewController: UIViewController {
     private func rebuildSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<MgmtSection, MgmtItem>()
         snapshot.appendSections([.actions])
-        let items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets, .iCloudTroubleshoot, .appSettings]
+        let items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets, .iCloudTroubleshoot, .changeAppIcon, .appSettings]
         snapshot.appendItems(items, toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -152,6 +159,8 @@ extension CompactManagementViewController: UICollectionViewDelegate {
             onAddGroupSelected?()
         case .downloadPresets:
             onDownloadPresetsSelected?()
+        case .changeAppIcon:
+            onChangeAppIconSelected?()
         case .iCloudTroubleshoot:
             onTroubleshootSelected?()
         case .appSettings:
