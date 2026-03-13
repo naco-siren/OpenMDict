@@ -237,7 +237,7 @@ class DictResourceEditorViewController: UIViewController {
         // Enhance dark mode toggle cell (display settings)
         let enhanceDarkModeReg = UICollectionView.CellRegistration<UICollectionViewListCell, Bool> {
             [weak self] cell, indexPath, isOn in
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = cell.defaultContentConfiguration()
             content.text = L10n.DictInfo.enhanceDarkMode
             content.secondaryText = L10n.DictInfo.enhanceDarkModeDescription
             content.image = UIImage(systemName: "moon.stars.fill")
