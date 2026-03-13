@@ -363,16 +363,26 @@
 			isa = PBXGroup;
 			children = (
 				F8E12DAD2F1D73D100D8E524 /* Resources */,
+				F8B1FF002F70AB0000B1FF00 /* App Icons */,
 				A5AB7E3A2F0E15A000B554E0 /* OpenMDict-iOS */,
 				F8F795502F42C4D700D47B41 /* OpenMDict-ShareExtension */,
 				F8F797392F42EBB700D47B41 /* OpenMDict-ActionExtension */,
 				F8E12D972F1CA93800D8E524 /* Frameworks */,
 				A5AB7E392F0E15A000B554E0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F8B1FF002F70AB0000B1FF00 /* App Icons */ = {
+			isa = PBXGroup;
+			children = (
 				F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */,
 				F8B100012F70AB0000B10001 /* OpenMDict-West.icon */,
 				F8B100022F70AB0000B10002 /* OpenMDict-East1.icon */,
 				F8B100032F70AB0000B10003 /* OpenMDict-East2.icon */,
 				F8B100042F70AB0000B10004 /* OpenMDict-East3.icon */,
+				F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */,
+				F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */,
+				F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */,
 				F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */,
 				F8B100062F70AB0000B10006 /* ClassicNormal.icon */,
 				F8B100112F70AB0000B10011 /* OpenMDict-Preview.png */,
@@ -385,13 +395,10 @@
 				F8B100182F70AB0000B10018 /* OpenMDict-East2-Preview-Dark.png */,
 				F8B100192F70AB0000B10019 /* OpenMDict-East3-Preview.png */,
 				F8B1001A2F70AB0000B1001A /* OpenMDict-East3-Preview-Dark.png */,
-				F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */,
 				F8B100352F70AB0000B10035 /* OpenMDict-East4-Preview.png */,
 				F8B100362F70AB0000B10036 /* OpenMDict-East4-Preview-Dark.png */,
-				F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */,
 				F8B100372F70AB0000B10037 /* OpenMDict-East5-Preview.png */,
 				F8B100382F70AB0000B10038 /* OpenMDict-East5-Preview-Dark.png */,
-				F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */,
 				F8B100392F70AB0000B10039 /* OpenMDict-East114514-Preview.png */,
 				F8B100402F70AB0000B10040 /* OpenMDict-East114514-Preview-Dark.png */,
 				F8B1001B2F70AB0000B1001B /* ClassicLiquidGlass-Preview.png */,
@@ -399,6 +406,7 @@
 				F8B1001D2F70AB0000B1001D /* ClassicNormal-Preview.png */,
 				F8B1001E2F70AB0000B1001E /* ClassicNormal-Preview-Dark.png */,
 			);
+			name = "App Icons";
 			sourceTree = "<group>";
 		};
 		A5AB7E392F0E15A000B554E0 /* Products */ = {
