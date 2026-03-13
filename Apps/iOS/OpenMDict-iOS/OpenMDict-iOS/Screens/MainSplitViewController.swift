@@ -1337,6 +1337,10 @@ extension MainSplitViewController {
             dictionaryListVC.setActiveDictionary(dict)
         }
 
+        // Reset search bar to idle — transferring mid-search state across
+        // UISearchControllers is unreliable, so we simply clear on transition.
+        wordListVC.resetSearchState()
+
         // ALWAYS overwrite — ensures stale articles from a previous expand
         // are replaced, even when the compact side sends an empty array.
         detailContainer.restoreArticles(state.articles, currentIndex: state.currentArticleIndex)

@@ -66,7 +66,9 @@ final class LookupSession: ObservableObject {
                 .removeDuplicates()
         )
         .map { query, context, volume -> AnyPublisher<[WordSearchResult], Never> in
-            guard !query.isEmpty,
+            // Trim whitespace so trailing spaces (e.g. "look ") still match "look"
+            let searchQuery = query.trimmingCharacters(in: .whitespaces)
+            guard !searchQuery.isEmpty,
                   let lookupable = context.lookupable else {
                 return Just([]).eraseToAnyPublisher()
             }
@@ -78,11 +80,11 @@ final class LookupSession: ObservableObject {
             case .dictionary(let d): contextName = "dict '\(d.loggingTitle)'"
             case .none: contextName = "none"
             }
-            print("🔍 Search '\(query)' in \(contextName)")
+            print("🔍 Search '\(searchQuery)' in \(contextName)")
 
             let limit = volume.perDictLimit
 
-            return lookupable.lookupPublisher(prefix: query, limit: limit)
+            return lookupable.lookupPublisher(prefix: searchQuery, limit: limit)
                 .eraseToAnyPublisher()
         }
         .switchToLatest()

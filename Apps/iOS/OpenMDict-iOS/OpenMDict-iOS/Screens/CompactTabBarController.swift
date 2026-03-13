@@ -842,6 +842,12 @@ class CompactTabBarController: UITabBarController {
         } else if let dict {
             lookupWordListVC.loadWords(for: dict)
         }
+
+        // Reset search bar to idle — transferring mid-search state across
+        // UISearchControllers is unreliable, so we simply clear on transition.
+        if lookupWordListVC.isViewLoaded {
+            lookupWordListVC.resetSearchState()
+        }
     }
 
     /// Read current state from compact tabs for transfer back to regular split view.

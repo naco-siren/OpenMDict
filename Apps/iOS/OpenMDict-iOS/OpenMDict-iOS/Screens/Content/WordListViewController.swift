@@ -56,10 +56,20 @@ class WordListViewController: UIViewController {
     var onSearchActivated: (() -> Void)?
     var onSearchDeactivated: (() -> Void)?
 
-    /// Per-scene search session (injected by MainSplitVC)
-    var searchSession: LookupSession?
+    /// Per-scene search session (injected by MainSplitVC or CompactTabBarController).
+    /// When replaced after viewDidLoad, subscriptions are re-established automatically
+    /// so the reactive pipeline stays connected to the correct session.
+    var searchSession: LookupSession? {
+        didSet {
+            guard searchSession !== oldValue, isViewLoaded else { return }
+            resubscribeToSearchSession()
+        }
+    }
 
     private var cancellables = Set<AnyCancellable>()
+    /// Subscriptions tied to the current `searchSession`.  Separated from
+    /// `cancellables` so they can be torn down when the session is replaced.
+    private var searchCancellables = Set<AnyCancellable>()
 
     private var displayState: DisplayState = .idle
     private var sections: [SectionData] = []
@@ -319,6 +329,35 @@ class WordListViewController: UIViewController {
 
     // MARK: - Reactive Binding
 
+    /// Cancel existing search subscriptions and re-subscribe to the new session.
+    /// Called from `searchSession.didSet` when the session object changes after
+    /// viewDidLoad (e.g. iPhone: CompactTabBarController's local session replaced
+    /// by MainSplitVC's shared session during state transfer).
+    private func resubscribeToSearchSession() {
+        searchCancellables.removeAll()
+        subscribeToSearchResults()
+        subscribeToLemmaResults()
+        subscribeToSuggestions()
+        subscribeToSearchSettled()
+    }
+
+    /// Clear search bar and reset to idle state.  Called during compact ↔ regular
+    /// layout transitions — transferring mid-search state across UISearchControllers
+    /// is unreliable (activation requires view hierarchy), so we simply reset.
+    func resetSearchState() {
+        searchController.searchBar.text = nil
+        if searchController.isActive {
+            searchController.isActive = false
+        }
+        searchSession?.clearSearch()
+        displayedWords = []
+        lemmaWords = []
+        suggestedWords = []
+        isSearchSettled = true
+        displayState = .idle
+        rebuildSections()
+    }
+
     private func subscribeToSearchResults() {
         searchSession?.$results
             .dropFirst()
@@ -328,7 +367,7 @@ class WordListViewController: UIViewController {
                 self.displayedWords = results
                 self.rebuildSections()
             }
-            .store(in: &cancellables)
+            .store(in: &searchCancellables)
     }
 
     private func subscribeToLemmaResults() {
@@ -340,7 +379,7 @@ class WordListViewController: UIViewController {
                 self.lemmaWords = results
                 self.rebuildSections()
             }
-            .store(in: &cancellables)
+            .store(in: &searchCancellables)
     }
 
     private func subscribeToSuggestions() {
@@ -352,7 +391,7 @@ class WordListViewController: UIViewController {
                 self.suggestedWords = suggestions
                 self.rebuildSections()
             }
-            .store(in: &cancellables)
+            .store(in: &searchCancellables)
     }
 
     private func subscribeToSearchSettled() {
@@ -366,7 +405,7 @@ class WordListViewController: UIViewController {
                 // Only update overlay — no need to rebuild table data
                 self.updateEmptyState()
             }
-            .store(in: &cancellables)
+            .store(in: &searchCancellables)
     }
 
     private func subscribeToHistoryChanges() {
