@@ -353,26 +353,65 @@ class DetailContainerViewController: UIViewController {
 
     // MARK: - Pending Article Subscriptions
 
-    /// Subscribe to a specific dictionary's load state for pending articles
-    /// Uses flatMap to handle race condition: dict may not exist yet in allDictionaries
+    /// Subscribe to a specific dictionary's load state for pending articles.
+    /// Waits for allDictionaries to populate, then either subscribes to the dict's
+    /// load state or removes orphaned articles if the dict no longer exists.
     private func subscribeToDict(id: String) {
         // Already subscribed
         guard pendingDictSubscriptions[id] == nil else { return }
 
-        // Chain: wait for dict to appear in allDictionaries → wait for it to load
+        // Wait for metadata to load (first non-empty emission), then branch
         pendingDictSubscriptions[id] = DictionaryService.shared.$allDictionaries
-            .compactMap { dicts in dicts.first { $0.id == id } }  // Wait for dict to appear
-            .first()  // Only take first appearance
-            .flatMap { dict in
-                dict.$state
-                    .filter { $0 == .loaded }
-                    .map { _ in dict }  // Preserve dict reference
-                    .first()  // Only take first loaded event
-            }
+            .first { !$0.isEmpty }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] dict in
-                self?.handleDictLoaded(dict)
+            .sink { [weak self] dicts in
+                guard let self else { return }
+                self.pendingDictSubscriptions.removeValue(forKey: id)
+
+                guard let dict = dicts.first(where: { $0.id == id }) else {
+                    // Dictionary no longer exists — remove orphaned pending articles
+                    self.removeOrphanedArticles(dictId: id)
+                    return
+                }
+
+                // Dictionary exists — wait for it to finish loading
+                if dict.state == .loaded {
+                    self.handleDictLoaded(dict)
+                } else {
+                    self.pendingDictSubscriptions[id] = dict.$state
+                        .filter { $0 == .loaded }
+                        .first()
+                        .receive(on: DispatchQueue.main)
+                        .sink { [weak self] _ in
+                            self?.handleDictLoaded(dict)
+                        }
+                }
             }
+    }
+
+    /// Remove pending articles whose dictionary no longer exists (e.g. deleted after session save).
+    private func removeOrphanedArticles(dictId: String) {
+        var indicesToRemove: [Int] = []
+        for (index, article) in articles.enumerated() {
+            if article.dictId == dictId, case .pending = article.contentState {
+                indicesToRemove.append(index)
+            }
+        }
+        guard !indicesToRemove.isEmpty else { return }
+
+        for index in indicesToRemove.reversed() {
+            debugLog("🗑️ Removing orphaned article: \(articles[index].word) (dict \(dictId) not imported)")
+            articles.remove(at: index)
+        }
+
+        // Adjust compact index
+        currentCompactIndex = articles.isEmpty ? 0 : min(currentCompactIndex, articles.count - 1)
+
+        syncStateToActiveChild()
+
+        if articles.isEmpty {
+            onArticlesEmptied?()
+        }
     }
 
     /// When a subscribed dictionary loads, update its pending articles
