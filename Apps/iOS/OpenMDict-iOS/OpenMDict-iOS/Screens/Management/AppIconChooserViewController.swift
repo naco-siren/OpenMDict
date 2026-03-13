@@ -190,10 +190,17 @@ extension AppIconChooserViewController: UICollectionViewDelegate {
 
             self.selectedItem = item
 
-            // Refresh all cells to update checkmark
+            // Refresh all cells to update checkmark, then dismiss
             var snapshot = self.dataSource.snapshot()
             snapshot.reconfigureItems(snapshot.itemIdentifiers)
-            self.dataSource.apply(snapshot, animatingDifferences: true)
+            self.dataSource.apply(snapshot, animatingDifferences: true) { [weak self] in
+                guard let self else { return }
+                if self.navigationController?.presentingViewController != nil {
+                    self.dismiss(animated: true)
+                } else {
+                    self.navigationController?.popViewController(animated: true)
+                }
+            }
         }
     }
 }
