@@ -155,11 +155,18 @@
 					<string>ClassicLiquidGlass-iPhone</string>
 				</array>
 			</dict>
-			<key>ClassicNormal</key>
+			<key>ClassicLiquidGlass-Inverse</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-iPhone</string>
+					<string>ClassicLiquidGlass-Inverse-iPhone</string>
+				</array>
+			</dict>
+			<key>ClassicMatte</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>ClassicMatte-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-Dark</key>
@@ -225,11 +232,11 @@
 					<string>ClassicLiquidGlass-Dark-iPhone</string>
 				</array>
 			</dict>
-			<key>ClassicNormal-Dark</key>
+			<key>ClassicMatte-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-Dark-iPhone</string>
+					<string>ClassicMatte-Dark-iPhone</string>
 				</array>
 			</dict>
 		</dict>
@@ -310,12 +317,20 @@
 					<string>ClassicLiquidGlass-iPadPro</string>
 				</array>
 			</dict>
-			<key>ClassicNormal</key>
+			<key>ClassicLiquidGlass-Inverse</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-iPad</string>
-					<string>ClassicNormal-iPadPro</string>
+					<string>ClassicLiquidGlass-Inverse-iPad</string>
+					<string>ClassicLiquidGlass-Inverse-iPadPro</string>
+				</array>
+			</dict>
+			<key>ClassicMatte</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>ClassicMatte-iPad</string>
+					<string>ClassicMatte-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-Dark</key>
@@ -390,12 +405,12 @@
 					<string>ClassicLiquidGlass-Dark-iPadPro</string>
 				</array>
 			</dict>
-			<key>ClassicNormal-Dark</key>
+			<key>ClassicMatte-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-Dark-iPad</string>
-					<string>ClassicNormal-Dark-iPadPro</string>
+					<string>ClassicMatte-Dark-iPad</string>
+					<string>ClassicMatte-Dark-iPadPro</string>
 				</array>
 			</dict>
 		</dict>

@@ -7,10 +7,10 @@
 //  and the ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES build setting.
 //
 //  iOS 18+: .icon bundles provide light/dark/tinted automatically.
-//           → 10 cells in the chooser (one per variant).
+//           → 12 cells in the chooser (one per variant).
 //  iOS 15–17: CFBundleAlternateIcons Info.plist fallback with PNGs.
-//           → 20 cells (light + dark for each variant, since iOS <18
-//             has no system dark-mode icon support).
+//           → light + dark cells for each variant (inverse variants
+//             get a single cell since they have no dark counterpart).
 //
 
 import UIKit
@@ -38,8 +38,9 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
 
     // MARK: Easter Eggs — homage to the original MDict
 
-    case classicLiquidGlass = "ClassicLiquidGlass"
-    case classicNormal      = "ClassicNormal"
+    case classicLiquidGlass        = "ClassicLiquidGlass"
+    case classicLiquidGlassInverse = "ClassicLiquidGlass-Inverse"
+    case classicMatte              = "ClassicMatte"
 
     // MARK: - Icon Names for setAlternateIconName(_:)
 
@@ -56,9 +57,9 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
     }
 
     /// Whether this icon has its own dark variant.
-    /// Inverse reuses the default icon's dark mode, so it has no separate dark entry.
+    /// Inverse variants reuse the parent icon's dark mode, so they have no separate dark entry.
     var hasDarkVariant: Bool {
-        self != .inverse
+        self != .inverse && self != .classicLiquidGlassInverse
     }
 
     // MARK: - Display
@@ -75,15 +76,16 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
         case .east4:              return L10n.AppIcon.east4
         case .east5:              return L10n.AppIcon.east5
         case .east114514:         return L10n.AppIcon.east114514
-        case .classicLiquidGlass: return L10n.AppIcon.classicLiquidGlass
-        case .classicNormal:      return L10n.AppIcon.classicNormal
+        case .classicLiquidGlass:        return L10n.AppIcon.classicLiquidGlass
+        case .classicLiquidGlassInverse: return L10n.AppIcon.classicLiquidGlassInverse
+        case .classicMatte:              return L10n.AppIcon.classicMatte
         }
     }
 
     /// Easter egg icons are shown in a separate "Classic" section.
     var isEasterEgg: Bool {
         switch self {
-        case .classicLiquidGlass, .classicNormal: return true
+        case .classicLiquidGlass, .classicLiquidGlassInverse, .classicMatte: return true
         default: return false
         }
     }
@@ -102,8 +104,9 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
         case .east4:              return "OpenMDict-East4-Preview"
         case .east5:              return "OpenMDict-East5-Preview"
         case .east114514:         return "OpenMDict-East114514-Preview"
-        case .classicLiquidGlass: return "ClassicLiquidGlass-Preview"
-        case .classicNormal:      return "ClassicNormal-Preview"
+        case .classicLiquidGlass:        return "ClassicLiquidGlass-Preview"
+        case .classicLiquidGlassInverse: return "ClassicLiquidGlass-Inverse-Preview"
+        case .classicMatte:              return "ClassicMatte-Preview"
         }
     }
 

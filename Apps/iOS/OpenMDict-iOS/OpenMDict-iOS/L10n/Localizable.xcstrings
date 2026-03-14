@@ -844,86 +844,170 @@
         }
       }
     },
-    "appIcon.classicNormal": {
-      "comment": "App icon name: normal style",
+    "appIcon.classicLiquidGlassInverse": {
+      "comment": "App icon name: inverted colors variant of liquid glass icon",
       "extractionState": "extracted_with_value",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "عادي"
+            "value": "Liquid Glass (معكوس)"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Normal"
+            "value": "Liquid Glass (invertiert)"
           }
         },
         "en": {
           "stringUnit": {
             "state": "new",
-            "value": "Normal"
+            "value": "Liquid Glass (Inverse)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Normal"
+            "value": "Liquid Glass (inverso)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Normal"
+            "value": "Liquid Glass (inversé)"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "सामान्य"
+            "value": "लिक्विड ग्लास (उलटा)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ノーマル"
+            "value": "Liquid Glass（反転）"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "일반"
+            "value": "Liquid Glass (반전)"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Normal"
+            "value": "Liquid Glass (invertido)"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Обычная"
+            "value": "Liquid Glass (инверсия)"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Звичайна"
+            "value": "Liquid Glass (інверсія)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "普通"
+            "value": "Liquid Glass（反色）"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "普通"
+            "value": "Liquid Glass（反色）"
+          }
+        }
+      }
+    },
+    "appIcon.classicMatte": {
+      "comment": "App icon name: matte style",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مطفي"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Matte"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matte"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मैट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매트"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matte"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Матовая"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Матова"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磨砂"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磨砂"
           }
         }
       }

@@ -1321,8 +1321,11 @@ nonisolated enum L10n {
         static var classicLiquidGlass: String {
             NSLocalizedString("appIcon.classicLiquidGlass", value: "Liquid Glass", comment: "App icon name: liquid glass style")
         }
-        static var classicNormal: String {
-            NSLocalizedString("appIcon.classicNormal", value: "Normal", comment: "App icon name: normal style")
+        static var classicLiquidGlassInverse: String {
+            NSLocalizedString("appIcon.classicLiquidGlassInverse", value: "Liquid Glass (Inverse)", comment: "App icon name: inverted colors variant of liquid glass icon")
+        }
+        static var classicMatte: String {
+            NSLocalizedString("appIcon.classicMatte", value: "Matte", comment: "App icon name: matte style")
         }
         /// Format string for dark variant labels on iOS 15–17.
         /// %@ is the base icon name, e.g. "Default" → "Default (Dark)".

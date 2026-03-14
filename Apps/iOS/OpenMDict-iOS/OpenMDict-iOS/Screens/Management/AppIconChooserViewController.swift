@@ -5,9 +5,9 @@
 //  Lets the user choose an alternate app icon from a list of variants.
 //  Uses UIApplication.setAlternateIconName(_:) to apply the selection.
 //
-//  iOS 18+: .icon bundles → 7 cells (light/dark/tinted handled by system).
-//  iOS 15–17: PNG fallback → 14 cells (light + dark for each variant,
-//             because iOS <18 has no system dark-mode icon support).
+//  iOS 18+: .icon bundles → 12 cells (light/dark/tinted handled by system).
+//  iOS 15–17: PNG fallback → light + dark cells per variant (inverse
+//             variants get a single cell since they have no dark counterpart).
 //
 
 import UIKit
