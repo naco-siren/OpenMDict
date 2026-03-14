@@ -1294,6 +1294,9 @@ nonisolated enum L10n {
         static var defaultIcon: String {
             NSLocalizedString("appIcon.default", value: "Default", comment: "App icon name: default icon")
         }
+        static var defaultInverse: String {
+            NSLocalizedString("appIcon.defaultInverse", value: "Default (Inverse)", comment: "App icon name: inverted colors variant of default icon")
+        }
         static var west: String {
             NSLocalizedString("appIcon.west", value: "Latin", comment: "App icon name: Latin alphabet variant (Aa)")
         }

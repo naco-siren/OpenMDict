@@ -92,137 +92,144 @@
 	<dict>
 		<key>CFBundleAlternateIcons</key>
 		<dict>
+			<key>OpenMDict-Inverse</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>OpenMDict-Inverse-iPhone</string>
+				</array>
+			</dict>
 			<key>OpenMDict-West</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-West-Preview</string>
+					<string>OpenMDict-West-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East1</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East1-Preview</string>
+					<string>OpenMDict-East1-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East2</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East2-Preview</string>
+					<string>OpenMDict-East2-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East3</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East3-Preview</string>
+					<string>OpenMDict-East3-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East4</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East4-Preview</string>
+					<string>OpenMDict-East4-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East5</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East5-Preview</string>
+					<string>OpenMDict-East5-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East114514</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East114514-Preview</string>
+					<string>OpenMDict-East114514-iPhone</string>
 				</array>
 			</dict>
 			<key>ClassicLiquidGlass</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicLiquidGlass-Preview</string>
+					<string>ClassicLiquidGlass-iPhone</string>
 				</array>
 			</dict>
 			<key>ClassicNormal</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-Preview</string>
+					<string>ClassicNormal-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-Preview-Dark</string>
+					<string>OpenMDict-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-West-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-West-Preview-Dark</string>
+					<string>OpenMDict-West-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East1-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East1-Preview-Dark</string>
+					<string>OpenMDict-East1-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East2-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East2-Preview-Dark</string>
+					<string>OpenMDict-East2-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East3-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East3-Preview-Dark</string>
+					<string>OpenMDict-East3-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East4-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East4-Preview-Dark</string>
+					<string>OpenMDict-East4-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East5-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East5-Preview-Dark</string>
+					<string>OpenMDict-East5-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East114514-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East114514-Preview-Dark</string>
+					<string>OpenMDict-East114514-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>ClassicLiquidGlass-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicLiquidGlass-Preview-Dark</string>
+					<string>ClassicLiquidGlass-Dark-iPhone</string>
 				</array>
 			</dict>
 			<key>ClassicNormal-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-Preview-Dark</string>
+					<string>ClassicNormal-Dark-iPhone</string>
 				</array>
 			</dict>
 		</dict>
@@ -231,137 +238,164 @@
 	<dict>
 		<key>CFBundleAlternateIcons</key>
 		<dict>
+			<key>OpenMDict-Inverse</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>OpenMDict-Inverse-iPad</string>
+					<string>OpenMDict-Inverse-iPadPro</string>
+				</array>
+			</dict>
 			<key>OpenMDict-West</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-West-Preview</string>
+					<string>OpenMDict-West-iPad</string>
+					<string>OpenMDict-West-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East1</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East1-Preview</string>
+					<string>OpenMDict-East1-iPad</string>
+					<string>OpenMDict-East1-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East2</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East2-Preview</string>
+					<string>OpenMDict-East2-iPad</string>
+					<string>OpenMDict-East2-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East3</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East3-Preview</string>
+					<string>OpenMDict-East3-iPad</string>
+					<string>OpenMDict-East3-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East4</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East4-Preview</string>
+					<string>OpenMDict-East4-iPad</string>
+					<string>OpenMDict-East4-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East5</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East5-Preview</string>
+					<string>OpenMDict-East5-iPad</string>
+					<string>OpenMDict-East5-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East114514</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East114514-Preview</string>
+					<string>OpenMDict-East114514-iPad</string>
+					<string>OpenMDict-East114514-iPadPro</string>
 				</array>
 			</dict>
 			<key>ClassicLiquidGlass</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicLiquidGlass-Preview</string>
+					<string>ClassicLiquidGlass-iPad</string>
+					<string>ClassicLiquidGlass-iPadPro</string>
 				</array>
 			</dict>
 			<key>ClassicNormal</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-Preview</string>
+					<string>ClassicNormal-iPad</string>
+					<string>ClassicNormal-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-Preview-Dark</string>
+					<string>OpenMDict-Dark-iPad</string>
+					<string>OpenMDict-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-West-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-West-Preview-Dark</string>
+					<string>OpenMDict-West-Dark-iPad</string>
+					<string>OpenMDict-West-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East1-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East1-Preview-Dark</string>
+					<string>OpenMDict-East1-Dark-iPad</string>
+					<string>OpenMDict-East1-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East2-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East2-Preview-Dark</string>
+					<string>OpenMDict-East2-Dark-iPad</string>
+					<string>OpenMDict-East2-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East3-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East3-Preview-Dark</string>
+					<string>OpenMDict-East3-Dark-iPad</string>
+					<string>OpenMDict-East3-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East4-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East4-Preview-Dark</string>
+					<string>OpenMDict-East4-Dark-iPad</string>
+					<string>OpenMDict-East4-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East5-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East5-Preview-Dark</string>
+					<string>OpenMDict-East5-Dark-iPad</string>
+					<string>OpenMDict-East5-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>OpenMDict-East114514-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>OpenMDict-East114514-Preview-Dark</string>
+					<string>OpenMDict-East114514-Dark-iPad</string>
+					<string>OpenMDict-East114514-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>ClassicLiquidGlass-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicLiquidGlass-Preview-Dark</string>
+					<string>ClassicLiquidGlass-Dark-iPad</string>
+					<string>ClassicLiquidGlass-Dark-iPadPro</string>
 				</array>
 			</dict>
 			<key>ClassicNormal-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>ClassicNormal-Preview-Dark</string>
+					<string>ClassicNormal-Dark-iPad</string>
+					<string>ClassicNormal-Dark-iPadPro</string>
 				</array>
 			</dict>
 		</dict>

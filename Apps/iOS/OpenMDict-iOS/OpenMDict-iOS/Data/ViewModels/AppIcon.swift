@@ -27,6 +27,7 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
     // MARK: Standard — OpenMDict originals
 
     case `default`  = "OpenMDict"           // Aあ
+    case inverse    = "OpenMDict-Inverse"   // Aあ (inverted colors)
     case west       = "OpenMDict-West"      // Aa
     case east1      = "OpenMDict-East1"     // 辞
     case east2      = "OpenMDict-East2"     // 詞
@@ -49,8 +50,15 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
 
     /// Dark variant for iOS 15–17: rawValue + "-Dark".
     /// e.g. "OpenMDict-Dark", "OpenMDict-West-Dark", "ClassicNormal-Dark".
-    var darkAlternateIconName: String {
-        rawValue + "-Dark"
+    /// Inverse has no dark variant (falls back to default dark).
+    var darkAlternateIconName: String? {
+        hasDarkVariant ? rawValue + "-Dark" : nil
+    }
+
+    /// Whether this icon has its own dark variant.
+    /// Inverse reuses the default icon's dark mode, so it has no separate dark entry.
+    var hasDarkVariant: Bool {
+        self != .inverse
     }
 
     // MARK: - Display
@@ -59,6 +67,7 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
     var displayName: String {
         switch self {
         case .default:            return L10n.AppIcon.defaultIcon
+        case .inverse:            return L10n.AppIcon.defaultInverse
         case .west:               return L10n.AppIcon.west
         case .east1:              return L10n.AppIcon.east1
         case .east2:              return L10n.AppIcon.east2
@@ -85,6 +94,7 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
     private var previewBaseName: String {
         switch self {
         case .default:            return "OpenMDict-Preview"
+        case .inverse:            return "OpenMDict-Inverse-Preview"
         case .west:               return "OpenMDict-West-Preview"
         case .east1:              return "OpenMDict-East1-Preview"
         case .east2:              return "OpenMDict-East2-Preview"
@@ -148,6 +158,12 @@ nonisolated struct AppIconItem: Hashable, Sendable {
     /// Name passed to `setAlternateIconName(_:)`.
     var alternateIconName: String? {
         isDark ? icon.darkAlternateIconName : icon.alternateIconName
+    }
+
+    /// Whether this item represents a dark variant that actually exists.
+    /// Inverse has no dark variant, so isDark should never be true for it.
+    var isValid: Bool {
+        !isDark || icon.hasDarkVariant
     }
 
     /// Localized display name.  Dark variants append "(Dark)".

@@ -159,12 +159,30 @@ final class AppIconChooserViewController: UIViewController {
     }
 
     /// Build items: one per icon on iOS 18+, two (light + dark) on iOS 15–17.
+    /// Icons without a dark variant (e.g. Inverse) always get a single cell,
+    /// inserted between the previous icon's light and dark cells.
+    /// e.g. Default, Default (Inverse), Default (Dark), Latin, Latin (Dark), …
     private func makeItems(from icons: [AppIcon]) -> [AppIconItem] {
         if useDualAppearanceCells {
-            return icons.flatMap { icon in
-                [AppIconItem(icon: icon, isDark: false),
-                 AppIconItem(icon: icon, isDark: true)]
+            var items: [AppIconItem] = []
+            var i = 0
+            while i < icons.count {
+                let icon = icons[i]
+                items.append(AppIconItem(icon: icon, isDark: false))
+
+                // Collect any following icons that lack dark variants
+                // (they belong visually between this icon's light and dark cells)
+                while i + 1 < icons.count, !icons[i + 1].hasDarkVariant {
+                    i += 1
+                    items.append(AppIconItem(icon: icons[i], isDark: false))
+                }
+
+                if icon.hasDarkVariant {
+                    items.append(AppIconItem(icon: icon, isDark: true))
+                }
+                i += 1
             }
+            return items
         } else {
             return icons.map { AppIconItem(icon: $0, isDark: false) }
         }
