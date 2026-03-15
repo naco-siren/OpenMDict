@@ -828,8 +828,9 @@ final class EnhanceDarkModeSliderVC: UITableViewController, UIPopoverPresentatio
 
     private static let popoverWidth: CGFloat = 300
     // Hardcoded — contentSize is unreliable before popover presentation.
-    // navBar(44) + s0(12+44+8) + s1(8+44+44+8) = 212, minus 24 = 188.
-    private static let popoverHeight: CGFloat = 188
+    // navBar(44) + s0 header(12) + switch row(44) + s0 footer(~28 for description)
+    // + s1 header(8) + label row(44) + slider row(44) + s1 footer(8) = 232.
+    private static let popoverHeight: CGFloat = 232
 
     init(current: EnhanceDarkModeStrength?,
          onPreview: @escaping (EnhanceDarkModeStrength?) -> Void,
@@ -950,11 +951,23 @@ final class EnhanceDarkModeSliderVC: UITableViewController, UIPopoverPresentatio
     }
 
     override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        8
+        section == 0 ? UITableView.automaticDimension : 8
     }
 
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? { UIView() }
-    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { UIView() }
+
+    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
+        guard section == 0 else { return UIView() }
+        // Section 0 footer: explains the purpose of the enhancement.
+        let footer = UITableViewHeaderFooterView()
+        var config = footer.defaultContentConfiguration()
+        config.text = L10n.Detail.enhanceDarkModeDescription
+        config.textProperties.font = .preferredFont(forTextStyle: .caption1)
+        config.textProperties.color = .secondaryLabel
+        config.textProperties.transform = .none  // suppress insetGrouped default uppercase
+        footer.contentConfiguration = config
+        return footer
+    }
 
     // MARK: - Tier display names
 

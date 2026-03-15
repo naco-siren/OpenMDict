@@ -425,14 +425,8 @@ nonisolated enum L10n {
         }
 
         // Display Settings
-        static var displaySettings: String {
-            NSLocalizedString("dictInfo.displaySettings", value: "Display", comment: "Section header for per-dict display preferences")
-        }
         static var enhanceDarkMode: String {
             NSLocalizedString("dictInfo.enhanceDarkMode", value: "Enhance Dark Mode", comment: "Toggle label for per-dict dark mode enhancement")
-        }
-        static var enhanceDarkModeDescription: String {
-            NSLocalizedString("dictInfo.enhanceDarkModeDescription", value: "Improve readability if this dictionary has custom styles.", comment: "Subtitle explaining the dark mode enhancement toggle")
         }
 
         // Alerts
@@ -822,6 +816,9 @@ nonisolated enum L10n {
         }
         static var enhanceDarkModeAdjustment: String {
             NSLocalizedString("detail.enhanceDarkModeAdjustment", value: "Adjustment", comment: "Label for the enhancement strength adjustment row")
+        }
+        static var enhanceDarkModeDescription: String {
+            NSLocalizedString("detail.enhanceDarkModeDescription", value: "Improve readability if this dictionary has custom styles.", comment: "Section footer explaining the dark mode enhancement purpose")
         }
         // "Dim/bright" avoids collision with "light/dark" appearance terminology.
         static var enhanceDarkModeNone: String {

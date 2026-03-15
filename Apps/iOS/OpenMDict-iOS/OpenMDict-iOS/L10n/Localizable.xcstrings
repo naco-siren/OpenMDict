@@ -6211,6 +6211,90 @@
         }
       }
     },
+    "detail.enhanceDarkModeDescription" : {
+      "comment" : "Section footer explaining the dark mode enhancement purpose",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحسين قابلية القراءة إذا كان هذا القاموس يستخدم أنماطًا مخصصة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbessert die Lesbarkeit bei Wörterbüchern mit benutzerdefinierten Stilen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Improve readability if this dictionary has custom styles."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mejora la legibilidad si este diccionario tiene estilos personalizados."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Améliore la lisibilité si ce dictionnaire utilise des styles personnalisés."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यदि इस शब्दकोश में कस्टम शैलियाँ हैं तो पठनीयता में सुधार करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムスタイルを使用する辞書の読みやすさを向上させます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용자 지정 스타일을 사용하는 사전의 가독성을 개선합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melhora a legibilidade se este dicionário tiver estilos personalizados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Улучшает читаемость словарей с пользовательскими стилями."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покращує читабельність словників із власними стилями."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为使用自定义样式的词典提升可读性。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為使用自訂樣式的辭典提升可讀性。"
+          }
+        }
+      }
+    },
     "detail.enhanceDarkModeEnabled" : {
       "comment" : "Switch label to enable/disable dark mode enhancement",
       "extractionState" : "manual",
