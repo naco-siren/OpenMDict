@@ -71,4 +71,77 @@ extension UserDefaults {
         }
         set { set(newValue, forKey: Self.showEnhanceDarkModeKey) }
     }
+
+}
+
+// MARK: - Enhance Dark Mode Strength
+
+/// Per-dictionary dark mode enhancement strength.
+///
+/// Stored in CoreData as `enhanceDarkModeStrength` (Int16), alongside the
+/// `enhanceDarkMode` Bool (kept for CloudKit production schema compatibility).
+///
+/// - `none` (0) = enhancement off
+/// Signed tier for per-dictionary enhance-dark-mode strength.
+///
+/// Raw values are **signed tiers** (−3 … +3), NOT gamma values.  This keeps
+/// the serialized value stable even if the exact gamma mapping changes later,
+/// and the user's chosen "slot" in the UI stays consistent.
+///
+/// - `.none` (special, not stored as a tier) = enhancement off.
+/// - Negative tiers (`dimmest`…`dim`) compress contrast → dimmer result.
+///   Useful for dictionaries whose default style is already bright.
+/// - Zero tier (`default`) is the baseline enhancement (γ = 1.0).
+/// - Positive tiers (`bright`…`brightest`) boost separation → brighter result.
+///   Higher gamma → more visual separation between background hierarchy levels
+///   in the dark end (Weber-Fechner).
+///
+/// "Dim/bright" wording is intentional to avoid collision with "light/dark"
+/// appearance terminology.
+nonisolated enum EnhanceDarkModeStrength: Int16 {
+    // Dimmer direction — compresses contrast (mirrors positive spacing)
+    case dimmest  = -3  // γ = 0.4
+    case dimmer   = -2  // γ = 0.6
+    case dim      = -1  // γ = 0.8
+
+    // Baseline
+    case standard  = 0  // γ = 1.0 (starting point when first enabled)
+
+    // Brighter direction — boosts separation
+    case bright    = 1  // γ = 1.2
+    case brighter  = 2  // γ = 1.4
+    case brightest = 3  // γ = 1.6
+
+    /// All tiers in ascending order, for building the picker menu.
+    static let allTiers: [EnhanceDarkModeStrength] = [
+        .dimmest, .dimmer, .dim, .standard, .bright, .brighter, .brightest
+    ]
+
+    var isEnhanced: Bool { true }
+
+    var gamma: Double {
+        switch self {
+        case .dimmest:  return 0.4
+        case .dimmer:   return 0.6
+        case .dim:      return 0.8
+        case .standard:  return 1.0
+        case .bright:   return 1.2
+        case .brighter: return 1.4
+        case .brightest: return 1.6
+        }
+    }
+
+    /// Precomputed `tableValues` string for SVG `feComponentTransfer type="table"`.
+    /// Formula per sample: `output(x) = pow(1 - pow(x, γ), 1/γ)`.
+    var svgTableValues: String {
+        let steps = 32
+        let g = gamma
+        let invG = 1.0 / g
+        return (0...steps).map { i in
+            let x = Double(i) / Double(steps)
+            let linear = pow(x, g)
+            let output = pow(max(0, 1.0 - linear), invG)
+            return String(format: "%.4f", output)
+        }.joined(separator: " ")
+    }
 }

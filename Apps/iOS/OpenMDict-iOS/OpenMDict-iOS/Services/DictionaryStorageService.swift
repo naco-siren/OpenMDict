@@ -637,10 +637,11 @@ final class DictionaryStorageService {
             jsCount: Int32(jsFiles.count),
             fontsCount: Int32(fontFiles.count),
             cloudSyncStatus: CloudSyncStatus.pending.rawValue,
-            enhanceDarkMode: false
+            enhanceDarkMode: false,
+            enhanceDarkModeStrength: EnhanceDarkModeStrength.standard.rawValue
         )
         addDictionaryMetadata(metadata)
-        
+
         print("✅ Imported dictionary: \(displayName) (id: \(id.prefix(16))..., \(totalSizeBytes / 1024) KB)")
         return id
     }

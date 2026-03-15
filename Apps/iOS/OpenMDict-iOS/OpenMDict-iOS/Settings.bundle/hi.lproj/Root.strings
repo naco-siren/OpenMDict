@@ -5,7 +5,8 @@
 "APPEARANCE_LIGHT" = "लाइट";
 "APPEARANCE_SYSTEM" = "सिस्टम";
 "APPEARANCE_DARK" = "डार्क";
-"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "डार्क मोड में सुधार विकल्प दिखाएं";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "डार्क मोड में सुधार प्रदान करें";
+
 "SEARCH_GROUP" = "खोज";
 "SEARCH_RESULT_VOLUME" = "खोज परिणाम";
 "SEARCH_RESULT_A_FEW" = "बहुत कम";

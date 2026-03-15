@@ -5,7 +5,7 @@
 "APPEARANCE_LIGHT" = "Light";
 "APPEARANCE_SYSTEM" = "System";
 "APPEARANCE_DARK" = "Dark";
-"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Show Enhance Toggle in Dark Mode";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Provide Enhancements in Dark Appearance";
 
 "SEARCH_GROUP" = "Search";
 "SEARCH_RESULT_VOLUME" = "Search Results";

@@ -244,8 +244,8 @@ class ArticlesViewController: UIViewController {
                 self.delegate?.articlesViewController(self, didRequestJumpSearch: text, inDict: article.dictId)
             }
             cell.pageView.setGridLayout(self?.layoutMode == .grid)
-            cell.pageView.onEnhanceDarkModeTapped = { isCurrentlyEnhanced in
-                DictMetadataService.shared.updateEnhanceDarkMode(dictId: article.dictId, enhance: !isCurrentlyEnhanced)
+            cell.pageView.onEnhanceDarkModeStrengthChanged = { newStrength in
+                DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: article.dictId, strength: newStrength)
             }
         }
         
@@ -404,9 +404,15 @@ class ArticlesViewController: UIViewController {
             guard let articleCell = cell as? ArticleCell,
                   let indexPath = collectionView.indexPath(for: cell),
                   let article = dataSource.itemIdentifier(for: indexPath) else { continue }
-            let shouldEnhance = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
-            articleCell.setDarkModeEnhance(shouldEnhance)
+            articleCell.setDarkModeEnhance(strength: Self.enhanceStrength(for: article.dictId))
         }
+    }
+
+    /// Read per-dict enhance strength from CoreData.  Returns `nil` when off.
+    static func enhanceStrength(for dictId: String) -> EnhanceDarkModeStrength? {
+        guard let meta = DictMetadataService.shared.find(dictId: dictId),
+              meta.enhanceDarkMode else { return nil }
+        return EnhanceDarkModeStrength(rawValue: meta.enhanceDarkModeStrength) ?? .standard
     }
 
     /// Re-evaluate visibility of the enhance dark mode button on all visible cells.
@@ -632,8 +638,7 @@ extension ArticlesViewController: UICollectionViewDelegate {
 
         // Apply per-dict dark mode enhancement to cells scrolling into view.
         if let article = dataSource.itemIdentifier(for: indexPath) {
-            let shouldEnhance = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
-            articleCell.setDarkModeEnhance(shouldEnhance)
+            articleCell.setDarkModeEnhance(strength: Self.enhanceStrength(for: article.dictId))
         }
 
         // Apply pending JS highlight keyword to cells scrolling into view.
@@ -716,10 +721,13 @@ extension ArticlesViewController: UICollectionViewDelegate {
             }
         })
         if layoutMode != .grid, traitCollection.userInterfaceStyle == .dark, UserDefaults.shared.showEnhanceDarkMode {
-            let isEnhanced = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
-            let enhanceIcon = isEnhanced ? "moon.stars.fill" : "moon.stars"
-            actions.append(.init(title: L10n.DictInfo.enhanceDarkMode, image: UIImage(systemName: enhanceIcon), state: isEnhanced ? .on : .off) { _ in
-                DictMetadataService.shared.updateEnhanceDarkMode(dictId: article.dictId, enhance: !isEnhanced)
+            let current = Self.enhanceStrength(for: article.dictId)
+            let isOn = current != nil
+            let enhanceIcon = isOn ? "moon.stars.fill" : "moon.stars"
+            // Context menu: simple toggle between off ↔ default tier.
+            let nextStrength: EnhanceDarkModeStrength? = isOn ? nil : .standard
+            actions.append(.init(title: L10n.DictInfo.enhanceDarkMode, image: UIImage(systemName: enhanceIcon), state: isOn ? .on : .off) { _ in
+                DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: article.dictId, strength: nextStrength)
             })
         }
         if #available(iOS 16, *) {

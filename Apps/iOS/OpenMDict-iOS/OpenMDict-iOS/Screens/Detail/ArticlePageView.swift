@@ -77,7 +77,7 @@ class ArticlePageView: UIView {
     var onFindTapped: (() -> Void)?                                      // .findInPage
     var onNewWindowTapped: (() -> Void)?                                 // .newWindowButton
     var onCloseTapped: (() -> Void)?                                     // .closeButton
-    var onEnhanceDarkModeTapped: ((_ isCurrentlyEnhanced: Bool) -> Void)? // .enhanceDarkMode
+    var onEnhanceDarkModeStrengthChanged: ((_ newStrength: EnhanceDarkModeStrength?) -> Void)? // .enhanceDarkMode
     var onDragItemRequested: (() -> UIDragItem?)?                        // .dragInteraction
     var onJumpSearch: ((_ selectedText: String) -> Void)?                // .jumpSearch
 
@@ -111,7 +111,7 @@ class ArticlePageView: UIView {
 
     private let features: Features
     private var currentZoomLevel: Int = ZoomLevel.defaultLevel
-    private var isDarkModeEnhanced: Bool = false
+    private var enhanceStrength: EnhanceDarkModeStrength?
     private var isGridLayout: Bool = false
     private static let pendingOverlayTag = 9876
     /// Uniform size for all header toolbar buttons (bookmark, find, new-window, close).
@@ -179,7 +179,13 @@ class ArticlePageView: UIView {
 
         if features.contains(.enhanceDarkMode) {
             let btn = Self.makeHeaderButton(systemName: "moon.stars")
-            btn.addTarget(self, action: #selector(enhanceDarkModeButtonTapped), for: .touchUpInside)
+            // Single-tap shows strength picker menu (None | Dimmest…Brightest).
+            let deferred = UIDeferredMenuElement.uncached { [weak self] completion in
+                guard let self else { completion([]); return }
+                completion(self.enhanceDarkModeStrengthActions())
+            }
+            btn.menu = UIMenu(title: L10n.DictInfo.enhanceDarkMode, children: [deferred])
+            btn.showsMenuAsPrimaryAction = true
             enhanceDarkModeButton = btn
             toolbarButtons.append(btn)
         }
@@ -340,9 +346,9 @@ class ArticlePageView: UIView {
         onCloseTapped = nil
         onDragItemRequested = nil
         onJumpSearch = nil
-        onEnhanceDarkModeTapped = nil
+        onEnhanceDarkModeStrengthChanged = nil
         isBookmarked = false
-        isDarkModeEnhanced = false
+        enhanceStrength = nil
         isGridLayout = false
         currentDictId = ""
         pendingHighlightKeyword = nil
@@ -384,26 +390,53 @@ class ArticlePageView: UIView {
         updateEnhanceDarkModeButtonVisibility()
     }
 
-    func setDarkModeEnhance(_ enhance: Bool) {
-        isDarkModeEnhanced = enhance
-        webView.overrideUserInterfaceStyle = enhance ? .light : .unspecified
+    func setDarkModeEnhance(strength: EnhanceDarkModeStrength?) {
+        enhanceStrength = strength
+        webView.overrideUserInterfaceStyle = strength != nil ? .light : .unspecified
         applyDarkModeFilter()
         updateEnhanceDarkModeButtonAppearance()
         updateEnhanceDarkModeButtonVisibility()
     }
 
-    /// Inject or remove CSS `filter: invert(1) hue-rotate(180deg)` on the HTML element.
-    /// Images/video/SVG get a double-invert to restore their original colors.
-    /// Also strips legacy `<font color>` attributes so colored text inherits the inverted body color.
+    /// Inject or remove a **gamma-aware invert** filter on the HTML element.
+    ///
+    /// Uses an inline SVG `feComponentTransfer` with a precomputed lookup table
+    /// so that the inversion is **perceptually uniform** — background hierarchy
+    /// levels stay visually distinguishable in the dark end (where `invert(1)`
+    /// flattens everything due to the sRGB gamma curve).
+    ///
+    /// Images/video/SVG get a double-application of the same filter to restore
+    /// their original colors.  The `.dir` element (preset-dict language flags
+    /// with emoji) is also double-inverted to keep emoji colors correct.
+    ///
+    /// Legacy `<font color>` attributes are stripped so text inherits the
+    /// inverted body color.
     private func applyDarkModeFilter() {
         let isDark = traitCollection.userInterfaceStyle == .dark
-        if isDarkModeEnhanced && isDark {
+        if let strength = enhanceStrength, isDark {
+            let table = strength.svgTableValues
             let js = """
             (function(){
+                var svg = document.getElementById('_omdict_svg');
+                if (!svg) {
+                    svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+                    svg.id = '_omdict_svg';
+                    svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');
+                    document.body.insertBefore(svg, document.body.firstChild);
+                }
+                svg.innerHTML = '<filter id="_gi" color-interpolation-filters="sRGB">'
+                    + '<feComponentTransfer>'
+                    + '<feFuncR type="table" tableValues="\(table)"/>'
+                    + '<feFuncG type="table" tableValues="\(table)"/>'
+                    + '<feFuncB type="table" tableValues="\(table)"/>'
+                    + '</feComponentTransfer></filter>';
+
                 var s = document.getElementById('_omdict_invert');
                 if (!s) { s = document.createElement('style'); s.id = '_omdict_invert'; document.head.appendChild(s); }
-                s.textContent = 'html { filter: invert(1) hue-rotate(180deg); background: #fff !important; } body { color: #000 !important; } img, video, svg, picture { filter: invert(1) hue-rotate(180deg); }';
-                document.querySelectorAll('font[color]').forEach(function(el){ el.removeAttribute('color'); });
+                s.textContent = 'html{filter:url(#_gi) hue-rotate(180deg);background:#fff !important}'
+                    + 'body{color:#000 !important}'
+                    + 'img,video,svg:not(#_omdict_svg),picture{filter:url(#_gi) hue-rotate(180deg)}'
+                    + '.dir{display:inline-block;filter:url(#_gi) hue-rotate(180deg)}';
             })();
             """
             webView.evaluateJavaScript(js, completionHandler: nil)
@@ -412,6 +445,8 @@ class ArticlePageView: UIView {
             (function(){
                 var s = document.getElementById('_omdict_invert');
                 if (s) s.remove();
+                var svg = document.getElementById('_omdict_svg');
+                if (svg) svg.remove();
             })();
             """
             webView.evaluateJavaScript(js, completionHandler: nil)
@@ -421,7 +456,7 @@ class ArticlePageView: UIView {
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            if isDarkModeEnhanced {
+            if enhanceStrength != nil {
                 applyDarkModeFilter()
             }
             updateEnhanceDarkModeButtonVisibility()
@@ -570,16 +605,55 @@ class ArticlePageView: UIView {
         onCloseTapped?()
     }
 
-    @objc private func enhanceDarkModeButtonTapped() {
-        onEnhanceDarkModeTapped?(isDarkModeEnhanced)
+    /// Build menu elements for the enhance dark mode strength picker.
+    /// "None" sits alone at top; 7 tiers (dimmest…brightest) appear below a
+    /// separator, achieved via `.displayInline` submenu.
+    private func enhanceDarkModeStrengthActions() -> [UIMenuElement] {
+        let current = enhanceStrength
+
+        // "None" = turn off enhancement
+        let noneAction = UIAction(
+            title: L10n.Detail.enhanceDarkModeNone,
+            state: current == nil ? .on : .off
+        ) { [weak self] _ in
+            guard let self, self.enhanceStrength != nil else { return }
+            self.onEnhanceDarkModeStrengthChanged?(nil)
+        }
+
+        // 7 tiers: dimmest … brightest.
+        // Icons: negative tiers use outline circles (N.circle),
+        // standard uses ±, positive tiers use filled circles (N.circle.fill).
+        let tierEntries: [(EnhanceDarkModeStrength, String, String)] = [
+            (.dimmest,   L10n.Detail.enhanceDimmest,  "3.circle"),
+            (.dimmer,    L10n.Detail.enhanceDimmer,    "2.circle"),
+            (.dim,       L10n.Detail.enhanceDim,       "1.circle"),
+            (.standard,  L10n.Detail.enhanceStandard,  "minus.forwardslash.plus"),
+            (.bright,    L10n.Detail.enhanceBright,    "1.circle.fill"),
+            (.brighter,  L10n.Detail.enhanceBrighter,  "2.circle.fill"),
+            (.brightest, L10n.Detail.enhanceBrightest, "3.circle.fill"),
+        ]
+        let tierActions = tierEntries.map { tier, label, icon in
+            UIAction(
+                title: label,
+                image: UIImage(systemName: icon),
+                state: current == tier ? .on : .off
+            ) { [weak self] _ in
+                guard let self, self.enhanceStrength != tier else { return }
+                self.onEnhanceDarkModeStrengthChanged?(tier)
+            }
+        }
+
+        // Inline submenu renders as a separator between "None" and the tiers.
+        let tiersGroup = UIMenu(title: "", options: .displayInline, children: tierActions)
+        return [noneAction, tiersGroup]
     }
 
     private func updateEnhanceDarkModeButtonAppearance() {
         guard let btn = enhanceDarkModeButton else { return }
         var config = btn.configuration
-        let imageName = isDarkModeEnhanced ? "moon.stars.fill" : "moon.stars"
-        config?.image = UIImage(systemName: imageName)
-        config?.baseForegroundColor = isDarkModeEnhanced ? .systemYellow : .secondaryLabel
+        let isOn = enhanceStrength != nil
+        config?.image = UIImage(systemName: isOn ? "moon.stars.fill" : "moon.stars")
+        config?.baseForegroundColor = isOn ? .systemYellow : .secondaryLabel
         btn.configuration = config
     }
 
@@ -633,7 +707,7 @@ extension ArticlePageView: WKNavigationDelegate {
         }
 
         // Apply dark mode filter if enabled for this dictionary
-        if isDarkModeEnhanced {
+        if enhanceStrength != nil {
             applyDarkModeFilter()
         }
 

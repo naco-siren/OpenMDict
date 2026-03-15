@@ -5,7 +5,8 @@
 "APPEARANCE_LIGHT" = "ライト";
 "APPEARANCE_SYSTEM" = "システム";
 "APPEARANCE_DARK" = "ダーク";
-"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "ダークモードで強化オプションを表示";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "ダークモードで表示を強化";
+
 "SEARCH_GROUP" = "検索";
 "SEARCH_RESULT_VOLUME" = "検索結果の量";
 "SEARCH_RESULT_A_FEW" = "最小";

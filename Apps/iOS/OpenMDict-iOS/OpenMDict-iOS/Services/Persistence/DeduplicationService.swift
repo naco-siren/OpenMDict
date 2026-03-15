@@ -232,7 +232,7 @@ final class DeduplicationService {
                     for key in ["displayName", "updatedAt",
                                 "mddCount", "cssCount", "jsCount",
                                 "totalSizeKB", "cloudSyncStatus",
-                                "enhanceDarkMode"] {
+                                "enhanceDarkMode", "enhanceDarkModeStrength"] {
                         winner.setValue(record.value(forKey: key), forKey: key)
                     }
                 }

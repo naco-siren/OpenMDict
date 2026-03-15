@@ -1022,10 +1022,9 @@ class ActionViewController: UIViewController {
             self.playAudio(url: url, from: pageView)
         }
 
-        pageView.onEnhanceDarkModeTapped = { [weak pageView] isCurrentlyEnhanced in
-            let newValue = !isCurrentlyEnhanced
-            DictMetadataService.shared.updateEnhanceDarkMode(dictId: result.dictId, enhance: newValue)
-            pageView?.setDarkModeEnhance(newValue)
+        pageView.onEnhanceDarkModeStrengthChanged = { [weak pageView] newStrength in
+            DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: result.dictId, strength: newStrength)
+            pageView?.setDarkModeEnhance(strength: newStrength)
         }
         pageView.onJumpSearch = { [weak self, weak pageView] text in
             guard let self, let pageView else { return }
@@ -1084,8 +1083,11 @@ class ActionViewController: UIViewController {
 
         // Apply display settings before loading content (ArticlePageView auto-applies on didFinish)
         if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
-        if let meta = DictMetadataService.shared.find(dictId: result.dictId), meta.enhanceDarkMode {
-            pageView.setDarkModeEnhance(true)
+        if let meta = DictMetadataService.shared.find(dictId: result.dictId) {
+            if meta.enhanceDarkMode {
+                let strength = EnhanceDarkModeStrength(rawValue: meta.enhanceDarkModeStrength) ?? .standard
+                pageView.setDarkModeEnhance(strength: strength)
+            }
         }
 
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
@@ -1140,8 +1142,11 @@ class ActionViewController: UIViewController {
 
         // 6. Display settings + render
         if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
-        if let meta = DictMetadataService.shared.find(dictId: result.dictId), meta.enhanceDarkMode {
-            pageView.setDarkModeEnhance(true)
+        if let meta = DictMetadataService.shared.find(dictId: result.dictId) {
+            if meta.enhanceDarkMode {
+                let strength = EnhanceDarkModeStrength(rawValue: meta.enhanceDarkModeStrength) ?? .standard
+                pageView.setDarkModeEnhance(strength: strength)
+            }
         }
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html, dictId: result.dictId,

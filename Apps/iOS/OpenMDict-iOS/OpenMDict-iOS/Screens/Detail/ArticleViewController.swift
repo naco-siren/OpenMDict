@@ -312,9 +312,8 @@ class ArticleViewController: UIViewController {
         pages.append(pageView)
         pageLeadingConstraints.append(leadingConstraint)
 
-        // Apply per-dict dark mode enhancement.
-        let shouldEnhance = DictMetadataService.shared.find(dictId: article.dictId)?.enhanceDarkMode ?? false
-        pageView.setDarkModeEnhance(shouldEnhance)
+        // Apply per-dict dark mode enhancement strength.
+        pageView.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: article.dictId))
 
         loadContent(for: article, in: pageView)
 
@@ -365,12 +364,12 @@ class ArticleViewController: UIViewController {
                 self.delegate?.articleViewController(self, didRequestJumpSearch: text, inDict: dictId)
             }
         }
-        pageView.onEnhanceDarkModeTapped = { [weak self] isCurrentlyEnhanced in
+        pageView.onEnhanceDarkModeStrengthChanged = { [weak self] newStrength in
             guard let self else { return }
             if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
                pageIndex < self.articles.count {
                 let dictId = self.articles[pageIndex].dictId
-                DictMetadataService.shared.updateEnhanceDarkMode(dictId: dictId, enhance: !isCurrentlyEnhanced)
+                DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: dictId, strength: newStrength)
             }
         }
         pageView.onCloseTapped = { [weak self] in
@@ -536,8 +535,7 @@ class ArticleViewController: UIViewController {
     /// Called when DictMetadataService revision changes (e.g. user toggled enhanceDarkMode).
     func refreshDarkModeEnhance() {
         for (index, page) in pages.enumerated() where index < articles.count {
-            let shouldEnhance = DictMetadataService.shared.find(dictId: articles[index].dictId)?.enhanceDarkMode ?? false
-            page.setDarkModeEnhance(shouldEnhance)
+            page.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: articles[index].dictId))
         }
     }
 

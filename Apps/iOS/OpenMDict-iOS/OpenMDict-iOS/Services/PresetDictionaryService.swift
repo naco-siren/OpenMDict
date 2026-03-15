@@ -667,7 +667,8 @@ final class PresetDictionaryService {
             jsCount: 0,
             fontsCount: 0,
             cloudSyncStatus: CloudSyncStatus.pending.rawValue,
-            enhanceDarkMode: false
+            enhanceDarkMode: false,
+            enhanceDarkModeStrength: EnhanceDarkModeStrength.standard.rawValue
         )
         storage.addDictionaryMetadata(metadata)
 

@@ -5,7 +5,8 @@
 "APPEARANCE_LIGHT" = "فاتح";
 "APPEARANCE_SYSTEM" = "النظام";
 "APPEARANCE_DARK" = "داكن";
-"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "خيار التحسين في الوضع الداكن";
+"APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "تحسينات في المظهر الداكن";
+
 "SEARCH_GROUP" = "البحث";
 "SEARCH_RESULT_VOLUME" = "نتائج البحث";
 "SEARCH_RESULT_A_FEW" = "قليل جدًا";

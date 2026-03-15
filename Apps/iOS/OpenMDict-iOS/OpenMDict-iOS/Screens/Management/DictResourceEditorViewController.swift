@@ -672,7 +672,9 @@ extension DictResourceEditorViewController: UICollectionViewDelegate {
 
     private func handleEnhanceDarkModeToggle(_ isOn: Bool) {
         guard case .editing(let dictId) = mode else { return }
-        DictMetadataService.shared.updateEnhanceDarkMode(dictId: dictId, enhance: isOn)
+        // Toggle maps to standard tier when turning on, nil (off) when turning off.
+        let strength: EnhanceDarkModeStrength? = isOn ? .standard : nil
+        DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: dictId, strength: strength)
     }
 }
 

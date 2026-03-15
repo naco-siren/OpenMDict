@@ -31,6 +31,7 @@ struct DictMetadata {
     var fontsCount: Int32
     var cloudSyncStatus: Int16
     var enhanceDarkMode: Bool
+    var enhanceDarkModeStrength: Int16
 }
 
 // MARK: - Service
@@ -190,11 +191,17 @@ final class DictMetadataService {
         save(ctx)
     }
 
-    /// Toggle dark mode enhancement for a dictionary.
-    func updateEnhanceDarkMode(dictId: String, enhance: Bool) {
+    /// Set dark mode enhancement strength for a dictionary.
+    /// `nil` turns off enhancement; a tier value turns it on with that gamma.
+    /// Both `enhanceDarkMode` (Bool, for CloudKit compat) and
+    /// `enhanceDarkModeStrength` (Int16 signed tier) are written together.
+    func updateEnhanceDarkModeStrength(dictId: String, strength: EnhanceDarkModeStrength?) {
         let ctx = stack.viewContext
         guard let record = fetchRecord(dictId: dictId) else { return }
-        record.enhanceDarkMode = enhance
+        record.enhanceDarkMode = strength != nil
+        if let tier = strength {
+            record.enhanceDarkModeStrength = tier.rawValue
+        }
         record.updatedAt = Date()
         save(ctx)
         revision += 1
@@ -259,7 +266,8 @@ extension DictionaryMetadataRecord {
             jsCount: jsCount,
             fontsCount: fontsCount,
             cloudSyncStatus: cloudSyncStatus,
-            enhanceDarkMode: enhanceDarkMode
+            enhanceDarkMode: enhanceDarkMode,
+            enhanceDarkModeStrength: enhanceDarkModeStrength
         )
     }
 }

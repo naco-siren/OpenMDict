@@ -60,7 +60,11 @@ nonisolated public class DictionaryMetadataRecord: NSManagedObject {
 
     // MARK: - Display Settings
 
-    /// When true, apply CSS `filter: invert(1) hue-rotate(180deg)` in dark mode
-    /// to fix readability for dictionaries that hardcode light-mode colors.
+    /// Whether dark mode enhancement is enabled for this dictionary.
+    /// Kept for CloudKit production schema backward compatibility.
     @NSManaged public var enhanceDarkMode: Bool
+
+    /// Gamma strength when enhancement is on (1=gentle, 2=moderate, 3=strong).
+    /// Default 2 (moderate).  Only meaningful when `enhanceDarkMode == true`.
+    @NSManaged public var enhanceDarkModeStrength: Int16
 }

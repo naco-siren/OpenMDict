@@ -812,6 +812,32 @@ nonisolated enum L10n {
             NSLocalizedString("detail.importingDictionary", value: "Importing dictionary\u{2026}", comment: "Loading modal text during dict import")
         }
 
+        // Enhance dark mode strength (tap menu on moon button).
+        // "Dim/bright" avoids collision with "light/dark" appearance terminology.
+        static var enhanceDarkModeNone: String {
+            NSLocalizedString("detail.enhanceDarkModeNone", value: "None", comment: "Turn off dark mode enhancement for this dictionary")
+        }
+        static var enhanceDimmest: String {
+            NSLocalizedString("detail.enhanceDimmest", value: "Dimmest", comment: "Dimmest dark mode enhancement tier (gamma=0.4)")
+        }
+        static var enhanceDimmer: String {
+            NSLocalizedString("detail.enhanceDimmer", value: "Dimmer", comment: "Dimmer dark mode enhancement tier (gamma=0.6)")
+        }
+        static var enhanceDim: String {
+            NSLocalizedString("detail.enhanceDim", value: "Dim", comment: "Dim dark mode enhancement tier (gamma=0.8)")
+        }
+        static var enhanceStandard: String {
+            NSLocalizedString("detail.enhanceStandard", value: "Standard", comment: "Standard/baseline dark mode enhancement tier (gamma=1.0)")
+        }
+        static var enhanceBright: String {
+            NSLocalizedString("detail.enhanceBright", value: "Bright", comment: "Bright dark mode enhancement tier (gamma=1.2)")
+        }
+        static var enhanceBrighter: String {
+            NSLocalizedString("detail.enhanceBrighter", value: "Brighter", comment: "Brighter dark mode enhancement tier (gamma=1.4)")
+        }
+        static var enhanceBrightest: String {
+            NSLocalizedString("detail.enhanceBrightest", value: "Brightest", comment: "Brightest dark mode enhancement tier (gamma=1.6)")
+        }
     }
 
     // MARK: - Group Info (additional nav titles)
