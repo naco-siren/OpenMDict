@@ -813,6 +813,16 @@ nonisolated enum L10n {
         }
 
         // Enhance dark mode strength (tap menu on moon button).
+        // --- Enhance Dark Mode popover ---
+        static var enhanceDarkModeTitle: String {
+            NSLocalizedString("detail.enhanceDarkModeTitle", value: "Dark Enhancements", comment: "Popover title for per-dict dark mode enhancement slider")
+        }
+        static var enhanceDarkModeEnabled: String {
+            NSLocalizedString("detail.enhanceDarkModeEnabled", value: "Enabled", comment: "Switch label to enable/disable dark mode enhancement")
+        }
+        static var enhanceDarkModeAdjustment: String {
+            NSLocalizedString("detail.enhanceDarkModeAdjustment", value: "Adjustment", comment: "Label for the enhancement strength adjustment row")
+        }
         // "Dim/bright" avoids collision with "light/dark" appearance terminology.
         static var enhanceDarkModeNone: String {
             NSLocalizedString("detail.enhanceDarkModeNone", value: "None", comment: "Turn off dark mode enhancement for this dictionary")

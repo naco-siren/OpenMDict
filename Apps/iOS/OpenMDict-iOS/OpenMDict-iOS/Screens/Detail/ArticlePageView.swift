@@ -179,13 +179,7 @@ class ArticlePageView: UIView {
 
         if features.contains(.enhanceDarkMode) {
             let btn = Self.makeHeaderButton(systemName: "moon.stars")
-            // Single-tap shows strength picker menu (None | Dimmest…Brightest).
-            let deferred = UIDeferredMenuElement.uncached { [weak self] completion in
-                guard let self else { completion([]); return }
-                completion(self.enhanceDarkModeStrengthActions())
-            }
-            btn.menu = UIMenu(title: L10n.DictInfo.enhanceDarkMode, children: [deferred])
-            btn.showsMenuAsPrimaryAction = true
+            btn.addTarget(self, action: #selector(enhanceButtonTapped(_:)), for: .touchUpInside)
             enhanceDarkModeButton = btn
             toolbarButtons.append(btn)
         }
@@ -605,47 +599,36 @@ class ArticlePageView: UIView {
         onCloseTapped?()
     }
 
-    /// Build menu elements for the enhance dark mode strength picker.
-    /// "None" sits alone at top; 7 tiers (dimmest…brightest) appear below a
-    /// separator, achieved via `.displayInline` submenu.
-    private func enhanceDarkModeStrengthActions() -> [UIMenuElement] {
-        let current = enhanceStrength
+    @objc private func enhanceButtonTapped(_ sender: UIButton) {
+        guard let parentVC = sequence(first: self as UIResponder, next: { $0.next })
+                .compactMap({ $0 as? UIViewController }).first else { return }
 
-        // "None" = turn off enhancement
-        let noneAction = UIAction(
-            title: L10n.Detail.enhanceDarkModeNone,
-            state: current == nil ? .on : .off
-        ) { [weak self] _ in
-            guard let self, self.enhanceStrength != nil else { return }
-            self.onEnhanceDarkModeStrengthChanged?(nil)
-        }
-
-        // 7 tiers: dimmest … brightest.
-        // Icons: negative tiers use outline circles (N.circle),
-        // standard uses ±, positive tiers use filled circles (N.circle.fill).
-        let tierEntries: [(EnhanceDarkModeStrength, String, String)] = [
-            (.dimmest,   L10n.Detail.enhanceDimmest,  "3.circle"),
-            (.dimmer,    L10n.Detail.enhanceDimmer,    "2.circle"),
-            (.dim,       L10n.Detail.enhanceDim,       "1.circle"),
-            (.standard,  L10n.Detail.enhanceStandard,  "minus.forwardslash.plus"),
-            (.bright,    L10n.Detail.enhanceBright,    "1.circle.fill"),
-            (.brighter,  L10n.Detail.enhanceBrighter,  "2.circle.fill"),
-            (.brightest, L10n.Detail.enhanceBrightest, "3.circle.fill"),
-        ]
-        let tierActions = tierEntries.map { tier, label, icon in
-            UIAction(
-                title: label,
-                image: UIImage(systemName: icon),
-                state: current == tier ? .on : .off
-            ) { [weak self] _ in
-                guard let self, self.enhanceStrength != tier else { return }
-                self.onEnhanceDarkModeStrengthChanged?(tier)
+        let sliderVC = EnhanceDarkModeSliderVC(
+            current: enhanceStrength,
+            onPreview: { [weak self] strength in
+                // Real-time preview while dragging — apply filter without persisting.
+                self?.enhanceStrength = strength
+                self?.webView.overrideUserInterfaceStyle = strength != nil ? .light : .unspecified
+                self?.applyDarkModeFilter()
+                self?.updateEnhanceDarkModeButtonAppearance()
+            },
+            onCommit: { [weak self] strength in
+                // Persist final value on popover dismiss.
+                self?.onEnhanceDarkModeStrengthChanged?(strength)
             }
-        }
+        )
 
-        // Inline submenu renders as a separator between "None" and the tiers.
-        let tiersGroup = UIMenu(title: "", options: .displayInline, children: tierActions)
-        return [noneAction, tiersGroup]
+        // Wrap in UINavigationController for a centered title bar.
+        let nav = UINavigationController(rootViewController: sliderVC)
+        nav.modalPresentationStyle = .popover
+        nav.preferredContentSize = sliderVC.fittingSize
+        if let popover = nav.popoverPresentationController {
+            popover.sourceView = sender
+            popover.sourceRect = sender.bounds
+            popover.permittedArrowDirections = [.up, .down]
+            popover.delegate = sliderVC
+        }
+        parentVC.present(nav, animated: true)
     }
 
     private func updateEnhanceDarkModeButtonAppearance() {
@@ -797,5 +780,260 @@ extension ArticlePageView.Configuration {
     /// Action Extension pager pages (ActionViewController) — 64pt header, no toolbar buttons.
     static func actionExtension(webViewConfig: WKWebViewConfiguration) -> Self {
         .init(features: .actionExtension, webViewConfiguration: webViewConfig)
+    }
+}
+
+// MARK: - Enhance Dark Mode Slider Popover (PoC)
+
+/// Compact popover with `.insetGrouped` table for per-dict enhance dark mode.
+///
+/// Layout (always two sections, stateless height):
+///   ╭─ Dark Enhancements ─────────────────╮
+///   │  Enabled                       [ON]  │
+///   ╰──────────────────────────────────────╯
+///   ╭──────────────────────────────────────╮
+///   │  Adjustment              « Bright »  │
+///   │  Dim ━━━━━━━━━━━●━━━━━━━━━ Bright    │
+///   ╰──────────────────────────────────────╯
+///
+/// When disabled, the slider and adjustment label are dimmed (`isEnabled = false`)
+/// but remain visible so the popover height never changes.
+/// Real-time preview via `onPreview` during drag; persists via `onCommit` on dismiss.
+final class EnhanceDarkModeSliderVC: UITableViewController, UIPopoverPresentationControllerDelegate {
+
+    private let initialStrength: EnhanceDarkModeStrength?
+    private var currentStrength: EnhanceDarkModeStrength?
+    private let onPreview: (EnhanceDarkModeStrength?) -> Void
+    private let onCommit: (EnhanceDarkModeStrength?) -> Void
+
+    // --- Reusable controls (stored to read/write state) ---
+    private let enabledSwitch = UISwitch()
+    private weak var adjustmentDetailLabel: UILabel?
+    private let slider = UISlider()
+    /// Stored for dimming when switch is off.
+    private weak var adjustmentTextLabel: UILabel?
+    private weak var dimLabel: UILabel?
+    private weak var brightLabel: UILabel?
+
+    private enum Section: Int, CaseIterable {
+        case toggle = 0
+        case adjustment = 1
+    }
+    private enum AdjustmentRow: Int, CaseIterable {
+        case label = 0
+        case slider = 1
+    }
+
+    private var isOn: Bool { currentStrength != nil }
+
+    private static let popoverWidth: CGFloat = 300
+    // Hardcoded — contentSize is unreliable before popover presentation.
+    // navBar(44) + s0(12+44+8) + s1(8+44+44+8) = 212, minus 24 = 188.
+    private static let popoverHeight: CGFloat = 188
+
+    init(current: EnhanceDarkModeStrength?,
+         onPreview: @escaping (EnhanceDarkModeStrength?) -> Void,
+         onCommit: @escaping (EnhanceDarkModeStrength?) -> Void) {
+        self.initialStrength = current
+        self.currentStrength = current
+        self.onPreview = onPreview
+        self.onCommit = onCommit
+        super.init(style: .insetGrouped)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    var fittingSize: CGSize {
+        CGSize(width: Self.popoverWidth, height: Self.popoverHeight)
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        title = L10n.Detail.enhanceDarkModeTitle
+
+        tableView.isScrollEnabled = false
+        tableView.cellLayoutMarginsFollowReadableWidth = false
+
+        // --- Configure controls once ---
+        enabledSwitch.isOn = isOn
+        enabledSwitch.addTarget(self, action: #selector(switchToggled(_:)), for: .valueChanged)
+
+        slider.minimumValue = 0
+        slider.maximumValue = Float(EnhanceDarkModeStrength.allTiers.count - 1)
+        if let s = currentStrength, let idx = EnhanceDarkModeStrength.allTiers.firstIndex(of: s) {
+            slider.value = Float(idx)
+        } else {
+            slider.value = Float(EnhanceDarkModeStrength.allTiers.firstIndex(of: .standard) ?? 3)
+        }
+        slider.isEnabled = isOn
+        slider.isContinuous = true
+        slider.addTarget(self, action: #selector(sliderChanged(_:)), for: .valueChanged)
+        slider.addTarget(self, action: #selector(sliderEnded(_:)), for: [.touchUpInside, .touchUpOutside])
+    }
+
+    // MARK: - UITableViewDataSource
+
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        Section.allCases.count  // always 2
+    }
+
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        switch Section(rawValue: section)! {
+        case .toggle:     return 1
+        case .adjustment: return AdjustmentRow.allCases.count
+        }
+    }
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        switch Section(rawValue: indexPath.section)! {
+        case .toggle:
+            let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
+            cell.textLabel?.text = L10n.Detail.enhanceDarkModeEnabled
+            cell.accessoryView = enabledSwitch
+            cell.selectionStyle = .none
+            return cell
+
+        case .adjustment:
+            switch AdjustmentRow(rawValue: indexPath.row)! {
+            case .label:
+                let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
+                cell.textLabel?.text = L10n.Detail.enhanceDarkModeAdjustment
+                cell.selectionStyle = .none
+                adjustmentTextLabel = cell.textLabel
+                adjustmentDetailLabel = cell.detailTextLabel
+                updateAdjustmentLabel()
+                updateSliderEnabledAppearance()
+                return cell
+
+            case .slider:
+                let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
+                cell.selectionStyle = .none
+
+                let dim = UILabel()
+                dim.text = L10n.Detail.enhanceDim
+                dim.font = .preferredFont(forTextStyle: .caption1)
+                dim.textColor = .tertiaryLabel
+                dim.setContentHuggingPriority(.required, for: .horizontal)
+                self.dimLabel = dim
+
+                let bright = UILabel()
+                bright.text = L10n.Detail.enhanceBright
+                bright.font = .preferredFont(forTextStyle: .caption1)
+                bright.textColor = .tertiaryLabel
+                bright.setContentHuggingPriority(.required, for: .horizontal)
+                self.brightLabel = bright
+
+                let stack = UIStackView(arrangedSubviews: [dim, slider, bright])
+                stack.axis = .horizontal
+                stack.spacing = 8
+                stack.alignment = .center
+                stack.translatesAutoresizingMaskIntoConstraints = false
+
+                cell.contentView.addSubview(stack)
+                NSLayoutConstraint.activate([
+                    stack.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 6),
+                    stack.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -6),
+                    stack.leadingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.leadingAnchor),
+                    stack.trailingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.trailingAnchor),
+                ])
+                updateSliderEnabledAppearance()
+                return cell
+            }
+        }
+    }
+
+    // MARK: - Section spacing (compact popover, minimize "chin")
+
+    override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        section == 0 ? 12 : 8
+    }
+
+    override func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        8
+    }
+
+    override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? { UIView() }
+    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { UIView() }
+
+    // MARK: - Tier display names
+
+    private func tierDisplayName(for strength: EnhanceDarkModeStrength) -> String {
+        switch strength {
+        case .dimmest:  return L10n.Detail.enhanceDimmest
+        case .dimmer:   return L10n.Detail.enhanceDimmer
+        case .dim:      return L10n.Detail.enhanceDim
+        case .standard: return L10n.Detail.enhanceStandard
+        case .bright:   return L10n.Detail.enhanceBright
+        case .brighter: return L10n.Detail.enhanceBrighter
+        case .brightest: return L10n.Detail.enhanceBrightest
+        }
+    }
+
+    // MARK: - Actions
+
+    @objc private func switchToggled(_ sender: UISwitch) {
+        if sender.isOn {
+            currentStrength = .standard
+            if let idx = EnhanceDarkModeStrength.allTiers.firstIndex(of: .standard) {
+                slider.setValue(Float(idx), animated: true)
+            }
+        } else {
+            currentStrength = nil
+        }
+        updateAdjustmentLabel()
+        updateSliderEnabledAppearance()
+        onPreview(currentStrength)
+    }
+
+    @objc private func sliderChanged(_ sender: UISlider) {
+        let idx = Int(sender.value.rounded())
+        let clamped = min(max(idx, 0), EnhanceDarkModeStrength.allTiers.count - 1)
+        let strength = EnhanceDarkModeStrength.allTiers[clamped]
+        guard strength != currentStrength else { return }
+        currentStrength = strength
+        updateAdjustmentLabel()
+        onPreview(strength)
+    }
+
+    @objc private func sliderEnded(_ sender: UISlider) {
+        let idx = Int(sender.value.rounded())
+        let clamped = Float(min(max(idx, 0), EnhanceDarkModeStrength.allTiers.count - 1))
+        UIView.animate(withDuration: 0.15) {
+            sender.setValue(clamped, animated: true)
+        }
+    }
+
+    private func updateAdjustmentLabel() {
+        if let s = currentStrength {
+            adjustmentDetailLabel?.text = tierDisplayName(for: s)
+        } else {
+            adjustmentDetailLabel?.text = tierDisplayName(for: .standard)
+        }
+    }
+
+    /// Dim/undim the adjustment section based on the enabled switch.
+    private func updateSliderEnabledAppearance() {
+        let enabled = isOn
+        slider.isEnabled = enabled
+        let textColor: UIColor = enabled ? .label : .tertiaryLabel
+        let detailColor: UIColor = enabled ? .secondaryLabel : .tertiaryLabel
+        adjustmentTextLabel?.textColor = textColor
+        adjustmentDetailLabel?.textColor = detailColor
+        dimLabel?.textColor = enabled ? .tertiaryLabel : .quaternaryLabel
+        brightLabel?.textColor = enabled ? .tertiaryLabel : .quaternaryLabel
+    }
+
+    // MARK: - Popover delegate
+
+    func adaptivePresentationStyle(for controller: UIPresentationController,
+                                   traitCollection: UITraitCollection) -> UIModalPresentationStyle {
+        .none
+    }
+
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        if currentStrength != initialStrength {
+            onCommit(currentStrength)
+        }
     }
 }
