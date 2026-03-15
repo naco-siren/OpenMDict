@@ -8,13 +8,17 @@
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Aprimoramentos no modo escuro";
 
 "SEARCH_GROUP" = "Pesquisa";
+"SEARCH_AUTO_FOCUS" = "Foco automático no campo";
+"SEARCH_LOAD_ORDER" = "Ordem de carregamento dos dicionários";
+"LOAD_ORDER_GROUP" = "Por ordem do grupo";
+"LOAD_ORDER_AUTO" = "Automático";
+"LOAD_ORDER_SMALLEST" = "Menor primeiro";
 "SEARCH_RESULT_VOLUME" = "Resultados da pesquisa";
 "SEARCH_RESULT_A_FEW" = "Muito poucos";
 "SEARCH_RESULT_LESS" = "Menos";
 "SEARCH_RESULT_DEFAULT" = "Padrão";
 "SEARCH_RESULT_MORE" = "Mais";
 "SEARCH_RESULT_A_LOT" = "Muitos";
-"SEARCH_AUTO_FOCUS" = "Foco automático no campo";
 
 "ARTICLES_GROUP" = "Verbetes";
 "ARTICLES_CAPACITY" = "Máx. de entradas abertas";

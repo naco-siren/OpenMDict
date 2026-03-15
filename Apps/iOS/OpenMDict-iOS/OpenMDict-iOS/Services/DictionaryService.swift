@@ -464,8 +464,9 @@ final class DictionaryService: ObservableObject {
     /// MDict.$state changes will notify subscribers directly
     func loadAllDictionaries() async {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
-        for dict in allDictionaries {
+        let loadSequence = sortedLoadSequence()
+
+        for dict in loadSequence {
             do {
                 try await dict.load()
                 print("✅ Loaded: \(dict.loggingTitle)")
@@ -475,6 +476,60 @@ final class DictionaryService: ObservableObject {
         }
         let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
         print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms")
+    }
+
+    // MARK: - Load Order
+
+    private enum DictionaryLoadOrder: Int {
+        case byGroupOrder  = 0
+        case auto          = 1  // Top-1 guaranteed + WSJF w=0.4
+        case smallestFirst = 2
+    }
+
+    /// Sort `allDictionaries` for loading based on user setting.
+    /// Does NOT mutate `allDictionaries` — display/search order is unaffected.
+    private func sortedLoadSequence() -> [MDict] {
+        let raw = UserDefaults.standard.integer(forKey: "dictionaryLoadOrder")
+        let order = DictionaryLoadOrder(rawValue: raw) ?? .auto
+        let defaultIds = defaultGroup?.dictionaryIds ?? []
+
+        switch order {
+        case .byGroupOrder:
+            return allDictionaries.sorted { a, b in
+                let ai = defaultIds.firstIndex(of: a.id) ?? Int.max
+                let bi = defaultIds.firstIndex(of: b.id) ?? Int.max
+                return ai < bi
+            }
+
+        case .auto:
+            // Top-1 always loads first; rest sorted by WSJF score
+            let metadataMap = Dictionary(
+                uniqueKeysWithValues: DictMetadataService.shared.loadAll().map { ($0.dictId, $0) }
+            )
+            let topId = defaultIds.first
+            let rest = allDictionaries.filter { $0.id != topId }
+            let sortedRest = rest.sorted { a, b in
+                let ai = defaultIds.firstIndex(of: a.id) ?? allDictionaries.count
+                let bi = defaultIds.firstIndex(of: b.id) ?? allDictionaries.count
+                let sizeA = Double(metadataMap[a.id]?.totalSizeKB ?? 0)
+                let sizeB = Double(metadataMap[b.id]?.totalSizeKB ?? 0)
+                let scoreA = sizeA * (1.0 + Double(ai) * 0.4)
+                let scoreB = sizeB * (1.0 + Double(bi) * 0.4)
+                return scoreA < scoreB
+            }
+            if let topDict = allDictionaries.first(where: { $0.id == topId }) {
+                return [topDict] + sortedRest
+            }
+            return sortedRest
+
+        case .smallestFirst:
+            let metadataMap = Dictionary(
+                uniqueKeysWithValues: DictMetadataService.shared.loadAll().map { ($0.dictId, $0) }
+            )
+            return allDictionaries.sorted { a, b in
+                (metadataMap[a.id]?.totalSizeKB ?? 0) < (metadataMap[b.id]?.totalSizeKB ?? 0)
+            }
+        }
     }
     
     // MARK: - Import / Delete / Persist

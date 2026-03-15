@@ -8,13 +8,17 @@
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "ダークモードで表示を強化";
 
 "SEARCH_GROUP" = "検索";
+"SEARCH_AUTO_FOCUS" = "検索入力欄を自動フォーカス";
+"SEARCH_LOAD_ORDER" = "辞書の読み込み順序";
+"LOAD_ORDER_GROUP" = "グループ順";
+"LOAD_ORDER_AUTO" = "自動";
+"LOAD_ORDER_SMALLEST" = "小さい順";
 "SEARCH_RESULT_VOLUME" = "検索結果の量";
 "SEARCH_RESULT_A_FEW" = "最小";
 "SEARCH_RESULT_LESS" = "少なめ";
 "SEARCH_RESULT_DEFAULT" = "標準";
 "SEARCH_RESULT_MORE" = "多め";
 "SEARCH_RESULT_A_LOT" = "最大";
-"SEARCH_AUTO_FOCUS" = "検索入力欄を自動フォーカス";
 
 "ARTICLES_GROUP" = "項目";
 "ARTICLES_CAPACITY" = "同時に開ける項目の上限";

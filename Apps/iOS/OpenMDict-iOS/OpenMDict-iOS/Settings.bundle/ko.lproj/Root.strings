@@ -8,13 +8,17 @@
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "다크 모드에서 향상 기능 제공";
 
 "SEARCH_GROUP" = "검색";
+"SEARCH_AUTO_FOCUS" = "검색 입력란 자동 포커스";
+"SEARCH_LOAD_ORDER" = "사전 로딩 순서";
+"LOAD_ORDER_GROUP" = "그룹 순서";
+"LOAD_ORDER_AUTO" = "자동";
+"LOAD_ORDER_SMALLEST" = "작은 순서";
 "SEARCH_RESULT_VOLUME" = "검색 결과 수";
 "SEARCH_RESULT_A_FEW" = "매우 적게";
 "SEARCH_RESULT_LESS" = "적게";
 "SEARCH_RESULT_DEFAULT" = "기본값";
 "SEARCH_RESULT_MORE" = "많이";
 "SEARCH_RESULT_A_LOT" = "매우 많이";
-"SEARCH_AUTO_FOCUS" = "검색 입력란 자동 포커스";
 
 "ARTICLES_GROUP" = "항목";
 "ARTICLES_CAPACITY" = "최대 열린 항목 수";

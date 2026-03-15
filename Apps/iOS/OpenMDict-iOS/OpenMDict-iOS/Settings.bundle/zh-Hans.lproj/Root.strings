@@ -8,13 +8,17 @@
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "在深色外观下提供增强";
 
 "SEARCH_GROUP" = "搜索";
+"SEARCH_AUTO_FOCUS" = "自动聚焦查词输入框";
+"SEARCH_LOAD_ORDER" = "词典加载顺序";
+"LOAD_ORDER_GROUP" = "按分组排序";
+"LOAD_ORDER_AUTO" = "自动";
+"LOAD_ORDER_SMALLEST" = "最小优先";
 "SEARCH_RESULT_VOLUME" = "搜索结果量";
 "SEARCH_RESULT_A_FEW" = "很少";
 "SEARCH_RESULT_LESS" = "较少";
 "SEARCH_RESULT_DEFAULT" = "默认";
 "SEARCH_RESULT_MORE" = "较多";
 "SEARCH_RESULT_A_LOT" = "很多";
-"SEARCH_AUTO_FOCUS" = "自动聚焦查词输入框";
 
 "ARTICLES_GROUP" = "词条";
 "ARTICLES_CAPACITY" = "同时打开词条上限";

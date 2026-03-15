@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "searchResultVolume": 2, // .normal (Default)
             "articlesCapacity": 1,  // .normal (Default)
             "searchAutoFocus": true,
+            "dictionaryLoadOrder": 1,  // .auto (Top-1 + WSJF w=0.4)
             "showLookupCount": true,
             "showEnhanceDarkMode": true,
         ]

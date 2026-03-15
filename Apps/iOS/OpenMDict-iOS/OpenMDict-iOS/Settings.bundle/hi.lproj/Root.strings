@@ -8,13 +8,17 @@
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "डार्क मोड में सुधार प्रदान करें";
 
 "SEARCH_GROUP" = "खोज";
+"SEARCH_AUTO_FOCUS" = "खोज फ़ील्ड ऑटो-फ़ोकस";
+"SEARCH_LOAD_ORDER" = "शब्दकोश लोडिंग क्रम";
+"LOAD_ORDER_GROUP" = "समूह क्रम के अनुसार";
+"LOAD_ORDER_AUTO" = "स्वचालित";
+"LOAD_ORDER_SMALLEST" = "सबसे छोटा पहले";
 "SEARCH_RESULT_VOLUME" = "खोज परिणाम";
 "SEARCH_RESULT_A_FEW" = "बहुत कम";
 "SEARCH_RESULT_LESS" = "कम";
 "SEARCH_RESULT_DEFAULT" = "डिफ़ॉल्ट";
 "SEARCH_RESULT_MORE" = "अधिक";
 "SEARCH_RESULT_A_LOT" = "बहुत अधिक";
-"SEARCH_AUTO_FOCUS" = "खोज फ़ील्ड ऑटो-फ़ोकस";
 
 "ARTICLES_GROUP" = "प्रविष्टियाँ";
 "ARTICLES_CAPACITY" = "अधिकतम खुली प्रविष्टियाँ";

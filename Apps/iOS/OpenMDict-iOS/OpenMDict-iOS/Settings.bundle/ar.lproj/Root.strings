@@ -8,13 +8,17 @@
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "تحسينات في المظهر الداكن";
 
 "SEARCH_GROUP" = "البحث";
+"SEARCH_AUTO_FOCUS" = "التركيز التلقائي على حقل البحث";
+"SEARCH_LOAD_ORDER" = "ترتيب تحميل القواميس";
+"LOAD_ORDER_GROUP" = "حسب ترتيب المجموعة";
+"LOAD_ORDER_AUTO" = "تلقائي";
+"LOAD_ORDER_SMALLEST" = "الأصغر أولاً";
 "SEARCH_RESULT_VOLUME" = "نتائج البحث";
 "SEARCH_RESULT_A_FEW" = "قليل جدًا";
 "SEARCH_RESULT_LESS" = "أقل";
 "SEARCH_RESULT_DEFAULT" = "الافتراضي";
 "SEARCH_RESULT_MORE" = "أكثر";
 "SEARCH_RESULT_A_LOT" = "كثير جدًا";
-"SEARCH_AUTO_FOCUS" = "التركيز التلقائي على حقل البحث";
 
 "ARTICLES_GROUP" = "المدخلات";
 "ARTICLES_CAPACITY" = "الحد الأقصى للمدخلات المفتوحة";
