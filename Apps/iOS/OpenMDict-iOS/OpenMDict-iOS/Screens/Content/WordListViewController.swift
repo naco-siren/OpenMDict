@@ -193,7 +193,7 @@ class WordListViewController: UIViewController {
         navigationController?.navigationBar.prefersLargeTitles = false
         
         navigationItem.backButtonDisplayMode = .default
-        navigationItem.backButtonTitle = L10n.WordList.wordSearch
+        navigationItem.backButtonTitle = L10n.WordList.backButtonTitle
 
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false

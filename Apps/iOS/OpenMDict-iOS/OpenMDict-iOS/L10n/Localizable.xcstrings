@@ -30784,13 +30784,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "搜索结果"
+            "value" : "查询结果"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "搜尋結果"
+            "value" : "查詢結果"
           }
         }
       }
@@ -31131,38 +31131,38 @@
         }
       }
     },
-    "wordList.wordSearch" : {
+    "wordList.backButtonTitle" : {
       "comment" : "Back button title",
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "بحث عن كلمة"
+            "value" : "بحث الكلمات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wortsuche"
+            "value" : "Nachschlagen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Word Search"
+            "value" : "Word Lookup"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buscar palabras"
+            "value" : "Consulta"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recherche de mots"
+            "value" : "Consultation"
           }
         },
         "hi" : {
@@ -31186,7 +31186,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buscar palavras"
+            "value" : "Consulta"
           }
         },
         "ru" : {

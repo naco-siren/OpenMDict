@@ -7,18 +7,18 @@
 "APPEARANCE_DARK" = "داكن";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "تحسينات في المظهر الداكن";
 
-"SEARCH_GROUP" = "البحث";
-"SEARCH_AUTO_FOCUS" = "التركيز التلقائي على حقل البحث";
-"SEARCH_LOAD_ORDER" = "ترتيب تحميل القواميس";
+"LOOKUP_GROUP" = "البحث عن الكلمات";
+"LOOKUP_DICTIONARY_LOAD_ORDER" = "ترتيب تحميل القواميس";
 "LOAD_ORDER_GROUP" = "حسب ترتيب المجموعة";
 "LOAD_ORDER_AUTO" = "تلقائي";
 "LOAD_ORDER_SMALLEST" = "الأصغر أولاً";
-"SEARCH_RESULT_VOLUME" = "نتائج البحث";
-"SEARCH_RESULT_A_FEW" = "قليل جدًا";
-"SEARCH_RESULT_LESS" = "أقل";
-"SEARCH_RESULT_DEFAULT" = "الافتراضي";
-"SEARCH_RESULT_MORE" = "أكثر";
-"SEARCH_RESULT_A_LOT" = "كثير جدًا";
+"LOOKUP_SEARCH_AUTO_FOCUS" = "التركيز التلقائي على شريط البحث";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "حجم نتائج البحث لكل قاموس";
+"LOOKUP_SEARCH_RESULT_A_FEW" = "قليل جدًا";
+"LOOKUP_SEARCH_RESULT_LESS" = "أقل";
+"LOOKUP_SEARCH_RESULT_DEFAULT" = "الافتراضي";
+"LOOKUP_SEARCH_RESULT_MORE" = "أكثر";
+"LOOKUP_SEARCH_RESULT_A_LOT" = "كثير جدًا";
 
 "ARTICLES_GROUP" = "المدخلات";
 "ARTICLES_CAPACITY" = "الحد الأقصى للمدخلات المفتوحة";

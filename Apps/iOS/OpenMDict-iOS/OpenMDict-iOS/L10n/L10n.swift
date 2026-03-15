@@ -249,8 +249,8 @@ nonisolated enum L10n {
                 query
             )
         }
-        static var wordSearch: String {
-            NSLocalizedString("wordList.wordSearch", value: "Word Search", comment: "Back button title")
+        static var backButtonTitle: String {
+            NSLocalizedString("wordList.backButtonTitle", value: "Word Lookup", comment: "Back button title")
         }
 
         // Section headers (enhanced search UX)
@@ -267,7 +267,7 @@ nonisolated enum L10n {
             NSLocalizedString("wordList.clipboardPasteFromClipboard", value: "Paste from clipboard", comment: "Clipboard cell text on iOS 16+ — tapping triggers paste permission alert")
         }
         static var searchResultsHeader: String {
-            NSLocalizedString("wordList.searchResultsHeader", value: "Search Results", comment: "Section header for search results")
+            NSLocalizedString("wordList.searchResultsHeader", value: "Search Results", comment: "Section header for search results in word list")
         }
         static var relatedFormsHeader: String {
             NSLocalizedString("wordList.relatedFormsHeader", value: "Related Forms", comment: "Section header for lemma-resolved related word forms (inflections, base forms)")

@@ -7,18 +7,18 @@
 "APPEARANCE_DARK" = "Тёмная";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Улучшения в тёмном режиме";
 
-"SEARCH_GROUP" = "Поиск";
-"SEARCH_AUTO_FOCUS" = "Автофокус поля поиска";
-"SEARCH_LOAD_ORDER" = "Порядок загрузки словарей";
+"LOOKUP_GROUP" = "Поиск слов";
+"LOOKUP_DICTIONARY_LOAD_ORDER" = "Порядок загрузки словарей";
 "LOAD_ORDER_GROUP" = "По порядку группы";
 "LOAD_ORDER_AUTO" = "Авто";
 "LOAD_ORDER_SMALLEST" = "Сначала маленькие";
-"SEARCH_RESULT_VOLUME" = "Объём результатов";
-"SEARCH_RESULT_A_FEW" = "Очень мало";
-"SEARCH_RESULT_LESS" = "Меньше";
-"SEARCH_RESULT_DEFAULT" = "По умолчанию";
-"SEARCH_RESULT_MORE" = "Больше";
-"SEARCH_RESULT_A_LOT" = "Очень много";
+"LOOKUP_SEARCH_AUTO_FOCUS" = "Автофокус строки поиска";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Объём результатов на словарь";
+"LOOKUP_SEARCH_RESULT_A_FEW" = "Очень мало";
+"LOOKUP_SEARCH_RESULT_LESS" = "Меньше";
+"LOOKUP_SEARCH_RESULT_DEFAULT" = "По умолчанию";
+"LOOKUP_SEARCH_RESULT_MORE" = "Больше";
+"LOOKUP_SEARCH_RESULT_A_LOT" = "Очень много";
 
 "ARTICLES_GROUP" = "Записи";
 "ARTICLES_CAPACITY" = "Макс. открытых записей";

@@ -48,13 +48,13 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
-			<string>SEARCH_GROUP</string>
+			<string>LOOKUP_GROUP</string>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
 			<key>Title</key>
-			<string>SEARCH_LOAD_ORDER</string>
+			<string>LOOKUP_DICTIONARY_LOAD_ORDER</string>
 			<key>Key</key>
 			<string>dictionaryLoadOrder</string>
 			<key>DefaultValue</key>
@@ -76,7 +76,7 @@
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 			<key>Title</key>
-			<string>SEARCH_AUTO_FOCUS</string>
+			<string>LOOKUP_SEARCH_AUTO_FOCUS</string>
 			<key>Key</key>
 			<string>searchAutoFocus</string>
 			<key>DefaultValue</key>
@@ -86,18 +86,18 @@
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
 			<key>Title</key>
-			<string>SEARCH_RESULT_VOLUME</string>
+			<string>LOOKUP_SEARCH_RESULT_VOLUME</string>
 			<key>Key</key>
 			<string>searchResultVolume</string>
 			<key>DefaultValue</key>
 			<integer>2</integer>
 			<key>Titles</key>
 			<array>
-				<string>SEARCH_RESULT_A_FEW</string>
-				<string>SEARCH_RESULT_LESS</string>
-				<string>SEARCH_RESULT_DEFAULT</string>
-				<string>SEARCH_RESULT_MORE</string>
-				<string>SEARCH_RESULT_A_LOT</string>
+				<string>LOOKUP_SEARCH_RESULT_A_FEW</string>
+				<string>LOOKUP_SEARCH_RESULT_LESS</string>
+				<string>LOOKUP_SEARCH_RESULT_DEFAULT</string>
+				<string>LOOKUP_SEARCH_RESULT_MORE</string>
+				<string>LOOKUP_SEARCH_RESULT_A_LOT</string>
 			</array>
 			<key>Values</key>
 			<array>

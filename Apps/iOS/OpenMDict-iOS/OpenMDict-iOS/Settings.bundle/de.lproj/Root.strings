@@ -7,18 +7,18 @@
 "APPEARANCE_DARK" = "Dunkel";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Verbesserungen im dunklen Modus";
 
-"SEARCH_GROUP" = "Suche";
-"SEARCH_AUTO_FOCUS" = "Suchfeld autofokussieren";
-"SEARCH_LOAD_ORDER" = "Ladereihenfolge der Wörterbücher";
+"LOOKUP_GROUP" = "Nachschlagen";
+"LOOKUP_DICTIONARY_LOAD_ORDER" = "Ladereihenfolge der Wörterbücher";
 "LOAD_ORDER_GROUP" = "Nach Gruppenreihenfolge";
 "LOAD_ORDER_AUTO" = "Automatisch";
 "LOAD_ORDER_SMALLEST" = "Kleinste zuerst";
-"SEARCH_RESULT_VOLUME" = "Suchergebnisse";
-"SEARCH_RESULT_A_FEW" = "Sehr wenige";
-"SEARCH_RESULT_LESS" = "Weniger";
-"SEARCH_RESULT_DEFAULT" = "Standard";
-"SEARCH_RESULT_MORE" = "Mehr";
-"SEARCH_RESULT_A_LOT" = "Sehr viele";
+"LOOKUP_SEARCH_AUTO_FOCUS" = "Autofokus auf Suchleiste";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Ergebnismenge pro Wörterbuch";
+"LOOKUP_SEARCH_RESULT_A_FEW" = "Sehr wenige";
+"LOOKUP_SEARCH_RESULT_LESS" = "Weniger";
+"LOOKUP_SEARCH_RESULT_DEFAULT" = "Standard";
+"LOOKUP_SEARCH_RESULT_MORE" = "Mehr";
+"LOOKUP_SEARCH_RESULT_A_LOT" = "Sehr viele";
 
 "ARTICLES_GROUP" = "Einträge";
 "ARTICLES_CAPACITY" = "Max. offene Einträge";

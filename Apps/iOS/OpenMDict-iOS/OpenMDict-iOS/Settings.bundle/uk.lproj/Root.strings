@@ -7,18 +7,18 @@
 "APPEARANCE_DARK" = "Темна";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Покращення у темному режимі";
 
-"SEARCH_GROUP" = "Пошук";
-"SEARCH_AUTO_FOCUS" = "Автофокус поля пошуку";
-"SEARCH_LOAD_ORDER" = "Порядок завантаження словників";
+"LOOKUP_GROUP" = "Пошук слів";
+"LOOKUP_DICTIONARY_LOAD_ORDER" = "Порядок завантаження словників";
 "LOAD_ORDER_GROUP" = "За порядком групи";
 "LOAD_ORDER_AUTO" = "Автоматично";
 "LOAD_ORDER_SMALLEST" = "Спочатку найменші";
-"SEARCH_RESULT_VOLUME" = "Обсяг результатів";
-"SEARCH_RESULT_A_FEW" = "Дуже мало";
-"SEARCH_RESULT_LESS" = "Менше";
-"SEARCH_RESULT_DEFAULT" = "За замовчуванням";
-"SEARCH_RESULT_MORE" = "Більше";
-"SEARCH_RESULT_A_LOT" = "Дуже багато";
+"LOOKUP_SEARCH_AUTO_FOCUS" = "Автофокус рядка пошуку";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Обсяг результатів на словник";
+"LOOKUP_SEARCH_RESULT_A_FEW" = "Дуже мало";
+"LOOKUP_SEARCH_RESULT_LESS" = "Менше";
+"LOOKUP_SEARCH_RESULT_DEFAULT" = "За замовчуванням";
+"LOOKUP_SEARCH_RESULT_MORE" = "Більше";
+"LOOKUP_SEARCH_RESULT_A_LOT" = "Дуже багато";
 
 "ARTICLES_GROUP" = "Записи";
 "ARTICLES_CAPACITY" = "Макс. відкритих записів";
