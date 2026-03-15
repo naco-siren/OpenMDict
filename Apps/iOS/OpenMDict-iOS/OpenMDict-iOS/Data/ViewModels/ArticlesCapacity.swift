@@ -131,16 +131,62 @@ nonisolated enum EnhanceDarkModeStrength: Int16 {
         }
     }
 
-    /// Precomputed `tableValues` string for SVG `feComponentTransfer type="table"`.
-    /// Formula per sample: `output(x) = pow(1 - pow(x, γ), 1/γ)`.
+    /// Per-tier floor for the gamma-invert output range.
+    ///
+    /// Baseline is 28/255 (≈ Apple's `secondarySystemGroupedBackground` dark,
+    /// #1C1C1C).  Each tier adds a small **absolute** offset (±2/255 per step)
+    /// so dim tiers go slightly darker and bright tiers slightly lighter.
+    ///
+    /// | Tier      | Floor | ≈ Hex  |
+    /// |-----------|-------|--------|
+    /// | dimmest   |  22   | #161616 |
+    /// | dimmer    |  24   | #181818 |
+    /// | dim       |  26   | #1A1A1A |
+    /// | standard  |  28   | #1C1C1C |
+    /// | bright    |  30   | #1E1E1E |
+    /// | brighter  |  32   | #202020 |
+    /// | brightest |  34   | #222222 |
+    private var floor: Double {
+        let base = 28.0
+        let step = 2.0
+        return (base + step * Double(rawValue)) / 255.0
+    }
+
+    /// Precomputed `tableValues` for the **forward** (invert) SVG filter.
+    ///
+    /// Formula: `output(x) = floor + (1 - floor) × pow(1 - pow(x, γ), 1/γ)`
+    ///
+    /// Output range is `[floor, 1]` — white (1) maps to dark gray, black (0)
+    /// maps to full white.  This keeps background hierarchy readable just
+    /// like Apple's native dark appearance.
     var svgTableValues: String {
         let steps = 32
         let g = gamma
         let invG = 1.0 / g
+        let f = floor
         return (0...steps).map { i in
             let x = Double(i) / Double(steps)
-            let linear = pow(x, g)
-            let output = pow(max(0, 1.0 - linear), invG)
+            let raw = pow(max(0, 1.0 - pow(x, g)), invG)
+            let output = f + (1.0 - f) * raw
+            return String(format: "%.4f", output)
+        }.joined(separator: " ")
+    }
+
+    /// Precomputed `tableValues` for the **reverse** (undo) SVG filter,
+    /// applied to `img`/`video`/`svg` to restore their original colors
+    /// after the parent's forward gamma-invert.
+    ///
+    /// This is the exact inverse of `svgTableValues`:
+    /// `output(y) = pow(1 - pow(clamp((y - floor)/(1 - floor)), γ), 1/γ)`
+    var svgReverseTableValues: String {
+        let steps = 32
+        let g = gamma
+        let invG = 1.0 / g
+        let f = floor
+        return (0...steps).map { i in
+            let y = Double(i) / Double(steps)
+            let normalized = max(0, min(1, (y - f) / (1.0 - f)))
+            let output = pow(max(0, 1.0 - pow(normalized, g)), invG)
             return String(format: "%.4f", output)
         }.joined(separator: " ")
     }

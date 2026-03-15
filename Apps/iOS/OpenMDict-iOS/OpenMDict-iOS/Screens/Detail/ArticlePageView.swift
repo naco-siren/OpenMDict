@@ -408,7 +408,8 @@ class ArticlePageView: UIView {
     private func applyDarkModeFilter() {
         let isDark = traitCollection.userInterfaceStyle == .dark
         if let strength = enhanceStrength, isDark {
-            let table = strength.svgTableValues
+            let fwd = strength.svgTableValues
+            let rev = strength.svgReverseTableValues
             let js = """
             (function(){
                 var svg = document.getElementById('_omdict_svg');
@@ -420,17 +421,23 @@ class ArticlePageView: UIView {
                 }
                 svg.innerHTML = '<filter id="_gi" color-interpolation-filters="sRGB">'
                     + '<feComponentTransfer>'
-                    + '<feFuncR type="table" tableValues="\(table)"/>'
-                    + '<feFuncG type="table" tableValues="\(table)"/>'
-                    + '<feFuncB type="table" tableValues="\(table)"/>'
+                    + '<feFuncR type="table" tableValues="\(fwd)"/>'
+                    + '<feFuncG type="table" tableValues="\(fwd)"/>'
+                    + '<feFuncB type="table" tableValues="\(fwd)"/>'
+                    + '</feComponentTransfer></filter>'
+                    + '<filter id="_gi_r" color-interpolation-filters="sRGB">'
+                    + '<feComponentTransfer>'
+                    + '<feFuncR type="table" tableValues="\(rev)"/>'
+                    + '<feFuncG type="table" tableValues="\(rev)"/>'
+                    + '<feFuncB type="table" tableValues="\(rev)"/>'
                     + '</feComponentTransfer></filter>';
 
                 var s = document.getElementById('_omdict_invert');
                 if (!s) { s = document.createElement('style'); s.id = '_omdict_invert'; document.head.appendChild(s); }
                 s.textContent = 'html{filter:url(#_gi) hue-rotate(180deg);background:#fff !important}'
                     + 'body{color:#000 !important}'
-                    + 'img,video,svg:not(#_omdict_svg),picture{filter:url(#_gi) hue-rotate(180deg)}'
-                    + '.dir{display:inline-block;filter:url(#_gi) hue-rotate(180deg)}';
+                    + 'img,video,svg:not(#_omdict_svg),picture{filter:url(#_gi_r) hue-rotate(180deg)}'
+                    + '.dir{display:inline-block;filter:url(#_gi_r) hue-rotate(180deg)}';
             })();
             """
             webView.evaluateJavaScript(js, completionHandler: nil)
@@ -987,10 +994,10 @@ final class EnhanceDarkModeSliderVC: UITableViewController, UIPopoverPresentatio
 
     @objc private func switchToggled(_ sender: UISwitch) {
         if sender.isOn {
-            currentStrength = .standard
-            if let idx = EnhanceDarkModeStrength.allTiers.firstIndex(of: .standard) {
-                slider.setValue(Float(idx), animated: true)
-            }
+            // Slider position is the source of truth — it never moves on toggle.
+            let idx = Int(slider.value.rounded())
+            let clamped = min(max(idx, 0), EnhanceDarkModeStrength.allTiers.count - 1)
+            currentStrength = EnhanceDarkModeStrength.allTiers[clamped]
         } else {
             currentStrength = nil
         }
@@ -1018,11 +1025,9 @@ final class EnhanceDarkModeSliderVC: UITableViewController, UIPopoverPresentatio
     }
 
     private func updateAdjustmentLabel() {
-        if let s = currentStrength {
-            adjustmentDetailLabel?.text = tierDisplayName(for: s)
-        } else {
-            adjustmentDetailLabel?.text = tierDisplayName(for: .standard)
-        }
+        let idx = Int(slider.value.rounded())
+        let clamped = min(max(idx, 0), EnhanceDarkModeStrength.allTiers.count - 1)
+        adjustmentDetailLabel?.text = tierDisplayName(for: EnhanceDarkModeStrength.allTiers[clamped])
     }
 
     /// Dim/undim the adjustment section based on the enabled switch.
