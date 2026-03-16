@@ -343,6 +343,7 @@ class ArticlePageView: UIView {
         onEnhanceDarkModeStrengthChanged = nil
         isBookmarked = false
         enhanceStrength = nil
+        filtersInjected = false
         isGridLayout = false
         currentDictId = ""
         pendingHighlightKeyword = nil
@@ -405,45 +406,86 @@ class ArticlePageView: UIView {
     ///
     /// Legacy `<font color>` attributes are stripped so text inherits the
     /// inverted body color.
+    /// Whether the full set of SVG filters has been injected into the current page.
+    private var filtersInjected = false
+
+    /// Injects all 7 SVG filter pairs + CSS rules at once, and immediately
+    /// activates the given tier.  Everything happens in a single
+    /// `evaluateJavaScript` call so there is no race between injection and
+    /// activation.  Subsequent tier switches only need `applyDarkModeTier(_:)`.
+    private func injectAllDarkModeFilters(activating tier: EnhanceDarkModeStrength) {
+        var svgFilters = ""
+        var css = ""
+        for t in EnhanceDarkModeStrength.allTiers {
+            let tag = t.filterTag
+            let fwd = t.svgTableValues
+            let rev = t.svgReverseTableValues
+            svgFilters += "<filter id=\"_gi_\(tag)\" color-interpolation-filters=\"sRGB\">"
+                + "<feComponentTransfer>"
+                + "<feFuncR type=\"table\" tableValues=\"\(fwd)\"/>"
+                + "<feFuncG type=\"table\" tableValues=\"\(fwd)\"/>"
+                + "<feFuncB type=\"table\" tableValues=\"\(fwd)\"/>"
+                + "</feComponentTransfer></filter>"
+                + "<filter id=\"_gi_r_\(tag)\" color-interpolation-filters=\"sRGB\">"
+                + "<feComponentTransfer>"
+                + "<feFuncR type=\"table\" tableValues=\"\(rev)\"/>"
+                + "<feFuncG type=\"table\" tableValues=\"\(rev)\"/>"
+                + "<feFuncB type=\"table\" tableValues=\"\(rev)\"/>"
+                + "</feComponentTransfer></filter>"
+            css += "html[data-enhance=\"\(tag)\"]{filter:url(#_gi_\(tag)) hue-rotate(180deg);background:#fff !important}"
+                + "html[data-enhance=\"\(tag)\"] body{color:#000 !important}"
+                + "html[data-enhance=\"\(tag)\"] img,"
+                + "html[data-enhance=\"\(tag)\"] video,"
+                + "html[data-enhance=\"\(tag)\"] svg:not(#_omdict_svg),"
+                + "html[data-enhance=\"\(tag)\"] picture{filter:url(#_gi_r_\(tag)) hue-rotate(180deg)}"
+                + "html[data-enhance=\"\(tag)\"] .dir{display:inline-block;filter:url(#_gi_r_\(tag)) hue-rotate(180deg)}"
+        }
+        let activeTag = tier.filterTag
+        let js = "(function(){"
+            + "var svg=document.getElementById('_omdict_svg');"
+            + "if(!svg){svg=document.createElementNS('http://www.w3.org/2000/svg','svg');"
+            + "svg.id='_omdict_svg';"
+            + "svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');"
+            + "document.body.insertBefore(svg,document.body.firstChild);}"
+            + "svg.innerHTML='\(svgFilters)';"
+            + "var s=document.getElementById('_omdict_invert');"
+            + "if(!s){s=document.createElement('style');s.id='_omdict_invert';document.head.appendChild(s);}"
+            + "s.textContent='\(css)';"
+            + "document.documentElement.setAttribute('data-enhance','\(activeTag)');"
+            + "})();"
+        webView.evaluateJavaScript(js, completionHandler: nil)
+        filtersInjected = true
+    }
+
+    /// Tiny JS call — just sets/removes a data attribute on <html>.
+    private func applyDarkModeTier(_ strength: EnhanceDarkModeStrength?) {
+        if let strength {
+            webView.evaluateJavaScript(
+                "document.documentElement.setAttribute('data-enhance','\(strength.filterTag)')",
+                completionHandler: nil
+            )
+        } else {
+            webView.evaluateJavaScript(
+                "document.documentElement.removeAttribute('data-enhance')",
+                completionHandler: nil
+            )
+        }
+    }
+
     private func applyDarkModeFilter() {
         let isDark = traitCollection.userInterfaceStyle == .dark
         if let strength = enhanceStrength, isDark {
-            let fwd = strength.svgTableValues
-            let rev = strength.svgReverseTableValues
-            let js = """
-            (function(){
-                var svg = document.getElementById('_omdict_svg');
-                if (!svg) {
-                    svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-                    svg.id = '_omdict_svg';
-                    svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');
-                    document.body.insertBefore(svg, document.body.firstChild);
-                }
-                svg.innerHTML = '<filter id="_gi" color-interpolation-filters="sRGB">'
-                    + '<feComponentTransfer>'
-                    + '<feFuncR type="table" tableValues="\(fwd)"/>'
-                    + '<feFuncG type="table" tableValues="\(fwd)"/>'
-                    + '<feFuncB type="table" tableValues="\(fwd)"/>'
-                    + '</feComponentTransfer></filter>'
-                    + '<filter id="_gi_r" color-interpolation-filters="sRGB">'
-                    + '<feComponentTransfer>'
-                    + '<feFuncR type="table" tableValues="\(rev)"/>'
-                    + '<feFuncG type="table" tableValues="\(rev)"/>'
-                    + '<feFuncB type="table" tableValues="\(rev)"/>'
-                    + '</feComponentTransfer></filter>';
-
-                var s = document.getElementById('_omdict_invert');
-                if (!s) { s = document.createElement('style'); s.id = '_omdict_invert'; document.head.appendChild(s); }
-                s.textContent = 'html{filter:url(#_gi) hue-rotate(180deg);background:#fff !important}'
-                    + 'body{color:#000 !important}'
-                    + 'img,video,svg:not(#_omdict_svg),picture{filter:url(#_gi_r) hue-rotate(180deg)}'
-                    + '.dir{display:inline-block;filter:url(#_gi_r) hue-rotate(180deg)}';
-            })();
-            """
-            webView.evaluateJavaScript(js, completionHandler: nil)
+            if !filtersInjected {
+                // First time — inject all filters AND activate tier in one JS call.
+                injectAllDarkModeFilters(activating: strength)
+            } else {
+                // Filters already present — just switch the data attribute.
+                applyDarkModeTier(strength)
+            }
         } else {
             let js = """
             (function(){
+                document.documentElement.removeAttribute('data-enhance');
                 var s = document.getElementById('_omdict_invert');
                 if (s) s.remove();
                 var svg = document.getElementById('_omdict_svg');
@@ -451,6 +493,7 @@ class ArticlePageView: UIView {
             })();
             """
             webView.evaluateJavaScript(js, completionHandler: nil)
+            filtersInjected = false
         }
     }
 
@@ -614,10 +657,17 @@ class ArticlePageView: UIView {
             current: enhanceStrength,
             onPreview: { [weak self] strength in
                 // Real-time preview while dragging — apply filter without persisting.
-                self?.enhanceStrength = strength
-                self?.webView.overrideUserInterfaceStyle = strength != nil ? .light : .unspecified
-                self?.applyDarkModeFilter()
-                self?.updateEnhanceDarkModeButtonAppearance()
+                // On iOS 17 this updates the WebView in real time; on iOS 16/18/26,
+                // WKWebView defers evaluateJavaScript during UITrackingRunLoopMode,
+                // so the visual update happens on finger lift (sliderEnded fallback).
+                guard let self else { return }
+                self.enhanceStrength = strength
+                let desired: UIUserInterfaceStyle = strength != nil ? .light : .unspecified
+                if self.webView.overrideUserInterfaceStyle != desired {
+                    self.webView.overrideUserInterfaceStyle = desired
+                }
+                self.applyDarkModeFilter()
+                self.updateEnhanceDarkModeButtonAppearance()
             },
             onCommit: { [weak self] strength in
                 // Persist final value on popover dismiss.
@@ -696,7 +746,10 @@ extension ArticlePageView: WKNavigationDelegate {
             webView.evaluateJavaScript(js, completionHandler: nil)
         }
 
-        // Apply dark mode filter if enabled for this dictionary
+        // Apply dark mode filter if enabled for this dictionary.
+        // Reset filtersInjected so the full SVG+CSS payload is re-injected
+        // into this freshly loaded page.
+        filtersInjected = false
         if enhanceStrength != nil {
             applyDarkModeFilter()
         }
@@ -837,7 +890,11 @@ final class EnhanceDarkModeSliderVC: UITableViewController, UIPopoverPresentatio
     // Hardcoded — contentSize is unreliable before popover presentation.
     // navBar(44) + s0 header(12) + switch row(44) + s0 footer(~28 for description)
     // + s1 header(8) + label row(44) + slider row(44) + s1 footer(8) = 232.
-    private static let popoverHeight: CGFloat = 232
+    // Liquid Glass (iOS 26+) needs +16 for taller nav bar chrome.
+    private static let popoverHeight: CGFloat = {
+        if #available(iOS 26, *) { return 248 }
+        return 232
+    }()
 
     init(current: EnhanceDarkModeStrength?,
          onPreview: @escaping (EnhanceDarkModeStrength?) -> Void,

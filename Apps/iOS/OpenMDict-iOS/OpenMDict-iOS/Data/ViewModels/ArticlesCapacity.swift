@@ -119,6 +119,15 @@ nonisolated enum EnhanceDarkModeStrength: Int16 {
 
     var isEnhanced: Bool { true }
 
+    /// Short tag for use in SVG filter IDs and CSS data attributes.
+    /// e.g. "n3" for −3, "0" for 0, "p2" for +2.
+    var filterTag: String {
+        let r = rawValue
+        if r < 0 { return "n\(-r)" }
+        if r > 0 { return "p\(r)" }
+        return "0"
+    }
+
     var gamma: Double {
         switch self {
         case .dimmest:  return 0.4
