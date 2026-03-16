@@ -65,8 +65,10 @@ class ActionViewController: UIViewController {
     // MARK: - Nav Bar Items
 
     private var appearanceButton: UIBarButtonItem?
+    private weak var appearanceSegmentedControl: UISegmentedControl?
     private var zoomInButton: UIBarButtonItem?       // iOS 15 individual zoom-in
     private var zoomOutButton: UIBarButtonItem?      // iOS 15 individual zoom-out
+    private var zoomResetButton: UIBarButtonItem?    // iOS 15 reset zoom
 
     // iOS 16+ stored refs for in-place zoom updates (avoids full nav bar rebuild)
     private weak var zoomSlider: UISlider?
@@ -231,7 +233,8 @@ class ActionViewController: UIViewController {
     // MARK: - Navigation Bar
     
     private func configureNavigationBar() {
-        title = "OpenMDict"
+        title = nil
+        navigationItem.titleView = nil
 
         let dismissItem = UIBarButtonItem(
             barButtonSystemItem: .close,
@@ -239,7 +242,13 @@ class ActionViewController: UIViewController {
             action: #selector(dismissTapped)
         )
 
-        // Appearance: representativeItem (collapsed fallback / iOS 15 plain button)
+        // Appearance: shared segmented control (both iOS 15 and 16+)
+        let segmented = appearanceMode.segmentedControl(
+            target: self, action: #selector(appearanceChanged(_:))
+        )
+        self.appearanceSegmentedControl = segmented
+
+        // Appearance: representativeItem (collapsed fallback on iOS 16+ / unused on iOS 15)
         let appearance = UIBarButtonItem(
             image: appearanceMode.icon,
             style: .plain,
@@ -257,11 +266,7 @@ class ActionViewController: UIViewController {
                 .optionalGroup(
                     customizationIdentifier: "appearance",
                     representativeItem: appearance,
-                    items: [
-                        .init(customView: appearanceMode.segmentedControl(
-                            target: self, action: #selector(appearanceChanged(_:))
-                        ))
-                    ]
+                    items: [.init(customView: segmented)]
                 ),
             ]
 
@@ -285,16 +290,27 @@ class ActionViewController: UIViewController {
             ]
 
         } else {
-            navigationItem.leftBarButtonItems = [dismissItem, appearance]
+            let segmentItem = UIBarButtonItem(customView: segmented)
+            navigationItem.leftBarButtonItems = [dismissItem, segmentItem]
 
-            // iOS 15: Two separate zoom buttons (no reset — too narrow)
+            // iOS 15: Three zoom buttons
             let zIn = UIBarButtonItem(
                 image: UIImage(systemName: "plus.magnifyingglass"),
                 style: .plain,
                 target: self,
                 action: #selector(zoomInTapped)
             )
+            zIn.title = L10n.Detail.zoomIn
             zIn.isEnabled = false
+
+            let zReset = UIBarButtonItem(
+                image: UIImage(systemName: "1.magnifyingglass"),
+                style: .plain,
+                target: self,
+                action: #selector(resetZoomTapped)
+            )
+            zReset.title = zoom.displayString
+            zReset.isEnabled = false
 
             let zOut = UIBarButtonItem(
                 image: UIImage(systemName: "minus.magnifyingglass"),
@@ -302,12 +318,14 @@ class ActionViewController: UIViewController {
                 target: self,
                 action: #selector(zoomOutTapped)
             )
+            zOut.title = L10n.Detail.zoomOut
             zOut.isEnabled = false
 
             self.zoomInButton = zIn
+            self.zoomResetButton = zReset
             self.zoomOutButton = zOut
 
-            navigationItem.rightBarButtonItems = [zIn, zOut]
+            navigationItem.rightBarButtonItems = [zIn, zReset, zOut]
         }
     }
 
@@ -326,13 +344,10 @@ class ActionViewController: UIViewController {
         appearanceMode = mode
         UserDefaults.shared.setAppearanceModeStamped(mode)
         applyAppearance()
-        // Update representativeItem's icon and menu for collapsed state
+        // In-place updates — no nav bar rebuild
         appearanceButton?.image = appearanceMode.icon
         appearanceButton?.menu = appearanceMode.menu { [weak self] m in self?.setAppearanceMode(m) }
-        // On iOS 16+ rebuild nav bar to update segmented control's selectedSegmentIndex
-        if #available(iOS 16, *) {
-            configureNavigationBar()
-        }
+        appearanceSegmentedControl?.selectedSegmentIndex = mode.rawValue
     }
 
     private func applyAppearance() {
@@ -475,6 +490,8 @@ class ActionViewController: UIViewController {
 
     private func updateZoomButtonStates() {
         zoomInButton?.isEnabled = zoom.canZoomIn
+        zoomResetButton?.isEnabled = !zoom.isDefault
+        zoomResetButton?.title = zoom.displayString
         zoomOutButton?.isEnabled = zoom.canZoomOut
     }
 
@@ -909,6 +926,7 @@ class ActionViewController: UIViewController {
 
         // Enable iOS 15 zoom buttons (iOS 16+ buttons are always enabled via fixedGroup)
         zoomInButton?.isEnabled = zoom.canZoomIn
+        zoomResetButton?.isEnabled = !zoom.isDefault
         zoomOutButton?.isEnabled = zoom.canZoomOut
 
         // Create shared WKWebView configuration with scheme handler.
