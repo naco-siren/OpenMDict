@@ -421,6 +421,174 @@
         }
       }
     },
+    "actionExtension.didYouMean" : {
+      "comment" : "Action Extension: section header for spelling suggestions",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تقصد\u2026"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meinten Sie\u2026"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Did you mean\u2026"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u00BFQuiso decir\u2026?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vouliez-vous dire\u2026"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u0915\u094D\u092F\u093E \u0906\u092A\u0915\u093E \u092E\u0924\u0932\u092C \u0925\u093E\u2026"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u3082\u3057\u304B\u3057\u3066\u2026"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\uD639\uC2DC \uC774 \uB2E8\uC5B4\uB97C \uCC3E\uC73C\uC168\uB098\uC694\u2026"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voc\u00EA quis dizer\u2026"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E, \u0432\u044B \u0438\u043C\u0435\u043B\u0438 \u0432 \u0432\u0438\u0434\u0443\u2026"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u041C\u043E\u0436\u043B\u0438\u0432\u043E, \u0432\u0438 \u043C\u0430\u043B\u0438 \u043D\u0430 \u0443\u0432\u0430\u0437\u0456\u2026"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u60A8\u662F\u5426\u5728\u627E\u2026"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u60A8\u662F\u5426\u5728\u627E\u2026"
+          }
+        }
+      }
+    },
+    "actionExtension.noExactMatch" : {
+      "comment" : "Action Extension: footer text when no exact/lemma match found (%@ = word)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u064A\u062C\u0629 \u0645\u0637\u0627\u0628\u0642\u0629 \u0644\u0640\u201C%@\u201D."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Treffer f\u00FCr \u201E%@\u201C."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No exact match for \u201C%@\u201D."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin coincidencia exacta para \u00AB%@\u00BB."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune correspondance pour \u00AB\u202F%@\u202F\u00BB."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201D \u0915\u093E \u0915\u094B\u0908 \u0938\u091F\u0940\u0915 \u092A\u0930\u093F\u0923\u093E\u092E \u0928\u0939\u0940\u0902\u0964"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u300C%@\u300D\u306B\u4E00\u81F4\u3059\u308B\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093\u3002"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u201C%@\u201D\uC5D0 \uB300\uD55C \uC815\uD655\uD55C \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum resultado exato para \u201C%@\u201D."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u0422\u043E\u0447\u043D\u044B\u0445 \u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u0439 \u0434\u043B\u044F \u00AB%@\u00BB \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u0422\u043E\u0447\u043D\u0438\u0445 \u0437\u0431\u0456\u0433\u0456\u0432 \u0434\u043B\u044F \u00AB%@\u00BB \u043D\u0435 \u0437\u043D\u0430\u0439\u0434\u0435\u043D\u043E."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u672A\u627E\u5230\u201C%@\u201D\u7684\u7CBE\u786E\u5339\u914D\u3002"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u627E\u4E0D\u5230\u300C%@\u300D\u7684\u7CBE\u78BA\u7D50\u679C\u3002"
+          }
+        }
+      }
+    },
     "actionExtension.noDictionaries" : {
       "comment" : "Action Extension: no dictionaries imported in the app",
       "extractionState" : "extracted_with_value",

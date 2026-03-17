@@ -1039,6 +1039,14 @@ nonisolated enum L10n {
         static var lookItUpInApp: String {
             NSLocalizedString("actionExtension.lookItUpInApp", value: "Look it up in app", comment: "Action Extension: filled button to open main app when word not found")
         }
+        /// Footer for CTA section when suggestions are available. Use with String(format:, word).
+        static var noExactMatch: String {
+            NSLocalizedString("actionExtension.noExactMatch", value: "No exact match for \u{201C}%@\u{201D}.", comment: "Action Extension: footer text when no exact/lemma match found (%@ = word)")
+        }
+        /// Section header for spelling suggestions list.
+        static var didYouMean: String {
+            NSLocalizedString("actionExtension.didYouMean", value: "Did you mean\u{2026}", comment: "Action Extension: section header for spelling suggestions")
+        }
         /// Prompt to set up dictionaries in the main app.
         static var setupDictionaries: String {
             NSLocalizedString("actionExtension.setupDictionaries", value: "Setup your dictionaries", comment: "Action Extension: filled button to open main app when no dictionaries are available")

@@ -30,6 +30,7 @@ private struct ArticleResult: Sendable {
     let dictName: String
     let keyword: String         // Original keyword preserving case (e.g., "Job" vs "job")
     let html: String            // Article HTML extracted during scan
+    let resolvedFrom: String?   // Original query when found via lemma (e.g. "books" when keyword is "book")
 }
 
 // MARK: - ActionViewController
@@ -90,6 +91,15 @@ class ActionViewController: UIViewController {
 
     /// Number of dictionaries searched (for "in your top N dictionaries" message).
     private var searchedDictCount: Int = 0
+
+    /// Spelling suggestions accumulated during scan (used when no articles found).
+    private var collectedSuggestions: [ScoredSuggestion] = []
+
+    /// Deduplicated + sorted suggestions for the table view data source.
+    private var displaySuggestions: [ScoredSuggestion] = []
+
+    /// Suggestions table view (shown when no articles found but suggestions exist).
+    private var suggestionsTableView: UITableView?
 
     /// Zoom level for article text.
     private var zoom = ZoomLevel()
@@ -575,6 +585,7 @@ class ActionViewController: UIViewController {
     private func removeStatusView() {
         statusContainerView?.removeFromSuperview()
         statusContainerView = nil
+        removeSuggestionsTableView()
     }
 
     /// Reusable status view: SF Symbol icon + message + optional spinner + optional action button.
@@ -751,7 +762,23 @@ class ActionViewController: UIViewController {
                 self.updateLoadingLabel(word: word, dictName: records[0].displayName)
             }
 
-            // 2. Iterate through dictionaries sequentially.
+            // 2. Compute lemma candidates (pure CPU, no I/O)
+            let normalized = LemmaResolver.normalize(word)
+            let strippedTokens = LemmaResolver.stripStopwords(normalized)
+            var lemmaCandidateSet = Set<String>()
+            for token in strippedTokens {
+                lemmaCandidateSet.formUnion(LemmaResolver.nltaggerLemmas(token))
+                lemmaCandidateSet.formUnion(EnglishInflectionRules.resolve(token))
+            }
+            lemmaCandidateSet.subtract([normalized])
+            let lemmaCandidates = Array(lemmaCandidateSet)
+            if !lemmaCandidates.isEmpty {
+                print("📖 Lemma candidates for '\(word)': \(lemmaCandidates)")
+            }
+
+            await MainActor.run { self.collectedSuggestions = [] }
+
+            // 3. Iterate through dictionaries sequentially.
             //    Rule: only one MDX reader alive at a time.
             //    Stop early when articles capacity is reached.
             let capacityLimit = await MainActor.run { self.articlesCapacityLimit }
@@ -788,15 +815,16 @@ class ActionViewController: UIViewController {
                     }
                 }
 
-                // ── Phase 1: MDX only (no MDD loaded) ──────────────────────
+                // ── Phase 1: MDX lookup (3-stage: exact → lemma → suggestions) ──
                 // Load MDX index, lookup articles, collect HTML, then release.
-                var articleHTMLs: [(keyword: String, html: String)] = []
+                var articleHTMLs: [(keyword: String, html: String, resolvedFrom: String?)] = []
                 do {
                     guard let reader = try? MDictReader(path: mdxPath) else {
                         print("📖 Dict[\(index)] '\(record.displayName)' — MDictReader init failed, skip")
                         continue
                     }
 
+                    // Stage 1: Exact match
                     let candidates = reader.search(prefix: word, limit: 10)
                     let exactMatches = candidates.filter {
                         $0.caseInsensitiveCompare(word) == .orderedSame
@@ -804,12 +832,38 @@ class ActionViewController: UIViewController {
 
                     for keyword in exactMatches {
                         if let entry = reader.lookup(keyword) {
-                            articleHTMLs.append((keyword: keyword, html: entry.article.html))
+                            articleHTMLs.append((keyword: keyword, html: entry.article.html, resolvedFrom: nil))
                         }
                     }
 
-                    if exactMatches.isEmpty {
-                        print("📖 Dict[\(index)] '\(record.displayName)' — not found")
+                    // Stage 2: Lemma candidates (only if exact match found nothing)
+                    if articleHTMLs.isEmpty && !lemmaCandidates.isEmpty {
+                        for lemma in lemmaCandidates {
+                            let lemmaCands = reader.search(prefix: lemma, limit: 10)
+                            let lemmaMatches = lemmaCands.filter {
+                                $0.caseInsensitiveCompare(lemma) == .orderedSame
+                            }
+                            for keyword in lemmaMatches {
+                                if let entry = reader.lookup(keyword) {
+                                    articleHTMLs.append((keyword: keyword, html: entry.article.html, resolvedFrom: word))
+                                }
+                            }
+                            if !articleHTMLs.isEmpty { break }
+                        }
+                        if !articleHTMLs.isEmpty {
+                            print("📖 Dict[\(index)] '\(record.displayName)' — found via lemma")
+                        }
+                    }
+
+                    // Stage 3: Spelling suggestions (only if exact + lemma both failed)
+                    if articleHTMLs.isEmpty {
+                        let scored = reader.suggestions(for: word, limit: 5)
+                        if !scored.isEmpty {
+                            await MainActor.run {
+                                self.collectedSuggestions.append(contentsOf: scored)
+                            }
+                        }
+                        print("📖 Dict[\(index)] '\(record.displayName)' — not found (\(scored.count) suggestions)")
                     }
                     // reader deinit here → MDX index freed
                 }
@@ -820,9 +874,9 @@ class ActionViewController: UIViewController {
                 if !manifest.mdd.isEmpty && !articleHTMLs.isEmpty {
                     // Collect all resource paths from all articles for this dict
                     var allResourcePaths = Set<String>()
-                    for (_, html) in articleHTMLs {
+                    for article in articleHTMLs {
                         allResourcePaths.formUnion(
-                            HTMLResourceRewriter.extractResourcePaths(from: html)
+                            HTMLResourceRewriter.extractResourcePaths(from: article.html)
                         )
                     }
 
@@ -866,26 +920,31 @@ class ActionViewController: UIViewController {
 
                 // ── Phase 3: Stream articles to UI ─────────────────────────
                 // MDD resources are now cached; WKWebView can load them via scheme handler.
-                for (keyword, html) in articleHTMLs {
-                    print("📖 Dict[\(index)] '\(record.displayName)' — FOUND '\(keyword)'")
+                for article in articleHTMLs {
+                    print("📖 Dict[\(index)] '\(record.displayName)' — FOUND '\(article.keyword)'")
                     let result = ArticleResult(
                         dictId: dictId,
                         dictName: record.displayName,
-                        keyword: keyword,
-                        html: html
+                        keyword: article.keyword,
+                        html: article.html,
+                        resolvedFrom: article.resolvedFrom
                     )
                     await MainActor.run { self.appendArticle(result) }
                 }
             }
 
-            // 3. Scan complete
+            // 4. Scan complete
             let dictCount = records.count
             await MainActor.run {
                 self.searchedDictCount = dictCount
                 self.scanSpinner?.stopAnimating()
                 self.scanSpinner?.isHidden = true
                 if self.results.isEmpty {
-                    self.showNotFound()
+                    if self.collectedSuggestions.isEmpty {
+                        self.showNotFound()
+                    } else {
+                        self.showSuggestions()
+                    }
                 } else {
                     self.removeStatusView()
                 }
@@ -1021,7 +1080,13 @@ class ActionViewController: UIViewController {
         pageView.translatesAutoresizingMaskIntoConstraints = false
 
         let bookmarked = BookmarkService.shared.isBookmarked(word: result.keyword, dictId: result.dictId)
-        pageView.configure(word: result.keyword, dictName: result.dictName,
+        let displayWord: String
+        if let original = result.resolvedFrom {
+            displayWord = "\(original) → \(result.keyword)"
+        } else {
+            displayWord = result.keyword
+        }
+        pageView.configure(word: displayWord, dictName: result.dictName,
                           dictId: result.dictId, isBookmarked: bookmarked)
 
         // Wire callbacks (capture pageView weakly to avoid retain cycles)
@@ -1214,19 +1279,46 @@ class ActionViewController: UIViewController {
                 return
             }
 
-            // 2. Exact match lookup (same logic as initial scan)
+            // 2. Exact match lookup, with lemma fallback
             let candidates = reader.search(prefix: trimmed, limit: 10)
             let exactMatches = candidates.filter {
                 $0.caseInsensitiveCompare(trimmed) == .orderedSame
             }
 
-            guard let keyword = exactMatches.first,
-                  let entry = reader.lookup(keyword) else {
-                // Not found → open main app (no confirmation needed)
+            var foundKeyword: String?
+            var foundHTML: String?
+            var resolvedFrom: String?
+
+            if let keyword = exactMatches.first, let entry = reader.lookup(keyword) {
+                foundKeyword = keyword
+                foundHTML = entry.article.html
+            } else {
+                // Lemma fallback
+                let normalized = LemmaResolver.normalize(trimmed)
+                let tokens = LemmaResolver.stripStopwords(normalized)
+                var lemmaCands = Set<String>()
+                for token in tokens {
+                    lemmaCands.formUnion(LemmaResolver.nltaggerLemmas(token))
+                    lemmaCands.formUnion(EnglishInflectionRules.resolve(token))
+                }
+                lemmaCands.subtract([normalized])
+
+                for lemma in lemmaCands {
+                    let lCands = reader.search(prefix: lemma, limit: 10)
+                    let lMatches = lCands.filter { $0.caseInsensitiveCompare(lemma) == .orderedSame }
+                    if let keyword = lMatches.first, let entry = reader.lookup(keyword) {
+                        foundKeyword = keyword
+                        foundHTML = entry.article.html
+                        resolvedFrom = trimmed
+                        break
+                    }
+                }
+            }
+
+            guard let keyword = foundKeyword, let html = foundHTML else {
                 await MainActor.run { self.openInApp(word: trimmed) }
                 return
             }
-            let html = entry.article.html
             // reader deinit → MDX index freed
 
             // 3. MDD resource extraction (if needed)
@@ -1252,7 +1344,8 @@ class ActionViewController: UIViewController {
             // 4. Insert at front + navigate
             let result = ArticleResult(
                 dictId: dictId, dictName: dictName,
-                keyword: keyword, html: html
+                keyword: keyword, html: html,
+                resolvedFrom: resolvedFrom
             )
             await MainActor.run {
                 self.insertArticleAtFront(result)
@@ -1282,6 +1375,52 @@ class ActionViewController: UIViewController {
             filledButton: true,
             actionHandler: { [weak self] in self?.openInApp(word: self?.selectedText ?? "") }
         )
+    }
+
+    /// Shows spelling suggestions in a UITableView matching WordListVC style.
+    /// Section 0: CTA "Look it up in app" cell + footer "No exact match for 'X'."
+    /// Section 1: "Did you mean…" header + suggestion cells with disclosure indicator.
+    private func showSuggestions() {
+        removeStatusView()
+
+        // Deduplicate: keep best (lowest distance) per lowercased word
+        var best: [String: ScoredSuggestion] = [:]
+        for s in collectedSuggestions {
+            let key = s.word.lowercased()
+            if let existing = best[key] {
+                if s.distance < existing.distance { best[key] = s }
+            } else {
+                best[key] = s
+            }
+        }
+        displaySuggestions = Array(
+            best.values
+                .sorted { $0.distance != $1.distance ? $0.distance < $1.distance : $0.word < $1.word }
+                .prefix(8)
+        )
+
+        let tv = UITableView(frame: .zero, style: .plain)
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        tv.delegate = self
+        tv.dataSource = self
+        tv.register(UITableViewCell.self, forCellReuseIdentifier: "SuggestionCell")
+        tv.keyboardDismissMode = .onDrag
+        view.addSubview(tv)
+
+        NSLayoutConstraint.activate([
+            tv.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tv.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        self.suggestionsTableView = tv
+    }
+
+    private func removeSuggestionsTableView() {
+        suggestionsTableView?.removeFromSuperview()
+        suggestionsTableView = nil
+        displaySuggestions = []
     }
 
     /// Shows "no dictionaries" with a filled button matching not-found style.
@@ -1471,6 +1610,72 @@ class ActionViewController: UIViewController {
         return false
     }
 
+}
+
+// MARK: - UITableViewDataSource (Suggestions)
+
+extension ActionViewController: UITableViewDataSource {
+
+    /// Section 0: CTA (1 cell). Section 1: Suggestions.
+    func numberOfSections(in tableView: UITableView) -> Int {
+        2
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        section == 0 ? 1 : displaySuggestions.count
+    }
+
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        section == 1 ? L10n.ActionExtension.didYouMean : nil
+    }
+
+    func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        section == 0 ? String(format: L10n.ActionExtension.noExactMatch, selectedText) : nil
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "SuggestionCell", for: indexPath)
+        var c = cell.defaultContentConfiguration()
+
+        if indexPath.section == 0 {
+            // CTA: "Look it up in app" — clipboard-style cell
+            c.image = UIImage(systemName: "arrow.up.right.square")
+            c.imageProperties.tintColor = .tintColor
+            c.text = L10n.ActionExtension.lookItUpInApp
+            c.textProperties.color = .tintColor
+            cell.accessoryType = .none
+        } else {
+            // Suggestion cell — matches WordListVC's .suggestion style
+            let suggestion = displaySuggestions[indexPath.row]
+            c.text = suggestion.word
+            if #available(iOS 18.0, *) {
+                c.image = UIImage(systemName: "questionmark.text.page")
+            } else {
+                c.image = UIImage(systemName: "lightbulb")
+            }
+            c.imageProperties.tintColor = .secondaryLabel
+            cell.accessoryType = .disclosureIndicator
+        }
+
+        cell.contentConfiguration = c
+        return cell
+    }
+}
+
+// MARK: - UITableViewDelegate (Suggestions)
+
+extension ActionViewController: UITableViewDelegate {
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+
+        if indexPath.section == 0 {
+            openInApp(word: selectedText)
+        } else {
+            let suggestion = displaySuggestions[indexPath.row]
+            openInApp(word: suggestion.word)
+        }
+    }
 }
 
 // MARK: - UIScrollViewDelegate
