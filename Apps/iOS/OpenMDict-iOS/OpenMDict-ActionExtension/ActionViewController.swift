@@ -519,6 +519,7 @@ class ActionViewController: UIViewController {
         slider.maximumValue = Float(ZoomLevel.levels.count - 1)
         slider.value = Float(ZoomLevel.levels.firstIndex(of: zoom.current) ?? 2)
         slider.isContinuous = true
+        slider.isEnabled = false  // Enabled when first article arrives (setupPager)
         slider.addTarget(self, action: #selector(zoomSliderChanged(_:)), for: .valueChanged)
         slider.translatesAutoresizingMaskIntoConstraints = false
         self.zoomSlider = slider
@@ -553,6 +554,7 @@ class ActionViewController: UIViewController {
     }
 
     @objc private func zoomSliderChanged(_ sender: UISlider) {
+        guard !pages.isEmpty else { return }
         let index = Int(sender.value.rounded())
         sender.value = Float(index)
         let newLevel = ZoomLevel.levels[index]
@@ -983,7 +985,8 @@ class ActionViewController: UIViewController {
 
         let result = results[0]
 
-        // Enable iOS 15 zoom buttons (iOS 16+ buttons are always enabled via fixedGroup)
+        // Enable zoom controls now that articles are available
+        zoomSlider?.isEnabled = true
         zoomInButton?.isEnabled = zoom.canZoomIn
         zoomResetButton?.isEnabled = !zoom.isDefault
         zoomOutButton?.isEnabled = zoom.canZoomOut
