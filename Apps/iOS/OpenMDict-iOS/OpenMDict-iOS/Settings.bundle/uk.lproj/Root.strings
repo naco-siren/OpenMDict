@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "За порядком групи";
 "LOAD_ORDER_AUTO" = "Автоматично";
 "LOAD_ORDER_SMALLEST" = "Спочатку найменші";
+"LOAD_ORDER_USAGE" = "За частотою використання";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Автофокус рядка пошуку";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "Обсяг результатів на словник";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "Дуже мало";

@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "حسب ترتيب المجموعة";
 "LOAD_ORDER_AUTO" = "تلقائي";
 "LOAD_ORDER_SMALLEST" = "الأصغر أولاً";
+"LOAD_ORDER_USAGE" = "حسب تكرار الاستخدام";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "التركيز التلقائي على شريط البحث";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "حجم نتائج البحث لكل قاموس";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "قليل جدًا";

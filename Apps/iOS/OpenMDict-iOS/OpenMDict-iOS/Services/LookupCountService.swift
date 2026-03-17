@@ -179,6 +179,16 @@ final class LookupCountService {
         return Int(cache[key] ?? 0)
     }
 
+    /// All per-dictionary lookup trophy counts. Key = dictId (prefix stripped).
+    func allDictLookupCounts() -> [String: Int64] {
+        ensureCachePopulated()
+        var result: [String: Int64] = [:]
+        for (key, count) in cache where key.hasPrefix("d:") {
+            result[String(key.dropFirst(2))] = count
+        }
+        return result
+    }
+
     /// Return the top N groups by trophy count, sorted descending by count.
     /// Each entry is `(groupId: String, count: Int64)`.
     /// The "all" (default) group is always included (even if count is 0),

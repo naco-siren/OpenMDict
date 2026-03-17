@@ -481,9 +481,16 @@ final class DictionaryService: ObservableObject {
     // MARK: - Load Order
 
     private enum DictionaryLoadOrder: Int {
-        case byGroupOrder  = 0
-        case auto          = 1  // Top-1 guaranteed + WSJF w=0.4
-        case smallestFirst = 2
+        case byGroupOrder      = 0
+        case auto              = 1  // Top-1 guaranteed + tiered lexicographic (bookmark >> lookup > order ≈ size)
+        case smallestFirst     = 2
+        case byUsageFrequency  = 3  // Tiered lexicographic, no Top-1 guarantee
+    }
+
+    /// Log-base-5 tier bucketing. ~5× difference needed to jump a tier.
+    /// tier(0)=0, tier(3)=0, tier(4)=1, tier(23)=1, tier(24)=2, tier(123)=2, tier(124)=3, ...
+    private static func tier(_ count: Int) -> Int {
+        count <= 0 ? 0 : Int(log(Double(count) + 1) / log(5.0))
     }
 
     /// Sort `allDictionaries` for loading based on user setting.
@@ -502,25 +509,19 @@ final class DictionaryService: ObservableObject {
             }
 
         case .auto:
-            // Top-1 always loads first; rest sorted by WSJF score
-            let metadataMap = Dictionary(
-                uniqueKeysWithValues: DictMetadataService.shared.loadAll().map { ($0.dictId, $0) }
-            )
+            // Top-1 always loads first; rest sorted by tiered lexicographic priority.
+            // Version-number model: bookmarkTier >> lookupTier > orderIndex ≈ sizeKB
             let topId = defaultIds.first
             let rest = allDictionaries.filter { $0.id != topId }
-            let sortedRest = rest.sorted { a, b in
-                let ai = defaultIds.firstIndex(of: a.id) ?? allDictionaries.count
-                let bi = defaultIds.firstIndex(of: b.id) ?? allDictionaries.count
-                let sizeA = Double(metadataMap[a.id]?.totalSizeKB ?? 0)
-                let sizeB = Double(metadataMap[b.id]?.totalSizeKB ?? 0)
-                let scoreA = sizeA * (1.0 + Double(ai) * 0.4)
-                let scoreB = sizeB * (1.0 + Double(bi) * 0.4)
-                return scoreA < scoreB
-            }
+            let sorted = Self.sortByEngagementThenOrder(rest, defaultIds: defaultIds, dictCount: allDictionaries.count)
             if let topDict = allDictionaries.first(where: { $0.id == topId }) {
-                return [topDict] + sortedRest
+                return [topDict] + sorted
             }
-            return sortedRest
+            return sorted
+
+        case .byUsageFrequency:
+            // Same tiered lexicographic sort, but no Top-1 guarantee.
+            return Self.sortByEngagementThenOrder(allDictionaries, defaultIds: defaultIds, dictCount: allDictionaries.count)
 
         case .smallestFirst:
             let metadataMap = Dictionary(
@@ -529,6 +530,38 @@ final class DictionaryService: ObservableObject {
             return allDictionaries.sorted { a, b in
                 (metadataMap[a.id]?.totalSizeKB ?? 0) < (metadataMap[b.id]?.totalSizeKB ?? 0)
             }
+        }
+    }
+
+    /// Tiered lexicographic sort: bookmarkTier DESC → lookupTier DESC → orderIndex ASC → sizeKB ASC.
+    /// Cold start (all trophies = 0): degrades to orderIndex + sizeKB.
+    private static func sortByEngagementThenOrder(_ dicts: [MDict], defaultIds: [String], dictCount: Int) -> [MDict] {
+        let bookmarks = BookmarkCountService.shared.allDictBookmarkCounts()
+        let lookups = LookupCountService.shared.allDictLookupCounts()
+        let metadataMap = Dictionary(
+            uniqueKeysWithValues: DictMetadataService.shared.loadAll().map { ($0.dictId, $0) }
+        )
+
+        return dicts.sorted { a, b in
+            // Tier 1: bookmark trophy tier (higher = load first)
+            let bkA = tier(Int(bookmarks[a.id] ?? 0))
+            let bkB = tier(Int(bookmarks[b.id] ?? 0))
+            if bkA != bkB { return bkA > bkB }
+
+            // Tier 2: lookup trophy tier (higher = load first)
+            let lkA = tier(Int(lookups[a.id] ?? 0))
+            let lkB = tier(Int(lookups[b.id] ?? 0))
+            if lkA != lkB { return lkA > lkB }
+
+            // Tier 3: group order index (lower = load first)
+            let oA = defaultIds.firstIndex(of: a.id) ?? dictCount
+            let oB = defaultIds.firstIndex(of: b.id) ?? dictCount
+            if oA != oB { return oA < oB }
+
+            // Tier 4: file size in KB (smaller = load first)
+            let sA = metadataMap[a.id]?.totalSizeKB ?? 0
+            let sB = metadataMap[b.id]?.totalSizeKB ?? 0
+            return sA < sB
         }
     }
     

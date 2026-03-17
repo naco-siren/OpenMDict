@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "按分组排序";
 "LOAD_ORDER_AUTO" = "自动";
 "LOAD_ORDER_SMALLEST" = "最小优先";
+"LOAD_ORDER_USAGE" = "按使用频率";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "自动聚焦查词搜索栏";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "每本词典的查询结果量";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "很少";

@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "그룹 순서";
 "LOAD_ORDER_AUTO" = "자동";
 "LOAD_ORDER_SMALLEST" = "작은 순서";
+"LOAD_ORDER_USAGE" = "사용 빈도순";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "검색 바 자동 포커스";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "사전별 검색 결과량";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "매우 적게";

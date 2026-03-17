@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "По порядку группы";
 "LOAD_ORDER_AUTO" = "Авто";
 "LOAD_ORDER_SMALLEST" = "Сначала маленькие";
+"LOAD_ORDER_USAGE" = "По частоте использования";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Автофокус строки поиска";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "Объём результатов на словарь";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "Очень мало";

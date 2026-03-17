@@ -187,6 +187,16 @@ final class BookmarkCountService {
         return Int(cache[key] ?? 0)
     }
 
+    /// All per-dictionary bookmark trophy counts. Key = dictId (prefix stripped).
+    func allDictBookmarkCounts() -> [String: Int64] {
+        ensureCachePopulated()
+        var result: [String: Int64] = [:]
+        for (key, count) in cache where key.hasPrefix("bd:") {
+            result[String(key.dropFirst(3))] = count
+        }
+        return result
+    }
+
     /// Convenience: increment bookmark trophies for a dict + all groups containing it.
     /// Called from main app UI code after a successful bookmark creation.
     func incrementAll(dictId: String) {

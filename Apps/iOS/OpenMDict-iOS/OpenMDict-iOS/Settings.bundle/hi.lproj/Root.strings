@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "समूह क्रम के अनुसार";
 "LOAD_ORDER_AUTO" = "स्वचालित";
 "LOAD_ORDER_SMALLEST" = "सबसे छोटा पहले";
+"LOAD_ORDER_USAGE" = "उपयोग आवृत्ति के अनुसार";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "खोज बार ऑटो-फ़ोकस";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "प्रति शब्दकोश खोज परिणाम मात्रा";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "बहुत कम";

@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "Nach Gruppenreihenfolge";
 "LOAD_ORDER_AUTO" = "Automatisch";
 "LOAD_ORDER_SMALLEST" = "Kleinste zuerst";
+"LOAD_ORDER_USAGE" = "Nach Nutzungshäufigkeit";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Autofokus auf Suchleiste";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "Ergebnismenge pro Wörterbuch";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "Sehr wenige";

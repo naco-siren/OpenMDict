@@ -12,6 +12,7 @@
 "LOAD_ORDER_GROUP" = "グループ順";
 "LOAD_ORDER_AUTO" = "自動";
 "LOAD_ORDER_SMALLEST" = "小さい順";
+"LOAD_ORDER_USAGE" = "使用頻度順";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "検索バーを自動フォーカス";
 "LOOKUP_SEARCH_RESULT_VOLUME" = "辞書ごとの検索結果量";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "最小";
