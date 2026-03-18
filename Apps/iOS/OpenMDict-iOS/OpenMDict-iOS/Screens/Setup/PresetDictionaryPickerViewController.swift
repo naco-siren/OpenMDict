@@ -492,12 +492,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
         if count > 0 {
             continueButton.configuration?.title = L10n.confirmSelection(count)
             continueButton.configuration?.baseBackgroundColor = nil
-        } else if mode == .firstInstall {
+        } else {
             continueButton.configuration?.title = L10n.Picker.skipPresets
             continueButton.configuration?.baseBackgroundColor = .systemGray4
-        } else {
-            continueButton.configuration?.title = L10n.Picker.confirmSelection
-            continueButton.configuration?.baseBackgroundColor = nil
         }
         continueButton.isEnabled = true
     }
