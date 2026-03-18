@@ -50,6 +50,11 @@ final class WelcomePageViewController: UIViewController {
                 body: L10n.Welcome.extensionsBody
             ),
             Feature(
+                symbolName: "moon.stars",
+                title: L10n.Welcome.darkEnhanceTitle,
+                body: L10n.Welcome.darkEnhanceBody
+            ),
+            Feature(
                 symbolName: "gift",
                 title: L10n.Welcome.presetsTitle,
                 body: L10n.Welcome.presetsBody

@@ -85,10 +85,16 @@ nonisolated enum L10n {
             NSLocalizedString("welcome.feature.multiWindow.body", value: "Enjoy desktop-class productivity by utilizing multiple windows and keyboard shortcuts.", comment: "Feature card body")
         }
         static var extensionsTitle: String {
-            NSLocalizedString("welcome.feature.extensions.title", value: "Quick Lookup and Jump Search", comment: "Feature card title for Action Extension + jump search")
+            NSLocalizedString("welcome.feature.extensions.title", value: "Pop-up Lookup & Jump Search", comment: "Feature card title for Action Extension + jump search")
         }
         static var extensionsBody: String {
             NSLocalizedString("welcome.feature.extensions.body", value: "Look up words from any app in a pop-up, then keep jump-searching unfamiliar terms within definitions until every word is clear.", comment: "Feature card body for Action Extension + jump search")
+        }
+        static var darkEnhanceTitle: String {
+            NSLocalizedString("welcome.feature.darkEnhance.title", value: "Dark Enhancements for Imported Dicts", comment: "Feature card title for enhance dark mode")
+        }
+        static var darkEnhanceBody: String {
+            NSLocalizedString("welcome.feature.darkEnhance.body", value: "Enhance third-party dictionaries\u{2019} readability in dark appearance, with adjustable brightness for each dictionary.", comment: "Feature card body for enhance dark mode")
         }
         static var presetsTitle: String {
             NSLocalizedString("welcome.feature.presets.title", value: "Preset Dictionaries Included", comment: "Feature card title")

@@ -28949,6 +28949,174 @@
         }
       }
     },
+    "welcome.feature.darkEnhance.body" : {
+      "comment" : "Feature card body",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حسِّن قابلية قراءة قواميس الطرف الثالث في المظهر الداكن. خصِّص درجة السطوع المثالية لكل قاموس."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbessern Sie die Lesbarkeit von Drittanbieter-Wörterbüchern im Dunkelmodus. Passen Sie die ideale Helligkeit für jedes Wörterbuch individuell an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enhance third-party dictionaries\u2019 readability in dark appearance. Customize the ideal brightness for each dictionary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mejora la legibilidad de diccionarios de terceros en modo oscuro. Personaliza el brillo ideal para cada diccionario."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Améliorez la lisibilité des dictionnaires tiers en apparence sombre. Personnalisez la luminosité idéale pour chaque dictionnaire."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तृतीय-पक्ष शब्दकोशों की डार्क स्वरूप में पठनीयता बढ़ाएं। प्रत्येक शब्दकोश के लिए सबसे उपयुक्त चमक अनुकूलित करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サードパーティ辞書のダークモードでの読みやすさを向上。辞書ごとに最適な明暗度をカスタマイズできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서드파티 사전의 다크 모드 가독성을 향상시킵니다. 각 사전에 맞는 최적의 밝기를 설정할 수 있습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melhore a legibilidade de dicionários de terceiros no modo escuro. Personalize o brilho ideal para cada dicionário."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Улучшите читаемость сторонних словарей в тёмном режиме. Настройте оптимальную яркость для каждого словаря."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покращте читабельність сторонніх словників у темному режимі. Налаштуйте оптимальну яскравість для кожного словника."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提升第三方词典在深色外观下的可读性，为每本词典定制最合适的明暗度。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提升第三方辭典在深色外觀下的可讀性，為每本辭典定制最合適的明暗度。"
+          }
+        }
+      }
+    },
+    "welcome.feature.darkEnhance.title" : {
+      "comment" : "Feature card title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحسينات الوضع الداكن للقواميس المستوردة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dunkelanpassungen für importierte Wörterbücher"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark Enhancements for Imported Dicts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mejoras de oscuridad para diccionarios importados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Améliorations sombres pour les dictionnaires importés"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आयातित शब्दकोशों के लिए डार्क संवर्धन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポート辞書のダーク補正"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가져온 사전의 다크 보정"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes de escurecimento para dicionários importados"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Улучшения тёмного режима для импортированных словарей"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покращення темного режиму для імпортованих словників"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入词典的暗色增强"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入辭典的暗色增強"
+          }
+        }
+      }
+    },
     "welcome.feature.extensions.body" : {
       "comment" : "Feature card body for Action Extension + jump search",
       "extractionState" : "manual",
@@ -29040,79 +29208,79 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الاستعلام السريع والبحث المتسلسل"
+            "value" : "البحث المنبثق والبحث المتسلسل"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sofortsuche und Sprungsuche"
+            "value" : "Pop-up-Suche und Sprungsuche"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quick Lookup and Jump Search"
+            "value" : "Pop-up Lookup & Jump Search"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consulta rápida y búsqueda encadenada"
+            "value" : "Consulta emergente y búsqueda encadenada"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recherche instantanée et recherche enchaînée"
+            "value" : "Recherche pop-up et recherche enchaînée"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "त्वरित लुकअप और जंप सर्च"
+            "value" : "पॉप-अप लुकअप और जंप सर्च"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クイック検索とジャンプ検索"
+            "value" : "ポップアップ検索とジャンプ検索"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "빠른 조회와 점프 검색"
+            "value" : "팝업 검색과 점프 검색"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consulta rápida e pesquisa encadeada"
+            "value" : "Consulta pop-up e pesquisa encadeada"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Быстрый поиск и цепной поиск"
+            "value" : "Всплывающий поиск и цепной поиск"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Швидкий пошук і ланцюговий пошук"
+            "value" : "Спливаючий пошук і ланцюговий пошук"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快速查词与跳查"
+            "value" : "弹窗快查与跳查"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快速查詞與跳查"
+            "value" : "彈窗快查與跳查"
           }
         }
       }
