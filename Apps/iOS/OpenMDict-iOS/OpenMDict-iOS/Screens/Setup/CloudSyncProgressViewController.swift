@@ -28,7 +28,7 @@ final class CloudSyncProgressViewController: UIViewController {
     // MARK: - Input
 
     /// Target counts from CloudKit (set by SetupViewController before display).
-    var targetSummary = CloudDataSummary(dictionaryCount: 0, groupCount: 0, bookmarkCount: 0)
+    var targetSummary = CloudDataSummary(dictionaryCount: 0, groupCount: 0, bookmarkCount: 0, lookupHistoryCount: 0)
 
     // MARK: - Callbacks
 
@@ -41,12 +41,14 @@ final class CloudSyncProgressViewController: UIViewController {
         case dictionaries
         case groups
         case bookmarks
+        case lookupHistory
 
         var title: String {
             switch self {
-            case .dictionaries: return L10n.SyncProgress.categoryDictionaries
-            case .groups:       return L10n.SyncProgress.categoryGroups
-            case .bookmarks:    return L10n.SyncProgress.categoryBookmarks
+            case .dictionaries:   return L10n.SyncProgress.categoryDictionaries
+            case .groups:         return L10n.SyncProgress.categoryGroups
+            case .bookmarks:      return L10n.SyncProgress.categoryBookmarks
+            case .lookupHistory:  return L10n.SyncProgress.categoryLookupHistory
             }
         }
     }
@@ -185,6 +187,10 @@ final class CloudSyncProgressViewController: UIViewController {
         if s.bookmarkCount > 0 {
             categoryStates[.bookmarks] = CategoryState(current: 0, target: s.bookmarkCount)
             visibleCategories.append(.bookmarks)
+        }
+        if s.lookupHistoryCount > 0 {
+            categoryStates[.lookupHistory] = CategoryState(current: 0, target: s.lookupHistoryCount)
+            visibleCategories.append(.lookupHistory)
         }
     }
 
@@ -418,10 +424,17 @@ final class CloudSyncProgressViewController: UIViewController {
             categoryStates[.bookmarks]?.current = bookmarkCount
         }
 
+        // Lookup history: CoreData count
+        let historyRequest = NSFetchRequest<NSNumber>(entityName: "LookupRecord")
+        if let historyCount = try? stack.viewContext.count(for: historyRequest as! NSFetchRequest<NSFetchRequestResult>) {
+            categoryStates[.lookupHistory]?.current = historyCount
+        }
+
         debugLog("☁️ CloudSyncProgress: counts — "
                  + "dicts=\(categoryStates[.dictionaries]?.current ?? 0)/\(categoryStates[.dictionaries]?.target ?? 0), "
                  + "groups=\(categoryStates[.groups]?.current ?? 0)/\(categoryStates[.groups]?.target ?? 0), "
-                 + "bookmarks=\(categoryStates[.bookmarks]?.current ?? 0)/\(categoryStates[.bookmarks]?.target ?? 0)")
+                 + "bookmarks=\(categoryStates[.bookmarks]?.current ?? 0)/\(categoryStates[.bookmarks]?.target ?? 0), "
+                 + "history=\(categoryStates[.lookupHistory]?.current ?? 0)/\(categoryStates[.lookupHistory]?.target ?? 0)")
 
         // Reconfigure all visible cells
         var snapshot = dataSource.snapshot()

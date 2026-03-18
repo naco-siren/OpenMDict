@@ -32,6 +32,7 @@ struct CloudDataSummary {
     let dictionaryCount: Int
     let groupCount: Int
     let bookmarkCount: Int
+    let lookupHistoryCount: Int
 
     var hasData: Bool { dictionaryCount > 0 }
 }
@@ -147,6 +148,7 @@ final class SyncModeService {
             var dictCount = 0
             var groupCount = 0
             var bookmarkCount = 0
+            var lookupHistoryCount = 0
 
             // Fetch changes since the beginning (nil token = all records).
             // The API returns pages; we loop until moreComing is false.
@@ -168,6 +170,8 @@ final class SyncModeService {
                         groupCount += 1
                     case "CD_BookmarkRecord":
                         bookmarkCount += 1
+                    case "CD_LookupRecord":
+                        lookupHistoryCount += 1
                     default:
                         break
                     }
@@ -180,10 +184,11 @@ final class SyncModeService {
             let summary = CloudDataSummary(
                 dictionaryCount: dictCount,
                 groupCount: groupCount,
-                bookmarkCount: bookmarkCount
+                bookmarkCount: bookmarkCount,
+                lookupHistoryCount: lookupHistoryCount
             )
 
-            debugLog("☁️ SyncModeService: cloud data — \(summary.dictionaryCount) dicts, \(summary.groupCount) groups, \(summary.bookmarkCount) bookmarks")
+            debugLog("☁️ SyncModeService: cloud data — \(summary.dictionaryCount) dicts, \(summary.groupCount) groups, \(summary.bookmarkCount) bookmarks, \(summary.lookupHistoryCount) history")
 
             return .available(summary: summary)
 
@@ -197,12 +202,12 @@ final class SyncModeService {
             case .zoneNotFound:
                 // Zone doesn't exist — genuinely no data.
                 return .available(summary: CloudDataSummary(
-                    dictionaryCount: 0, groupCount: 0, bookmarkCount: 0
+                    dictionaryCount: 0, groupCount: 0, bookmarkCount: 0, lookupHistoryCount: 0
                 ))
             default:
                 // Other CKErrors — treat as no data (zone may not be set up yet).
                 return .available(summary: CloudDataSummary(
-                    dictionaryCount: 0, groupCount: 0, bookmarkCount: 0
+                    dictionaryCount: 0, groupCount: 0, bookmarkCount: 0, lookupHistoryCount: 0
                 ))
             }
         } catch {

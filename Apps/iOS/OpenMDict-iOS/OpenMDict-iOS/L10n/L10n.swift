@@ -1158,6 +1158,13 @@ nonisolated enum L10n {
                 count
             )
         }
+        /// Summary item: N lookup history entries
+        static func summaryLookupHistory(_ count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("syncChooser.summaryLookupHistory", value: "%d lookup history entries", comment: "Sync chooser: number of lookup history entries found in iCloud"),
+                count
+            )
+        }
         /// Alert title for offline choice confirmation
         static var offlineAlertTitle: String {
             NSLocalizedString("syncChooser.offlineAlertTitle", value: "Use Without iCloud?", comment: "Sync chooser: alert title confirming offline mode")
@@ -1190,6 +1197,10 @@ nonisolated enum L10n {
         /// Category title: bookmarks
         static var categoryBookmarks: String {
             NSLocalizedString("syncProgress.categoryBookmarks", value: "Your bookmarks", comment: "Cloud sync progress: bookmarks category title")
+        }
+        /// Category title: lookup history
+        static var categoryLookupHistory: String {
+            NSLocalizedString("syncProgress.categoryLookupHistory", value: "Your lookup history", comment: "Cloud sync progress: lookup history category title")
         }
         /// Subtitle: "X of Y synced"
         static func progressFormat(current: Int, total: Int) -> String {

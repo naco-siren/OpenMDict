@@ -43,7 +43,7 @@ final class SyncModeChooserViewController: UIViewController {
     }
 
     /// Cached for the callback when CTA1 is tapped.
-    private var cachedSummary = CloudDataSummary(dictionaryCount: 0, groupCount: 0, bookmarkCount: 0)
+    private var cachedSummary = CloudDataSummary(dictionaryCount: 0, groupCount: 0, bookmarkCount: 0, lookupHistoryCount: 0)
 
     // MARK: - Upper Zone
 
@@ -314,6 +314,9 @@ final class SyncModeChooserViewController: UIViewController {
         }
         if summary.bookmarkCount > 0 {
             parts.append(L10n.SyncChooser.summaryBookmarks(summary.bookmarkCount))
+        }
+        if summary.lookupHistoryCount > 0 {
+            parts.append(L10n.SyncChooser.summaryLookupHistory(summary.lookupHistoryCount))
         }
 
         let inventory = ListFormatter.localizedString(byJoining: parts)
