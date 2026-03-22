@@ -1526,4 +1526,72 @@ nonisolated enum L10n {
             NSLocalizedString("troubleshoot.resetFailed.message", value: "Could not delete cloud data. Your local data has not been modified. Please check your network connection and try again.", comment: "Alert message: nuclear reset failed")
         }
     }
+
+    // MARK: - Tutorial (New User Guide)
+
+    enum Tutorial {
+        static var title: String {
+            NSLocalizedString("tutorial.title", value: "New User Guide", comment: "Title: tutorial / new user guide screen and sidebar item")
+        }
+
+        // Section headers
+        static var sectionInteractive: String {
+            NSLocalizedString("tutorial.section.interactive", value: "Hands-on Tutorials", comment: "Section header: interactive tutorial levels")
+        }
+        static var sectionGuides: String {
+            NSLocalizedString("tutorial.section.guides", value: "Feature Guides", comment: "Section header: explanation-based tutorial levels")
+        }
+
+        // Level titles
+        static var bookmarksTitle: String {
+            NSLocalizedString("tutorial.bookmarks.title", value: "Bookmarks", comment: "Tutorial level title: bookmarks")
+        }
+        static var enhanceDarkModeTitle: String {
+            NSLocalizedString("tutorial.enhanceDarkMode.title", value: "Enhanced Dark Mode", comment: "Tutorial level title: enhance dark mode")
+        }
+        static var zoomAndLayoutTitle: String {
+            NSLocalizedString("tutorial.zoomAndLayout.title", value: "Zoom & Layout", comment: "Tutorial level title: zoom and layout")
+        }
+        static var findInPageTitle: String {
+            NSLocalizedString("tutorial.findInPage.title", value: "Find in Page", comment: "Tutorial level title: find in page")
+        }
+        static var jumpSearchTitle: String {
+            NSLocalizedString("tutorial.jumpSearch.title", value: "Jump Search", comment: "Tutorial level title: jump search")
+        }
+        static var searchBasicsTitle: String {
+            NSLocalizedString("tutorial.searchBasics.title", value: "Search Basics", comment: "Tutorial level title: search basics")
+        }
+        static var clipboardLookupTitle: String {
+            NSLocalizedString("tutorial.clipboardLookup.title", value: "Clipboard Lookup", comment: "Tutorial level title: clipboard lookup")
+        }
+        static var dictionaryGroupsTitle: String {
+            NSLocalizedString("tutorial.dictionaryGroups.title", value: "Dictionary Groups", comment: "Tutorial level title: dictionary groups")
+        }
+
+        // Level descriptions
+        static var bookmarksDesc: String {
+            NSLocalizedString("tutorial.bookmarks.desc", value: "Save and manage favorite entries", comment: "Tutorial level description: bookmarks")
+        }
+        static var enhanceDarkModeDesc: String {
+            NSLocalizedString("tutorial.enhanceDarkMode.desc", value: "Customize readability in dark mode", comment: "Tutorial level description: enhance dark mode")
+        }
+        static var zoomAndLayoutDesc: String {
+            NSLocalizedString("tutorial.zoomAndLayout.desc", value: "Adjust text size and article layout", comment: "Tutorial level description: zoom and layout")
+        }
+        static var findInPageDesc: String {
+            NSLocalizedString("tutorial.findInPage.desc", value: "Search for text within an article", comment: "Tutorial level description: find in page")
+        }
+        static var jumpSearchDesc: String {
+            NSLocalizedString("tutorial.jumpSearch.desc", value: "Look up words directly from articles", comment: "Tutorial level description: jump search")
+        }
+        static var searchBasicsDesc: String {
+            NSLocalizedString("tutorial.searchBasics.desc", value: "Learn to look up words", comment: "Tutorial level description: search basics")
+        }
+        static var clipboardLookupDesc: String {
+            NSLocalizedString("tutorial.clipboardLookup.desc", value: "Look up copied text instantly", comment: "Tutorial level description: clipboard lookup")
+        }
+        static var dictionaryGroupsDesc: String {
+            NSLocalizedString("tutorial.dictionaryGroups.desc", value: "Organize dictionaries into groups", comment: "Tutorial level description: dictionary groups")
+        }
+    }
 }

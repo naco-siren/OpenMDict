@@ -254,6 +254,10 @@ class MainSplitViewController: UISplitViewController {
             self?.presentPresetManager()
         }
 
+        dictionaryListVC.onNewUserGuideSelected = { [weak self] in
+            self?.showNewUserGuide()
+        }
+
         dictionaryListVC.onChangeAppIconSelected = { [weak self] in
             self?.showAppIconChooser()
         }
@@ -555,6 +559,16 @@ class MainSplitViewController: UISplitViewController {
         }
 
         present(setupVC, animated: true)
+    }
+
+    // MARK: - New User Guide
+
+    private func showNewUserGuide() {
+        let listVC = TutorialFeatureListViewController()
+        let nav = UINavigationController(rootViewController: listVC)
+        nav.modalPresentationStyle = traitCollection.horizontalSizeClass == .regular
+            ? .formSheet : .pageSheet
+        present(nav, animated: true)
     }
 
     // MARK: - App Icon Chooser

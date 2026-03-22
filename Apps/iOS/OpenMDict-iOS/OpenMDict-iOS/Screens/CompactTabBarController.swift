@@ -499,6 +499,12 @@ class CompactTabBarController: UITabBarController {
             presentPresetManager()
         }
 
+        sidebarVC.onNewUserGuideSelected = { [weak self] in
+            guard let self else { return }
+            hideSidebar()
+            showNewUserGuide()
+        }
+
         sidebarVC.onChangeAppIconSelected = { [weak self] in
             guard let self else { return }
             hideSidebar()
@@ -650,6 +656,10 @@ class CompactTabBarController: UITabBarController {
             self?.presentPresetManager()
         }
 
+        managementVC.onNewUserGuideSelected = { [weak self] in
+            self?.showNewUserGuide()
+        }
+
         managementVC.onChangeAppIconSelected = { [weak self] in
             guard let self else { return }
             let vc = AppIconChooserViewController()
@@ -765,6 +775,13 @@ class CompactTabBarController: UITabBarController {
         setupVC.onComplete = { }
 
         present(setupVC, animated: true)
+    }
+
+    // MARK: - New User Guide
+
+    private func showNewUserGuide() {
+        let listVC = TutorialFeatureListViewController()
+        managementNav.pushViewController(listVC, animated: true)
     }
 
     // MARK: - iCloud Troubleshooting

@@ -25,6 +25,7 @@ private nonisolated enum MgmtItem: Hashable, Sendable {
     case addGroup
     case importDictionary
     case downloadPresets
+    case newUserGuide
     case changeAppIcon
     case iCloudTroubleshoot
     case appSettings
@@ -44,6 +45,9 @@ class CompactManagementViewController: UIViewController {
 
     /// "Download Presets" tapped
     var onDownloadPresetsSelected: (() -> Void)?
+
+    /// "New User Guide" tapped
+    var onNewUserGuideSelected: (() -> Void)?
 
     /// "App Icon" tapped
     var onChangeAppIconSelected: (() -> Void)?
@@ -103,6 +107,9 @@ class CompactManagementViewController: UIViewController {
             case .downloadPresets:
                 config.text = L10n.Sidebar.downloadPresets
                 config.image = UIImage(systemName: "icloud.and.arrow.down")
+            case .newUserGuide:
+                config.text = L10n.Tutorial.title
+                config.image = UIImage(systemName: "graduationcap")
             case .changeAppIcon:
                 config.text = L10n.AppIcon.title
                 config.image = UIImage(systemName: "app.badge.checkmark")
@@ -131,7 +138,7 @@ class CompactManagementViewController: UIViewController {
     private func rebuildSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<MgmtSection, MgmtItem>()
         snapshot.appendSections([.actions])
-        let items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets, .iCloudTroubleshoot, .changeAppIcon, .appSettings]
+        let items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets, .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .appSettings]
         snapshot.appendItems(items, toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -159,6 +166,8 @@ extension CompactManagementViewController: UICollectionViewDelegate {
             onAddGroupSelected?()
         case .downloadPresets:
             onDownloadPresetsSelected?()
+        case .newUserGuide:
+            onNewUserGuideSelected?()
         case .changeAppIcon:
             onChangeAppIconSelected?()
         case .iCloudTroubleshoot:
