@@ -170,10 +170,8 @@ class MainSplitViewController: UISplitViewController {
         if wasRegular && willBeCompact && activeLayout == .regular {
             transferStateToCompact()
             activeLayout = .compact
-            // Regular→compact transition: show lookup screen, not articles.
-            // Articles are preserved in compact's lookupDetailContainer for
-            // when the user taps a word or transitions back to regular.
-            compactTabBarController.lookupNav.popToRootViewController(animated: false)
+            // Keep articles visible — the user was viewing them in regular mode
+            // and the window simply got narrower (rotation, new window opened, etc.).
             debugLog("📱 willTransition: regular → compact, transferred state to compact tab bar")
         }
 
@@ -1299,7 +1297,6 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
         guard activeLayout == .regular else { return }
         transferStateToCompact()
         activeLayout = .compact
-        compactTabBarController.lookupNav.popToRootViewController(animated: false)
         debugLog("📱 splitViewControllerWillCollapse: transferred state to compact tab bar")
     }
 
