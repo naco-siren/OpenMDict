@@ -156,6 +156,8 @@ class CompactTabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        delegate = self
+
         // On iPhone the app starts directly in compact mode — splitViewControllerWillCollapse
         // is never called, so transferStateIn() never runs.  Create a local LookupSession
         // so the Lookup tab's reactive search pipeline works from the start.
@@ -884,5 +886,27 @@ class CompactTabBarController: UITabBarController {
         let articles: [ArticleDisplayItem]
         let currentArticleIndex: Int
         let selectedTab: Int
+    }
+}
+
+// MARK: - UITabBarControllerDelegate
+
+extension CompactTabBarController: UITabBarControllerDelegate {
+
+    func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
+        // Re-tapping the Lookup tab while detail is pushed:
+        // UIKit auto-pops to root — also focus the search bar afterward
+        // (only when auto-focus is enabled in Settings).
+        if viewController === lookupNav
+            && selectedViewController === lookupNav
+            && lookupNav.topViewController !== lookupWordListVC
+            && UserDefaults.standard.searchAutoFocus {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self,
+                      self.lookupNav.topViewController === self.lookupWordListVC else { return }
+                self.lookupWordListVC.focusSearchBar()
+            }
+        }
+        return true
     }
 }

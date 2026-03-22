@@ -67,6 +67,11 @@ class MainSplitViewController: UISplitViewController {
 
     /// Prevents presenting setup multiple times (e.g., on multi-window restore)
     private var hasAttemptedSetup = false
+
+    /// Set by SceneDelegate when the scene was created by a user-initiated action
+    /// (open in new window, drag & drop, handoff) rather than cold start / state restoration.
+    /// Consumed on first compact entry to keep articles visible instead of popping to root.
+    var isUserInitiatedScene = false
     
     // MARK: - Constants
     
@@ -134,6 +139,16 @@ class MainSplitViewController: UISplitViewController {
                     transferStateToCompact()
                 }
                 activeLayout = .compact
+
+                // Cold start / state restoration: pop to lookup screen so the user
+                // sees the word list, not the previously viewed articles.
+                // But for user-initiated scenes (open in new window, drag, handoff),
+                // keep the articles visible — that's the whole point of the action.
+                if !isUserInitiatedScene {
+                    compactTabBarController.lookupNav.popToRootViewController(animated: false)
+                }
+                isUserInitiatedScene = false  // consumed
+
                 debugLog("📱 viewDidAppear: activeLayout → compact (transferred \(detailContainer.allArticles.count) articles)")
             }
         } else if !detailContainer.allArticles.isEmpty {
@@ -155,6 +170,10 @@ class MainSplitViewController: UISplitViewController {
         if wasRegular && willBeCompact && activeLayout == .regular {
             transferStateToCompact()
             activeLayout = .compact
+            // Regular→compact transition: show lookup screen, not articles.
+            // Articles are preserved in compact's lookupDetailContainer for
+            // when the user taps a word or transitions back to regular.
+            compactTabBarController.lookupNav.popToRootViewController(animated: false)
             debugLog("📱 willTransition: regular → compact, transferred state to compact tab bar")
         }
 
@@ -1280,6 +1299,7 @@ extension MainSplitViewController: UISplitViewControllerDelegate {
         guard activeLayout == .regular else { return }
         transferStateToCompact()
         activeLayout = .compact
+        compactTabBarController.lookupNav.popToRootViewController(animated: false)
         debugLog("📱 splitViewControllerWillCollapse: transferred state to compact tab bar")
     }
 

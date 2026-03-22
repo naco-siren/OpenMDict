@@ -69,6 +69,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             initialGroupId: initialGroupId,
             initialLayoutMode: initialLayoutMode
         )
+
+        // Mark user-initiated scenes (open in new window, drag, handoff)
+        // so compact mode keeps articles visible instead of popping to lookup screen.
+        if connectionOptions.userActivities.first != nil {
+            splitVC.isUserInitiatedScene = true
+        }
+
         window.rootViewController = splitVC
 
         self.window = window
