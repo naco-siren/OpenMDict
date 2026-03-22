@@ -80,7 +80,7 @@ final class TutorialFeatureListViewController: UIViewController {
             var content = UIListContentConfiguration.subtitleCell()
             content.text = item.level.title
             content.secondaryText = item.level.description
-            content.image = UIImage(systemName: item.level.symbolName)
+            content.image = UIImage(systemName: item.level.symbolName(traitCollection: cell.traitCollection))
             content.imageProperties.tintColor = .tintColor
             cell.contentConfiguration = content
 
@@ -145,7 +145,8 @@ extension TutorialFeatureListViewController: UICollectionViewDelegate {
         collectionView.deselectItem(at: indexPath, animated: true)
 
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        // TODO: Phase 2 — push TutorialViewController(level: item.level)
+        let tutorialVC = TutorialViewController(level: item.level)
+        navigationController?.pushViewController(tutorialVC, animated: true)
     }
 }
 

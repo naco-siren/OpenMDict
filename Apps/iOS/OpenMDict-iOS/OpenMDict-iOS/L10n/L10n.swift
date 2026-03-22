@@ -1542,56 +1542,117 @@ nonisolated enum L10n {
             NSLocalizedString("tutorial.section.guides", value: "Feature Guides", comment: "Section header: explanation-based tutorial levels")
         }
 
-        // Level titles
-        static var bookmarksTitle: String {
-            NSLocalizedString("tutorial.bookmarks.title", value: "Bookmarks", comment: "Tutorial level title: bookmarks")
-        }
-        static var enhanceDarkModeTitle: String {
-            NSLocalizedString("tutorial.enhanceDarkMode.title", value: "Enhanced Dark Mode", comment: "Tutorial level title: enhance dark mode")
-        }
+        // Hands-on level titles
         static var zoomAndLayoutTitle: String {
             NSLocalizedString("tutorial.zoomAndLayout.title", value: "Zoom & Layout", comment: "Tutorial level title: zoom and layout")
         }
-        static var findInPageTitle: String {
-            NSLocalizedString("tutorial.findInPage.title", value: "Find in Page", comment: "Tutorial level title: find in page")
+        static var enhanceDarkModeTitle: String {
+            NSLocalizedString("tutorial.enhanceDarkMode.title", value: "Dark Mode Enhancements", comment: "Tutorial level title: enhance dark mode")
+        }
+        static var bookmarksTitle: String {
+            NSLocalizedString("tutorial.bookmarks.title", value: "Bookmarks", comment: "Tutorial level title: bookmarks")
         }
         static var jumpSearchTitle: String {
             NSLocalizedString("tutorial.jumpSearch.title", value: "Jump Search", comment: "Tutorial level title: jump search")
         }
-        static var searchBasicsTitle: String {
-            NSLocalizedString("tutorial.searchBasics.title", value: "Search Basics", comment: "Tutorial level title: search basics")
+        static var findInPageTitle: String {
+            NSLocalizedString("tutorial.findInPage.title", value: "Find in Page", comment: "Tutorial level title: find in page")
         }
-        static var clipboardLookupTitle: String {
-            NSLocalizedString("tutorial.clipboardLookup.title", value: "Clipboard Lookup", comment: "Tutorial level title: clipboard lookup")
+
+        // Guide level titles
+        static var lookupBasicsTitle: String {
+            NSLocalizedString("tutorial.lookupBasics.title", value: "Lookup Basics", comment: "Tutorial level title: lookup basics")
+        }
+        static var popupLookupTitle: String {
+            NSLocalizedString("tutorial.popupLookup.title", value: "Pop-up Lookup", comment: "Tutorial level title: pop-up lookup (action extension)")
         }
         static var dictionaryGroupsTitle: String {
             NSLocalizedString("tutorial.dictionaryGroups.title", value: "Dictionary Groups", comment: "Tutorial level title: dictionary groups")
         }
+        static var importAndResourcesTitle: String {
+            NSLocalizedString("tutorial.importAndResources.title", value: "MDX Import & Resources", comment: "Tutorial level title: import and resource management")
+        }
+        static var iPadProductivityTitle: String {
+            NSLocalizedString("tutorial.iPadProductivity.title", value: "iPad Productivity", comment: "Tutorial level title: iPad multitasking and keyboard shortcuts")
+        }
 
-        // Level descriptions
-        static var bookmarksDesc: String {
-            NSLocalizedString("tutorial.bookmarks.desc", value: "Save and manage favorite entries", comment: "Tutorial level description: bookmarks")
+        // Hands-on level descriptions
+        static var zoomAndLayoutDesc: String {
+            NSLocalizedString("tutorial.zoomAndLayout.desc", value: "Adjust text size and article layout", comment: "Tutorial level description: zoom and layout")
         }
         static var enhanceDarkModeDesc: String {
             NSLocalizedString("tutorial.enhanceDarkMode.desc", value: "Customize readability in dark mode", comment: "Tutorial level description: enhance dark mode")
         }
-        static var zoomAndLayoutDesc: String {
-            NSLocalizedString("tutorial.zoomAndLayout.desc", value: "Adjust text size and article layout", comment: "Tutorial level description: zoom and layout")
-        }
-        static var findInPageDesc: String {
-            NSLocalizedString("tutorial.findInPage.desc", value: "Search for text within an article", comment: "Tutorial level description: find in page")
+        static var bookmarksDesc: String {
+            NSLocalizedString("tutorial.bookmarks.desc", value: "Save and manage favorite entries", comment: "Tutorial level description: bookmarks")
         }
         static var jumpSearchDesc: String {
             NSLocalizedString("tutorial.jumpSearch.desc", value: "Look up words directly from articles", comment: "Tutorial level description: jump search")
         }
-        static var searchBasicsDesc: String {
-            NSLocalizedString("tutorial.searchBasics.desc", value: "Learn to look up words", comment: "Tutorial level description: search basics")
+        static var findInPageDesc: String {
+            NSLocalizedString("tutorial.findInPage.desc", value: "Search for text within an article", comment: "Tutorial level description: find in page")
         }
-        static var clipboardLookupDesc: String {
-            NSLocalizedString("tutorial.clipboardLookup.desc", value: "Look up copied text instantly", comment: "Tutorial level description: clipboard lookup")
+
+        // Guide level descriptions
+        static var lookupBasicsDesc: String {
+            NSLocalizedString("tutorial.lookupBasics.desc", value: "Clipboard, search results, related forms, and suggestions", comment: "Tutorial level description: lookup basics")
+        }
+        static var popupLookupDesc: String {
+            NSLocalizedString("tutorial.popupLookup.desc", value: "Look up words from any app via Share Sheet", comment: "Tutorial level description: pop-up lookup")
         }
         static var dictionaryGroupsDesc: String {
             NSLocalizedString("tutorial.dictionaryGroups.desc", value: "Organize dictionaries into groups", comment: "Tutorial level description: dictionary groups")
+        }
+        static var importAndResourcesDesc: String {
+            NSLocalizedString("tutorial.importAndResources.desc", value: "Import MDX files and manage CSS/JS resources", comment: "Tutorial level description: import and resource management")
+        }
+        static var iPadProductivityDesc: String {
+            NSLocalizedString("tutorial.iPadProductivity.desc", value: "Multitasking, multi-window, and keyboard shortcuts", comment: "Tutorial level description: iPad productivity")
+        }
+
+        // Coaching mark buttons
+        static var next: String {
+            NSLocalizedString("tutorial.button.next", value: "Next", comment: "Tutorial coaching button: advance to next step")
+        }
+        static var tryIt: String {
+            NSLocalizedString("tutorial.button.tryIt", value: "Try It", comment: "Tutorial coaching button: try the interaction")
+        }
+        static var gotIt: String {
+            NSLocalizedString("tutorial.button.gotIt", value: "Got It", comment: "Tutorial coaching button: understood, finish")
+        }
+        static func stepOf(_ current: Int, _ total: Int) -> String {
+            String(format: NSLocalizedString("tutorial.stepOf", value: "Step %d of %d", comment: "Tutorial step indicator: Step X of Y"), current, total)
+        }
+
+        // Wrong action alert
+        static var wrongActionTitle: String {
+            NSLocalizedString("tutorial.wrongAction.title", value: "Not Quite!", comment: "Alert title: user tapped wrong button during tutorial")
+        }
+        static var wrongActionBookmark: String {
+            NSLocalizedString("tutorial.wrongAction.bookmark", value: "Please tap the highlighted bookmark button to continue.", comment: "Alert message: expected bookmark tap")
+        }
+        static var wrongActionMoon: String {
+            NSLocalizedString("tutorial.wrongAction.moon", value: "Please tap the highlighted moon button to continue.", comment: "Alert message: expected moon button tap")
+        }
+        static var wrongActionFind: String {
+            NSLocalizedString("tutorial.wrongAction.find", value: "Please tap the highlighted find button to continue.", comment: "Alert message: expected find button tap")
+        }
+        static var wrongActionZoom: String {
+            NSLocalizedString("tutorial.wrongAction.zoom", value: "Please tap one of the zoom buttons in the toolbar to continue.", comment: "Alert message: expected zoom control tap")
+        }
+
+        // Exit confirmation
+        static var exitTitle: String {
+            NSLocalizedString("tutorial.exit.title", value: "Leave Tutorial?", comment: "Alert title: leaving incomplete tutorial")
+        }
+        static var exitMessage: String {
+            NSLocalizedString("tutorial.exit.message", value: "This tutorial is not complete yet. Are you sure you want to leave?", comment: "Alert message: leaving incomplete tutorial")
+        }
+        static var exitConfirm: String {
+            NSLocalizedString("tutorial.exit.confirm", value: "Leave", comment: "Alert button: confirm leaving tutorial")
+        }
+        static var exitCancel: String {
+            NSLocalizedString("tutorial.exit.cancel", value: "Stay", comment: "Alert button: cancel leaving tutorial")
         }
     }
 }

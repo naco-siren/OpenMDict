@@ -8,67 +8,84 @@
 import UIKit
 
 /// A tutorial level in the New User Guide.
+///
+/// Enum order defines display order within each section.
 nonisolated enum TutorialLevel: Int, CaseIterable, Hashable, Sendable {
 
-    // Interactive — operates on a single ArticlePageView
-    case bookmarks
-    case enhanceDarkMode
-    case zoomAndLayout
-    case findInPage
-    case jumpSearch
+    // ── Hands-on Tutorials (interactive, ArticlePageView) ──
+    case zoomAndLayout       // 1st: most universally useful
+    case enhanceDarkMode     // 2nd: unique feature
+    case bookmarks           // 3rd: standard feature
+    case jumpSearch          // 4th: advanced but important
+    case findInPage          // 5th: niche
 
-    // Guided explanation — describes features with coaching marks
-    case searchBasics
-    case clipboardLookup
-    case dictionaryGroups
+    // ── Feature Guides (explanation with screenshots) ──
+    case lookupBasics        // Search + clipboard + related forms + suggestions
+    case popupLookup         // Action Extension upsell ("弹窗快查")
+    case dictionaryGroups    // Group management
+    case importAndResources  // MDX import & resource management
+    case iPadProductivity    // iPad multitasking + keyboard shortcuts
 
     // MARK: - Metadata
 
-    var symbolName: String {
+    /// SF Symbol name. For `.popupLookup`, pass a trait collection to get
+    /// the size-class-aware icon; the parameterless overload returns the iOS 15 fallback.
+    func symbolName(traitCollection: UITraitCollection? = nil) -> String {
         switch self {
-        case .bookmarks:        return "bookmark"
-        case .enhanceDarkMode:  return "moon.stars"
-        case .zoomAndLayout:    return "textformat.size"
-        case .findInPage:       return "doc.text.magnifyingglass"
-        case .jumpSearch:       return "text.magnifyingglass"
-        case .searchBasics:     return "magnifyingglass"
-        case .clipboardLookup:  return "doc.on.clipboard"
-        case .dictionaryGroups: return "folder.badge.plus"
+        case .zoomAndLayout:      return "textformat.size"
+        case .enhanceDarkMode:    return "moon.stars"
+        case .bookmarks:          return "bookmark"
+        case .jumpSearch:         return "sparkle.magnifyingglass"
+        case .findInPage:         return "doc.text.magnifyingglass"
+        case .lookupBasics:       return "character.book.closed"
+        case .popupLookup:
+            if #available(iOS 18.0, *) {
+                let isCompact = traitCollection?.horizontalSizeClass == .compact
+                return isCompact ? "widget.small.badge.plus" : "widget.large.badge.plus"
+            }
+            return "square.text.square"
+        case .dictionaryGroups:   return "folder.badge.person.crop"
+        case .importAndResources: return "books.vertical"
+        case .iPadProductivity:   return "text.and.command.macwindow"
         }
     }
 
     var title: String {
         switch self {
-        case .bookmarks:        return L10n.Tutorial.bookmarksTitle
-        case .enhanceDarkMode:  return L10n.Tutorial.enhanceDarkModeTitle
-        case .zoomAndLayout:    return L10n.Tutorial.zoomAndLayoutTitle
-        case .findInPage:       return L10n.Tutorial.findInPageTitle
-        case .jumpSearch:       return L10n.Tutorial.jumpSearchTitle
-        case .searchBasics:     return L10n.Tutorial.searchBasicsTitle
-        case .clipboardLookup:  return L10n.Tutorial.clipboardLookupTitle
-        case .dictionaryGroups: return L10n.Tutorial.dictionaryGroupsTitle
+        case .zoomAndLayout:      return L10n.Tutorial.zoomAndLayoutTitle
+        case .enhanceDarkMode:    return L10n.Tutorial.enhanceDarkModeTitle
+        case .bookmarks:          return L10n.Tutorial.bookmarksTitle
+        case .jumpSearch:         return L10n.Tutorial.jumpSearchTitle
+        case .findInPage:         return L10n.Tutorial.findInPageTitle
+        case .lookupBasics:       return L10n.Tutorial.lookupBasicsTitle
+        case .popupLookup:        return L10n.Tutorial.popupLookupTitle
+        case .dictionaryGroups:   return L10n.Tutorial.dictionaryGroupsTitle
+        case .importAndResources: return L10n.Tutorial.importAndResourcesTitle
+        case .iPadProductivity:   return L10n.Tutorial.iPadProductivityTitle
         }
     }
 
     var description: String {
         switch self {
-        case .bookmarks:        return L10n.Tutorial.bookmarksDesc
-        case .enhanceDarkMode:  return L10n.Tutorial.enhanceDarkModeDesc
-        case .zoomAndLayout:    return L10n.Tutorial.zoomAndLayoutDesc
-        case .findInPage:       return L10n.Tutorial.findInPageDesc
-        case .jumpSearch:       return L10n.Tutorial.jumpSearchDesc
-        case .searchBasics:     return L10n.Tutorial.searchBasicsDesc
-        case .clipboardLookup:  return L10n.Tutorial.clipboardLookupDesc
-        case .dictionaryGroups: return L10n.Tutorial.dictionaryGroupsDesc
+        case .zoomAndLayout:      return L10n.Tutorial.zoomAndLayoutDesc
+        case .enhanceDarkMode:    return L10n.Tutorial.enhanceDarkModeDesc
+        case .bookmarks:          return L10n.Tutorial.bookmarksDesc
+        case .jumpSearch:         return L10n.Tutorial.jumpSearchDesc
+        case .findInPage:         return L10n.Tutorial.findInPageDesc
+        case .lookupBasics:       return L10n.Tutorial.lookupBasicsDesc
+        case .popupLookup:        return L10n.Tutorial.popupLookupDesc
+        case .dictionaryGroups:   return L10n.Tutorial.dictionaryGroupsDesc
+        case .importAndResources: return L10n.Tutorial.importAndResourcesDesc
+        case .iPadProductivity:   return L10n.Tutorial.iPadProductivityDesc
         }
     }
 
     /// Whether this level is interactive (uses real ArticlePageView).
     var isInteractive: Bool {
         switch self {
-        case .bookmarks, .enhanceDarkMode, .zoomAndLayout, .findInPage, .jumpSearch:
+        case .zoomAndLayout, .enhanceDarkMode, .bookmarks, .jumpSearch, .findInPage:
             return true
-        case .searchBasics, .clipboardLookup, .dictionaryGroups:
+        case .lookupBasics, .popupLookup, .dictionaryGroups, .importAndResources, .iPadProductivity:
             return false
         }
     }

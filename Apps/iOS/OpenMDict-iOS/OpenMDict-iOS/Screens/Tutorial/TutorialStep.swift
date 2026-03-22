@@ -1,0 +1,233 @@
+//
+//  TutorialStep.swift
+//  OpenMDict-iOS
+//
+//  Defines the coaching steps for each tutorial level.
+//  Each step specifies what to highlight, what message to show,
+//  which action advances the step, and whether the WebView is interactive.
+//
+
+import UIKit
+
+// MARK: - TutorialStep
+
+struct TutorialStep {
+
+    /// Where to point the coaching mark.
+    enum AnchorTarget {
+        case headerArea             // Article header region
+        case bookmarkButton         // Bookmark button in header
+        case moonButton             // Enhance dark mode button
+        case zoomControls           // Zoom bar button items in nav bar
+        case findButton             // Find-in-page button in header
+        case webViewCenter          // WebView content area
+        case center                 // Center of screen (no arrow)
+    }
+
+    /// Which user action advances this step.
+    enum ValidAction {
+        case tapCoachingButton      // Tap the coaching mark's action button (Next/Got It)
+        case tapBookmark            // Tap the bookmark button in the header
+        case tapMoonButton          // Tap the enhance dark mode button
+        case tapFindButton          // Tap the find-in-page button
+        case tapZoomControl         // Tap any zoom control in the nav bar
+        case freeInteraction        // Interact freely, advance via coaching button
+    }
+
+    enum ButtonStyle: String {
+        case next    = "next"
+        case tryIt   = "tryIt"
+        case gotIt   = "gotIt"
+
+        var title: String {
+            switch self {
+            case .next:  return L10n.Tutorial.next
+            case .tryIt: return L10n.Tutorial.tryIt
+            case .gotIt: return L10n.Tutorial.gotIt
+            }
+        }
+    }
+
+    let anchorTarget: AnchorTarget
+    let messageKey: String
+    let buttonStyle: ButtonStyle
+    let validAction: ValidAction
+    let webViewInteractive: Bool    // Whether WebView is touchable during this step
+
+    init(anchorTarget: AnchorTarget, messageKey: String,
+         buttonStyle: ButtonStyle, validAction: ValidAction,
+         webViewInteractive: Bool = false) {
+        self.anchorTarget = anchorTarget
+        self.messageKey = messageKey
+        self.buttonStyle = buttonStyle
+        self.validAction = validAction
+        self.webViewInteractive = webViewInteractive
+    }
+}
+
+// MARK: - Steps Per Level
+
+extension TutorialLevel {
+
+    /// Ordered coaching steps for this level.
+    var steps: [TutorialStep] {
+        switch self {
+
+        // ── Hands-on: Zoom & Layout ──
+        case .zoomAndLayout:
+            return [
+                TutorialStep(
+                    anchorTarget: .zoomControls,
+                    messageKey: "zoomAndLayout.step1",
+                    buttonStyle: .next,
+                    validAction: .tapCoachingButton
+                ),
+                TutorialStep(
+                    anchorTarget: .zoomControls,
+                    messageKey: "zoomAndLayout.step2",
+                    buttonStyle: .gotIt,
+                    validAction: .tapZoomControl
+                ),
+            ]
+
+        // ── Hands-on: Enhance Dark Mode ──
+        case .enhanceDarkMode:
+            return [
+                TutorialStep(
+                    anchorTarget: .moonButton,
+                    messageKey: "enhanceDarkMode.step1",
+                    buttonStyle: .next,
+                    validAction: .tapCoachingButton
+                ),
+                TutorialStep(
+                    anchorTarget: .moonButton,
+                    messageKey: "enhanceDarkMode.step2",
+                    buttonStyle: .tryIt,
+                    validAction: .tapMoonButton
+                ),
+                TutorialStep(
+                    anchorTarget: .center,
+                    messageKey: "enhanceDarkMode.step3",
+                    buttonStyle: .gotIt,
+                    validAction: .freeInteraction
+                ),
+            ]
+
+        // ── Hands-on: Bookmarks ──
+        case .bookmarks:
+            return [
+                TutorialStep(
+                    anchorTarget: .webViewCenter,
+                    messageKey: "bookmarks.step1",
+                    buttonStyle: .next,
+                    validAction: .tapCoachingButton
+                ),
+                TutorialStep(
+                    anchorTarget: .bookmarkButton,
+                    messageKey: "bookmarks.step2",
+                    buttonStyle: .tryIt,
+                    validAction: .tapBookmark
+                ),
+                TutorialStep(
+                    anchorTarget: .bookmarkButton,
+                    messageKey: "bookmarks.step3",
+                    buttonStyle: .gotIt,
+                    validAction: .tapCoachingButton
+                ),
+            ]
+
+        // ── Hands-on: Jump Search ──
+        case .jumpSearch:
+            return [
+                TutorialStep(
+                    anchorTarget: .webViewCenter,
+                    messageKey: "jumpSearch.step1",
+                    buttonStyle: .next,
+                    validAction: .tapCoachingButton
+                ),
+                TutorialStep(
+                    anchorTarget: .webViewCenter,
+                    messageKey: "jumpSearch.step2",
+                    buttonStyle: .next,
+                    validAction: .tapCoachingButton,
+                    webViewInteractive: true
+                ),
+                TutorialStep(
+                    anchorTarget: .center,
+                    messageKey: "jumpSearch.step3",
+                    buttonStyle: .gotIt,
+                    validAction: .tapCoachingButton
+                ),
+            ]
+
+        // ── Hands-on: Find in Page ──
+        case .findInPage:
+            return [
+                TutorialStep(
+                    anchorTarget: .findButton,
+                    messageKey: "findInPage.step1",
+                    buttonStyle: .next,
+                    validAction: .tapCoachingButton
+                ),
+                TutorialStep(
+                    anchorTarget: .findButton,
+                    messageKey: "findInPage.step2",
+                    buttonStyle: .tryIt,
+                    validAction: .tapFindButton
+                ),
+                TutorialStep(
+                    anchorTarget: .center,
+                    messageKey: "findInPage.step3",
+                    buttonStyle: .gotIt,
+                    validAction: .freeInteraction
+                ),
+            ]
+
+        // ── Feature Guides (all use tapCoachingButton) ──
+
+        case .lookupBasics:
+            return [
+                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step1",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step2",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step3",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step4",
+                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
+            ]
+
+        case .popupLookup:
+            return [
+                TutorialStep(anchorTarget: .center, messageKey: "popupLookup.step1",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "popupLookup.step2",
+                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
+            ]
+
+        case .dictionaryGroups:
+            return [
+                TutorialStep(anchorTarget: .center, messageKey: "dictionaryGroups.step1",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "dictionaryGroups.step2",
+                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
+            ]
+
+        case .importAndResources:
+            return [
+                TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step1",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step2",
+                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
+            ]
+
+        case .iPadProductivity:
+            return [
+                TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.step1",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.step2",
+                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
+            ]
+        }
+    }
+}
