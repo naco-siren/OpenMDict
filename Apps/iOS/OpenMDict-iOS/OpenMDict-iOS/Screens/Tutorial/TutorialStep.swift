@@ -31,6 +31,7 @@ struct TutorialStep {
         case tapMoonButton          // Tap the enhance dark mode button
         case tapFindButton          // Tap the find-in-page button
         case tapZoomControl         // Tap any zoom control in the nav bar
+        case tapJumpSearch          // Long-press word + select Jump Search in WebView
         case freeInteraction        // Interact freely, advance via coaching button
     }
 
@@ -148,8 +149,8 @@ extension TutorialLevel {
                 TutorialStep(
                     anchorTarget: .webViewCenter,
                     messageKey: "jumpSearch.step2",
-                    buttonStyle: .next,
-                    validAction: .tapCoachingButton,
+                    buttonStyle: .tryIt,
+                    validAction: .tapJumpSearch,
                     webViewInteractive: true
                 ),
                 TutorialStep(

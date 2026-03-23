@@ -145,6 +145,21 @@ extension TutorialFeatureListViewController: UICollectionViewDelegate {
         collectionView.deselectItem(at: indexPath, animated: true)
 
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
+
+        // Find in Page requires iOS 16+ (WKFindInteraction)
+        if item.level == .findInPage {
+            if #unavailable(iOS 16.0) {
+                let alert = UIAlertController(
+                    title: L10n.Tutorial.findInPageTitle,
+                    message: L10n.Tutorial.findUnavailableMessage,
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: L10n.Tutorial.gotIt, style: .default))
+                present(alert, animated: true)
+                return
+            }
+        }
+
         let tutorialVC = TutorialViewController(level: item.level)
         navigationController?.pushViewController(tutorialVC, animated: true)
     }

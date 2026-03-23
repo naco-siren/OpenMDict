@@ -30,6 +30,8 @@ final class CoachingMarkView: UIView {
         let spotlightFrame: CGRect?   // nil = no spotlight (centered card)
         let arrowDirection: ArrowDirection
         let stepText: String?         // e.g. "Step 2 of 5"
+        var passThroughSpotlight: Bool = false  // When true, taps in spotlight area pass to views below
+        var isCelebration: Bool = false         // When true, larger card with centered layout
     }
 
     // MARK: - UI Constants
@@ -55,6 +57,7 @@ final class CoachingMarkView: UIView {
 
     // State
     private var currentConfig: Configuration?
+    private var buttonBottomConstraint: NSLayoutConstraint?
 
     // MARK: - Init
 
@@ -109,6 +112,10 @@ final class CoachingMarkView: UIView {
 
         // Internal card layout (Auto Layout)
         let p = Self.cardPadding
+
+        // Action button bottom anchor — always installed, ensures card has enough height
+        buttonBottomConstraint = actionButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -p)
+
         NSLayoutConstraint.activate([
             messageLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: p),
             messageLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: p),
@@ -116,12 +123,35 @@ final class CoachingMarkView: UIView {
 
             stepLabel.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 12),
             stepLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: p),
-            stepLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -p),
+            stepLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -p).withPriority(.defaultHigh),
 
-            actionButton.centerYAnchor.constraint(equalTo: stepLabel.centerYAnchor),
+            actionButton.centerYAnchor.constraint(equalTo: stepLabel.centerYAnchor).withPriority(.defaultHigh),
+            actionButton.topAnchor.constraint(greaterThanOrEqualTo: messageLabel.bottomAnchor, constant: 16),
             actionButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -p),
             actionButton.leadingAnchor.constraint(greaterThanOrEqualTo: stepLabel.trailingAnchor, constant: 12),
+            buttonBottomConstraint!,
         ])
+    }
+
+    // MARK: - Touch Pass-Through
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // Always let the card and its subviews handle touches
+        let cardHit = cardView.hitTest(convert(point, to: cardView), with: event)
+        if cardHit != nil { return cardHit }
+
+        // If spotlight pass-through is enabled, let touches in the spotlight
+        // area reach the views below (e.g. bookmark button)
+        if let config = currentConfig, config.passThroughSpotlight,
+           let spot = config.spotlightFrame {
+            let inflated = spot.insetBy(dx: -Self.spotlightPadding, dy: -Self.spotlightPadding)
+            if inflated.contains(point) {
+                return nil  // Pass through to views below
+            }
+        }
+
+        // Dimming area absorbs touches (prevents accidental taps)
+        return self
     }
 
     // MARK: - Configure
@@ -132,6 +162,19 @@ final class CoachingMarkView: UIView {
         actionButton.setTitle(config.buttonTitle, for: .normal)
         stepLabel.text = config.stepText
         stepLabel.isHidden = config.stepText == nil
+
+        if config.isCelebration {
+            messageLabel.font = .systemFont(ofSize: 17, weight: .medium)
+            messageLabel.textAlignment = .center
+            actionButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .bold)
+            // Center the button when no step label
+            actionButton.contentHorizontalAlignment = .center
+        } else {
+            messageLabel.font = .systemFont(ofSize: 15)
+            messageLabel.textAlignment = .natural
+            actionButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+            actionButton.contentHorizontalAlignment = .trailing
+        }
 
         setNeedsLayout()
         layoutIfNeeded()
@@ -267,5 +310,14 @@ final class CoachingMarkView: UIView {
 
     @objc private func actionTapped() {
         onAction?()
+    }
+}
+
+// MARK: - NSLayoutConstraint Priority Helper
+
+private extension NSLayoutConstraint {
+    func withPriority(_ priority: UILayoutPriority) -> NSLayoutConstraint {
+        self.priority = priority
+        return self
     }
 }

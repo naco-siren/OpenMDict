@@ -1640,6 +1640,22 @@ nonisolated enum L10n {
         static var wrongActionZoom: String {
             NSLocalizedString("tutorial.wrongAction.zoom", value: "Please tap one of the zoom buttons in the toolbar to continue.", comment: "Alert message: expected zoom control tap")
         }
+        static var wrongActionJumpSearch: String {
+            NSLocalizedString("tutorial.wrongAction.jumpSearch", value: "Long-press a word in the article, then select \"Jump Search\" from the menu.", comment: "Alert message: expected jump search")
+        }
+
+        // Completion celebration
+        static var completionMessage: String {
+            NSLocalizedString("tutorial.completion.message", value: "Well done! You've completed this tutorial.", comment: "Celebration message when tutorial is completed")
+        }
+        static var completionButton: String {
+            NSLocalizedString("tutorial.completion.button", value: "Good to Know!", comment: "Celebration button: return to tutorial list")
+        }
+
+        // Find in Page iOS 15 unavailable
+        static var findUnavailableMessage: String {
+            NSLocalizedString("tutorial.findUnavailable.message", value: "Find in Page requires iOS 16 or later. Please update your device to access this feature.", comment: "Alert message: Find in Page not available on iOS 15")
+        }
 
         // Exit confirmation
         static var exitTitle: String {

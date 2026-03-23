@@ -112,12 +112,12 @@ enum TutorialDictionaryProvider {
             <div class="e"><span class="hw">Find</span>\
             <span class="pr">/faɪnd/</span>\
             <div class="sn"><div class="sn-hd"><span class="pos">v.</span></div>\
-            <span class="df">come upon, as if by accident; meet with</span><span class="ex"><span class="ex-q">We find this idea in Plato</span></span></div>\
+            <span class="df">come upon, as if by accident; meet with</span> <span class="syn">By definition, to find implies a moment of recognition.</span><span class="ex"><span class="ex-q">We find this idea in Plato</span></span></div>\
             <div class="sn"><div class="sn-hd"><span class="pos">v.</span></div>\
-            <span class="df">come upon after searching; find the location of something that was missed or lost</span><span class="ex"><span class="ex-q">Did you find your glasses?</span></span></div>\
+            <span class="df">come upon after searching; find the location of something that was missed or lost</span> <span class="syn">The definition of this sense implies intentional effort.</span><span class="ex"><span class="ex-q">Did you find your glasses?</span></span></div>\
             <div class="sn"><div class="sn-hd"><span class="pos">n.</span></div>\
             <span class="df">the act of discovering something</span></div>\
-            <span class="et">Definitions: Open English WordNet 2025 (CC BY 4.0)</span></div>
+            <span class="et">Definitions: Open English WordNet 2025 (CC BY 4.0); usage notes written for this tutorial</span></div>
             """,
 
         "clipboard": gcideCSS + """

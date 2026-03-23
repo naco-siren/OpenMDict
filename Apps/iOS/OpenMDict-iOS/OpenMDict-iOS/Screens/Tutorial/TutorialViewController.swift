@@ -6,8 +6,9 @@
 //  overlay. Shows ALL header actions (just like the real app) and validates
 //  user interactions per step — correct actions advance, wrong actions alert.
 //
-//  Nav bar includes mock zoom controls (matching DetailContainerVC layout)
-//  so "Zoom & Layout" tutorials feel consistent with the real experience.
+//  Mocks real state changes: bookmark toggle, zoom scaling, dark mode
+//  force-dark, find-in-page with target word. Nav bar includes zoom controls
+//  matching DetailContainerVC (iOS 15 buttons / iOS 16+ slider).
 //
 
 import UIKit
@@ -25,9 +26,15 @@ final class TutorialViewController: UIViewController {
     private var articlePageView: ArticlePageView!
     private var coachingMark: CoachingMarkView?
 
-    // Nav bar zoom items (mock)
+    // Zoom state (mock)
+    private var zoom = ZoomLevel()
+    private weak var zoomSlider: UISlider?
     private weak var zoomInItem: UIBarButtonItem?
     private weak var zoomOutItem: UIBarButtonItem?
+    private weak var zoomResetItem: UIBarButtonItem?
+
+    // Bookmark state (mock)
+    private var isBookmarked = false
 
     // MARK: - Init
 
@@ -49,6 +56,11 @@ final class TutorialViewController: UIViewController {
         title = level.title
         navigationItem.largeTitleDisplayMode = .never
         view.backgroundColor = .systemGroupedBackground
+
+        // Force dark appearance for Enhance Dark Mode tutorial
+        if level == .enhanceDarkMode {
+            overrideUserInterfaceStyle = .dark
+        }
 
         // Custom back button for exit confirmation
         navigationItem.hidesBackButton = true
@@ -80,7 +92,6 @@ final class TutorialViewController: UIViewController {
 
     @objc private func backTapped() {
         if currentStepIndex < steps.count {
-            // Tutorial not complete — confirm exit
             let alert = UIAlertController(
                 title: L10n.Tutorial.exitTitle,
                 message: L10n.Tutorial.exitMessage,
@@ -96,30 +107,114 @@ final class TutorialViewController: UIViewController {
         }
     }
 
-    // MARK: - Zoom Bar Items (Mock)
+    // MARK: - Zoom Bar Items (matches DetailContainerVC)
 
     private func setupZoomBarItems() {
         guard level.isInteractive else { return }
 
-        let zoomOut = UIBarButtonItem(
-            image: UIImage(systemName: "minus.magnifyingglass"),
-            style: .plain,
-            target: self,
-            action: #selector(zoomControlTapped)
-        )
-        let zoomIn = UIBarButtonItem(
-            image: UIImage(systemName: "plus.magnifyingglass"),
-            style: .plain,
-            target: self,
-            action: #selector(zoomControlTapped)
-        )
-        zoomOutItem = zoomOut
-        zoomInItem = zoomIn
-        navigationItem.rightBarButtonItems = [zoomIn, zoomOut]
+        if #available(iOS 16.0, *) {
+            // iOS 16+: slider in nav bar (same as DetailContainerVC)
+            let sliderContainer = makeZoomSliderContainer()
+            let sliderItem = UIBarButtonItem(customView: sliderContainer)
+            navigationItem.rightBarButtonItems = [sliderItem]
+        } else {
+            // iOS 15: +/- buttons with reset in the middle
+            let out = UIBarButtonItem(
+                image: UIImage(systemName: "minus.magnifyingglass"),
+                style: .plain, target: self, action: #selector(zoomOutTapped)
+            )
+            let reset = UIBarButtonItem(
+                title: zoom.displayString,
+                style: .plain, target: self, action: #selector(zoomResetTapped)
+            )
+            let zIn = UIBarButtonItem(
+                image: UIImage(systemName: "plus.magnifyingglass"),
+                style: .plain, target: self, action: #selector(zoomInTapped)
+            )
+            zoomOutItem = out
+            zoomResetItem = reset
+            zoomInItem = zIn
+            out.isEnabled = zoom.canZoomOut
+            reset.isEnabled = !zoom.isDefault
+            navigationItem.rightBarButtonItems = [zIn, reset, out]
+        }
     }
 
-    @objc private func zoomControlTapped() {
+    @available(iOS 16.0, *)
+    private func makeZoomSliderContainer() -> UIView {
+        let slider = UISlider()
+        slider.minimumValue = 0
+        slider.maximumValue = Float(ZoomLevel.levels.count - 1)
+        slider.value = Float(ZoomLevel.levels.firstIndex(of: zoom.current) ?? 2)
+        slider.isContinuous = true
+        slider.addTarget(self, action: #selector(zoomSliderChanged(_:)), for: .valueChanged)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        self.zoomSlider = slider
+
+        let smallerIcon = UIImageView(image: UIImage(systemName: "textformat.size.smaller"))
+        smallerIcon.tintColor = .secondaryLabel
+        smallerIcon.contentMode = .scaleAspectFit
+        smallerIcon.translatesAutoresizingMaskIntoConstraints = false
+        smallerIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let largerIcon = UIImageView(image: UIImage(systemName: "textformat.size.larger"))
+        largerIcon.tintColor = .secondaryLabel
+        largerIcon.contentMode = .scaleAspectFit
+        largerIcon.translatesAutoresizingMaskIntoConstraints = false
+        largerIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = UIStackView(arrangedSubviews: [smallerIcon, slider, largerIcon])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            slider.widthAnchor.constraint(equalToConstant: 140),
+            smallerIcon.widthAnchor.constraint(equalToConstant: 16),
+            smallerIcon.heightAnchor.constraint(equalToConstant: 16),
+            largerIcon.widthAnchor.constraint(equalToConstant: 16),
+            largerIcon.heightAnchor.constraint(equalToConstant: 16),
+        ])
+
+        return stack
+    }
+
+    @objc private func zoomSliderChanged(_ sender: UISlider) {
+        let index = Int(sender.value.rounded())
+        sender.value = Float(index)
+        let newLevel = ZoomLevel.levels[index]
+        guard newLevel != zoom.current else { return }
+        zoom = ZoomLevel(newLevel)
+        articlePageView.setZoomLevel(zoom.current)
         handleUserAction(.tapZoomControl)
+    }
+
+    @objc private func zoomInTapped() {
+        zoom.zoomIn()
+        applyZoomState()
+        handleUserAction(.tapZoomControl)
+    }
+
+    @objc private func zoomOutTapped() {
+        zoom.zoomOut()
+        applyZoomState()
+        handleUserAction(.tapZoomControl)
+    }
+
+    @objc private func zoomResetTapped() {
+        zoom.reset()
+        applyZoomState()
+        handleUserAction(.tapZoomControl)
+    }
+
+    private func applyZoomState() {
+        articlePageView.setZoomLevel(zoom.current)
+        // Update iOS 15 button states
+        zoomOutItem?.isEnabled = zoom.canZoomOut
+        zoomResetItem?.isEnabled = !zoom.isDefault
+        zoomResetItem?.title = zoom.displayString
+        zoomInItem?.isEnabled = zoom.canZoomIn
     }
 
     // MARK: - Article Setup
@@ -172,9 +267,9 @@ final class TutorialViewController: UIViewController {
         articlePageView.onEnhanceDarkModeStrengthChanged = { [weak self] _ in
             self?.handleUserAction(.tapMoonButton)
         }
-        articlePageView.onJumpSearch = { [weak self] _ in
-            // Jump search in tutorial context: just acknowledge
-            self?.handleUserAction(.freeInteraction)
+        articlePageView.onJumpSearch = { [weak self] selectedText in
+            _ = selectedText
+            self?.handleUserAction(.tapJumpSearch)
         }
 
         // Disable WebView interaction by default
@@ -192,28 +287,56 @@ final class TutorialViewController: UIViewController {
 
     // MARK: - Action Validation
 
-    /// Central handler for all user interactions. Validates against the current
-    /// step's `validAction` — advances on correct, alerts on wrong.
     private func handleUserAction(_ action: TutorialStep.ValidAction) {
         guard currentStepIndex < steps.count else { return }
         let step = steps[currentStepIndex]
 
         switch step.validAction {
         case .tapCoachingButton:
-            // Only the coaching button advances; any toolbar tap is "wrong"
             showWrongActionAlert(for: step)
 
         case .freeInteraction:
-            // Any interaction is fine during free interaction — don't alert
             break
 
         default:
             if action == step.validAction {
-                // Correct action! Advance.
+                applyMockStateChange(for: action)
                 advanceStep()
             } else {
                 showWrongActionAlert(for: step)
             }
+        }
+    }
+
+    /// Update visual state after a correct action (mock the real app behavior).
+    private func applyMockStateChange(for action: TutorialStep.ValidAction) {
+        switch action {
+        case .tapBookmark:
+            // Toggle bookmark icon
+            isBookmarked.toggle()
+            articlePageView.setBookmarked(isBookmarked)
+
+        case .tapMoonButton:
+            // The onEnhanceDarkModeStrengthChanged callback fires after the popover
+            // already applied the dark mode filter live — no extra work needed here.
+            break
+
+        case .tapZoomControl:
+            // Zoom already applied in zoomInTapped/zoomSliderChanged
+            break
+
+        case .tapFindButton:
+            // Open the WKFindInteraction navigator (iOS 16+; iOS 15 blocked at list level)
+            if #available(iOS 16.0, *) {
+                articlePageView.presentFind()
+            }
+
+        case .tapJumpSearch:
+            // In tutorial, just acknowledge — no actual cross-dict lookup
+            break
+
+        case .tapCoachingButton, .freeInteraction:
+            break
         }
     }
 
@@ -224,8 +347,9 @@ final class TutorialViewController: UIViewController {
         case .tapMoonButton:    targetName = L10n.Tutorial.wrongActionMoon
         case .tapFindButton:    targetName = L10n.Tutorial.wrongActionFind
         case .tapZoomControl:   targetName = L10n.Tutorial.wrongActionZoom
+        case .tapJumpSearch:    targetName = L10n.Tutorial.wrongActionJumpSearch
         case .tapCoachingButton, .freeInteraction:
-            return // Never alert for these
+            return
         }
 
         let alert = UIAlertController(
@@ -275,12 +399,22 @@ final class TutorialViewController: UIViewController {
         // Coaching message
         let message = tutorialStepMessage(for: step.messageKey)
 
+        // Pass through spotlight touches when step expects a target tap
+        let passThrough: Bool
+        switch step.validAction {
+        case .tapBookmark, .tapMoonButton, .tapFindButton, .tapZoomControl, .tapJumpSearch:
+            passThrough = true
+        default:
+            passThrough = false
+        }
+
         mark.configure(with: .init(
             message: message,
             buttonTitle: step.buttonStyle.title,
             spotlightFrame: spotlightFrame,
             arrowDirection: arrowDirection,
-            stepText: stepText
+            stepText: stepText,
+            passThroughSpotlight: passThrough
         ))
 
         mark.onAction = { [weak self] in
@@ -290,8 +424,6 @@ final class TutorialViewController: UIViewController {
             case .tapCoachingButton, .freeInteraction:
                 self.advanceStep()
             default:
-                // Coaching button not the valid action — do nothing,
-                // wait for the correct toolbar interaction
                 break
             }
         }
@@ -311,11 +443,36 @@ final class TutorialViewController: UIViewController {
 
     private func completeTutorial() {
         TutorialProgressService.markCompleted(level)
-
-        // Re-enable WebView before leaving
         articlePageView.webView.isUserInteractionEnabled = true
 
-        navigationController?.popViewController(animated: true)
+        // Dismiss find navigator if open
+        if #available(iOS 16.0, *) {
+            articlePageView.dismissFind()
+        }
+
+        // Show celebration coaching mark
+        coachingMark?.removeFromSuperview()
+        let mark = CoachingMarkView(frame: view.bounds)
+        mark.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(mark)
+        coachingMark = mark
+
+        mark.configure(with: .init(
+            message: L10n.Tutorial.completionMessage,
+            buttonTitle: L10n.Tutorial.completionButton,
+            spotlightFrame: nil,
+            arrowDirection: .none,
+            stepText: nil,
+            isCelebration: true
+        ))
+
+        mark.onAction = { [weak self] in
+            self?.coachingMark?.hideAnimated {
+                self?.navigationController?.popViewController(animated: true)
+            }
+        }
+
+        mark.showAnimated()
     }
 
     // MARK: - Spotlight Resolution
@@ -342,16 +499,17 @@ final class TutorialViewController: UIViewController {
             return nil
 
         case .zoomControls:
-            // Spotlight the zoom bar button items in the nav bar
             if let navBar = navigationController?.navigationBar {
-                // Try to find the zoom button views
                 if let zoomInView = zoomInItem?.value(forKey: "view") as? UIView,
                    let zoomOutView = zoomOutItem?.value(forKey: "view") as? UIView {
                     let inFrame = zoomInView.convert(zoomInView.bounds, to: view)
                     let outFrame = zoomOutView.convert(zoomOutView.bounds, to: view)
                     return inFrame.union(outFrame)
                 }
-                // Fallback: right portion of nav bar
+                // iOS 16+ slider: spotlight the right bar items area
+                if let sliderView = zoomSlider?.superview {
+                    return sliderView.convert(sliderView.bounds, to: view)
+                }
                 let navFrame = navBar.convert(navBar.bounds, to: view)
                 return CGRect(x: navFrame.midX, y: navFrame.minY,
                               width: navFrame.width / 2, height: navFrame.height)
@@ -374,17 +532,14 @@ final class TutorialViewController: UIViewController {
         }
     }
 
-    /// Recursively find a UIButton whose SF Symbol name contains the given prefix.
     private func findButton(withSymbol symbolPrefix: String, in parentView: UIView) -> UIButton? {
         for subview in parentView.subviews {
             if let button = subview as? UIButton {
-                // Check UIButton.Configuration image
                 if let config = button.configuration,
                    let img = config.image,
                    img.description.contains(symbolPrefix) {
                     return button
                 }
-                // Fallback: check currentImage
                 if let img = button.currentImage,
                    img.description.contains(symbolPrefix) {
                     return button
@@ -405,7 +560,6 @@ final class TutorialViewController: UIViewController {
                                  comment: "Tutorial coaching step message")
     }
 
-    /// Fallback English messages for each step key.
     private func defaultMessage(for key: String) -> String {
         switch key {
 
@@ -413,6 +567,9 @@ final class TutorialViewController: UIViewController {
         case "zoomAndLayout.step1":
             return "You can adjust the text size using the zoom controls in the toolbar above."
         case "zoomAndLayout.step2":
+            if #available(iOS 16.0, *) {
+                return "Try dragging the slider to change the text size."
+            }
             return "Try tapping a zoom button to change the text size."
 
         // ── Hands-on: Enhance Dark Mode ──
@@ -445,7 +602,7 @@ final class TutorialViewController: UIViewController {
         case "findInPage.step2":
             return "Tap the highlighted find button to open the search bar."
         case "findInPage.step3":
-            return "Type a word to highlight all matches. Use the arrows to navigate between them."
+            return "Try searching for \"definition\" — you'll see all matches highlighted. Use the arrows to navigate between them."
 
         // ── Guide: Lookup Basics ──
         case "lookupBasics.step1":
