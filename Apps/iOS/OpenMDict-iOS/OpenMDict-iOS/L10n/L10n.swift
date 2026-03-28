@@ -1652,6 +1652,11 @@ nonisolated enum L10n {
             NSLocalizedString("tutorial.completion.button", value: "Good to Know!", comment: "Celebration button: return to tutorial list")
         }
 
+        // Wrong keyboard shortcut
+        static func wrongKeyboardShortcut(_ pressed: String) -> String {
+            String(format: NSLocalizedString("tutorial.wrongAction.keyboard", value: "You pressed %@. Please check the shortcut reference and try the correct key combination.", comment: "Alert message: wrong keyboard shortcut pressed. %@ = what the user pressed"), pressed)
+        }
+
         // Find in Page iOS 15 unavailable
         static var findUnavailableMessage: String {
             NSLocalizedString("tutorial.findUnavailable.message", value: "Find in Page requires iOS 16 or later. Please update your device to access this feature.", comment: "Alert message: Find in Page not available on iOS 15")

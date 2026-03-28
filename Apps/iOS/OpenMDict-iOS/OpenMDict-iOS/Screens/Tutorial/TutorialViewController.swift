@@ -71,9 +71,13 @@ final class TutorialViewController: UIViewController {
             action: #selector(backTapped)
         )
 
-        setupZoomBarItems()
-        setupArticlePageView()
-        loadTutorialArticle()
+        if level.usesArticlePageView {
+            setupZoomBarItems()
+            setupArticlePageView()
+            loadTutorialArticle()
+        } else {
+            setupGuideContentView()
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -223,9 +227,11 @@ final class TutorialViewController: UIViewController {
         let webConfig = WKWebViewConfiguration()
 
         // Show ALL actions for hands-on tutorials (consistent with real app)
-        let features: ArticlePageView.Features
+        var features: ArticlePageView.Features
         if level.isInteractive {
             features = [.bookmark, .enhanceDarkMode, .findInPage, .jumpSearch, .lookupCount]
+        } else if level == .iPadProductivity {
+            features = [.bookmark, .enhanceDarkMode, .findInPage, .jumpSearch, .lookupCount, .newWindowButton]
         } else {
             features = []
         }
@@ -271,6 +277,7 @@ final class TutorialViewController: UIViewController {
             _ = selectedText
             self?.handleUserAction(.tapJumpSearch)
         }
+        articlePageView.onNewWindowTapped = { /* No-op in tutorial */ }
 
         // Disable WebView interaction by default
         articlePageView.webView.isUserInteractionEnabled = false
@@ -283,6 +290,88 @@ final class TutorialViewController: UIViewController {
             traitCollection: traitCollection
         )
         articlePageView.loadHTMLContent(html)
+    }
+
+    // MARK: - Keyboard Event Handling
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        guard currentStepIndex < steps.count else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
+
+        let step = steps[currentStepIndex]
+        guard case .pressKeyboardShortcut(let expectedInput, let expectedMods) = step.validAction else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
+
+        // Extract key info from the press
+        guard let press = presses.first, let key = press.key else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
+
+        let inputChar = key.charactersIgnoringModifiers
+        let mods = key.modifierFlags.intersection([.command, .alternate, .control, .shift])
+
+        if inputChar == expectedInput && mods == expectedMods {
+            // Apply visual feedback for correct shortcut
+            if expectedInput == "=" && expectedMods == .command && level.usesArticlePageView {
+                zoom.zoomIn()
+                applyZoomState()
+            }
+            advanceStep()
+        } else if !inputChar.isEmpty && mods.contains(.command) {
+            // User pressed a wrong shortcut — give feedback
+            let description = shortcutDescription(input: inputChar, modifiers: mods)
+            let alert = UIAlertController(
+                title: L10n.Tutorial.wrongActionTitle,
+                message: L10n.Tutorial.wrongKeyboardShortcut(description),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: L10n.Tutorial.gotIt, style: .default))
+            present(alert, animated: true)
+        }
+        // Don't call super — absorb the key event
+    }
+
+    private func shortcutDescription(input: String, modifiers: UIKeyModifierFlags) -> String {
+        var parts: [String] = []
+        if modifiers.contains(.control) { parts.append("⌃") }
+        if modifiers.contains(.alternate) { parts.append("⌥") }
+        if modifiers.contains(.shift) { parts.append("⇧") }
+        if modifiers.contains(.command) { parts.append("⌘") }
+        let displayInput: String
+        switch input {
+        case "=": displayInput = "+"
+        case "-": displayInput = "−"
+        default: displayInput = input.uppercased()
+        }
+        parts.append(displayInput)
+        return parts.joined()
+    }
+
+    // MARK: - Guide Content View (non-ArticlePageView levels)
+
+    private var guideContentView: UIView?
+
+    private func setupGuideContentView() {
+        // Placeholder — guide-specific content views will be added per feature
+        let placeholder = UIView()
+        placeholder.backgroundColor = .systemGroupedBackground
+        placeholder.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(placeholder)
+        guideContentView = placeholder
+
+        NSLayoutConstraint.activate([
+            placeholder.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            placeholder.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            placeholder.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            placeholder.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
 
     // MARK: - Action Validation
@@ -335,6 +424,9 @@ final class TutorialViewController: UIViewController {
             // In tutorial, just acknowledge — no actual cross-dict lookup
             break
 
+        case .pressKeyboardShortcut:
+            break  // Handled by pressesBegan
+
         case .tapCoachingButton, .freeInteraction:
             break
         }
@@ -348,6 +440,7 @@ final class TutorialViewController: UIViewController {
         case .tapFindButton:    targetName = L10n.Tutorial.wrongActionFind
         case .tapZoomControl:   targetName = L10n.Tutorial.wrongActionZoom
         case .tapJumpSearch:    targetName = L10n.Tutorial.wrongActionJumpSearch
+        case .pressKeyboardShortcut: return // Handled by pressesBegan
         case .tapCoachingButton, .freeInteraction:
             return
         }
@@ -372,7 +465,9 @@ final class TutorialViewController: UIViewController {
         let step = steps[currentStepIndex]
 
         // Update WebView interactivity
-        articlePageView.webView.isUserInteractionEnabled = step.webViewInteractive
+        if level.usesArticlePageView {
+            articlePageView.webView.isUserInteractionEnabled = step.webViewInteractive
+        }
 
         // Remove existing coaching mark
         coachingMark?.removeFromSuperview()
@@ -443,11 +538,12 @@ final class TutorialViewController: UIViewController {
 
     private func completeTutorial() {
         TutorialProgressService.markCompleted(level)
-        articlePageView.webView.isUserInteractionEnabled = true
 
-        // Dismiss find navigator if open
-        if #available(iOS 16.0, *) {
-            articlePageView.dismissFind()
+        if level.usesArticlePageView {
+            articlePageView.webView.isUserInteractionEnabled = true
+            if #available(iOS 16.0, *) {
+                articlePageView.dismissFind()
+            }
         }
 
         // Show celebration coaching mark
@@ -518,6 +614,12 @@ final class TutorialViewController: UIViewController {
 
         case .findButton:
             if let btn = findButton(withSymbol: "magnifyingglass", in: articlePageView.headerView) {
+                return btn.convert(btn.bounds, to: view)
+            }
+            return nil
+
+        case .newWindowButton:
+            if let btn = findButton(withSymbol: "rectangle.badge.plus", in: articlePageView.headerView) {
                 return btn.convert(btn.bounds, to: view)
             }
             return nil
@@ -634,12 +736,45 @@ final class TutorialViewController: UIViewController {
 
         // ── Guide: iPad Productivity ──
         case "iPadProductivity.step1":
-            return "On iPad, use Split View or Slide Over to look up words while reading in another app. Open multiple OpenMDict windows for side-by-side dictionary comparison."
-        case "iPadProductivity.step2":
-            return "Physical keyboard shortcuts speed up your workflow: ⌘F for Find in Page, ⌘+/⌘− for Zoom, and arrow keys to navigate search results."
+            return "Tap this button to open the current article in a new window. You can also long-press any search result to find the same option — great for comparing definitions side by side."
+
+        // With keyboard: quiz flow
+        case "iPadProductivity.keyboardIntro":
+            if #available(iOS 26, *) {
+                return "You have a keyboard connected! Check the menus in the menu bar at the top of the screen to discover all available shortcuts. Let's practice a few:"
+            } else {
+                return "You have a keyboard connected! Hold down the ⌘ key to see all available shortcuts at a glance. Let's practice a few:"
+            }
+        case "iPadProductivity.quizZoom":
+            if #available(iOS 26, *) {
+                return "Find the shortcut for \"Zoom In\" in the menu bar, then press it."
+            } else {
+                return "Hold ⌘ to open the cheat sheet, find the shortcut for \"Zoom In\", then press it."
+            }
+        case "iPadProductivity.quizGrid":
+            if #available(iOS 26, *) {
+                return "Well done! Shortcuts let you quickly switch between different layouts on iPad. Now find and press the shortcut for \"Grid Layout\"."
+            } else {
+                return "Well done! Shortcuts let you quickly switch between different layouts on iPad. Now find and press the shortcut for \"Grid Layout\"."
+            }
+        case "iPadProductivity.quizDict":
+            if #available(iOS 26, *) {
+                return "Excellent! Bonus challenge: shortcuts are particularly useful for selecting a specific dictionary or group. Find and press the shortcut for \"Dictionary 1\"."
+            } else {
+                return "Excellent! Bonus challenge: shortcuts are particularly useful for selecting a specific dictionary or group. Find and press the shortcut for \"Dictionary 1\"."
+            }
+
+        // Without keyboard
+        case "iPadProductivity.noKeyboard":
+            if #available(iOS 26, *) {
+                return "When you connect a physical keyboard, check the menus in the menu bar at the top of the screen to discover all available keyboard shortcuts — from zooming and finding text to switching layouts and managing windows."
+            } else {
+                return "When you connect a physical keyboard, hold down the ⌘ key to reveal a cheat sheet of all available keyboard shortcuts — from zooming and finding text to switching layouts and managing windows."
+            }
 
         default:
             return key
         }
     }
+
 }

@@ -20,12 +20,13 @@ struct TutorialStep {
         case moonButton             // Enhance dark mode button
         case zoomControls           // Zoom bar button items in nav bar
         case findButton             // Find-in-page button in header
+        case newWindowButton        // Open in New Window button in header
         case webViewCenter          // WebView content area
         case center                 // Center of screen (no arrow)
     }
 
     /// Which user action advances this step.
-    enum ValidAction {
+    enum ValidAction: Equatable {
         case tapCoachingButton      // Tap the coaching mark's action button (Next/Got It)
         case tapBookmark            // Tap the bookmark button in the header
         case tapMoonButton          // Tap the enhance dark mode button
@@ -33,6 +34,7 @@ struct TutorialStep {
         case tapZoomControl         // Tap any zoom control in the nav bar
         case tapJumpSearch          // Long-press word + select Jump Search in WebView
         case freeInteraction        // Interact freely, advance via coaching button
+        case pressKeyboardShortcut(input: String, modifiers: UIKeyModifierFlags) // Press a specific key combo
     }
 
     enum ButtonStyle: String {
@@ -223,12 +225,32 @@ extension TutorialLevel {
             ]
 
         case .iPadProductivity:
-            return [
-                TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.step1",
+            var steps = [
+                TutorialStep(anchorTarget: .newWindowButton, messageKey: "iPadProductivity.step1",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.step2",
-                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
             ]
+            if Self.hasHardwareKeyboard {
+                // Quiz: ⌘= (zoom in), ⌘2 (grid layout), ⌃⌥⌘1 (select first dict)
+                steps += [
+                    TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.keyboardIntro",
+                                 buttonStyle: .next, validAction: .tapCoachingButton),
+                    TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.quizZoom",
+                                 buttonStyle: .tryIt,
+                                 validAction: .pressKeyboardShortcut(input: "=", modifiers: .command)),
+                    TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.quizGrid",
+                                 buttonStyle: .tryIt,
+                                 validAction: .pressKeyboardShortcut(input: "2", modifiers: .command)),
+                    TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.quizDict",
+                                 buttonStyle: .tryIt,
+                                 validAction: .pressKeyboardShortcut(input: "1", modifiers: [.control, .alternate, .command])),
+                ]
+            } else {
+                steps.append(
+                    TutorialStep(anchorTarget: .center, messageKey: "iPadProductivity.noKeyboard",
+                                 buttonStyle: .gotIt, validAction: .tapCoachingButton)
+                )
+            }
+            return steps
         }
     }
 }

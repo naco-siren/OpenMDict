@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import GameController
 
 /// A tutorial level in the New User Guide.
 ///
@@ -90,9 +91,26 @@ nonisolated enum TutorialLevel: Int, CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// Whether this level uses ArticlePageView (interactive + some guides).
+    var usesArticlePageView: Bool {
+        switch self {
+        case .zoomAndLayout, .enhanceDarkMode, .bookmarks, .jumpSearch, .findInPage:
+            return true
+        case .iPadProductivity:
+            return true  // Shows "Open in New Window" button in header
+        case .lookupBasics, .popupLookup, .dictionaryGroups, .importAndResources:
+            return false
+        }
+    }
+
     /// Section for the feature list.
     var section: TutorialSection {
         isInteractive ? .interactive : .guides
+    }
+
+    /// Whether a hardware keyboard is connected (checked at step generation time).
+    static var hasHardwareKeyboard: Bool {
+        GCKeyboard.coalesced != nil
     }
 }
 
