@@ -65,8 +65,14 @@ class DictInfoViewController: UIViewController {
     /// Callback when a selected dictionary is removed (dictId passed back)
     var onDeleteComplete: ((String) -> Void)?
     
+    // MARK: - Service Data Source
+
+    /// Abstracted service layer for dictionary data.
+    /// Defaults to production services; override for tutorial mock data.
+    var serviceDataSource: DictManagementDataSource = DefaultDictManagementDataSource.shared
+
     // MARK: - State
-    
+
     private(set) var currentMode: DictConfigMode = .empty {
         didSet {
             if isViewLoaded {
@@ -708,7 +714,7 @@ class DictInfoViewController: UIViewController {
             applyImportSnapshot()
             
         case .editing(let dictId):
-            let dict = DictionaryService.shared.dict(id: dictId)
+            let dict = serviceDataSource.dict(id: dictId)
             title = dict?.displayTitle
             emptyStateView.isHidden = true
             collectionView.isHidden = false
@@ -839,7 +845,7 @@ class DictInfoViewController: UIViewController {
     }
     
     private func applyEditSnapshot(dictId: String) {
-        guard let dict = DictionaryService.shared.dict(id: dictId) else {
+        guard let dict = serviceDataSource.dict(id: dictId) else {
             // Dictionary not found or not loaded yet - show loading state
             debugLog("⚠️ applyEditSnapshot: dict not found for \(dictId.prefix(8))...")
             return
@@ -885,7 +891,7 @@ class DictInfoViewController: UIViewController {
                 }
 
                 // Date Imported (from manifest, only for existing dictionaries)
-                if let importedDate = DictionaryService.shared.importedDate(dictId) {
+                if let importedDate = serviceDataSource.importedDate(dictId: dictId) {
                     basicItems.append(.date(title: L10n.DictInfo.metaDateImported, icon: "square.and.arrow.down", date: importedDate))
                 }
 
@@ -894,11 +900,11 @@ class DictInfoViewController: UIViewController {
                 }
 
                 // Lookup count (per-dict-context trophy counter)
-                let lookups = LookupCountService.shared.lookupCount(contextDictId: dictId, contextGroupId: nil)
+                let lookups = serviceDataSource.lookupCount(dictId: dictId)
                 basicItems.append(.lookupCount(lookups))
 
                 // Bookmark times (monotonic trophy counter for this dictionary)
-                let bookmarks = BookmarkCountService.shared.bookmarkCount(contextDictId: dictId, contextGroupId: nil)
+                let bookmarks = serviceDataSource.bookmarkCount(dictId: dictId)
                 basicItems.append(.bookmarkCount(bookmarks))
 
                 snapshot.appendItems(basicItems, toSection: .basicMetadata)
@@ -1097,8 +1103,8 @@ class DictInfoViewController: UIViewController {
     
     private func showDeleteConfirmation() {
         guard case .editing(let dictId) = currentMode else { return }
-        
-        let dict = DictionaryService.shared.dict(id: dictId)
+
+        let dict = serviceDataSource.dict(id: dictId)
         let dictTitle = dict?.metadata?.title ?? "this dictionary"
         
         let alert = UIAlertController(
@@ -1180,7 +1186,7 @@ class DictInfoViewController: UIViewController {
         
         // Save display name if changed
         if let newName = editedDisplayName {
-            DictionaryService.shared.updateDisplayName(dictId: dictId, newName: newName)
+            serviceDataSource.updateDisplayName(dictId: dictId, newName: newName)
             print("💾 Saved display name: \(newName)")
         }
         
@@ -1193,7 +1199,7 @@ class DictInfoViewController: UIViewController {
     
     private func performDelete(dictId: String) {
         do {
-            try DictionaryService.shared.deleteDictionary(dictId: dictId)
+            try serviceDataSource.deleteDictionary(dictId: dictId)
             print("🗑️ Deleted dictionary: \(dictId)")
 
             // Reset state
@@ -1272,7 +1278,7 @@ class DictInfoViewController: UIViewController {
         cachedDescriptionHTML = nil
         
         // Check if dictionary is loaded
-        if let dict = DictionaryService.shared.dict(id: dictId) {
+        if let dict = serviceDataSource.dict(id: dictId) {
             debugLog("📋 showEditMode: dict loaded, title=\(dict.displayTitle)")
             currentMode = .editing(dictId: dictId)
         } else {

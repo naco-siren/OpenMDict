@@ -58,8 +58,14 @@ class DictResourceEditorViewController: UIViewController {
         case importing(dictId: String)  // Importing a new dictionary (dictId = headerSHA256)
     }
     
+    // MARK: - Service Data Source
+
+    /// Abstracted service layer for resource data.
+    /// Defaults to production services; override for tutorial mock data.
+    var serviceDataSource: DictManagementDataSource = DefaultDictManagementDataSource.shared
+
     // MARK: - State
-    
+
     private var mode: Mode = .empty {
         didSet {
             debugLog("📋 ResourceEditor: mode changed from \(oldValue) to \(mode), isViewLoaded=\(isViewLoaded)")
@@ -310,18 +316,18 @@ class DictResourceEditorViewController: UIViewController {
         case .editing(let dictId):
             emptyStateView.isHidden = true
             collectionView.isHidden = false
-            resources = DictionaryService.shared.resources(for: dictId)
+            resources = serviceDataSource.resources(for: dictId)
             cancellables.removeAll()
             applySnapshot()
 
             // Subscribe to resource changes (e.g. remote CloudKit update adds MDD)
-            DictionaryService.shared.$resourceRevision
+            serviceDataSource.resourceRevisionPublisher
                 .dropFirst()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard let self,
                           case .editing(let currentDictId) = self.mode else { return }
-                    self.resources = DictionaryService.shared.resources(for: currentDictId)
+                    self.resources = self.serviceDataSource.resources(for: currentDictId)
                     self.applySnapshot(animated: true)
                     debugLog("📋 ResourceEditor: refreshed after resourceRevision change")
                 }
@@ -488,11 +494,11 @@ class DictResourceEditorViewController: UIViewController {
             case .mdx:
                 break  // Not deletable
             case .mdd:
-                try DictionaryService.shared.removeMDD(from: dictId, fileName: resource.fileName)
+                try serviceDataSource.removeMDD(from: dictId, fileName: resource.fileName)
             case .css:
-                try DictionaryService.shared.removeCSS(from: dictId, fileName: resource.fileName)
+                try serviceDataSource.removeCSS(from: dictId, fileName: resource.fileName)
             case .js:
-                try DictionaryService.shared.removeJS(from: dictId, fileName: resource.fileName)
+                try serviceDataSource.removeJS(from: dictId, fileName: resource.fileName)
             }
             
             // Reload
@@ -520,11 +526,11 @@ class DictResourceEditorViewController: UIViewController {
                     case .mdx:
                         break  // Not addable
                     case .mdd:
-                        _ = try await DictionaryService.shared.addMDD(to: dictId, from: url)
+                        _ = try await serviceDataSource.addMDD(to: dictId, from: url)
                     case .css:
-                        _ = try await DictionaryService.shared.addCSS(to: dictId, from: url)
+                        _ = try await serviceDataSource.addCSS(to: dictId, from: url)
                     case .js:
-                        _ = try await DictionaryService.shared.addJS(to: dictId, from: url)
+                        _ = try await serviceDataSource.addJS(to: dictId, from: url)
                     }
                     
                     // Reload on main thread
@@ -599,7 +605,7 @@ class DictResourceEditorViewController: UIViewController {
     /// Automatically determines if we're editing (imported dict) or importing (pending dict)
     func showEditor(for dictId: String) {
         // Check if this dictId corresponds to an already-imported dictionary
-        if DictionaryService.shared.dict(id: dictId) != nil {
+        if serviceDataSource.dict(id: dictId) != nil {
             // Imported dictionary - use editing mode
             debugLog("📋 ResourceEditor: showEditor(\(dictId.prefix(8))...) -> editing mode")
             mode = .editing(dictId: dictId)
