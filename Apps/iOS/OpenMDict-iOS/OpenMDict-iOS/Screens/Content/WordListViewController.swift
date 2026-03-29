@@ -28,7 +28,7 @@ class WordListViewController: UIViewController {
 
     // MARK: - Section Model
 
-    private enum SectionType {
+    fileprivate enum SectionType {
         case clipboard
         case history(String)      // title = date string ("Today", "Yesterday", …)
         case searchResults
@@ -50,6 +50,43 @@ class WordListViewController: UIViewController {
     }
 
     // MARK: - State
+
+    /// When true, search controller activation is not required for display state
+    /// transitions. Used in tutorial mode where WordListVC is embedded as a child
+    /// and UISearchController cannot be naturally activated.
+    var isTutorialMode = false
+
+    /// Returns the frame of a section matching the given type, in the specified
+    /// coordinate space. Used by the tutorial coaching mark for spotlighting.
+    func sectionFrame(matching kind: TutorialSectionKind, in coordinateSpace: UIView) -> CGRect? {
+        guard let idx = sections.firstIndex(where: { kind.matches($0.type) }) else { return nil }
+        let rect = tableView.rect(forSection: idx)
+        return tableView.convert(rect, to: coordinateSpace)
+    }
+
+    /// Returns the frame of the search bar in the specified coordinate space.
+    func searchBarFrame(in coordinateSpace: UIView) -> CGRect? {
+        guard let searchBar = navigationItem.searchController?.searchBar else { return nil }
+        return searchBar.convert(searchBar.bounds, to: coordinateSpace)
+    }
+
+    /// Section kinds queryable from outside (tutorial use).
+    enum TutorialSectionKind {
+        case clipboard
+        case searchResults
+        case relatedForms
+        case suggestions
+
+        fileprivate func matches(_ type: SectionType) -> Bool {
+            switch (self, type) {
+            case (.clipboard, .clipboard): return true
+            case (.searchResults, .searchResults): return true
+            case (.relatedForms, .relatedForms): return true
+            case (.suggestions, .suggestions): return true
+            default: return false
+            }
+        }
+    }
 
     var onWordSelected: ((WordDisplayItem) -> Void)?
     var onViewAllHistory: (() -> Void)?
@@ -221,6 +258,7 @@ class WordListViewController: UIViewController {
         subscribeToSearchSettled()
         subscribeToHistoryChanges()
         loadHistory()
+        if isTutorialMode { updateDisplayState() }
         rebuildSections()
         updateTitleView()
     }
@@ -240,7 +278,7 @@ class WordListViewController: UIViewController {
     // MARK: - Display State Management
 
     private func updateDisplayState() {
-        let isActive = searchController.isActive
+        let isActive = isTutorialMode || searchController.isActive
         let query = (searchController.searchBar.text ?? "")
             .trimmingCharacters(in: .whitespaces)
 
@@ -277,7 +315,13 @@ class WordListViewController: UIViewController {
 
         case .activeEmpty:
             // Clipboard
-            if #available(iOS 16.0, *) {
+            if isTutorialMode {
+                // Tutorial: always show clipboard with fake text
+                newSections.append(SectionData(
+                    type: .clipboard,
+                    rows: [.clipboardContent("ephemeral")]
+                ))
+            } else if #available(iOS 16.0, *) {
                 // Always show actionable placeholder (reads clipboard on tap)
                 newSections.append(SectionData(
                     type: .clipboard,
@@ -444,6 +488,10 @@ class WordListViewController: UIViewController {
     }
 
     private func loadHistory() {
+        if isTutorialMode {
+            loadTutorialHistory()
+            return
+        }
         let ctx = lookupContext
         let rawGroups = LookupHistoryService.shared.groupedHistory(
             lookupContextDictId: ctx?.dictId, lookupContextGroupId: ctx?.groupId
@@ -476,6 +524,40 @@ class WordListViewController: UIViewController {
         rebuildSections()
     }
 
+    private func loadTutorialHistory() {
+        let sampleAId = "__tutorial_sample_a__"
+        let sampleBId = "__tutorial_sample_b__"
+        let sampleCId = "__tutorial_sample_c__"
+        let sampleDId = "__tutorial_sample_d__"
+        let wordnetId = "__tutorial_wordnet__"
+
+        let today = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+
+        historyGroups = [
+            HistorySection(title: L10n.HistorySection.today, records: [
+                HistoryItem(objectID: nil, word: "never", dictId: sampleAId,
+                            dictName: "Sample Dictionary A", isDictAvailable: true,
+                            lastLookedUpAt: today),
+                HistoryItem(objectID: nil, word: "gonna", dictId: sampleBId,
+                            dictName: "Sample Dictionary B", isDictAvailable: true,
+                            lastLookedUpAt: today),
+            ]),
+            HistorySection(title: L10n.HistorySection.yesterday, records: [
+                HistoryItem(objectID: nil, word: "make", dictId: sampleCId,
+                            dictName: "Sample Dictionary C", isDictAvailable: true,
+                            lastLookedUpAt: yesterday),
+                HistoryItem(objectID: nil, word: "you", dictId: sampleDId,
+                            dictName: "Sample Dictionary D", isDictAvailable: true,
+                            lastLookedUpAt: yesterday),
+                HistoryItem(objectID: nil, word: "cry", dictId: wordnetId,
+                            dictName: "WordNet", isDictAvailable: true,
+                            lastLookedUpAt: yesterday),
+            ]),
+        ]
+        rebuildSections()
+    }
+
     // MARK: - Clipboard
 
     private func refreshClipboard() {
@@ -498,8 +580,23 @@ class WordListViewController: UIViewController {
         }
     }
 
+    /// Synchronously update displayed data from the current search session.
+    /// Bypasses the Combine pipeline's async `.receive(on: .main)` delivery.
+    /// Used in tutorial mode where mock data must be visible immediately
+    /// before the coaching mark resolves spotlight frames.
+    func syncFromSession() {
+        guard let session = searchSession else { return }
+        displayedWords = session.results
+        lemmaWords = session.lemmaResults
+        suggestedWords = session.suggestions
+        isSearchSettled = session.isSearchSettled
+        updateDisplayState()
+        rebuildSections()
+    }
+
     /// Inject text into the search bar, triggering the reactive search pipeline.
-    private func injectSearchText(_ text: String) {
+    /// Public in tutorial mode; called internally for clipboard paste.
+    func injectSearchText(_ text: String) {
         searchController.searchBar.text = text
         searchController.searchBar.delegate?.searchBar?(
             searchController.searchBar, textDidChange: text
@@ -567,6 +664,13 @@ class WordListViewController: UIViewController {
     // MARK: - UI Updates
 
     private func updateEmptyState() {
+        // In tutorial mode, never show empty state — the mock session drives content
+        if isTutorialMode {
+            emptyStateView.isHidden = true
+            tableView.isHidden = false
+            return
+        }
+
         switch displayState {
         case .idle:
             let context = searchSession?.currentContext ?? .none

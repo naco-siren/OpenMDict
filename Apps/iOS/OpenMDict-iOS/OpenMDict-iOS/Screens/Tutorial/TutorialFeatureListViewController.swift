@@ -40,6 +40,8 @@ final class TutorialFeatureListViewController: UIViewController {
                 target: self,
                 action: #selector(dismissSelf)
             )
+            // Prevent swipe-to-dismiss — user should use back nav or close button
+            navigationController?.isModalInPresentation = true
         }
 
         setupCollectionView()

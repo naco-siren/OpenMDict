@@ -357,21 +357,81 @@ final class TutorialViewController: UIViewController {
     // MARK: - Guide Content View (non-ArticlePageView levels)
 
     private var guideContentView: UIView?
+    private weak var embeddedWordListVC: WordListViewController?
+    private var mockLookupSession: MockLookupSession?
 
     private func setupGuideContentView() {
-        // Placeholder — guide-specific content views will be added per feature
-        let placeholder = UIView()
-        placeholder.backgroundColor = .systemGroupedBackground
-        placeholder.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(placeholder)
-        guideContentView = placeholder
+        switch level {
+        case .lookupBasics:
+            let session = MockLookupSession()
+            mockLookupSession = session
 
-        NSLayoutConstraint.activate([
-            placeholder.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            placeholder.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            placeholder.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            placeholder.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
+            let wordListVC = WordListViewController()
+            wordListVC.isTutorialMode = true
+            wordListVC.searchSession = session
+            // Disable selection callbacks — tutorial is view-only
+            wordListVC.onWordSelected = { _ in }
+
+            // Wrap in UINavigationController so UISearchController's search bar
+            // appears in the navigation bar (it requires a nav bar host).
+            let navWrapper = UINavigationController(rootViewController: wordListVC)
+            navWrapper.navigationBar.prefersLargeTitles = false
+            navWrapper.isNavigationBarHidden = false
+
+            addChild(navWrapper)
+            navWrapper.view.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(navWrapper.view)
+            navWrapper.didMove(toParent: self)
+            guideContentView = navWrapper.view
+            embeddedWordListVC = wordListVC
+
+            NSLayoutConstraint.activate([
+                navWrapper.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                navWrapper.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                navWrapper.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                navWrapper.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            ])
+
+            // Step 0: empty query — WordListVC shows clipboard/history from stub
+            session.setStep(0)
+            return
+
+        default:
+            // Other guides (popupLookup, dictionaryGroups, importAndResources)
+            let placeholder = UIView()
+            placeholder.backgroundColor = .systemGroupedBackground
+            placeholder.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(placeholder)
+            guideContentView = placeholder
+
+            NSLayoutConstraint.activate([
+                placeholder.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                placeholder.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                placeholder.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                placeholder.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            ])
+        }
+    }
+
+    /// Called by advanceStep to swap guide content between steps.
+    private func updateGuideContentForStep(_ stepIndex: Int) {
+        guard level == .lookupBasics, let session = mockLookupSession else { return }
+
+        let queryText: String
+        switch stepIndex {
+        case 0: queryText = ""
+        case 1: queryText = "Too"
+        case 2: queryText = "bombardio"
+        case 3: queryText = "Tralalero"
+        default: return
+        }
+
+        // Set search bar text (updates displayState)
+        embeddedWordListVC?.injectSearchText(queryText)
+        // Publish mock data and sync synchronously so section frames
+        // are available immediately for coaching mark spotlight
+        session.setStep(stepIndex)
+        embeddedWordListVC?.syncFromSession()
     }
 
     // MARK: - Action Validation
@@ -532,6 +592,8 @@ final class TutorialViewController: UIViewController {
             self.coachingMark?.removeFromSuperview()
             self.coachingMark = nil
             self.currentStepIndex += 1
+            // Swap guide content if needed
+            self.updateGuideContentForStep(self.currentStepIndex)
             self.showCurrentStep()
         }
     }
@@ -629,6 +691,29 @@ final class TutorialViewController: UIViewController {
                 articlePageView.webView.bounds, to: view
             )
 
+        case .guideContent:
+            if let gv = guideContentView {
+                return gv.convert(gv.bounds, to: view)
+            }
+            return nil
+
+        case .wordListClipboard:
+            return embeddedWordListVC?.sectionFrame(matching: .clipboard, in: view)
+
+        case .wordListSearchBar:
+            return embeddedWordListVC?.searchBarFrame(in: view)
+
+        case .wordListRelatedForms:
+            if var frame = embeddedWordListVC?.sectionFrame(matching: .relatedForms, in: view) {
+                // Extend bottom edge for more breathing room below the last row
+                frame.size.height += 40
+                return frame
+            }
+            return nil
+
+        case .wordListSuggestions:
+            return embeddedWordListVC?.sectionFrame(matching: .suggestions, in: view)
+
         case .center:
             return nil
         }
@@ -710,7 +795,7 @@ final class TutorialViewController: UIViewController {
         case "lookupBasics.step1":
             return "Before you type anything, the word list shows your clipboard content and recent lookup history for quick access."
         case "lookupBasics.step2":
-            return "Type a word to see instant search results. Tap any result to view full articles from all your dictionaries."
+            return "As you type, you'll see the results in real time. Tap any result to view full articles from all your dictionaries."
         case "lookupBasics.step3":
             return "OpenMDict automatically finds related forms — so searching for \"running\" also finds \"run\". Great for conjugations and inflections!"
         case "lookupBasics.step4":

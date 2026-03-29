@@ -22,6 +22,11 @@ struct TutorialStep {
         case findButton             // Find-in-page button in header
         case newWindowButton        // Open in New Window button in header
         case webViewCenter          // WebView content area
+        case guideContent           // The guide content view area
+        case wordListClipboard      // Clipboard section in WordListVC
+        case wordListSearchBar      // Search bar in WordListVC
+        case wordListRelatedForms   // Related Forms section in WordListVC
+        case wordListSuggestions    // Suggestions section in WordListVC
         case center                 // Center of screen (no arrow)
     }
 
@@ -190,13 +195,13 @@ extension TutorialLevel {
 
         case .lookupBasics:
             return [
-                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step1",
+                TutorialStep(anchorTarget: .wordListClipboard, messageKey: "lookupBasics.step1",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step2",
+                TutorialStep(anchorTarget: .wordListSearchBar, messageKey: "lookupBasics.step2",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step3",
+                TutorialStep(anchorTarget: .wordListRelatedForms, messageKey: "lookupBasics.step3",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                TutorialStep(anchorTarget: .center, messageKey: "lookupBasics.step4",
+                TutorialStep(anchorTarget: .wordListSuggestions, messageKey: "lookupBasics.step4",
                              buttonStyle: .gotIt, validAction: .tapCoachingButton),
             ]
 
