@@ -31,7 +31,9 @@ final class CoachingMarkView: UIView {
         let arrowDirection: ArrowDirection
         let stepText: String?         // e.g. "Step 2 of 5"
         var passThroughSpotlight: Bool = false  // When true, taps in spotlight area pass to views below
-        var isCelebration: Bool = false         // When true, larger card with centered layout
+        /// Celebration mode: shows icon + title row above the message
+        var celebrationTitle: String? = nil     // e.g. "Congratulations"
+        var celebrationIcon: String? = nil      // SF Symbol name, e.g. "hands.clap"
     }
 
     // MARK: - UI Constants
@@ -54,6 +56,9 @@ final class CoachingMarkView: UIView {
     private let actionButton = UIButton(type: .system)
     private let stepLabel = UILabel()
     private let arrowLayer = CAShapeLayer()
+
+    // Celebration mode — ContentUnavailableView-style centered stack
+    private let celebrationContainer = UIView()
 
     // State
     private var currentConfig: Configuration?
@@ -131,14 +136,37 @@ final class CoachingMarkView: UIView {
             actionButton.leadingAnchor.constraint(greaterThanOrEqualTo: stepLabel.trailingAnchor, constant: 12),
             buttonBottomConstraint!,
         ])
+
+        // Celebration container (initially hidden, shown only in celebration mode)
+        celebrationContainer.isHidden = true
+        celebrationContainer.backgroundColor = .systemBackground
+        celebrationContainer.layer.cornerRadius = Self.cardCornerRadius
+        celebrationContainer.layer.shadowColor = UIColor.black.cgColor
+        celebrationContainer.layer.shadowOpacity = 0.25
+        celebrationContainer.layer.shadowRadius = 12
+        celebrationContainer.layer.shadowOffset = CGSize(width: 0, height: 4)
+        celebrationContainer.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(celebrationContainer)
+        NSLayoutConstraint.activate([
+            celebrationContainer.centerXAnchor.constraint(equalTo: centerXAnchor),
+            celebrationContainer.centerYAnchor.constraint(equalTo: centerYAnchor),
+            celebrationContainer.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 32),
+            celebrationContainer.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -32),
+        ])
     }
 
     // MARK: - Touch Pass-Through
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Always let the card and its subviews handle touches
+        // Let the card and its subviews handle touches
         let cardHit = cardView.hitTest(convert(point, to: cardView), with: event)
         if cardHit != nil { return cardHit }
+
+        // Let the celebration container and its button handle touches
+        if !celebrationContainer.isHidden {
+            let celebHit = celebrationContainer.hitTest(convert(point, to: celebrationContainer), with: event)
+            if celebHit != nil { return celebHit }
+        }
 
         // If spotlight pass-through is enabled, let touches in the spotlight
         // area reach the views below (e.g. bookmark button)
@@ -158,26 +186,83 @@ final class CoachingMarkView: UIView {
 
     func configure(with config: Configuration) {
         currentConfig = config
-        messageLabel.text = config.message
-        actionButton.setTitle(config.buttonTitle, for: .normal)
-        stepLabel.text = config.stepText
-        stepLabel.isHidden = config.stepText == nil
 
-        if config.isCelebration {
-            messageLabel.font = .systemFont(ofSize: 17, weight: .medium)
-            messageLabel.textAlignment = .center
-            actionButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .bold)
-            // Center the button when no step label
-            actionButton.contentHorizontalAlignment = .center
+        let isCelebration = config.celebrationTitle != nil
+
+        // Toggle card vs celebration mode
+        cardView.isHidden = isCelebration
+        arrowLayer.isHidden = isCelebration
+        celebrationContainer.isHidden = !isCelebration
+
+        if isCelebration {
+            configureCelebration(config)
         } else {
-            messageLabel.font = .systemFont(ofSize: 15)
-            messageLabel.textAlignment = .natural
-            actionButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-            actionButton.contentHorizontalAlignment = .trailing
+            messageLabel.text = config.message
+            actionButton.setTitle(config.buttonTitle, for: .normal)
+            stepLabel.text = config.stepText
+            stepLabel.isHidden = config.stepText == nil
         }
 
         setNeedsLayout()
         layoutIfNeeded()
+    }
+
+    /// Build a ContentUnavailableView-style centered stack for celebration.
+    private func configureCelebration(_ config: Configuration) {
+        // Remove previous content
+        celebrationContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 12
+
+        // Icon (same style as ArticlePlaceholderView)
+        let iconView = UIImageView(image: UIImage(systemName: config.celebrationIcon ?? "hands.clap"))
+        iconView.tintColor = .tintColor
+        iconView.preferredSymbolConfiguration = .init(pointSize: 48)
+        stack.addArrangedSubview(iconView)
+
+        // Title
+        let titleLabel = UILabel()
+        titleLabel.text = config.celebrationTitle
+        titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
+        titleLabel.textColor = .label
+        titleLabel.textAlignment = .center
+        stack.addArrangedSubview(titleLabel)
+
+        // Subtitle
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = config.message
+        subtitleLabel.font = .systemFont(ofSize: 15)
+        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.textAlignment = .center
+        subtitleLabel.numberOfLines = 0
+        stack.addArrangedSubview(subtitleLabel)
+
+        // Spacer
+        stack.setCustomSpacing(20, after: subtitleLabel)
+
+        // Button (filled rounded rect, matching tint color)
+        let button = UIButton(type: .system)
+        button.setTitle(config.buttonTitle, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        button.backgroundColor = .tintColor
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 32, bottom: 12, right: 32)
+        button.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)
+        stack.addArrangedSubview(button)
+
+        let inset: CGFloat = 24
+        celebrationContainer.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: celebrationContainer.topAnchor, constant: inset),
+            stack.leadingAnchor.constraint(equalTo: celebrationContainer.leadingAnchor, constant: inset),
+            stack.trailingAnchor.constraint(equalTo: celebrationContainer.trailingAnchor, constant: -inset),
+            stack.bottomAnchor.constraint(equalTo: celebrationContainer.bottomAnchor, constant: -inset),
+        ])
     }
 
     // MARK: - Layout

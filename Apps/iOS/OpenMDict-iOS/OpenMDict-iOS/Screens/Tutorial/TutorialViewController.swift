@@ -621,7 +621,8 @@ final class TutorialViewController: UIViewController {
             spotlightFrame: nil,
             arrowDirection: .none,
             stepText: nil,
-            isCelebration: true
+            celebrationTitle: L10n.Tutorial.completionTitle,
+            celebrationIcon: "hands.clap"
         ))
 
         mark.onAction = { [weak self] in

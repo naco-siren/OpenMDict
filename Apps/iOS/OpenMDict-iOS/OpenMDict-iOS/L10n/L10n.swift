@@ -1645,8 +1645,11 @@ nonisolated enum L10n {
         }
 
         // Completion celebration
+        static var completionTitle: String {
+            NSLocalizedString("tutorial.completion.title", value: "Congratulations", comment: "Celebration title when tutorial is completed")
+        }
         static var completionMessage: String {
-            NSLocalizedString("tutorial.completion.message", value: "Well done! You've completed this tutorial.", comment: "Celebration message when tutorial is completed")
+            NSLocalizedString("tutorial.completion.message", value: "Well done! You've completed this tutorial.", comment: "Celebration subtitle when tutorial is completed")
         }
         static var completionButton: String {
             NSLocalizedString("tutorial.completion.button", value: "Good to Know!", comment: "Celebration button: return to tutorial list")
