@@ -908,7 +908,7 @@ nonisolated enum L10n {
         // MARK: Category Labels (6 categories for HUD)
 
         static var categoryQuery: String {
-            NSLocalizedString("shortcuts.category.query", value: "Query", comment: "Keyboard shortcut HUD category: query/lookup")
+            NSLocalizedString("shortcuts.category.query", value: "Lookup", comment: "Keyboard shortcut HUD category: query/lookup")
         }
         static var categoryHistory: String {
             NSLocalizedString("shortcuts.category.history", value: "History", comment: "Keyboard shortcut HUD category: lookup history")
@@ -923,7 +923,7 @@ nonisolated enum L10n {
         // MARK: Query Category
 
         static var focusLookup: String {
-            NSLocalizedString("shortcuts.focusLookup", value: "Focus on Query Input", comment: "Keyboard shortcut: focus on the query/lookup search bar")
+            NSLocalizedString("shortcuts.focusLookup", value: "Focus on Lookup Input", comment: "Keyboard shortcut: focus on the query/lookup search bar")
         }
         /// "Select "All Dictionaries"" — default group (⌥⌘`)
         static var selectAllDictionaries: String {
