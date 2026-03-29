@@ -64,6 +64,10 @@ class DictResourceEditorViewController: UIViewController {
     /// Defaults to production services; override for tutorial mock data.
     var serviceDataSource: DictManagementDataSource = DefaultDictManagementDataSource.shared
 
+    /// Tutorial mode: intercept "Add" button taps instead of opening the file picker.
+    /// The closure receives the section type (e.g. `.mdd`). When set, the file picker is NOT shown.
+    var onTutorialAddTapped: ((Section) -> Void)?
+
     // MARK: - State
 
     private var mode: Mode = .empty {
@@ -456,7 +460,13 @@ class DictResourceEditorViewController: UIViewController {
         case .editing, .importing:
             break
         }
-        
+
+        // Tutorial mode: intercept without opening file picker
+        if let handler = onTutorialAddTapped {
+            handler(section)
+            return
+        }
+
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: section.allowedUTTypes)
         picker.delegate = self
         picker.allowsMultipleSelection = false

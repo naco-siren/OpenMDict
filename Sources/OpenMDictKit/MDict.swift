@@ -170,6 +170,17 @@ public final class MDict: ObservableObject, Identifiable {
         self.originalFileName = Self.extractOriginalFileName(from: path)
         self.mddPaths = mddPaths
     }
+
+    /// Create a dictionary ViewModel pre-populated with metadata.
+    /// Used for tutorial/testing where no actual MDX file exists.
+    public init(id: String, displayName: String, metadata: MDictMetadata) {
+        self.path = ""
+        self.id = id
+        self.originalFileName = ""
+        self.userDisplayName = displayName
+        self.metadata = metadata
+        self.state = .metadataLoaded
+    }
     
     private nonisolated static func extractId(from path: String) -> String {
         let filename = (path as NSString).lastPathComponent

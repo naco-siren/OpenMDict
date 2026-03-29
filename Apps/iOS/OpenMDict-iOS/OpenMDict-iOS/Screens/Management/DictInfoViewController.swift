@@ -71,6 +71,10 @@ class DictInfoViewController: UIViewController {
     /// Defaults to production services; override for tutorial mock data.
     var serviceDataSource: DictManagementDataSource = DefaultDictManagementDataSource.shared
 
+    /// When true, always show "Manage Resources" row regardless of size class,
+    /// and hide the delete button. Used in tutorial mode.
+    var isTutorialMode = false
+
     // MARK: - State
 
     private(set) var currentMode: DictConfigMode = .empty {
@@ -869,8 +873,8 @@ class DictInfoViewController: UIViewController {
         } else {
             // VIEWING MODE: Show read-only label, manage resources, and all metadata
 
-            // SECTION: Manage Resources (compact mode only)
-            if isSplitViewCollapsed {
+            // SECTION: Manage Resources (compact mode or tutorial)
+            if isSplitViewCollapsed || isTutorialMode {
                 snapshot.appendSections([.manageResources])
                 snapshot.appendItems([.manageResourcesButton], toSection: .manageResources)
             }

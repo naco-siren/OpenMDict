@@ -27,6 +27,9 @@ struct TutorialStep {
         case wordListSearchBar      // Search bar in WordListVC
         case wordListRelatedForms   // Related Forms section in WordListVC
         case wordListSuggestions    // Suggestions section in WordListVC
+        case mgmtImportCell         // "Import Dictionary" cell in CompactManagementVC
+        case dictInfoManageResources // "Manage Resources" cell in DictInfoVC
+        case resourceEditorAddMDD   // "Add MDD" button in DictResourceEditorVC
         case center                 // Center of screen (no arrow)
     }
 
@@ -38,6 +41,9 @@ struct TutorialStep {
         case tapFindButton          // Tap the find-in-page button
         case tapZoomControl         // Tap any zoom control in the nav bar
         case tapJumpSearch          // Long-press word + select Jump Search in WebView
+        case tapImportDictionary    // Tap "Import Dictionary" in management list
+        case tapManageResources     // Tap "Manage Resources" in DictInfoVC
+        case tapAddMDD              // Tap "Add MDD File" in ResourceEditorVC
         case freeInteraction        // Interact freely, advance via coaching button
         case pressKeyboardShortcut(input: String, modifiers: UIKeyModifierFlags) // Press a specific key combo
     }
@@ -223,10 +229,21 @@ extension TutorialLevel {
 
         case .importAndResources:
             return [
-                TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step1",
-                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 0: Show Management list, highlight "Import Dictionary"
+                TutorialStep(anchorTarget: .mgmtImportCell, messageKey: "importAndResources.step1",
+                             buttonStyle: .tryIt, validAction: .tapImportDictionary),
+                // Step 1: Intro to DictInfoVC (coaching button advances, VC pushed on advance)
                 TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step2",
-                             buttonStyle: .gotIt, validAction: .tapCoachingButton),
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 2: Highlight "Manage Resources" row
+                TutorialStep(anchorTarget: .dictInfoManageResources, messageKey: "importAndResources.step3",
+                             buttonStyle: .tryIt, validAction: .tapManageResources),
+                // Step 3: Intro to ResourceEditorVC (coaching button advances, VC pushed on advance)
+                TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step4",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 4: Highlight "Add MDD File"
+                TutorialStep(anchorTarget: .resourceEditorAddMDD, messageKey: "importAndResources.step5",
+                             buttonStyle: .tryIt, validAction: .tapAddMDD),
             ]
 
         case .iPadProductivity:

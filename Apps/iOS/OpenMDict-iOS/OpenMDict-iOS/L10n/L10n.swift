@@ -1660,6 +1660,17 @@ nonisolated enum L10n {
             String(format: NSLocalizedString("tutorial.wrongAction.keyboard", value: "You pressed %@. Please check the shortcut reference and try the correct key combination.", comment: "Alert message: wrong keyboard shortcut pressed. %@ = what the user pressed"), pressed)
         }
 
+        // Wrong action: Import & Resources
+        static var wrongActionImport: String {
+            NSLocalizedString("tutorial.wrongAction.import", value: "Please tap \"Import Dictionary\" to continue.", comment: "Alert message: expected Import Dictionary tap")
+        }
+        static var wrongActionManageResources: String {
+            NSLocalizedString("tutorial.wrongAction.manageResources", value: "Please tap \"Manage Resources\" to continue.", comment: "Alert message: expected Manage Resources tap")
+        }
+        static var wrongActionAddMDD: String {
+            NSLocalizedString("tutorial.wrongAction.addMDD", value: "Please tap \"Add MDD File\" to continue.", comment: "Alert message: expected Add MDD tap")
+        }
+
         // Find in Page iOS 15 unavailable
         static var findUnavailableMessage: String {
             NSLocalizedString("tutorial.findUnavailable.message", value: "Find in Page requires iOS 16 or later. Please update your device to access this feature.", comment: "Alert message: Find in Page not available on iOS 15")

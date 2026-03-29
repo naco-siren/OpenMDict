@@ -396,8 +396,12 @@ final class TutorialViewController: UIViewController {
             session.setStep(0)
             return
 
+        case .importAndResources:
+            setupImportAndResourcesGuide()
+            return
+
         default:
-            // Other guides (popupLookup, dictionaryGroups, importAndResources)
+            // Other guides (popupLookup, dictionaryGroups)
             let placeholder = UIView()
             placeholder.backgroundColor = .systemGroupedBackground
             placeholder.translatesAutoresizingMaskIntoConstraints = false
@@ -414,8 +418,24 @@ final class TutorialViewController: UIViewController {
     }
 
     /// Called by advanceStep to swap guide content between steps.
-    private func updateGuideContentForStep(_ stepIndex: Int) {
-        guard level == .lookupBasics, let session = mockLookupSession else { return }
+    /// Returns `true` if a VC was pushed (caller should delay showCurrentStep).
+    @discardableResult
+    private func updateGuideContentForStep(_ stepIndex: Int) -> Bool {
+        // Import & Resources: push VCs at specific step transitions
+        if level == .importAndResources {
+            switch stepIndex {
+            case 1:
+                pushDictInfoVC()
+                return true
+            case 3:
+                pushResourceEditorVC()
+                return true
+            default:
+                return false
+            }
+        }
+
+        guard level == .lookupBasics, let session = mockLookupSession else { return false }
 
         let queryText: String
         switch stepIndex {
@@ -423,7 +443,7 @@ final class TutorialViewController: UIViewController {
         case 1: queryText = "Too"
         case 2: queryText = "bombardio"
         case 3: queryText = "Tralalero"
-        default: return
+        default: return false
         }
 
         // Set search bar text (updates displayState)
@@ -432,6 +452,89 @@ final class TutorialViewController: UIViewController {
         // are available immediately for coaching mark spotlight
         session.setStep(stepIndex)
         embeddedWordListVC?.syncFromSession()
+        return false
+    }
+
+    // MARK: - Import & Resources Guide
+
+    private weak var embeddedGuideNav: UINavigationController?
+    private weak var embeddedMgmtVC: CompactManagementViewController?
+    private weak var embeddedDictInfoVC: DictInfoViewController?
+    private weak var embeddedResourceEditorVC: DictResourceEditorViewController?
+    private let mockDictDataSource = MockDictManagementDataSource()
+
+    private func setupImportAndResourcesGuide() {
+        // Create a CompactManagementVC with all callbacks disabled except Import
+        let mgmtVC = CompactManagementViewController()
+        embeddedMgmtVC = mgmtVC
+
+        // "Import Dictionary" tap → advance tutorial
+        mgmtVC.onImportSelected = { [weak self] in
+            self?.handleUserAction(.tapImportDictionary)
+        }
+        // Wrong action alerts for other taps
+        mgmtVC.onAddGroupSelected = { [weak self] in
+            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
+        }
+        mgmtVC.onDownloadPresetsSelected = { [weak self] in
+            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
+        }
+        mgmtVC.onChangeAppIconSelected = { [weak self] in
+            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
+        }
+        mgmtVC.onTroubleshootSelected = { [weak self] in
+            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
+        }
+        mgmtVC.onAppSettingsSelected = { [weak self] in
+            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
+        }
+        mgmtVC.onNewUserGuideSelected = { [weak self] in
+            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
+        }
+
+        let navWrapper = UINavigationController(rootViewController: mgmtVC)
+        navWrapper.navigationBar.prefersLargeTitles = true
+        embeddedGuideNav = navWrapper
+
+        addChild(navWrapper)
+        navWrapper.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(navWrapper.view)
+        navWrapper.didMove(toParent: self)
+        guideContentView = navWrapper.view
+
+        NSLayoutConstraint.activate([
+            navWrapper.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navWrapper.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navWrapper.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navWrapper.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+    }
+
+    /// Push DictInfoVC with mock data onto the embedded nav stack.
+    private func pushDictInfoVC() {
+        let dictInfoVC = DictInfoViewController()
+        dictInfoVC.serviceDataSource = mockDictDataSource
+        dictInfoVC.isTutorialMode = true
+        dictInfoVC.showEditMode(for: MockDictManagementDataSource.tutorialDictId)
+        // "Manage Resources" tap → advance tutorial
+        dictInfoVC.onManageResources = { [weak self] _ in
+            self?.handleUserAction(.tapManageResources)
+        }
+        embeddedDictInfoVC = dictInfoVC
+        embeddedGuideNav?.pushViewController(dictInfoVC, animated: true)
+    }
+
+    /// Push DictResourceEditorVC with mock data onto the embedded nav stack.
+    private func pushResourceEditorVC() {
+        let editorVC = DictResourceEditorViewController()
+        editorVC.serviceDataSource = mockDictDataSource
+        editorVC.showEditor(for: MockDictManagementDataSource.tutorialDictId)
+        editorVC.onTutorialAddTapped = { [weak self] section in
+            guard section == .mdd else { return }
+            self?.handleUserAction(.tapAddMDD)
+        }
+        embeddedResourceEditorVC = editorVC
+        embeddedGuideNav?.pushViewController(editorVC, animated: true)
     }
 
     // MARK: - Action Validation
@@ -487,6 +590,18 @@ final class TutorialViewController: UIViewController {
         case .pressKeyboardShortcut:
             break  // Handled by pressesBegan
 
+        case .tapImportDictionary:
+            // After advancing, push DictInfoVC
+            break
+
+        case .tapManageResources:
+            // After advancing, push ResourceEditorVC
+            break
+
+        case .tapAddMDD:
+            // No-op — tutorial just congratulates on completion
+            break
+
         case .tapCoachingButton, .freeInteraction:
             break
         }
@@ -500,6 +615,9 @@ final class TutorialViewController: UIViewController {
         case .tapFindButton:    targetName = L10n.Tutorial.wrongActionFind
         case .tapZoomControl:   targetName = L10n.Tutorial.wrongActionZoom
         case .tapJumpSearch:    targetName = L10n.Tutorial.wrongActionJumpSearch
+        case .tapImportDictionary: targetName = L10n.Tutorial.wrongActionImport
+        case .tapManageResources: targetName = L10n.Tutorial.wrongActionManageResources
+        case .tapAddMDD:        targetName = L10n.Tutorial.wrongActionAddMDD
         case .pressKeyboardShortcut: return // Handled by pressesBegan
         case .tapCoachingButton, .freeInteraction:
             return
@@ -557,7 +675,8 @@ final class TutorialViewController: UIViewController {
         // Pass through spotlight touches when step expects a target tap
         let passThrough: Bool
         switch step.validAction {
-        case .tapBookmark, .tapMoonButton, .tapFindButton, .tapZoomControl, .tapJumpSearch:
+        case .tapBookmark, .tapMoonButton, .tapFindButton, .tapZoomControl, .tapJumpSearch,
+             .tapImportDictionary, .tapManageResources, .tapAddMDD:
             passThrough = true
         default:
             passThrough = false
@@ -592,9 +711,16 @@ final class TutorialViewController: UIViewController {
             self.coachingMark?.removeFromSuperview()
             self.coachingMark = nil
             self.currentStepIndex += 1
-            // Swap guide content if needed
-            self.updateGuideContentForStep(self.currentStepIndex)
-            self.showCurrentStep()
+            // Swap guide content if needed (may push a new VC)
+            let didPushVC = self.updateGuideContentForStep(self.currentStepIndex)
+            if didPushVC {
+                // Delay to let the pushed VC's view lay out before resolving spotlight frames
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.showCurrentStep()
+                }
+            } else {
+                self.showCurrentStep()
+            }
         }
     }
 
@@ -715,6 +841,33 @@ final class TutorialViewController: UIViewController {
         case .wordListSuggestions:
             return embeddedWordListVC?.sectionFrame(matching: .suggestions, in: view)
 
+        case .mgmtImportCell:
+            guard let mgmtVC = embeddedMgmtVC,
+                  let cv = mgmtVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            // "Import Dictionary" is item index 1 in section 0
+            let indexPath = IndexPath(item: 1, section: 0)
+            guard let cell = cv.cellForItem(at: indexPath) else { return nil }
+            return cell.convert(cell.bounds, to: view)
+
+        case .dictInfoManageResources:
+            guard let dictInfoVC = embeddedDictInfoVC,
+                  let cv = dictInfoVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            // "Manage Resources" is item 0 in section 0 (first section in viewing mode)
+            let indexPath = IndexPath(item: 0, section: 0)
+            guard let cell = cv.cellForItem(at: indexPath) else { return nil }
+            return cell.convert(cell.bounds, to: view)
+
+        case .resourceEditorAddMDD:
+            guard let editorVC = embeddedResourceEditorVC,
+                  let cv = editorVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            // "Add MDD" is the last item in the MDD section (section 1: MDX=0, MDD=1)
+            let mddSection = 1
+            let itemCount = cv.numberOfItems(inSection: mddSection)
+            guard itemCount > 0 else { return nil }
+            let lastItem = IndexPath(item: itemCount - 1, section: mddSection)
+            guard let cell = cv.cellForItem(at: lastItem) else { return nil }
+            return cell.convert(cell.bounds, to: view)
+
         case .center:
             return nil
         }
@@ -816,9 +969,15 @@ final class TutorialViewController: UIViewController {
 
         // ── Guide: MDX Import & Resources ──
         case "importAndResources.step1":
-            return "Import MDX dictionary files via the Files app, AirDrop, or the \"Import Dictionary\" button. OpenMDict indexes them automatically."
+            return "Tap \"Import Dictionary\" to add a new MDX dictionary file. You can import via Files, AirDrop, or this button."
         case "importAndResources.step2":
-            return "For dictionaries with custom styling, you can manage CSS and JavaScript resources in the dictionary settings to fine-tune the display."
+            return "This is the dictionary info screen. Here you can see metadata, lookup and bookmark counts, and customize the display name."
+        case "importAndResources.step3":
+            return "Tap \"Manage Resources\" to add supplementary files like MDD, CSS, or JavaScript."
+        case "importAndResources.step4":
+            return "The resource editor shows all files associated with this dictionary. MDD files contain images and audio, while CSS and JS customize the article appearance."
+        case "importAndResources.step5":
+            return "Tap \"Add MDD File\" to attach a resource archive. This is how you add pronunciation audio, images, or other media."
 
         // ── Guide: iPad Productivity ──
         case "iPadProductivity.step1":

@@ -63,6 +63,25 @@ public struct MDictMetadata: Sendable {
     /// Used as the dictionary's unique identifier for storage and duplicate detection.
     /// Note: This is specifically SHA256, not MD5 or any other hash algorithm.
     public let headerSHA256: String?
+
+    /// Public memberwise initializer (the auto-synthesized one is internal).
+    public init(title: String?, description: String, entryCount: Int?, format: String,
+                encoding: String, engineVersion: String, creationDate: String,
+                isEncrypted: Bool, isCaseSensitive: Bool,
+                path: String, fileSize: Int64, headerSHA256: String?) {
+        self.title = title
+        self.description = description
+        self.entryCount = entryCount
+        self.format = format
+        self.encoding = encoding
+        self.engineVersion = engineVersion
+        self.creationDate = creationDate
+        self.isEncrypted = isEncrypted
+        self.isCaseSensitive = isCaseSensitive
+        self.path = path
+        self.fileSize = fileSize
+        self.headerSHA256 = headerSHA256
+    }
 }
 
 // MARK: - Errors
