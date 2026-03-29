@@ -34,6 +34,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onChangeAppIconSelected: (() -> Void)?
     var onTroubleshootSelected: (() -> Void)?
 
+    // MARK: - Data Providers
+
+    /// Dictionary/group data source. Defaults to production singleton.
+    var dictionaryProvider: DictionaryDataProvider = DictionaryService.shared
+
+    /// Dictionary metadata source. Defaults to production singleton.
+    var metadataProvider: DictMetadataProvider = DictMetadataService.shared
+
     // MARK: - Compact Sidebar Mode
 
     /// When `true`, the sidebar is configured for compact tab bar mode:
@@ -59,7 +67,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     /// Handle info button tap from cell
     func didTapInfoButton(forDictId dictId: String) {
         // Guard: only allow info action for fully loaded dictionaries
-        guard let dict = DictionaryService.shared.dict(id: dictId),
+        guard let dict = dictionaryProvider.dict(id: dictId),
               dict.state == .loaded else {
             print("⚠️ Info action ignored: dictionary \(dictId.prefix(8))... not fully loaded")
             return
@@ -83,10 +91,10 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
     func cloudSyncStatus(forDictId dictId: String) -> CloudSyncStatus? {
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
-        guard let metadata = DictMetadataService.shared.find(dictId: dictId) else { return nil }
+        guard let metadata = metadataProvider.find(dictId: dictId) else { return nil }
         // If the dict is currently downloading files from CloudKit, show as pending
         // (in-memory flag — not written to CoreData to avoid CloudKit export ping-pong).
-        if DictMetadataService.shared.downloadingDictIds.contains(dictId) {
+        if metadataProvider.downloadingDictIds.contains(dictId) {
             return .pending
         }
         return CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
@@ -112,8 +120,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
 
         // Check child dict statuses — may escalate to .error
-        let allMetadata = DictMetadataService.shared.loadAll()
-        let downloading = DictMetadataService.shared.downloadingDictIds
+        let allMetadata = metadataProvider.loadAll()
+        let downloading = metadataProvider.downloadingDictIds
         for metadata in allMetadata {
             let s = CloudSyncStatus(rawValue: metadata.cloudSyncStatus)
             if s == .error || s == .tooLarge { return .error }
@@ -129,11 +137,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
         // Check child dicts in this group.
         // Priority: error/tooLarge > pending/downloading (syncing) > healthy
-        guard let group = DictionaryService.shared.group(id: groupId) else { return .healthy }
-        let downloading = DictMetadataService.shared.downloadingDictIds
+        guard let group = dictionaryProvider.group(id: groupId) else { return .healthy }
+        let downloading = metadataProvider.downloadingDictIds
         var hasPending = false
         for dict in group.items {
-            guard let metadata = DictMetadataService.shared.find(dictId: dict.id) else { continue }
+            guard let metadata = metadataProvider.find(dictId: dict.id) else { continue }
             let s = CloudSyncStatus(rawValue: metadata.cloudSyncStatus)
             if s == .error || s == .tooLarge { return .error }
             if s == .pending || downloading.contains(dict.id) { hasPending = true }
@@ -161,7 +169,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
 
         // Aggregate per-group statuses — may escalate the baseline.
-        let userGroups = DictionaryService.shared.groups.dropFirst() // skip default group
+        let userGroups = dictionaryProvider.groups.dropFirst() // skip default group
         for group in userGroups {
             guard let groupStatus = iCloudGroupStatus(forGroupId: group.id) else { continue }
             switch groupStatus {
@@ -177,9 +185,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
     func didTapSyncStatus(forDictId dictId: String) {
         guard let status = cloudSyncStatus(forDictId: dictId) else { return }
-        let dict = DictionaryService.shared.dict(id: dictId)
+        let dict = dictionaryProvider.dict(id: dictId)
         let dictName = dict?.preferredTitle ?? dictId.prefix(16).description
-        let metadata = DictMetadataService.shared.find(dictId: dictId)
+        let metadata = metadataProvider.find(dictId: dictId)
 
         let title: String
         let message: String
@@ -230,7 +238,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         switch status {
         case .healthy:
             title = L10n.SyncStatus.iCloudHealthyTitle
-            let userGroups = DictionaryService.shared.groups.filter { !$0.isDefault }
+            let userGroups = dictionaryProvider.groups.filter { !$0.isDefault }
             message = userGroups.isEmpty
                 ? L10n.SyncStatus.iCloudNoGroupsMessage
                 : L10n.SyncStatus.iCloudGroupsHealthyMessage
@@ -247,7 +255,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
 
     func didTapGroupSyncStatus(forGroupId groupId: String) {
-        let group = DictionaryService.shared.group(id: groupId)
+        let group = dictionaryProvider.group(id: groupId)
         let groupName = group?.name ?? groupId.prefix(16).description
         let status = iCloudGroupStatus(forGroupId: groupId) ?? .healthy
 
@@ -280,7 +288,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
     // MARK: - Data
     
-    private var groups: [MDicts] { DictionaryService.shared.groups }
+    private var groups: [MDicts] { dictionaryProvider.groups }
     private var dataSource: UICollectionViewDiffableDataSource<Section, SidebarItem>!
     
     // MARK: - Subscriptions
@@ -408,7 +416,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
     private func setupSubscriptions() {
         // 1. Subscribe to dictionary list changes (import/delete)
-        listChangeCancellable = DictionaryService.shared.$allDictionaries
+        listChangeCancellable = dictionaryProvider.allDictionariesPublisher
             .dropFirst()  // Skip initial value
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -416,7 +424,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             }
 
         // 2. Subscribe to group changes (groups added/removed/reordered)
-        groupsChangeCancellable = DictionaryService.shared.$groups
+        groupsChangeCancellable = dictionaryProvider.groupsPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -431,7 +439,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         subscribeToAllGroupItems()
 
         // 5. Subscribe to display name changes (remote renames synced from other devices)
-        displayNameCancellable = DictionaryService.shared.$displayNameRevision
+        displayNameCancellable = dictionaryProvider.displayNameRevisionPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -439,7 +447,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             }
 
         // 6. Subscribe to metadata revision (cloudSyncStatus changes after upload/download)
-        metadataRevisionCancellable = DictMetadataService.shared.$revision
+        metadataRevisionCancellable = metadataProvider.revisionPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -499,7 +507,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
         // Subscribe to each dictionary's $state
     
-        for dict in DictionaryService.shared.allDictionaries {
+        for dict in dictionaryProvider.allDictionaries {
             dict.$state
                 .dropFirst()
                 .receive(on: DispatchQueue.main)
@@ -515,7 +523,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private func subscribeToAllGroupItems() {
         groupItemsCancellables.removeAll()
 
-        for group in DictionaryService.shared.groups {
+        for group in dictionaryProvider.groups {
             group.$items
                 .dropFirst()
                 .receive(on: DispatchQueue.main)
@@ -580,17 +588,17 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         let defaultDictReg = UICollectionView.CellRegistration<DefaultGroupDictCell, (String, String)> {
             [weak self] cell, indexPath, tuple in
             let (dictId, groupId) = tuple
-            guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
+            guard let dict = self?.dictionaryProvider.dict(id: dictId) else { return }
             cell.dict = dict
             cell.groupId = groupId
             cell.stateProvider = self
         }
-        
+
         // User Group Dictionary Cell (Mirror)
         let userDictReg = UICollectionView.CellRegistration<UserGroupDictCell, (String, String)> {
             [weak self] cell, indexPath, tuple in
             let (dictId, groupId) = tuple
-            guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
+            guard let dict = self?.dictionaryProvider.dict(id: dictId) else { return }
             cell.dict = dict
             cell.groupId = groupId
             cell.stateProvider = self
@@ -635,7 +643,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                     )
                 
             case .dictionary(let dictId, let groupId):
-                let group = DictionaryService.shared.group(id: groupId)
+                let group = self.dictionaryProvider.group(id: groupId)
                 let isDefault = group?.isDefault ?? false
                 return isDefault
                     ? collectionView.dequeueConfiguredReusableCell(
@@ -906,7 +914,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             }
             
             // Only allow selecting loaded dictionaries
-            guard let dict = DictionaryService.shared.dict(id: dictId) else { return false }
+            guard let dict = dictionaryProvider.dict(id: dictId) else { return false }
             if dict.state != .loaded {
                 let message = dict.state == .loading ? L10n.loading : L10n.Sidebar.dictionaryNotLoaded
                 print("⚠️ \(message): \(dict.metadata?.title ?? dict.id)")
@@ -966,7 +974,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             break
             
         case .group(let id, _):
-            guard let group = DictionaryService.shared.group(id: id) else { return }
+            guard let group = dictionaryProvider.group(id: id) else { return }
             // Update state
             activeGroupId = group.id
             activeDict = nil
@@ -976,11 +984,11 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             onGroupSelected?(group)
             
         case .dictionary(let dictId, let groupId):
-            guard let dict = DictionaryService.shared.dict(id: dictId) else { return }
+            guard let dict = dictionaryProvider.dict(id: dictId) else { return }
             // Note: unloaded dicts are already blocked by shouldSelectItemAt
             
             // Update state - track if selection was via mirror
-            let group = DictionaryService.shared.group(id: groupId)
+            let group = dictionaryProvider.group(id: groupId)
             let isMirror = !(group?.isDefault ?? true)
             activeGroupId = nil
             activeDict = (dict.id, isMirror)
@@ -1170,7 +1178,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
             
         case .dictionary(let dictId, let groupId):
             // Context menu on dictionaries in default group: Edit Info
-            let group = DictionaryService.shared.group(id: groupId)
+            let group = dictionaryProvider.group(id: groupId)
             guard group?.isDefault == true else { return nil }
             
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
@@ -1205,14 +1213,14 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         
         userGroupIds.swapAt(index, targetIndex)
         
-        DictionaryService.shared.reorderUserGroups(newOrder: userGroupIds)
+        dictionaryProvider.reorderUserGroups(newOrder: userGroupIds)
         applySnapshot(animated: true)
     }
     
     // MARK: - Group Deletion
     
     private func confirmDeleteGroup(id: String) {
-        let group = DictionaryService.shared.group(id: id)
+        let group = dictionaryProvider.group(id: id)
         let groupName = group?.name ?? "this group"
         
         let alert = UIAlertController(
@@ -1228,7 +1236,7 @@ extension DictionaryListViewController: UICollectionViewDelegate {
     }
     
     private func performDeleteGroup(id: String) {
-        DictionaryService.shared.deleteGroup(id: id)
+        dictionaryProvider.deleteGroup(id: id)
         applySnapshot(animated: true)
     }
 }
