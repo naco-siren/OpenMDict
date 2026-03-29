@@ -59,7 +59,7 @@ class WordListViewController: UIViewController {
     /// Per-scene search session (injected by MainSplitVC or CompactTabBarController).
     /// When replaced after viewDidLoad, subscriptions are re-established automatically
     /// so the reactive pipeline stays connected to the correct session.
-    var searchSession: LookupSession? {
+    var searchSession: (any LookupSessionProtocol)? {
         didSet {
             guard searchSession !== oldValue, isViewLoaded else { return }
             resubscribeToSearchSession()
@@ -359,7 +359,7 @@ class WordListViewController: UIViewController {
     }
 
     private func subscribeToSearchResults() {
-        searchSession?.$results
+        searchSession?.resultsPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
@@ -371,7 +371,7 @@ class WordListViewController: UIViewController {
     }
 
     private func subscribeToLemmaResults() {
-        searchSession?.$lemmaResults
+        searchSession?.lemmaResultsPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
@@ -383,7 +383,7 @@ class WordListViewController: UIViewController {
     }
 
     private func subscribeToSuggestions() {
-        searchSession?.$suggestions
+        searchSession?.suggestionsPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] suggestions in
@@ -395,7 +395,7 @@ class WordListViewController: UIViewController {
     }
 
     private func subscribeToSearchSettled() {
-        searchSession?.$isSearchSettled
+        searchSession?.isSearchSettledPublisher
             .dropFirst()
             .removeDuplicates()
             .receive(on: DispatchQueue.main)

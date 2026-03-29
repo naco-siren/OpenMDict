@@ -12,7 +12,7 @@ import OpenMDictKit
 /// Independent lookup session for each scene
 /// Manages its own query, context, and results
 @MainActor
-final class LookupSession: ObservableObject {
+final class LookupSession: ObservableObject, LookupSessionProtocol {
     
     // MARK: - Inputs
 
@@ -29,6 +29,13 @@ final class LookupSession: ObservableObject {
     /// Whether the full search pipeline (results → lemma → suggestions) has settled
     /// for the current query. Consumers show "Searching…" when false + query non-empty.
     @Published private(set) var isSearchSettled: Bool = true
+
+    // MARK: - Protocol Publisher Accessors
+
+    var resultsPublisher: AnyPublisher<[WordDisplayItem], Never> { $results.eraseToAnyPublisher() }
+    var lemmaResultsPublisher: AnyPublisher<[WordDisplayItem], Never> { $lemmaResults.eraseToAnyPublisher() }
+    var suggestionsPublisher: AnyPublisher<[String], Never> { $suggestions.eraseToAnyPublisher() }
+    var isSearchSettledPublisher: AnyPublisher<Bool, Never> { $isSearchSettled.eraseToAnyPublisher() }
 
     // MARK: - State
 
