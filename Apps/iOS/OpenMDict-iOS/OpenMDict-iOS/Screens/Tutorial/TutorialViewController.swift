@@ -400,8 +400,12 @@ final class TutorialViewController: UIViewController {
             setupImportAndResourcesGuide()
             return
 
+        case .dictionaryGroups:
+            setupDictionaryGroupsGuide()
+            return
+
         default:
-            // Other guides (popupLookup, dictionaryGroups)
+            // Other guides (popupLookup)
             let placeholder = UIView()
             placeholder.backgroundColor = .systemGroupedBackground
             placeholder.translatesAutoresizingMaskIntoConstraints = false
@@ -425,7 +429,7 @@ final class TutorialViewController: UIViewController {
         if level == .importAndResources {
             switch stepIndex {
             case 1:
-                if isImportGuideCompact {
+                if isGuideCompact {
                     // Compact: push sidebar VC (no management section, dicts already expanded)
                     let sidebarVC = makeTutorialSidebar(compactMode: true)
                     embeddedSidebarVC = sidebarVC
@@ -451,6 +455,16 @@ final class TutorialViewController: UIViewController {
             default:
                 return false
             }
+        }
+
+        // Dictionary Groups: collapse My Groups on step 2→3 (regular only)
+        if level == .dictionaryGroups {
+            if stepIndex == 2 && !isGuideCompact {
+                // Collapse My Groups, so management section's "Add New Group" is visible
+                embeddedSidebarVC?.tutorialMyGroupsCollapsed = true
+                embeddedSidebarVC?.applySnapshot(animated: true)
+            }
+            return false
         }
 
         guard level == .lookupBasics, let session = mockLookupSession else { return false }
@@ -481,20 +495,21 @@ final class TutorialViewController: UIViewController {
     private weak var embeddedDictInfoVC: DictInfoViewController?
     private weak var embeddedResourceEditorVC: DictResourceEditorViewController?
     private let mockDictDataSource = MockDictManagementDataSource()
-    private let mockDictProvider = MockDictionaryDataProvider()
-    private let mockMetadataProvider = MockDictMetadataProvider()
+    private lazy var mockDictProvider = MockDictionaryDataProvider()
+    private lazy var mockDictProviderWithGroups = MockDictionaryDataProvider(includeUserGroups: true)
+    private lazy var mockMetadataProvider = MockDictMetadataProvider()
 
     /// Whether the Import & Resources tutorial uses the compact layout
     /// (CompactManagementVC first, then push sidebar without management section).
     /// Uses device idiom instead of traitCollection because the tutorial is
     /// presented as a modal (.formSheet) which always has compact horizontal
     /// size class on iPad.
-    private var isImportGuideCompact: Bool {
+    private var isGuideCompact: Bool {
         UIDevice.current.userInterfaceIdiom != .pad
     }
 
     private func setupImportAndResourcesGuide() {
-        if isImportGuideCompact {
+        if isGuideCompact {
             setupImportGuideCompact()
         } else {
             setupImportGuideRegular()
@@ -581,6 +596,31 @@ final class TutorialViewController: UIViewController {
             navWrapper.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             navWrapper.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+
+    // MARK: - Dictionary Groups Guide
+
+    private func setupDictionaryGroupsGuide() {
+        let compact = isGuideCompact
+
+        // Sidebar with "All Dictionaries" + "My Groups" (containing "Japanese")
+        let sidebarVC = makeTutorialSidebar(compactMode: compact)
+        sidebarVC.dictionaryProvider = mockDictProviderWithGroups
+        sidebarVC.tutorialMyGroupsCollapsed = false  // Show "Japanese" group expanded
+        if !compact {
+            sidebarVC.tutorialDefaultGroupCollapsed = true  // Collapse All Dicts to save space (regular only)
+        }
+
+        embeddedSidebarVC = sidebarVC
+
+        let navWrapper = UINavigationController(rootViewController: sidebarVC)
+        navWrapper.navigationBar.prefersLargeTitles = true
+        embeddedGuideNav = navWrapper
+        embedGuideNav(navWrapper)
+
+        if !compact {
+            sidebarVC.view.subviews.compactMap { $0 as? UICollectionView }.first?.isScrollEnabled = false
+        }
     }
 
     /// Push DictInfoVC with mock data onto the embedded nav stack.
@@ -924,7 +964,7 @@ final class TutorialViewController: UIViewController {
             return embeddedWordListVC?.sectionFrame(matching: .suggestions, in: view)
 
         case .mgmtImportCell:
-            if isImportGuideCompact {
+            if isGuideCompact {
                 // Compact: find "Import Dictionary" in CompactManagementVC
                 guard let mgmtVC = embeddedMgmtVC,
                       let cv = mgmtVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
@@ -958,6 +998,42 @@ final class TutorialViewController: UIViewController {
             // The first dict cell is a DefaultGroupDictCell
             for cell in cv.visibleCells where cell is DefaultGroupDictCell {
                 return cell.convert(cell.bounds, to: view)
+            }
+            return nil
+
+        case .sidebarUserGroup:
+            // Find the first user group cell (non-default group)
+            guard let sidebarVC = embeddedSidebarVC,
+                  let cv = sidebarVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            for cell in cv.visibleCells where cell is UserGroupCell {
+                return cell.convert(cell.bounds, to: view)
+            }
+            return nil
+
+        case .sidebarUserGroupContent:
+            // Highlight the user group + its dict children (combined frame)
+            guard let sidebarVC = embeddedSidebarVC,
+                  let cv = sidebarVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            var combinedFrame: CGRect?
+            for cell in cv.visibleCells {
+                if cell is UserGroupCell || cell is UserGroupDictCell {
+                    let frame = cell.convert(cell.bounds, to: view)
+                    combinedFrame = combinedFrame?.union(frame) ?? frame
+                }
+            }
+            return combinedFrame
+
+        case .sidebarAddGroup:
+            guard let sidebarVC = embeddedSidebarVC,
+                  let cv = sidebarVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            // Regular: "Add New Group" in management section (.mgmtAddGroup)
+            // Compact: "Add New Group" in My Groups section (.addGroup)
+            let targetItem: SidebarItem = isGuideCompact ? .addGroup : .mgmtAddGroup
+            for cell in cv.visibleCells where cell is ManagementActionCell {
+                if let actionCell = cell as? ManagementActionCell,
+                   actionCell.item == targetItem {
+                    return cell.convert(cell.bounds, to: view)
+                }
             }
             return nil
 
@@ -1075,9 +1151,13 @@ final class TutorialViewController: UIViewController {
 
         // ── Guide: Dictionary Groups ──
         case "dictionaryGroups.step1":
-            return "Groups let you organize your dictionaries by topic or language — for example, \"English\", \"Japanese\", or \"Medical\"."
+            return "Groups let you organize your dictionaries by topic or language — for example, \"Spanish\", \"Grammar\", or \"Medical\"."
         case "dictionaryGroups.step2":
-            return "Create groups in the sidebar or Management tab. Drag dictionaries between groups to organize them."
+            return "Each group contains a subset of your dictionaries. When you select a group, only its dictionaries are used for lookups."
+        case "dictionaryGroups.step3":
+            return "Tap \"Add New Group\" to create a group. You can then add dictionaries to it from the group editor."
+        case "dictionaryGroups.step4":
+            return "In Edit mode, you can manage a group via the ℹ button and reorder its position via context menu."
 
         // ── Guide: MDX Import & Resources ──
         case "importAndResources.step1":

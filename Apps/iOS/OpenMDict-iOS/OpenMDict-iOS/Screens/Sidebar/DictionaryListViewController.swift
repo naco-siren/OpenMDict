@@ -71,6 +71,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     /// When true, the "All Dictionaries" section is collapsed. Tutorial only.
     var tutorialDefaultGroupCollapsed = false
 
+    /// When true, the "My Groups" section is collapsed. Tutorial only.
+    /// Import tutorial: true (no user groups to show).
+    /// Groups tutorial: false (show "Favorites" group).
+    var tutorialMyGroupsCollapsed = true
+
     /// Expand the "All Dictionaries" section with animation. Tutorial only.
     func expandDefaultGroup(animated: Bool = true) {
         tutorialDefaultGroupCollapsed = false
@@ -739,7 +744,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         return [.defaultGroup: defaultItems, .userGroups: userItems, .management: mgmtItems]
     }
 
-    private func applySnapshot(animated: Bool) {
+    func applySnapshot(animated: Bool) {
         guard let defaultGroup = groups.first(where: { $0.isDefault }) else {
             return
         }
@@ -780,7 +785,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         if isEditing || userGroups.isEmpty {
             userSnapshot.append([.addGroup], to: userHeader)
         }
-        if !isTutorialMode {
+        if !(isTutorialMode && tutorialMyGroupsCollapsed) {
             userSnapshot.expand([userHeader])
         }
         dataSource.apply(userSnapshot, to: .userGroups, animatingDifferences: animated)

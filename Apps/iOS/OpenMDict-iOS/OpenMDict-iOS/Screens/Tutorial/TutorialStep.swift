@@ -30,6 +30,9 @@ struct TutorialStep {
         case mgmtImportCell         // "Import Dictionary" cell in CompactManagementVC
         case sidebarEditButton      // Edit button in sidebar nav bar
         case sidebarDictInfoButton  // Info button on a specific dict cell (editing mode)
+        case sidebarUserGroup       // First user group header cell
+        case sidebarUserGroupContent // User group + its children (expanded)
+        case sidebarAddGroup        // "Add Group" cell in My Groups section
         case dictInfoManageResources // "Manage Resources" cell in DictInfoVC
         case resourceEditorAddMDD   // "Add MDD" button in DictResourceEditorVC
         case center                 // Center of screen (no arrow)
@@ -225,9 +228,17 @@ extension TutorialLevel {
 
         case .dictionaryGroups:
             return [
-                TutorialStep(anchorTarget: .center, messageKey: "dictionaryGroups.step1",
+                // Step 0: Highlight "Favorites" user group — explain concept
+                TutorialStep(anchorTarget: .sidebarUserGroup, messageKey: "dictionaryGroups.step1",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                TutorialStep(anchorTarget: .center, messageKey: "dictionaryGroups.step2",
+                // Step 1: Highlight expanded group showing WordNet inside
+                TutorialStep(anchorTarget: .sidebarUserGroupContent, messageKey: "dictionaryGroups.step2",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 2: Highlight "Add Group" cell
+                TutorialStep(anchorTarget: .sidebarAddGroup, messageKey: "dictionaryGroups.step3",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 3: Highlight Edit button — explain edit mode capabilities
+                TutorialStep(anchorTarget: .sidebarEditButton, messageKey: "dictionaryGroups.step4",
                              buttonStyle: .gotIt, validAction: .tapCoachingButton),
             ]
 
