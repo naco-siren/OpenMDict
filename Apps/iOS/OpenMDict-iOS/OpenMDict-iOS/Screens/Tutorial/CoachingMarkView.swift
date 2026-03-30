@@ -219,7 +219,9 @@ final class CoachingMarkView: UIView {
         stack.spacing = 12
 
         // Icon (same style as ArticlePlaceholderView)
-        let iconView = UIImageView(image: UIImage(systemName: config.celebrationIcon ?? "hands.clap"))
+        let fallbackIcon: String
+        if #available(iOS 16.0, *) { fallbackIcon = "trophy" } else { fallbackIcon = "hands.clap" }
+        let iconView = UIImageView(image: UIImage(systemName: config.celebrationIcon ?? fallbackIcon))
         iconView.tintColor = .tintColor
         iconView.preferredSymbolConfiguration = .init(pointSize: 48)
         stack.addArrangedSubview(iconView)
