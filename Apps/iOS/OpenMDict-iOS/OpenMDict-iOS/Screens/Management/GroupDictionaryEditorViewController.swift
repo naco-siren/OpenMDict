@@ -60,8 +60,13 @@ class GroupDictionaryEditorViewController: UIViewController {
         case reorderOnly(groupId: String)   // Default group — reorder only, no add/remove
     }
     
+    // MARK: - Data Source
+
+    /// Abstracted service dependencies. Defaults to production singletons.
+    var serviceDataSource: GroupManagementDataSource = DefaultGroupManagementDataSource.shared
+
     // MARK: - State
-    
+
     private(set) var mode: Mode = .empty {
         didSet {
             if oldValue != mode && isViewLoaded {
@@ -72,7 +77,7 @@ class GroupDictionaryEditorViewController: UIViewController {
     }
     
     private var session: GroupManagementSession {
-        DictionaryService.shared.groupSession
+        serviceDataSource.groupSession
     }
     
     // MARK: - UI
@@ -173,9 +178,9 @@ class GroupDictionaryEditorViewController: UIViewController {
     private func setupFullDataSource() {
         // MARK: Dictionary Cell
         let dictReg = UICollectionView.CellRegistration<UICollectionViewListCell, (String, Bool)> {
-            cell, indexPath, tuple in
+            [weak self] cell, indexPath, tuple in
             let (dictId, inGroup) = tuple
-            let dict = DictionaryService.shared.dict(id: dictId)
+            let dict = self?.serviceDataSource.dict(id: dictId)
             
             var content = cell.defaultContentConfiguration()
             content.text = dict?.preferredTitle ?? dictId.prefix(8).description
@@ -272,8 +277,8 @@ class GroupDictionaryEditorViewController: UIViewController {
     private func setupReorderDataSource() {
         // MARK: Dictionary Cell (reorder only — no ⊖/⊕, just book + reorder handle)
         let reorderDictReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> {
-            cell, indexPath, dictId in
-            let dict = DictionaryService.shared.dict(id: dictId)
+            [weak self] cell, indexPath, dictId in
+            let dict = self?.serviceDataSource.dict(id: dictId)
             
             var content = cell.defaultContentConfiguration()
             content.text = dict?.preferredTitle ?? dictId.prefix(8).description
@@ -386,12 +391,12 @@ class GroupDictionaryEditorViewController: UIViewController {
         case .creating:
             inGroupIds = session.pendingDictionaryIds
         case .managing(let groupId):
-            guard let group = DictionaryService.shared.group(id: groupId) else { return }
+            guard let group = serviceDataSource.group(id: groupId) else { return }
             inGroupIds = group.dictionaryIds
         }
         
         let inGroupSet = Set(inGroupIds)
-        let allDicts = DictionaryService.shared.allDictionaries
+        let allDicts = serviceDataSource.allDictionaries
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases)
@@ -419,7 +424,7 @@ class GroupDictionaryEditorViewController: UIViewController {
     
     private func applyReorderSnapshot(animated: Bool = true) {
         guard case .reorderOnly(let groupId) = mode,
-              let group = DictionaryService.shared.group(id: groupId) else { return }
+              let group = serviceDataSource.group(id: groupId) else { return }
         
         var snapshot = NSDiffableDataSourceSnapshot<ReorderSection, ReorderItem>()
         snapshot.appendSections(ReorderSection.allCases)
@@ -449,7 +454,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         case .creating:
             session.pendingDictionaryIds = newOrder
         case .managing(let groupId):
-            DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
+            serviceDataSource.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
         default:
             break
         }
@@ -464,7 +469,7 @@ class GroupDictionaryEditorViewController: UIViewController {
         
         guard !newOrder.isEmpty, case .reorderOnly(let groupId) = mode else { return }
         
-        DictionaryService.shared.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
+        serviceDataSource.reorderDictionariesInGroup(groupId: groupId, newOrder: newOrder)
     }
     
     private func addDictionary(_ dictId: String) {
@@ -473,7 +478,7 @@ class GroupDictionaryEditorViewController: UIViewController {
             session.pendingDictionaryIds.append(dictId)
             applyFullSnapshot()
         case .managing(let groupId):
-            DictionaryService.shared.addDictionaryToGroup(groupId: groupId, dictId: dictId)
+            serviceDataSource.addDictionaryToGroup(groupId: groupId, dictId: dictId)
             applyFullSnapshot()
         default:
             break
@@ -486,7 +491,7 @@ class GroupDictionaryEditorViewController: UIViewController {
             session.pendingDictionaryIds.removeAll { $0 == dictId }
             applyFullSnapshot()
         case .managing(let groupId):
-            DictionaryService.shared.removeDictionaryFromGroup(groupId: groupId, dictId: dictId)
+            serviceDataSource.removeDictionaryFromGroup(groupId: groupId, dictId: dictId)
             applyFullSnapshot()
         default:
             break

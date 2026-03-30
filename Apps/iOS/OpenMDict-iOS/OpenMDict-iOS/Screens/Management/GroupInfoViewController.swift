@@ -32,8 +32,13 @@ enum GroupConfigMode: Equatable {
 
 class GroupInfoViewController: UIViewController {
     
+    // MARK: - Data Source
+
+    /// Abstracted service dependencies. Defaults to production singletons.
+    var serviceDataSource: GroupManagementDataSource = DefaultGroupManagementDataSource.shared
+
     // MARK: - Callbacks
-    
+
     var onDismiss: (() -> Void)?
     
     /// Callback to push dictionary editor in compact mode
@@ -491,14 +496,14 @@ class GroupInfoViewController: UIViewController {
             hasUnsavedChanges = true  // New group always has "changes" to save
             
         case .managing(let groupId):
-            let group = DictionaryService.shared.group(id: groupId)
+            let group = serviceDataSource.group(id: groupId)
             title = group?.name ?? L10n.GroupInfo.group
             if !isEditingMode {
                 hasUnsavedChanges = false
             }
             
         case .viewingDefault(let groupId):
-            let group = DictionaryService.shared.group(id: groupId)
+            let group = serviceDataSource.group(id: groupId)
             title = group?.name ?? L10n.GroupInfo.allDictionaries
             isEditingMode = false
             hasUnsavedChanges = false
@@ -559,7 +564,7 @@ class GroupInfoViewController: UIViewController {
     }
     
     private func applyCreatingSnapshot(groupId: String) {
-        let group = DictionaryService.shared.group(id: groupId)
+        let group = serviceDataSource.group(id: groupId)
         let name = editedName ?? group?.name ?? L10n.GroupInfo.newGroup
         let isCollapsed = isSplitViewCollapsed
         
@@ -573,14 +578,14 @@ class GroupInfoViewController: UIViewController {
         // SECTION: Contained Items (compact state encoded → section rebuilds on layout change)
         let itemsSection = Section.containedItems(compact: isCollapsed)
         snapshot.appendSections([itemsSection])
-        let count = DictionaryService.shared.groupSession.pendingDictionaryIds.count
+        let count = serviceDataSource.groupSession.pendingDictionaryIds.count
         snapshot.appendItems([.containedItems(count)], toSection: itemsSection)
         
         dataSource.apply(snapshot, animatingDifferences: true)
     }
     
     private func applyManagingSnapshot(groupId: String) {
-        guard let group = DictionaryService.shared.group(id: groupId) else {
+        guard let group = serviceDataSource.group(id: groupId) else {
             debugLog("⚠️ applyManagingSnapshot: group not found for \(groupId.prefix(8))...")
             return
         }
@@ -621,11 +626,11 @@ class GroupInfoViewController: UIViewController {
             }
 
             // Lookup count (per-group-context trophy counter)
-            let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: group.id)
+            let lookups = serviceDataSource.lookupCount(contextGroupId: group.id)
             statsItems.append(.lookupCount(lookups))
 
             // Bookmark times (monotonic trophy counter for this group)
-            let bookmarks = BookmarkCountService.shared.bookmarkCount(contextDictId: nil, contextGroupId: group.id)
+            let bookmarks = serviceDataSource.bookmarkCount(contextGroupId: group.id)
             statsItems.append(.bookmarkCount(bookmarks))
 
             if !statsItems.isEmpty {
@@ -638,7 +643,7 @@ class GroupInfoViewController: UIViewController {
     }
 
     private func applyViewingDefaultSnapshot(groupId: String) {
-        guard let group = DictionaryService.shared.group(id: groupId) else {
+        guard let group = serviceDataSource.group(id: groupId) else {
             debugLog("⚠️ applyViewingDefaultSnapshot: group not found for \(groupId.prefix(8))...")
             return
         }
@@ -666,11 +671,11 @@ class GroupInfoViewController: UIViewController {
         if let modified = group.modifiedAt {
             statsItems.append(.modifiedDate(fmt.string(from: modified)))
         }
-        let lookups = LookupCountService.shared.lookupCount(contextDictId: nil, contextGroupId: groupId)
+        let lookups = serviceDataSource.lookupCount(contextGroupId: groupId)
         statsItems.append(.lookupCount(lookups))
 
         // Bookmark times (monotonic trophy counter for default group)
-        let bookmarks = BookmarkCountService.shared.bookmarkCount(contextDictId: nil, contextGroupId: groupId)
+        let bookmarks = serviceDataSource.bookmarkCount(contextGroupId: groupId)
         statsItems.append(.bookmarkCount(bookmarks))
 
         snapshot.appendSections([.stats])
@@ -776,7 +781,7 @@ class GroupInfoViewController: UIViewController {
     
     private func showDeleteConfirmation() {
         guard case .managing(let groupId) = currentMode else { return }
-        let group = DictionaryService.shared.group(id: groupId)
+        let group = serviceDataSource.group(id: groupId)
         let groupName = group?.name ?? "this group"
         
         let alert = UIAlertController(
@@ -795,7 +800,7 @@ class GroupInfoViewController: UIViewController {
     
     /// Cancel creating - just discard session state (groups was never modified)
     private func performCancelCreate() {
-        DictionaryService.shared.groupSession.reset()
+        serviceDataSource.groupSession.reset()
         
         dictCountCancellable = nil
         editedName = nil
@@ -816,14 +821,14 @@ class GroupInfoViewController: UIViewController {
     private func performSaveCreate(groupId: String) {
         let name = (editedName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = name.isEmpty ? L10n.GroupInfo.newGroup : name
-        let session = DictionaryService.shared.groupSession
+        let session = serviceDataSource.groupSession
         let pendingDicts = session.pendingDictionaryIds
         
         // Create the group and set its dictionaries in one go
-        let group = DictionaryService.shared.createGroup(name: finalName)
+        let group = serviceDataSource.createGroup(name: finalName)
 
         if !pendingDicts.isEmpty {
-            DictionaryService.shared.reorderDictionariesInGroup(
+            serviceDataSource.reorderDictionariesInGroup(
                 groupId: group.id,
                 newOrder: pendingDicts
             )
@@ -847,7 +852,7 @@ class GroupInfoViewController: UIViewController {
         
         if !name.isEmpty {
             do {
-                try DictionaryService.shared.renameGroup(id: groupId, newName: name)
+                try serviceDataSource.renameGroup(id: groupId, newName: name)
                 title = name
             } catch {
                 debugLog("⚠️ Failed to rename group: \(error)")
@@ -866,7 +871,7 @@ class GroupInfoViewController: UIViewController {
     }
     
     private func performDelete(groupId: String) {
-        DictionaryService.shared.deleteGroup(id: groupId)
+        serviceDataSource.deleteGroup(id: groupId)
 
         editedName = nil
         hasUnsavedChanges = false
@@ -894,12 +899,12 @@ class GroupInfoViewController: UIViewController {
         hasUnsavedChanges = true
         hasNameConflict = false
         hasEmptyName = false
-        hasNoDictionaries = DictionaryService.shared.groupSession.pendingDictionaryIds.isEmpty
+        hasNoDictionaries = serviceDataSource.groupSession.pendingDictionaryIds.isEmpty
         isEditingMode = true
         nameTextView = nil
         
         // Subscribe to session's pending dict changes for stats + Done button
-        dictCountCancellable = DictionaryService.shared.groupSession.$pendingDictionaryIds
+        dictCountCancellable = serviceDataSource.groupSession.$pendingDictionaryIds
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] ids in
@@ -922,7 +927,7 @@ class GroupInfoViewController: UIViewController {
         nameTextView = nil
         
         // Subscribe to group's $items for stats update
-        if let group = DictionaryService.shared.group(id: groupId) {
+        if let group = serviceDataSource.group(id: groupId) {
             dictCountCancellable = group.$items
                 .dropFirst()
                 .receive(on: DispatchQueue.main)
@@ -1038,7 +1043,7 @@ private extension GroupInfoViewController {
         }
         
         // Check if any OTHER user group has this exact name
-        let conflict = !trimmed.isEmpty && DictionaryService.shared.groups
+        let conflict = !trimmed.isEmpty && serviceDataSource.groups
             .filter { !$0.isDefault && $0.id != currentGroupId }
             .contains { $0.name == trimmed }
         
