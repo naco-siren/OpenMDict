@@ -173,13 +173,14 @@ public final class MDict: ObservableObject, Identifiable {
 
     /// Create a dictionary ViewModel pre-populated with metadata.
     /// Used for tutorial/testing where no actual MDX file exists.
+    /// State is `.loaded` so sidebar cells render with full colors (not grayed out).
     public init(id: String, displayName: String, metadata: MDictMetadata) {
         self.path = ""
         self.id = id
         self.originalFileName = ""
         self.userDisplayName = displayName
         self.metadata = metadata
-        self.state = .metadataLoaded
+        self.state = .loaded
     }
     
     private nonisolated static func extractId(from path: String) -> String {

@@ -64,6 +64,23 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     /// Currently active dictionary and whether it was selected via a mirror
     private(set) var activeDict: (id: String, mirrored: Bool)? = nil
 
+    /// When true, relaxes guards that require `.loaded` state, hides iCloud status,
+    /// and respects tutorial-specific collapse/expand state.
+    var isTutorialMode = false
+
+    /// When true, the "All Dictionaries" section is collapsed. Tutorial only.
+    var tutorialDefaultGroupCollapsed = false
+
+    /// Expand the "All Dictionaries" section with animation. Tutorial only.
+    func expandDefaultGroup(animated: Bool = true) {
+        tutorialDefaultGroupCollapsed = false
+        guard let defaultGroup = dictionaryProvider.groups.first(where: { $0.isDefault }) else { return }
+        let item = SidebarItem.group(id: defaultGroup.id, isDefault: true)
+        var snapshot = dataSource.snapshot(for: .defaultGroup)
+        snapshot.expand([item])
+        dataSource.apply(snapshot, to: .defaultGroup, animatingDifferences: animated)
+    }
+
     /// Handle info button tap from cell
     func didTapInfoButton(forDictId dictId: String) {
         // Guard: only allow info action for fully loaded dictionaries
@@ -90,6 +107,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     // MARK: - iCloud Sync Status (SidebarStateProvider)
 
     func cloudSyncStatus(forDictId dictId: String) -> CloudSyncStatus? {
+        guard !isTutorialMode else { return nil }
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
         guard let metadata = metadataProvider.find(dictId: dictId) else { return nil }
         // If the dict is currently downloading files from CloudKit, show as pending
@@ -101,6 +119,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
 
     func iCloudSectionStatus() -> ICloudSectionStatus? {
+        guard !isTutorialMode else { return nil }
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
         guard let accountStatus = cachedAccountStatus else { return nil }
 
@@ -406,8 +425,12 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
     }
     
+    /// Called when editing mode changes (tutorial uses this to detect Edit button tap).
+    var onEditingChanged: ((Bool) -> Void)?
+
     override func setEditing(_ editing: Bool, animated: Bool) {
         super.setEditing(editing, animated: animated)
+        onEditingChanged?(editing)
         applySnapshot(animated: animated)
         invalidateVisibleCellConfigurations()
     }
@@ -737,7 +760,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         }
         
         defaultSnapshot.append(defaultChildren, to: defaultGroupItem)
-        defaultSnapshot.expand([defaultGroupItem])
+        if !(isTutorialMode && tutorialDefaultGroupCollapsed) {
+            defaultSnapshot.expand([defaultGroupItem])
+        }
         dataSource.apply(defaultSnapshot, to: .defaultGroup, animatingDifferences: animated)
         
         // Section 1: My Groups - with header
@@ -755,7 +780,9 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         if isEditing || userGroups.isEmpty {
             userSnapshot.append([.addGroup], to: userHeader)
         }
-        userSnapshot.expand([userHeader])
+        if !isTutorialMode {
+            userSnapshot.expand([userHeader])
+        }
         dataSource.apply(userSnapshot, to: .userGroups, animatingDifferences: animated)
         
         // Section 2: Management - with header (hidden in compact sidebar mode

@@ -28,6 +28,8 @@ struct TutorialStep {
         case wordListRelatedForms   // Related Forms section in WordListVC
         case wordListSuggestions    // Suggestions section in WordListVC
         case mgmtImportCell         // "Import Dictionary" cell in CompactManagementVC
+        case sidebarEditButton      // Edit button in sidebar nav bar
+        case sidebarDictInfoButton  // Info button on a specific dict cell (editing mode)
         case dictInfoManageResources // "Manage Resources" cell in DictInfoVC
         case resourceEditorAddMDD   // "Add MDD" button in DictResourceEditorVC
         case center                 // Center of screen (no arrow)
@@ -42,6 +44,8 @@ struct TutorialStep {
         case tapZoomControl         // Tap any zoom control in the nav bar
         case tapJumpSearch          // Long-press word + select Jump Search in WebView
         case tapImportDictionary    // Tap "Import Dictionary" in management list
+        case tapEditButton          // Tap Edit button in sidebar nav bar
+        case tapDictInfoButton      // Tap info button on a dict cell
         case tapManageResources     // Tap "Manage Resources" in DictInfoVC
         case tapAddMDD              // Tap "Add MDD File" in ResourceEditorVC
         case freeInteraction        // Interact freely, advance via coaching button
@@ -229,20 +233,26 @@ extension TutorialLevel {
 
         case .importAndResources:
             return [
-                // Step 0: Show Management list, highlight "Import Dictionary"
+                // Step 0: Show Management list, highlight "Import Dictionary" (explain only)
                 TutorialStep(anchorTarget: .mgmtImportCell, messageKey: "importAndResources.step1",
-                             buttonStyle: .tryIt, validAction: .tapImportDictionary),
-                // Step 1: Intro to DictInfoVC (coaching button advances, VC pushed on advance)
-                TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step2",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                // Step 2: Highlight "Manage Resources" row
-                TutorialStep(anchorTarget: .dictInfoManageResources, messageKey: "importAndResources.step3",
-                             buttonStyle: .tryIt, validAction: .tapManageResources),
-                // Step 3: Intro to ResourceEditorVC (coaching button advances, VC pushed on advance)
+                // Step 1: Show sidebar with fake dicts, highlight Edit button
+                TutorialStep(anchorTarget: .sidebarEditButton, messageKey: "importAndResources.step2",
+                             buttonStyle: .tryIt, validAction: .tapEditButton),
+                // Step 2: Editing mode, highlight WordNet's info button
+                TutorialStep(anchorTarget: .sidebarDictInfoButton, messageKey: "importAndResources.step3",
+                             buttonStyle: .tryIt, validAction: .tapDictInfoButton),
+                // Step 3: DictInfoVC overview — highlight custom name, explain fields
                 TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step4",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                // Step 4: Highlight "Add MDD File"
-                TutorialStep(anchorTarget: .resourceEditorAddMDD, messageKey: "importAndResources.step5",
+                // Step 4: Highlight "Manage Resources" row
+                TutorialStep(anchorTarget: .dictInfoManageResources, messageKey: "importAndResources.step5",
+                             buttonStyle: .tryIt, validAction: .tapManageResources),
+                // Step 5: ResourceEditorVC overview
+                TutorialStep(anchorTarget: .center, messageKey: "importAndResources.step6",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 6: Highlight "Add MDD File"
+                TutorialStep(anchorTarget: .resourceEditorAddMDD, messageKey: "importAndResources.step7",
                              buttonStyle: .tryIt, validAction: .tapAddMDD),
             ]
 

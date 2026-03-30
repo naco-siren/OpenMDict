@@ -31767,6 +31767,30 @@
         }
       }
     },
+    "tutorial.wrongAction.dictInfo" : {
+      "comment" : "Alert message: expected dict info button tap",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please tap the ℹ button on the highlighted dictionary to continue."
+          }
+        }
+      }
+    },
+    "tutorial.wrongAction.edit" : {
+      "comment" : "Alert message: expected Edit button tap",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please tap the Edit button in the navigation bar to continue."
+          }
+        }
+      }
+    },
     "tutorial.wrongAction.find" : {
       "comment" : "Alert message: expected find button tap",
       "extractionState" : "extracted_with_value",

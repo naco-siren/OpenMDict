@@ -421,13 +421,31 @@ final class TutorialViewController: UIViewController {
     /// Returns `true` if a VC was pushed (caller should delay showCurrentStep).
     @discardableResult
     private func updateGuideContentForStep(_ stepIndex: Int) -> Bool {
-        // Import & Resources: push VCs at specific step transitions
+        // Import & Resources: transition between embedded VCs at specific steps
         if level == .importAndResources {
             switch stepIndex {
             case 1:
+                if isImportGuideCompact {
+                    // Compact: push sidebar VC (no management section, dicts already expanded)
+                    let sidebarVC = makeTutorialSidebar(compactMode: true)
+                    embeddedSidebarVC = sidebarVC
+                    embeddedGuideNav?.pushViewController(sidebarVC, animated: true)
+                    return true
+                } else {
+                    // Regular: expand "All Dictionaries" on the existing sidebar
+                    embeddedSidebarVC?.expandDefaultGroup(animated: true)
+                    return false
+                }
+            case 2:
+                // Step 2: Sidebar already in edit mode (user tapped Edit in step 1)
+                // Just show coaching mark for info button
+                return false
+            case 3:
+                // Step 3: Push DictInfoVC
                 pushDictInfoVC()
                 return true
-            case 3:
+            case 5:
+                // Step 5: Push ResourceEditorVC
                 pushResourceEditorVC()
                 return true
             default:
@@ -458,44 +476,99 @@ final class TutorialViewController: UIViewController {
     // MARK: - Import & Resources Guide
 
     private weak var embeddedGuideNav: UINavigationController?
+    private weak var embeddedSidebarVC: DictionaryListViewController?
     private weak var embeddedMgmtVC: CompactManagementViewController?
     private weak var embeddedDictInfoVC: DictInfoViewController?
     private weak var embeddedResourceEditorVC: DictResourceEditorViewController?
     private let mockDictDataSource = MockDictManagementDataSource()
+    private let mockDictProvider = MockDictionaryDataProvider()
+    private let mockMetadataProvider = MockDictMetadataProvider()
+
+    /// Whether the Import & Resources tutorial uses the compact layout
+    /// (CompactManagementVC first, then push sidebar without management section).
+    /// Uses device idiom instead of traitCollection because the tutorial is
+    /// presented as a modal (.formSheet) which always has compact horizontal
+    /// size class on iPad.
+    private var isImportGuideCompact: Bool {
+        UIDevice.current.userInterfaceIdiom != .pad
+    }
 
     private func setupImportAndResourcesGuide() {
-        // Create a CompactManagementVC with all callbacks disabled except Import
+        if isImportGuideCompact {
+            setupImportGuideCompact()
+        } else {
+            setupImportGuideRegular()
+        }
+    }
+
+    /// Regular (iPad): Unified sidebar with "All Dictionaries" + "Management" sections.
+    private func setupImportGuideRegular() {
+        let sidebarVC = makeTutorialSidebar(compactMode: false)
+        sidebarVC.tutorialDefaultGroupCollapsed = true  // Collapsed at step 0, expanded at step 1
+        embeddedSidebarVC = sidebarVC
+
+        let navWrapper = UINavigationController(rootViewController: sidebarVC)
+        navWrapper.navigationBar.prefersLargeTitles = true
+        embeddedGuideNav = navWrapper
+        embedGuideNav(navWrapper)
+
+        sidebarVC.view.subviews.compactMap { $0 as? UICollectionView }.first?.isScrollEnabled = false
+    }
+
+    /// Compact (iPhone): Start with CompactManagementVC, push sidebar at step 1.
+    private func setupImportGuideCompact() {
         let mgmtVC = CompactManagementViewController()
         embeddedMgmtVC = mgmtVC
 
-        // "Import Dictionary" tap → advance tutorial
-        mgmtVC.onImportSelected = { [weak self] in
-            self?.handleUserAction(.tapImportDictionary)
-        }
-        // Wrong action alerts for other taps
-        mgmtVC.onAddGroupSelected = { [weak self] in
-            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
-        }
-        mgmtVC.onDownloadPresetsSelected = { [weak self] in
-            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
-        }
-        mgmtVC.onChangeAppIconSelected = { [weak self] in
-            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
-        }
-        mgmtVC.onTroubleshootSelected = { [weak self] in
-            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
-        }
-        mgmtVC.onAppSettingsSelected = { [weak self] in
-            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
-        }
-        mgmtVC.onNewUserGuideSelected = { [weak self] in
-            self?.showWrongActionAlert(for: (self?.steps[self?.currentStepIndex ?? 0])!)
-        }
+        // All taps are no-ops — step 0 uses tapCoachingButton
+        let noop: () -> Void = {}
+        mgmtVC.onImportSelected = noop
+        mgmtVC.onAddGroupSelected = noop
+        mgmtVC.onDownloadPresetsSelected = noop
+        mgmtVC.onChangeAppIconSelected = noop
+        mgmtVC.onTroubleshootSelected = noop
+        mgmtVC.onAppSettingsSelected = noop
+        mgmtVC.onNewUserGuideSelected = noop
 
         let navWrapper = UINavigationController(rootViewController: mgmtVC)
         navWrapper.navigationBar.prefersLargeTitles = true
         embeddedGuideNav = navWrapper
+        embedGuideNav(navWrapper)
+    }
 
+    /// Create a tutorial sidebar VC with mock data and wired callbacks.
+    private func makeTutorialSidebar(compactMode: Bool) -> DictionaryListViewController {
+        let sidebarVC = DictionaryListViewController()
+        sidebarVC.dictionaryProvider = mockDictProvider
+        sidebarVC.metadataProvider = mockMetadataProvider
+        sidebarVC.isTutorialMode = true
+        sidebarVC.isCompactSidebarMode = compactMode
+
+        sidebarVC.onEditingChanged = { [weak self] editing in
+            guard editing else { return }
+            self?.handleUserAction(.tapEditButton)
+        }
+        sidebarVC.onDictionaryInfoSelected = { [weak self] _ in
+            self?.handleUserAction(.tapDictInfoButton)
+        }
+
+        // All other callbacks are no-ops
+        sidebarVC.onGroupSelected = { _ in }
+        sidebarVC.onDictionarySelected = { _ in }
+        sidebarVC.onImportDictionarySelected = {}
+        sidebarVC.onAddGroupSelected = {}
+        sidebarVC.onBookmarksSelected = {}
+        sidebarVC.onLookupHistorySelected = {}
+        sidebarVC.onManagePresetsSelected = {}
+        sidebarVC.onNewUserGuideSelected = {}
+        sidebarVC.onChangeAppIconSelected = {}
+        sidebarVC.onTroubleshootSelected = {}
+
+        return sidebarVC
+    }
+
+    /// Embed a nav controller as the guide content view.
+    private func embedGuideNav(_ navWrapper: UINavigationController) {
         addChild(navWrapper)
         navWrapper.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(navWrapper.view)
@@ -591,11 +664,17 @@ final class TutorialViewController: UIViewController {
             break  // Handled by pressesBegan
 
         case .tapImportDictionary:
-            // After advancing, push DictInfoVC
+            break
+
+        case .tapEditButton:
+            // Editing mode already toggled by the system edit button
+            break
+
+        case .tapDictInfoButton:
+            // Info VC will be pushed by updateGuideContentForStep
             break
 
         case .tapManageResources:
-            // After advancing, push ResourceEditorVC
             break
 
         case .tapAddMDD:
@@ -616,6 +695,8 @@ final class TutorialViewController: UIViewController {
         case .tapZoomControl:   targetName = L10n.Tutorial.wrongActionZoom
         case .tapJumpSearch:    targetName = L10n.Tutorial.wrongActionJumpSearch
         case .tapImportDictionary: targetName = L10n.Tutorial.wrongActionImport
+        case .tapEditButton:    targetName = L10n.Tutorial.wrongActionEdit
+        case .tapDictInfoButton: targetName = L10n.Tutorial.wrongActionDictInfo
         case .tapManageResources: targetName = L10n.Tutorial.wrongActionManageResources
         case .tapAddMDD:        targetName = L10n.Tutorial.wrongActionAddMDD
         case .pressKeyboardShortcut: return // Handled by pressesBegan
@@ -676,7 +757,8 @@ final class TutorialViewController: UIViewController {
         let passThrough: Bool
         switch step.validAction {
         case .tapBookmark, .tapMoonButton, .tapFindButton, .tapZoomControl, .tapJumpSearch,
-             .tapImportDictionary, .tapManageResources, .tapAddMDD:
+             .tapImportDictionary, .tapEditButton, .tapDictInfoButton,
+             .tapManageResources, .tapAddMDD:
             passThrough = true
         default:
             passThrough = false
@@ -842,12 +924,42 @@ final class TutorialViewController: UIViewController {
             return embeddedWordListVC?.sectionFrame(matching: .suggestions, in: view)
 
         case .mgmtImportCell:
-            guard let mgmtVC = embeddedMgmtVC,
-                  let cv = mgmtVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
-            // "Import Dictionary" is item index 1 in section 0
-            let indexPath = IndexPath(item: 1, section: 0)
-            guard let cell = cv.cellForItem(at: indexPath) else { return nil }
-            return cell.convert(cell.bounds, to: view)
+            if isImportGuideCompact {
+                // Compact: find "Import Dictionary" in CompactManagementVC
+                guard let mgmtVC = embeddedMgmtVC,
+                      let cv = mgmtVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+                // "Import Dictionary" is item index 1 in section 0
+                let indexPath = IndexPath(item: 1, section: 0)
+                guard let cell = cv.cellForItem(at: indexPath) else { return nil }
+                return cell.convert(cell.bounds, to: view)
+            } else {
+                // Regular: find "Import Dictionary" management action in the sidebar
+                guard let sidebarVC = embeddedSidebarVC,
+                      let cv = sidebarVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+                for cell in cv.visibleCells where cell is ManagementActionCell {
+                    if let actionCell = cell as? ManagementActionCell,
+                       actionCell.item == .mgmtImportDictionary {
+                        return cell.convert(cell.bounds, to: view)
+                    }
+                }
+                return nil
+            }
+
+        case .sidebarEditButton:
+            guard let sidebarVC = embeddedSidebarVC,
+                  let editItem = sidebarVC.navigationItem.rightBarButtonItem,
+                  let editView = editItem.value(forKey: "view") as? UIView else { return nil }
+            return editView.convert(editView.bounds, to: view)
+
+        case .sidebarDictInfoButton:
+            // Highlight the first dict cell (WordNet) in edit mode — user taps its ℹ️ button
+            guard let sidebarVC = embeddedSidebarVC,
+                  let cv = sidebarVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            // The first dict cell is a DefaultGroupDictCell
+            for cell in cv.visibleCells where cell is DefaultGroupDictCell {
+                return cell.convert(cell.bounds, to: view)
+            }
+            return nil
 
         case .dictInfoManageResources:
             guard let dictInfoVC = embeddedDictInfoVC,
@@ -969,14 +1081,18 @@ final class TutorialViewController: UIViewController {
 
         // ── Guide: MDX Import & Resources ──
         case "importAndResources.step1":
-            return "Tap \"Import Dictionary\" to add a new MDX dictionary file. You can import via Files, AirDrop, or this button."
+            return "\"Import Dictionary\" lets you add MDX dictionary files — via the Files app, AirDrop, or directly from this button."
         case "importAndResources.step2":
-            return "This is the dictionary info screen. Here you can see metadata, lookup and bookmark counts, and customize the display name."
+            return "Tap the Edit button in the navigation bar to manage your imported dictionaries."
         case "importAndResources.step3":
-            return "Tap \"Manage Resources\" to add supplementary files like MDD, CSS, or JavaScript."
+            return "Tap the ℹ button on WordNet to view and edit its dictionary info."
         case "importAndResources.step4":
-            return "The resource editor shows all files associated with this dictionary. MDD files contain images and audio, while CSS and JS customize the article appearance."
+            return "This is the dictionary info screen. You can see metadata, lookup and bookmark counts, and customize the display name."
         case "importAndResources.step5":
+            return "Tap \"Manage Resources\" to add supplementary files like MDD, CSS, or JavaScript."
+        case "importAndResources.step6":
+            return "The resource editor shows all files associated with this dictionary. MDD files contain images and audio, while CSS and JS customize the article appearance."
+        case "importAndResources.step7":
             return "Tap \"Add MDD File\" to attach a resource archive. This is how you add pronunciation audio, images, or other media."
 
         // ── Guide: iPad Productivity ──

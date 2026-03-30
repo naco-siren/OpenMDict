@@ -1664,6 +1664,12 @@ nonisolated enum L10n {
         static var wrongActionImport: String {
             NSLocalizedString("tutorial.wrongAction.import", value: "Please tap \"Import Dictionary\" to continue.", comment: "Alert message: expected Import Dictionary tap")
         }
+        static var wrongActionEdit: String {
+            NSLocalizedString("tutorial.wrongAction.edit", value: "Please tap the Edit button in the navigation bar to continue.", comment: "Alert message: expected Edit button tap")
+        }
+        static var wrongActionDictInfo: String {
+            NSLocalizedString("tutorial.wrongAction.dictInfo", value: "Please tap the ℹ button on the highlighted dictionary to continue.", comment: "Alert message: expected dict info button tap")
+        }
         static var wrongActionManageResources: String {
             NSLocalizedString("tutorial.wrongAction.manageResources", value: "Please tap \"Manage Resources\" to continue.", comment: "Alert message: expected Manage Resources tap")
         }
