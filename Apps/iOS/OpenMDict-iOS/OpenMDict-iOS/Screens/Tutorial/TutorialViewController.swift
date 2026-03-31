@@ -404,20 +404,12 @@ final class TutorialViewController: UIViewController {
             setupDictionaryGroupsGuide()
             return
 
-        default:
-            // Other guides (popupLookup)
-            let placeholder = UIView()
-            placeholder.backgroundColor = .systemGroupedBackground
-            placeholder.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(placeholder)
-            guideContentView = placeholder
+        case .popupLookup:
+            setupPopupLookupGuide()
+            return
 
-            NSLayoutConstraint.activate([
-                placeholder.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-                placeholder.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                placeholder.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                placeholder.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            ])
+        default:
+            break
         }
     }
 
@@ -604,6 +596,250 @@ final class TutorialViewController: UIViewController {
         sidebarVC.onTroubleshootSelected = {}
 
         return sidebarVC
+    }
+
+    // MARK: - Pop-up Lookup Guide
+
+    private weak var popupWebView: WKWebView?
+    private weak var popupMessageLabel: UILabel?
+    private weak var popupStepLabel: UILabel?
+    private weak var popupActionButton: UIButton?
+    private weak var popupCardView: UIView?
+    private weak var popupMockActionCell: UIView?
+
+    private func setupPopupLookupGuide() {
+        let margin: CGFloat = 24
+        let p: CGFloat = 16
+
+        // ── Dim background for the top area ──
+        let dimView = UIView()
+        dimView.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        dimView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(dimView)
+
+        // ── Rounded message card ──
+        let cardView = UIView()
+        cardView.backgroundColor = .systemBackground
+        cardView.layer.cornerRadius = 14
+        cardView.layer.shadowColor = UIColor.black.cgColor
+        cardView.layer.shadowOpacity = 0.15
+        cardView.layer.shadowRadius = 12
+        cardView.layer.shadowOffset = CGSize(width: 0, height: 4)
+        cardView.translatesAutoresizingMaskIntoConstraints = false
+        dimView.addSubview(cardView)
+        popupCardView = cardView
+
+        let messageLabel = UILabel()
+        messageLabel.font = .preferredFont(forTextStyle: .body)
+        messageLabel.textColor = .label
+        messageLabel.numberOfLines = 0
+        messageLabel.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(messageLabel)
+        popupMessageLabel = messageLabel
+
+        // Mock action extension cell — wrapContent width, centered
+        let mockActionCell = UIView()
+        mockActionCell.backgroundColor = .tertiarySystemGroupedBackground
+        mockActionCell.layer.cornerRadius = 10
+        mockActionCell.translatesAutoresizingMaskIntoConstraints = false
+        mockActionCell.isHidden = true
+        cardView.addSubview(mockActionCell)
+        popupMockActionCell = mockActionCell
+
+        let actionIcon = UIImageView(image: UIImage(systemName: "sparkle.magnifyingglass"))
+        actionIcon.tintColor = .label
+        actionIcon.contentMode = .scaleAspectFit
+        actionIcon.translatesAutoresizingMaskIntoConstraints = false
+        mockActionCell.addSubview(actionIcon)
+
+        let extensionName: String = {
+            if let extBundle = Bundle.main.builtInPlugInsURL?
+                .appendingPathComponent("OpenMDict-ActionExtension.appex"),
+               let bundle = Bundle(url: extBundle),
+               let name = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String {
+                return name
+            }
+            return "Look up this word"
+        }()
+        let actionLabel = UILabel()
+        actionLabel.text = extensionName
+        actionLabel.font = .preferredFont(forTextStyle: .body)
+        actionLabel.textColor = .label
+        actionLabel.translatesAutoresizingMaskIntoConstraints = false
+        mockActionCell.addSubview(actionLabel)
+
+        // Mock cell internal layout — mirrors Share Sheet row layout per iOS version:
+        // iOS 26+: icon LEFT, label RIGHT; iOS 15-18: label LEFT, icon RIGHT
+        if #available(iOS 26, *) {
+            NSLayoutConstraint.activate([
+                mockActionCell.heightAnchor.constraint(equalToConstant: 44),
+                actionIcon.leadingAnchor.constraint(equalTo: mockActionCell.leadingAnchor, constant: 12),
+                actionIcon.centerYAnchor.constraint(equalTo: mockActionCell.centerYAnchor),
+                actionIcon.widthAnchor.constraint(equalToConstant: 24),
+                actionIcon.heightAnchor.constraint(equalToConstant: 24),
+                actionLabel.leadingAnchor.constraint(equalTo: actionIcon.trailingAnchor, constant: 10),
+                actionLabel.centerYAnchor.constraint(equalTo: mockActionCell.centerYAnchor),
+                actionLabel.trailingAnchor.constraint(equalTo: mockActionCell.trailingAnchor, constant: -12),
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                mockActionCell.heightAnchor.constraint(equalToConstant: 44),
+                actionLabel.leadingAnchor.constraint(equalTo: mockActionCell.leadingAnchor, constant: 12),
+                actionLabel.centerYAnchor.constraint(equalTo: mockActionCell.centerYAnchor),
+                actionIcon.leadingAnchor.constraint(equalTo: actionLabel.trailingAnchor, constant: 10),
+                actionIcon.centerYAnchor.constraint(equalTo: mockActionCell.centerYAnchor),
+                actionIcon.widthAnchor.constraint(equalToConstant: 24),
+                actionIcon.heightAnchor.constraint(equalToConstant: 24),
+                actionIcon.trailingAnchor.constraint(equalTo: mockActionCell.trailingAnchor, constant: -12),
+            ])
+        }
+
+        let stepLabel = UILabel()
+        stepLabel.font = .preferredFont(forTextStyle: .caption1)
+        stepLabel.textColor = .secondaryLabel
+        stepLabel.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(stepLabel)
+        popupStepLabel = stepLabel
+
+        var btnConfig = UIButton.Configuration.filled()
+        btnConfig.cornerStyle = .capsule
+        btnConfig.buttonSize = .medium
+        let actionButton = UIButton(configuration: btnConfig)
+        actionButton.translatesAutoresizingMaskIntoConstraints = false
+        actionButton.addTarget(self, action: #selector(popupActionTapped), for: .touchUpInside)
+        cardView.addSubview(actionButton)
+        popupActionButton = actionButton
+
+        // ── Bottom: WKWebView ──
+        let webView = WKWebView()
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(webView)
+        guideContentView = webView
+        popupWebView = webView
+
+        NSLayoutConstraint.activate([
+            // Dim background covers the top portion
+            dimView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            dimView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            dimView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            dimView.heightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.heightAnchor,
+                                            multiplier: UIDevice.current.userInterfaceIdiom == .pad ? 0.4 : 0.45),
+
+            // Card inside dim with margin
+            cardView.topAnchor.constraint(equalTo: dimView.topAnchor, constant: margin),
+            cardView.leadingAnchor.constraint(equalTo: dimView.leadingAnchor, constant: margin),
+            cardView.trailingAnchor.constraint(equalTo: dimView.trailingAnchor, constant: -margin),
+            cardView.bottomAnchor.constraint(equalTo: dimView.bottomAnchor, constant: -margin),
+
+            // Message label
+            messageLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: p),
+            messageLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: p),
+            messageLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -p),
+
+            // Mock action cell — wrapContent width, centered
+            mockActionCell.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 12),
+            mockActionCell.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
+
+            // Step + button at bottom
+            stepLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: p),
+            stepLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -p),
+
+            actionButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -p),
+            actionButton.centerYAnchor.constraint(equalTo: stepLabel.centerYAnchor),
+            actionButton.leadingAnchor.constraint(greaterThanOrEqualTo: stepLabel.trailingAnchor, constant: 12),
+
+            // WebView below dim area
+            webView.topAnchor.constraint(equalTo: dimView.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        // Load a fake "web article" that looks like a real webpage
+        let html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, system-ui;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+          }
+          @media (prefers-color-scheme: dark) {
+            body { color: #ddd; background: #1c1c1e; }
+            h1 { color: #fff; }
+            .meta { color: #8e8e93; }
+            blockquote { border-color: #48484a; color: #aaa; }
+          }
+          h1 { font-size: 24px; margin-bottom: 4px; }
+          .meta { color: #888; font-size: 14px; margin-bottom: 16px; }
+          p { font-size: 17px; margin-bottom: 14px; }
+          blockquote {
+            border-left: 3px solid #ddd;
+            padding-left: 12px;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+          }
+        </style>
+        </head>
+        <body>
+          <h1>The Art of Language Learning</h1>
+          <div class="meta">Published March 2026 · 5 min read</div>
+          <p>Learning a new language is one of the most <strong>rewarding</strong> intellectual pursuits. Whether you're studying for travel, career advancement, or personal enrichment, the journey transforms how you see the world.</p>
+          <blockquote>"The limits of my language mean the limits of my world." — Ludwig Wittgenstein</blockquote>
+          <p>Modern <strong>polyglots</strong> recommend an immersive approach: surround yourself with authentic content, look up unfamiliar words immediately, and practice <strong>spaced repetition</strong> to commit new vocabulary to long-term memory.</p>
+          <p>A good dictionary is indispensable. The ability to quickly look up an <strong>ephemeral</strong> word you encounter while reading — without leaving the page — dramatically accelerates comprehension and retention.</p>
+        </body>
+        </html>
+        """
+        webView.loadHTMLString(html, baseURL: nil)
+    }
+
+    @objc private func popupActionTapped() {
+        guard level == .popupLookup else { return }
+        guard currentStepIndex < steps.count else { return }
+        let step = steps[currentStepIndex]
+        switch step.validAction {
+        case .tapCoachingButton, .freeInteraction:
+            advanceStep()
+        default:
+            break
+        }
+    }
+
+    /// Update the popup lookup card content for the current step.
+    private func updatePopupCard() {
+        guard currentStepIndex < steps.count else { return }
+        let step = steps[currentStepIndex]
+        let message = tutorialStepMessage(for: step.messageKey)
+        let stepText = L10n.Tutorial.stepOf(currentStepIndex + 1, steps.count)
+
+        popupMessageLabel?.text = message
+        popupStepLabel?.text = stepText
+        popupActionButton?.setTitle(step.buttonStyle.title, for: .normal)
+
+        // Show mock action cell only on the "try it" step (step 1)
+        let isTryStep = (step.validAction == .freeInteraction)
+        popupMockActionCell?.isHidden = !isTryStep
+
+        if isTryStep {
+            // Delay showing Next button by 10 seconds
+            // so user focuses on trying the action first
+            popupActionButton?.alpha = 0
+            UIView.animate(withDuration: 0.3, delay: 10, options: []) { [weak self] in
+                self?.popupActionButton?.alpha = 1
+            }
+        } else {
+            popupActionButton?.alpha = 1
+        }
+
+        // WebView is always interactive for popupLookup (user needs to select text)
+        popupWebView?.isUserInteractionEnabled = true
     }
 
     /// Embed a nav controller as the guide content view.
@@ -832,6 +1068,12 @@ final class TutorialViewController: UIViewController {
 
         let step = steps[currentStepIndex]
 
+        // Pop-up Lookup uses split layout (card + WebView), not coaching mark overlay
+        if level == .popupLookup {
+            updatePopupCard()
+            return
+        }
+
         // Update WebView interactivity
         if level.usesArticlePageView {
             articlePageView.webView.isUserInteractionEnabled = step.webViewInteractive
@@ -897,7 +1139,7 @@ final class TutorialViewController: UIViewController {
     }
 
     private func advanceStep() {
-        coachingMark?.hideAnimated { [weak self] in
+        let proceed = { [weak self] in
             guard let self else { return }
             self.coachingMark?.removeFromSuperview()
             self.coachingMark = nil
@@ -912,6 +1154,13 @@ final class TutorialViewController: UIViewController {
             } else {
                 self.showCurrentStep()
             }
+        }
+
+        if let mark = coachingMark {
+            mark.hideAnimated { proceed() }
+        } else {
+            // No coaching mark (e.g. popupLookup split layout) — proceed immediately
+            proceed()
         }
     }
 
@@ -1264,9 +1513,11 @@ final class TutorialViewController: UIViewController {
 
         // ── Guide: Pop-up Lookup ──
         case "popupLookup.step1":
-            return "Pop-up Lookup lets you look up words from any app without leaving it. Select text, tap Share, and choose OpenMDict."
+            return "Pop-up Lookup lets you look up words from any app — Safari, Mail, Notes, and more — without leaving the page."
         case "popupLookup.step2":
-            return "The lookup result appears in a compact overlay. You can browse articles, bookmark entries, and even adjust dark mode — all without switching apps."
+            return "Try it now! Long-press a bold word below to select it, then tap \"Share\" and choose:"
+        case "popupLookup.step3":
+            return "The lookup result appears in a compact overlay — you can browse articles, bookmark entries, adjust zooming and appearance, and even Jump Search, all without switching apps."
 
         // ── Guide: Dictionary Groups ──
         case "dictionaryGroups.step1":

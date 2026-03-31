@@ -226,9 +226,14 @@ extension TutorialLevel {
 
         case .popupLookup:
             return [
+                // Step 0: Explain the concept
                 TutorialStep(anchorTarget: .center, messageKey: "popupLookup.step1",
                              buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 1: Try it! Select text → Share → "Look up this word"
                 TutorialStep(anchorTarget: .center, messageKey: "popupLookup.step2",
+                             buttonStyle: .next, validAction: .freeInteraction),
+                // Step 2: Summary
+                TutorialStep(anchorTarget: .center, messageKey: "popupLookup.step3",
                              buttonStyle: .gotIt, validAction: .tapCoachingButton),
             ]
 
