@@ -1682,6 +1682,14 @@ nonisolated enum L10n {
             NSLocalizedString("tutorial.findUnavailable.message", value: "Find in Page requires iOS 16 or later. Please update your device to access this feature.", comment: "Alert message: Find in Page not available on iOS 15")
         }
 
+        // Wrong action: Dictionary Groups
+        static var wrongActionGroupInfo: String {
+            NSLocalizedString("tutorial.wrongAction.groupInfo", value: "Please tap the ℹ button on the highlighted group to continue.", comment: "Alert message: expected group info button tap")
+        }
+        static var wrongActionContainedItems: String {
+            NSLocalizedString("tutorial.wrongAction.containedItems", value: "Please tap \"Contained Items\" to continue.", comment: "Alert message: expected Contained Items tap")
+        }
+
         // Exit confirmation
         static var exitTitle: String {
             NSLocalizedString("tutorial.exit.title", value: "Leave Tutorial?", comment: "Alert title: leaving incomplete tutorial")

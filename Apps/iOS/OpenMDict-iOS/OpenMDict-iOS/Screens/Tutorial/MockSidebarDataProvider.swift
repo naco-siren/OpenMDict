@@ -114,11 +114,23 @@ final class MockDictionaryDataProvider: DictionaryDataProvider {
     }()
 
     private lazy var userGroup: MDicts = {
+        // createdAt: approximate app install date (Documents dir creation) or yesterday
+        let createdAt: Date = {
+            if let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first,
+               let attrs = try? FileManager.default.attributesOfItem(atPath: docsURL.path),
+               let date = attrs[.creationDate] as? Date {
+                return date
+            }
+            return Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        }()
+
         let group = MDicts(
             id: Self.userGroupId,
             name: "Japanese",
             isDefault: false,
-            dictionaryIds: [Self.jmdictId, Self.kanjidicId, Self.unihanId]
+            dictionaryIds: [Self.jmdictId, Self.kanjidicId, Self.unihanId],
+            createdAt: createdAt,
+            modifiedAt: Date()  // "just now" when tutorial opens
         )
         group.populate(from: [mockJMDict, mockKANJIDIC, mockUnihan])
         return group

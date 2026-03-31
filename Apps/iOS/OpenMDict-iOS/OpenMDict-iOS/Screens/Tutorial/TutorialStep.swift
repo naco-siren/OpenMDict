@@ -32,7 +32,11 @@ struct TutorialStep {
         case sidebarDictInfoButton  // Info button on a specific dict cell (editing mode)
         case sidebarUserGroup       // First user group header cell
         case sidebarUserGroupContent // User group + its children (expanded)
+        case sidebarUserGroupInfoButton // Info button on user group cell (editing mode)
         case sidebarAddGroup        // "Add Group" cell in My Groups section
+        case groupInfoSection        // GROUP INFO section in GroupInfoVC
+        case groupInfoEditButton     // Edit button in GroupInfoVC nav bar
+        case groupInfoContainedItems // "Contained Items" cell in GroupInfoVC
         case dictInfoManageResources // "Manage Resources" cell in DictInfoVC
         case resourceEditorAddMDD   // "Add MDD" button in DictResourceEditorVC
         case center                 // Center of screen (no arrow)
@@ -49,6 +53,8 @@ struct TutorialStep {
         case tapImportDictionary    // Tap "Import Dictionary" in management list
         case tapEditButton          // Tap Edit button in sidebar nav bar
         case tapDictInfoButton      // Tap info button on a dict cell
+        case tapGroupInfoButton     // Tap info button on a group cell
+        case tapContainedItems      // Tap "Contained Items" in GroupInfoVC
         case tapManageResources     // Tap "Manage Resources" in DictInfoVC
         case tapAddMDD              // Tap "Add MDD File" in ResourceEditorVC
         case freeInteraction        // Interact freely, advance via coaching button
@@ -228,17 +234,32 @@ extension TutorialLevel {
 
         case .dictionaryGroups:
             return [
-                // Step 0: Highlight "Favorites" user group — explain concept
+                // Step 0: Highlight "Japanese" user group — explain concept
                 TutorialStep(anchorTarget: .sidebarUserGroup, messageKey: "dictionaryGroups.step1",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                // Step 1: Highlight expanded group showing WordNet inside
+                // Step 1: Highlight expanded group + its dict children
                 TutorialStep(anchorTarget: .sidebarUserGroupContent, messageKey: "dictionaryGroups.step2",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                // Step 2: Highlight "Add Group" cell
+                // Step 2: Highlight "Add New Group" cell
                 TutorialStep(anchorTarget: .sidebarAddGroup, messageKey: "dictionaryGroups.step3",
                              buttonStyle: .next, validAction: .tapCoachingButton),
-                // Step 3: Highlight Edit button — explain edit mode capabilities
+                // Step 3: Highlight Edit button → user taps Edit
                 TutorialStep(anchorTarget: .sidebarEditButton, messageKey: "dictionaryGroups.step4",
+                             buttonStyle: .tryIt, validAction: .tapEditButton),
+                // Step 4: Editing mode — highlight "Japanese" group ℹ button → user taps
+                TutorialStep(anchorTarget: .sidebarUserGroupInfoButton, messageKey: "dictionaryGroups.step5",
+                             buttonStyle: .tryIt, validAction: .tapGroupInfoButton),
+                // Step 5: GroupInfoVC — highlight GROUP INFO section
+                TutorialStep(anchorTarget: .groupInfoSection, messageKey: "dictionaryGroups.step6",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 6: Highlight Edit button in GroupInfoVC nav bar
+                TutorialStep(anchorTarget: .groupInfoEditButton, messageKey: "dictionaryGroups.step7",
+                             buttonStyle: .next, validAction: .tapCoachingButton),
+                // Step 7: Highlight "Contained Items" → user taps
+                TutorialStep(anchorTarget: .groupInfoContainedItems, messageKey: "dictionaryGroups.step8",
+                             buttonStyle: .tryIt, validAction: .tapContainedItems),
+                // Step 8: GroupDictEditorVC overview
+                TutorialStep(anchorTarget: .center, messageKey: "dictionaryGroups.step9",
                              buttonStyle: .gotIt, validAction: .tapCoachingButton),
             ]
 

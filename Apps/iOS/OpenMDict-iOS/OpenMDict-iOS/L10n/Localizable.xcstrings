@@ -31767,6 +31767,18 @@
         }
       }
     },
+    "tutorial.wrongAction.containedItems" : {
+      "comment" : "Alert message: expected Contained Items tap",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please tap \"Contained Items\" to continue."
+          }
+        }
+      }
+    },
     "tutorial.wrongAction.dictInfo" : {
       "comment" : "Alert message: expected dict info button tap",
       "extractionState" : "extracted_with_value",
@@ -31799,6 +31811,18 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Please tap the highlighted find button to continue."
+          }
+        }
+      }
+    },
+    "tutorial.wrongAction.groupInfo" : {
+      "comment" : "Alert message: expected group info button tap",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please tap the ℹ button on the highlighted group to continue."
           }
         }
       }

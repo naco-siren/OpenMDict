@@ -457,14 +457,35 @@ final class TutorialViewController: UIViewController {
             }
         }
 
-        // Dictionary Groups: collapse My Groups on step 2→3 (regular only)
+        // Dictionary Groups: step transitions
         if level == .dictionaryGroups {
-            if stepIndex == 2 && !isGuideCompact {
-                // Collapse My Groups, so management section's "Add New Group" is visible
-                embeddedSidebarVC?.tutorialMyGroupsCollapsed = true
-                embeddedSidebarVC?.applySnapshot(animated: true)
+            switch stepIndex {
+            case 2:
+                if !isGuideCompact {
+                    // Collapse My Groups, so management section's "Add New Group" is visible
+                    embeddedSidebarVC?.tutorialMyGroupsCollapsed = true
+                    embeddedSidebarVC?.applySnapshot(animated: true)
+                }
+                return false
+            case 3:
+                if !isGuideCompact {
+                    // Re-expand My Groups before highlighting Edit button,
+                    // so the group is visible when user enters editing mode (step 4)
+                    embeddedSidebarVC?.tutorialMyGroupsCollapsed = false
+                    embeddedSidebarVC?.applySnapshot(animated: true)
+                }
+                return false
+            case 5:
+                // Push GroupInfoVC
+                pushGroupInfoVC()
+                return true
+            case 8:
+                // Push GroupDictEditorVC
+                pushGroupDictEditorVC()
+                return true
+            default:
+                return false
             }
-            return false
         }
 
         guard level == .lookupBasics, let session = mockLookupSession else { return false }
@@ -494,9 +515,12 @@ final class TutorialViewController: UIViewController {
     private weak var embeddedMgmtVC: CompactManagementViewController?
     private weak var embeddedDictInfoVC: DictInfoViewController?
     private weak var embeddedResourceEditorVC: DictResourceEditorViewController?
+    private weak var embeddedGroupInfoVC: GroupInfoViewController?
+    private weak var embeddedGroupDictEditorVC: GroupDictionaryEditorViewController?
     private let mockDictDataSource = MockDictManagementDataSource()
     private lazy var mockDictProvider = MockDictionaryDataProvider()
     private lazy var mockDictProviderWithGroups = MockDictionaryDataProvider(includeUserGroups: true)
+    private lazy var mockGroupDataSource = MockGroupManagementDataSource(dictProvider: mockDictProviderWithGroups)
     private lazy var mockMetadataProvider = MockDictMetadataProvider()
 
     /// Whether the Import & Resources tutorial uses the compact layout
@@ -611,6 +635,17 @@ final class TutorialViewController: UIViewController {
             sidebarVC.tutorialDefaultGroupCollapsed = true  // Collapse All Dicts to save space (regular only)
         }
 
+        // Wire Edit button to advance step
+        sidebarVC.onEditingChanged = { [weak self] editing in
+            guard editing else { return }
+            self?.handleUserAction(.tapEditButton)
+        }
+
+        // Wire group info button to advance step
+        sidebarVC.onGroupInfoSelected = { [weak self] _ in
+            self?.handleUserAction(.tapGroupInfoButton)
+        }
+
         embeddedSidebarVC = sidebarVC
 
         let navWrapper = UINavigationController(rootViewController: sidebarVC)
@@ -647,6 +682,31 @@ final class TutorialViewController: UIViewController {
             self?.handleUserAction(.tapAddMDD)
         }
         embeddedResourceEditorVC = editorVC
+        embeddedGuideNav?.pushViewController(editorVC, animated: true)
+    }
+
+    /// Push GroupInfoVC with mock data onto the embedded nav stack.
+    private func pushGroupInfoVC() {
+        let groupInfoVC = GroupInfoViewController()
+        groupInfoVC.serviceDataSource = mockGroupDataSource
+        groupInfoVC.showManagingMode(for: MockGroupManagementDataSource.tutorialGroupId)
+
+        // "Contained Items" tap → advance tutorial
+        groupInfoVC.onManageDictionaries = { [weak self] _ in
+            self?.handleUserAction(.tapContainedItems)
+        }
+
+        embeddedGroupInfoVC = groupInfoVC
+        embeddedGuideNav?.pushViewController(groupInfoVC, animated: true)
+    }
+
+    /// Push GroupDictEditorVC with mock data onto the embedded nav stack.
+    private func pushGroupDictEditorVC() {
+        let editorVC = GroupDictionaryEditorViewController()
+        editorVC.serviceDataSource = mockGroupDataSource
+        editorVC.showEditor(for: MockGroupManagementDataSource.tutorialGroupId)
+
+        embeddedGroupDictEditorVC = editorVC
         embeddedGuideNav?.pushViewController(editorVC, animated: true)
     }
 
@@ -711,7 +771,14 @@ final class TutorialViewController: UIViewController {
             break
 
         case .tapDictInfoButton:
-            // Info VC will be pushed by updateGuideContentForStep
+            break
+
+        case .tapGroupInfoButton:
+            // GroupInfoVC will be pushed by updateGuideContentForStep
+            break
+
+        case .tapContainedItems:
+            // GroupDictEditorVC will be pushed by updateGuideContentForStep
             break
 
         case .tapManageResources:
@@ -737,6 +804,8 @@ final class TutorialViewController: UIViewController {
         case .tapImportDictionary: targetName = L10n.Tutorial.wrongActionImport
         case .tapEditButton:    targetName = L10n.Tutorial.wrongActionEdit
         case .tapDictInfoButton: targetName = L10n.Tutorial.wrongActionDictInfo
+        case .tapGroupInfoButton: targetName = L10n.Tutorial.wrongActionGroupInfo
+        case .tapContainedItems: targetName = L10n.Tutorial.wrongActionContainedItems
         case .tapManageResources: targetName = L10n.Tutorial.wrongActionManageResources
         case .tapAddMDD:        targetName = L10n.Tutorial.wrongActionAddMDD
         case .pressKeyboardShortcut: return // Handled by pressesBegan
@@ -797,8 +866,8 @@ final class TutorialViewController: UIViewController {
         let passThrough: Bool
         switch step.validAction {
         case .tapBookmark, .tapMoonButton, .tapFindButton, .tapZoomControl, .tapJumpSearch,
-             .tapImportDictionary, .tapEditButton, .tapDictInfoButton,
-             .tapManageResources, .tapAddMDD:
+             .tapImportDictionary, .tapEditButton, .tapDictInfoButton, .tapGroupInfoButton,
+             .tapManageResources, .tapAddMDD, .tapContainedItems:
             passThrough = true
         default:
             passThrough = false
@@ -1037,6 +1106,56 @@ final class TutorialViewController: UIViewController {
             }
             return nil
 
+        case .sidebarUserGroupInfoButton:
+            // Highlight the user group cell in editing mode (user taps its ℹ button)
+            guard let sidebarVC = embeddedSidebarVC,
+                  let cv = sidebarVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            for cell in cv.visibleCells where cell is UserGroupCell {
+                return cell.convert(cell.bounds, to: view)
+            }
+            return nil
+
+        case .groupInfoSection:
+            // Highlight the stats section (GROUP INFO header) — section index 2
+            // Sections: 0=displayName, 1=containedItems, 2=stats
+            guard let groupInfoVC = embeddedGroupInfoVC,
+                  let cv = groupInfoVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            var sectionFrame: CGRect?
+            for indexPath in cv.indexPathsForVisibleItems where indexPath.section == 2 {
+                if let cell = cv.cellForItem(at: indexPath) {
+                    let frame = cell.convert(cell.bounds, to: view)
+                    sectionFrame = sectionFrame?.union(frame) ?? frame
+                }
+            }
+            return sectionFrame
+
+        case .groupInfoEditButton:
+            // Edit button in GroupInfoVC's nav bar
+            guard let groupInfoVC = embeddedGroupInfoVC,
+                  let editItem = groupInfoVC.navigationItem.rightBarButtonItem,
+                  let editView = editItem.value(forKey: "view") as? UIView else { return nil }
+            return editView.convert(editView.bounds, to: view)
+
+        case .groupInfoContainedItems:
+            // "Contained Items" cell in GroupInfoVC
+            guard let groupInfoVC = embeddedGroupInfoVC,
+                  let cv = groupInfoVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
+            // "Contained Items" is in the second section (after display name)
+            for indexPath in cv.indexPathsForVisibleItems.sorted() {
+                if let cell = cv.cellForItem(at: indexPath),
+                   let content = (cell as? UICollectionViewListCell)?.contentConfiguration as? UIListContentConfiguration,
+                   content.image?.isSymbolImage == true {
+                    // The contained items cell has a "book.closed" or similar icon
+                    return cell.convert(cell.bounds, to: view)
+                }
+            }
+            // Fallback: just highlight the second visible cell
+            let indexPath = IndexPath(item: 0, section: 1)
+            if let cell = cv.cellForItem(at: indexPath) {
+                return cell.convert(cell.bounds, to: view)
+            }
+            return nil
+
         case .dictInfoManageResources:
             guard let dictInfoVC = embeddedDictInfoVC,
                   let cv = dictInfoVC.view.subviews.compactMap({ $0 as? UICollectionView }).first else { return nil }
@@ -1157,7 +1276,17 @@ final class TutorialViewController: UIViewController {
         case "dictionaryGroups.step3":
             return "Tap \"Add New Group\" to create a group. You can then add dictionaries to it from the group editor."
         case "dictionaryGroups.step4":
-            return "In Edit mode, you can manage a group via the ℹ button and reorder its position via context menu."
+            return "Tap the Edit button to enter editing mode, where you can manage groups and reorder them."
+        case "dictionaryGroups.step5":
+            return "Tap the ℹ button on \"Japanese\" to view and edit this group's settings."
+        case "dictionaryGroups.step6":
+            return "On this info screen, you can view the selected group's metadata and statistics."
+        case "dictionaryGroups.step7":
+            return "You can also customize the group name by tapping the Edit button and input your desired group name."
+        case "dictionaryGroups.step8":
+            return "To manage the dictionaries of this group, please tap the contained items button."
+        case "dictionaryGroups.step9":
+            return "The group editor shows dictionaries in this group and others available to add. You can drag to reorder, or use ⊕/⊖ to add or remove members."
 
         // ── Guide: MDX Import & Resources ──
         case "importAndResources.step1":
