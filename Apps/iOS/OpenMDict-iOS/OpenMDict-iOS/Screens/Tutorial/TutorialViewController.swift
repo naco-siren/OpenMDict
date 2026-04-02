@@ -121,14 +121,33 @@ final class TutorialViewController: UIViewController {
             let sliderContainer = makeZoomSliderContainer()
             let sliderItem = UIBarButtonItem(customView: sliderContainer)
             navigationItem.rightBarButtonItems = [sliderItem]
+        } else if UIDevice.current.userInterfaceIdiom == .phone {
+            // iPhone iOS 15: Zoom menu + Appearance button (matches compact nav bar)
+            let zoomMenu = UIMenu(title: "", children: [
+                UIAction(title: L10n.Detail.zoomIn, image: UIImage(systemName: "plus.magnifyingglass")) { [weak self] _ in
+                    self?.zoomInTapped()
+                },
+                UIAction(title: L10n.Detail.reset, image: UIImage(systemName: "1.magnifyingglass")) { [weak self] _ in
+                    self?.zoomResetTapped()
+                },
+                UIAction(title: L10n.Detail.zoomOut, image: UIImage(systemName: "minus.magnifyingglass")) { [weak self] _ in
+                    self?.zoomOutTapped()
+                },
+            ])
+            let zoomItem = UIBarButtonItem(
+                title: L10n.Detail.zoom, image: UIImage(systemName: "textformat.size"), menu: zoomMenu)
+            let appearanceItem = UIBarButtonItem(
+                title: L10n.Detail.appearance, image: UIImage(systemName: "circle.lefthalf.filled"),
+                primaryAction: UIAction { _ in }) // visual placeholder — appearance not taught in this step
+            navigationItem.rightBarButtonItems = [zoomItem, appearanceItem]
         } else {
-            // iOS 15: +/- buttons with reset in the middle
+            // iPad iOS 15: three icon buttons (matches regular nav bar) — reset uses icon, not text
             let out = UIBarButtonItem(
                 image: UIImage(systemName: "minus.magnifyingglass"),
                 style: .plain, target: self, action: #selector(zoomOutTapped)
             )
             let reset = UIBarButtonItem(
-                title: zoom.displayString,
+                image: UIImage(systemName: "1.magnifyingglass"),
                 style: .plain, target: self, action: #selector(zoomResetTapped)
             )
             let zIn = UIBarButtonItem(
@@ -752,7 +771,7 @@ final class TutorialViewController: UIViewController {
             webView.topAnchor.constraint(equalTo: dimView.bottomAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
 
         // Load a fake "web article" that looks like a real webpage

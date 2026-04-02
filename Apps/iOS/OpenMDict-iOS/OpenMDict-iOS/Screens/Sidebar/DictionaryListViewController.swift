@@ -157,6 +157,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
 
     func iCloudGroupStatus(forGroupId groupId: String) -> ICloudSectionStatus? {
+        guard !isTutorialMode else { return nil }
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
 
         // Check child dicts in this group.
@@ -174,6 +175,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     }
 
     func iCloudMyGroupsSectionStatus() -> ICloudSectionStatus? {
+        guard !isTutorialMode else { return nil }
         guard SyncModeService.shared.isCloudSyncEnabled else { return nil }
 
         // Start with account-level baseline.
