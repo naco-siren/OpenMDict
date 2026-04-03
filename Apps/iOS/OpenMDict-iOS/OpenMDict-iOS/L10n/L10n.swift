@@ -1535,11 +1535,14 @@ nonisolated enum L10n {
         }
 
         // Section headers
-        static var sectionInteractive: String {
-            NSLocalizedString("tutorial.section.interactive", value: "Hands-on Tutorials", comment: "Section header: interactive tutorial levels")
+        static var sectionIntroductory: String {
+            NSLocalizedString("tutorial.section.introductory", value: "Introductory", comment: "Section header: introductory tutorial levels")
         }
-        static var sectionGuides: String {
-            NSLocalizedString("tutorial.section.guides", value: "Feature Guides", comment: "Section header: explanation-based tutorial levels")
+        static var sectionIntermediate: String {
+            NSLocalizedString("tutorial.section.intermediate", value: "Intermediate", comment: "Section header: intermediate tutorial levels")
+        }
+        static var sectionAdvanced: String {
+            NSLocalizedString("tutorial.section.advanced", value: "Advanced", comment: "Section header: advanced tutorial levels")
         }
 
         // Hands-on level titles

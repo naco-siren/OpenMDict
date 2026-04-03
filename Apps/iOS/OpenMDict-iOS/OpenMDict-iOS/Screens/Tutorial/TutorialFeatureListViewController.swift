@@ -31,7 +31,7 @@ final class TutorialFeatureListViewController: UIViewController {
 
         title = L10n.Tutorial.title
         navigationItem.largeTitleDisplayMode = .never
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = .systemBackground
 
         // Close button when presented modally (iPad formSheet)
         if navigationController?.presentingViewController != nil {
@@ -64,7 +64,7 @@ final class TutorialFeatureListViewController: UIViewController {
     // MARK: - Collection View
 
     private func setupCollectionView() {
-        var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
+        var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
         listConfig.headerMode = .supplementary
         let layout = UICollectionViewCompositionalLayout.list(using: listConfig)
 
@@ -105,7 +105,7 @@ final class TutorialFeatureListViewController: UIViewController {
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { (supplementaryView: UICollectionViewListCell, _: String, indexPath: IndexPath) in
-            var config = UIListContentConfiguration.groupedHeader()
+            var config = UIListContentConfiguration.plainHeader()
             let section = TutorialSection(rawValue: indexPath.section)!
             config.text = section.title
             supplementaryView.contentConfiguration = config

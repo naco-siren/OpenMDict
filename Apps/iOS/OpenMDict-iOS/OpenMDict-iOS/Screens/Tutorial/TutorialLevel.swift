@@ -13,18 +13,20 @@ import GameController
 /// Enum order defines display order within each section.
 nonisolated enum TutorialLevel: Int, CaseIterable, Hashable, Sendable {
 
-    // ── Hands-on Tutorials (interactive, ArticlePageView) ──
-    case zoomAndLayout       // 1st: most universally useful
-    case enhanceDarkMode     // 2nd: unique feature
-    case bookmarks           // 3rd: standard feature
-    case jumpSearch          // 4th: advanced but important
-    case findInPage          // 5th: niche
-
-    // ── Feature Guides (explanation with screenshots) ──
+    // ── Introductory: core features every new user needs ──
     case lookupBasics        // Search + clipboard + related forms + suggestions
-    case popupLookup         // Action Extension upsell ("弹窗快查")
-    case dictionaryGroups    // Group management
+    case bookmarks           // Standard feature
+    case zoomAndLayout       // Most universally useful hands-on
+    case findInPage          // In-article text search
+
+    // ── Intermediate: dictionary & organisation customisation ──
     case importAndResources  // MDX import & resource management
+    case enhanceDarkMode     // Unique feature, mainly for third-party dict styles
+    case dictionaryGroups    // Group management
+
+    // ── Advanced: power-user productivity ──
+    case jumpSearch          // Cross-dict jump from article text
+    case popupLookup         // Action Extension upsell ("弹窗快查")
     case iPadProductivity    // iPad multitasking + keyboard shortcuts
 
     // MARK: - Metadata
@@ -105,7 +107,14 @@ nonisolated enum TutorialLevel: Int, CaseIterable, Hashable, Sendable {
 
     /// Section for the feature list.
     var section: TutorialSection {
-        isInteractive ? .interactive : .guides
+        switch self {
+        case .lookupBasics, .bookmarks, .zoomAndLayout, .findInPage:
+            return .introductory
+        case .importAndResources, .enhanceDarkMode, .dictionaryGroups:
+            return .intermediate
+        case .jumpSearch, .popupLookup, .iPadProductivity:
+            return .advanced
+        }
     }
 
     /// Whether a hardware keyboard is connected (checked at step generation time).
@@ -117,13 +126,15 @@ nonisolated enum TutorialLevel: Int, CaseIterable, Hashable, Sendable {
 // MARK: - Sections
 
 nonisolated enum TutorialSection: Int, Hashable, CaseIterable, Sendable {
-    case interactive
-    case guides
+    case introductory
+    case intermediate
+    case advanced
 
     var title: String {
         switch self {
-        case .interactive: return L10n.Tutorial.sectionInteractive
-        case .guides:      return L10n.Tutorial.sectionGuides
+        case .introductory: return L10n.Tutorial.sectionIntroductory
+        case .intermediate: return L10n.Tutorial.sectionIntermediate
+        case .advanced:     return L10n.Tutorial.sectionAdvanced
         }
     }
 }
