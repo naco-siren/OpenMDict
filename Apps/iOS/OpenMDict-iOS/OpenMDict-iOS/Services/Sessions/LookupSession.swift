@@ -97,8 +97,8 @@ final class LookupSession: ObservableObject, LookupSessionProtocol {
         .switchToLatest()
         // lookupPublisher emits on background thread. Hop to main BEFORE any
         // @MainActor code (WordDisplayItem mapping, @Published assignment).
-        // No debounce needed: each lookupPublisher now emits exactly once
-        // (single Future for all dicts), not N times per dictionary.
+        // lookupPublisher emits N times — once per enabled dict as each finishes
+        // loading. switchToLatest cancels the previous stream on query change.
         .receive(on: DispatchQueue.main)
         .map { results in
             results.map { WordDisplayItem(from: $0) }

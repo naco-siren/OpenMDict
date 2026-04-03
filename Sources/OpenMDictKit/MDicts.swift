@@ -260,15 +260,22 @@ public final class MDicts: ObservableObject, Identifiable {
 
 extension MDicts: @MainActor Lookupable {
 
-    /// Reactive lookup - searches all enabled dictionaries on a background thread.
+    /// Reactive lookup — searches all enabled dictionaries, emitting results
+    /// progressively as each dictionary finishes loading.
     ///
-    /// Captures `MDictReader` references (Sendable, thread-safe via internal NSLock)
-    /// and dictionary metadata on MainActor, then dispatches all binary searches
-    /// to a single background block. Emits **once** with sorted results.
+    /// Uses `MergeMany` of each `MDict.lookupPublisher`, which internally waits
+    /// for `$state.first { .loaded }` before searching. This means:
+    /// - Dicts already loaded → emit quickly.
+    /// - Dicts still loading  → emit as soon as they finish loading.
+    /// No results are silently dropped because of a mid-load query.
     ///
-    /// This avoids the previous MergeMany+scan pattern which caused N emissions
-    /// per query (one per dictionary) and `@MainActor` data-race warnings when
-    /// scan/sort closures ran on background threads.
+    /// `scan` accumulates per-dict batches into a running sorted total using
+    /// a `nonisolated` free-function reference — preventing `@MainActor`
+    /// inference that would otherwise cause a data-race warning when Combine
+    /// calls the closure on background threads (where each MDict publisher emits).
+    ///
+    /// Downstream (`LookupSession`) receives N emissions (one per dict) via
+    /// `switchToLatest`, updating the word list progressively.
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
         let enabledItems = items.filter { $0.isEnabled }
 
@@ -276,68 +283,33 @@ extension MDicts: @MainActor Lookupable {
             return Just([]).eraseToAnyPublisher()
         }
 
-        // Capture Sendable readers + metadata on MainActor.
-        // Dicts that haven't loaded yet (reader == nil) are skipped for this query.
-        let dictInfos: [GroupSearchInfo] = enabledItems.compactMap { dict in
-            guard let reader = dict.reader else { return nil }
-            return GroupSearchInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle)
-        }
+        // Create one publisher per enabled dictionary. Each MDict.lookupPublisher
+        // waits for that dict to load ($state.first { .loaded }) then searches.
+        // All captured on MainActor here; background work happens inside each dict's publisher.
+        let publishers = enabledItems.map { $0.lookupPublisher(prefix: prefix, limit: limit) }
 
-        guard !dictInfos.isEmpty else {
-            return Just([]).eraseToAnyPublisher()
-        }
-
-        // Bridge Swift Concurrency → Combine: Task.detached runs all searches
-        // off MainActor; promise fulfills the Future on completion.
-        // Deferred ensures work starts on subscription (respects switchToLatest timing).
-        // UncheckedSendableBox wraps promise to satisfy `sending` parameter.
-        return Deferred {
-            Future<[WordSearchResult], Never> { promise in
-                let box = UncheckedSendableBox(value: promise)
-                Task.detached(priority: .userInitiated) {
-                    let results = await performGroupSearch(
-                        dictInfos: dictInfos, prefix: prefix, limit: limit
-                    )
-                    box.value(.success(results))
-                }
-            }
-        }
-        .eraseToAnyPublisher()
+        return Publishers.MergeMany(publishers)
+            .scan([WordSearchResult](), accumulateLookupResults)
+            .eraseToAnyPublisher()
     }
 }
 
-// MARK: - Background Group Search
+// MARK: - Lookup Result Accumulation
 
-/// Reader + metadata tuple for background group search.
-/// Captured on MainActor, passed to `@concurrent` task.
-private struct GroupSearchInfo: Sendable {
-    let reader: MDictReader
-    let dictId: String
-    let dictName: String
-}
-
-/// Search all dictionaries in a group on a background thread.
-/// `MDictReader` is `@unchecked Sendable` (thread-safe via internal NSLock).
-/// Checks `Task.isCancelled` between dictionaries for cooperative cancellation.
-@concurrent
-private nonisolated func performGroupSearch(
-    dictInfos: [GroupSearchInfo],
-    prefix: String,
-    limit: Int
-) async -> [WordSearchResult] {
-    var allResults: [WordSearchResult] = []
-    for info in dictInfos {
-        guard !Task.isCancelled else { return [] }
-        let keys = info.reader.search(prefix: prefix, limit: limit)
-        allResults.append(contentsOf: keys.map {
-            WordSearchResult(word: $0, dictId: info.dictId, dictName: info.dictName)
-        })
-    }
-
-    guard !Task.isCancelled else { return [] }
-
-    // Stable sort: alphabetical by word, preserving dictionary order for ties
-    return allResults.enumerated()
+/// Merges an incoming per-dictionary result batch into the running accumulation,
+/// maintaining stable alphabetical sort (word order; arrival order for ties).
+///
+/// File-scope `nonisolated` function — NOT a closure literal — to prevent
+/// `@MainActor` inference in Swift 6 with `-default-isolation=MainActor`.
+/// Combine calls `scan`'s accumulator on background threads (where each
+/// `MDict.lookupPublisher` emits), so `@MainActor` isolation here would
+/// cause a data-race warning.
+private nonisolated func accumulateLookupResults(
+    _ accumulated: [WordSearchResult],
+    _ incoming: [WordSearchResult]
+) -> [WordSearchResult] {
+    let combined = accumulated + incoming
+    return combined.enumerated()
         .sorted { a, b in
             let cmp = a.element.word.localizedCaseInsensitiveCompare(b.element.word)
             return cmp == .orderedSame ? a.offset < b.offset : cmp == .orderedAscending
