@@ -29376,6 +29376,78 @@
             "state": "new",
             "value": "Congratulations"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恭喜！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恭喜！"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поздравляем"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Felicitaciones!"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herzlichen Glückwunsch"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おめでとうございます"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Félicitations"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parabéns"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "축하합니다"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вітаємо"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تهانينا"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बधाई हो"
+          }
         }
       }
     },
@@ -30227,6 +30299,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Find in Page requires iOS 16 or later. Please update your device to access this feature."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页内查找需要 iOS 16 或更高版本。请更新设备以使用此功能。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "頁內尋找需要 iOS 16 或更高版本。請更新裝置以使用此功能。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поиск по странице требует iOS 16 или новее. Обновите устройство, чтобы использовать эту функцию."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La búsqueda en página requiere iOS 16 o posterior. Actualiza tu dispositivo para acceder a esta función."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suche auf der Seite erfordert iOS 16 oder neuer. Bitte aktualisiere dein Gerät, um diese Funktion zu nutzen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページ内検索には iOS 16 以降が必要です。この機能を使用するにはデバイスをアップデートしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La recherche dans la page nécessite iOS 16 ou une version ultérieure. Veuillez mettre à jour votre appareil pour accéder à cette fonctionnalité."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A busca na página requer iOS 16 ou posterior. Por favor, atualize seu dispositivo para acessar este recurso."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "페이지에서 찾기는 iOS 16 이상이 필요합니다. 이 기능을 사용하려면 기기를 업데이트하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук на сторінці вимагає iOS 16 або новіше. Будь ласка, оновіть пристрій для доступу до цієї функції."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتطلب البحث في الصفحة iOS 16 أو أحدث. يرجى تحديث جهازك للوصول إلى هذه الميزة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पेज में खोज के लिए iOS 16 या उसके बाद का संस्करण आवश्यक है। इस सुविधा का उपयोग करने के लिए अपना डिवाइस अपडेट करें।"
           }
         }
       }
@@ -31497,6 +31641,78 @@
             "state": "new",
             "value": "Please tap \"Add MDD File\" to continue."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击「添加 MDD 文件」以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選「新增 MDD 檔案」以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите «Добавить MDD-файл», чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca «Agregar archivo MDD» para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf «MDD-Datei hinzufügen», um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるには「MDD ファイルを追加」をタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur « Ajouter un fichier MDD » pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque em «Adicionar arquivo MDD» para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 «MDD 파일 추가»를 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть «Додати MDD-файл», щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على «إضافة ملف MDD» للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए «MDD फ़ाइल जोड़ें» पर टैप करें।"
+          }
         }
       }
     },
@@ -31508,6 +31724,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Please tap the highlighted bookmark button to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击高亮的书签按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選高亮顯示的書籤按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите выделенную кнопку закладки, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca el botón de marcador resaltado para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf den hervorgehobenen Lesezeichen-Button, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはハイライトされたブックマークボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur le bouton de signet mis en surbrillance pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque no botão de favorito destacado para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 하이라이트된 북마크 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть виділену кнопку закладки, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على زر الإشارة المرئية للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए हाइलाइट किए गए बुकमार्क बटन पर टैप करें।"
           }
         }
       }
@@ -31521,6 +31809,78 @@
             "state": "new",
             "value": "Please tap \"Contained Items\" to continue."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击「包含项目」以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選「包含項目」以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите «Входящие элементы», чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca «Elementos incluidos» para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf «Enthaltene Elemente», um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるには「含まれる項目」をタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur « Éléments inclus » pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque em «Itens inclusos» para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 «포함된 항목»을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть «Вміст елементи», щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على «العناصر المتضمنة» للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए «शामिल आइटम» पर टैप करें।"
+          }
         }
       }
     },
@@ -31532,6 +31892,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Please tap the ℹ button on the highlighted dictionary to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击高亮词典上的 ⓘ 按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選高亮詞典上的 ⓘ 按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку ⓘ на выделенном словаре, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca el botón ⓘ del diccionario resaltado para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf den ⓘ-Button des markierten Wörterbuchs, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはハイライトされた辞書の ⓘ ボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur le bouton ⓘ du dictionnaire mis en surbrillance pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque no botão ⓘ do dicionário destacado para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 하이라이트된 사전의 ⓘ 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть кнопку ⓘ на виділеному словнику, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على زر ⓘ في القاموس المظلل للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए हाइलाइट किए गए शब्दकोश पर ⓘ बटन पर टैप करें।"
           }
         }
       }
@@ -31545,6 +31977,78 @@
             "state": "new",
             "value": "Please tap the Edit button in the navigation bar to continue."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击导航栏中的「编辑」按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選導覽列中的「編輯」按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку «Изменить» на панели навигации, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca el botón Editar en la barra de navegación para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf den Bearbeiten-Button in der Navigationsleiste, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはナビゲーションバーの「編集」ボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur le bouton Modifier dans la barre de navigation pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque no botão Editar na barra de navegação para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 네비게이션 바의 편집 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть кнопку «Редагувати» на панелі навігації, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على زر تحرير في شريط التنقل للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए नेविगेशन बार में संपादित करें बटन पर टैप करें।"
+          }
         }
       }
     },
@@ -31556,6 +32060,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Please tap the highlighted find button to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击高亮的“页内查找”按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選高亮的「頁內尋找」按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите выделенную кнопку поиска, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca el botón de búsqueda resaltado para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf den hervorgehobenen Suchen-Button, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはハイライトされた検索ボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur le bouton de recherche mis en surbrillance pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque no botão de busca destacado para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 하이라이트된 찾기 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть виділену кнопку пошуку, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على زر البحث المرئي للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए हाइलाइट किए गए खोज बटन पर टैप करें।"
           }
         }
       }
@@ -31569,6 +32145,78 @@
             "state": "new",
             "value": "Please tap the ℹ button on the highlighted group to continue."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击高亮分组上的 ⓘ 按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選高亮分組上的 ⓘ 按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку ⓘ на выделенной группе, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca el botón ⓘ del grupo resaltado para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf den ⓘ-Button der markierten Gruppe, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはハイライトされたグループの ⓘ ボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur le bouton ⓘ du groupe mis en surbrillance pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque no botão ⓘ do grupo destacado para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 하이라이트된 그룹의 ⓘ 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть кнопку ⓘ на виділеній групі, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على زر ⓘ في المجموعة المظللة للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए हाइलाइट किए गए ग्रुप पर ⓘ बटन पर टैप करें।"
+          }
         }
       }
     },
@@ -31580,6 +32228,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Please tap \"Import Dictionary\" to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击「导入词典」以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選「導入詞典」以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите «Импортировать словарь», чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca «Importar diccionario» para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf «Wörterbuch importieren», um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるには「辞書をインポート」をタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur « Importer un dictionnaire » pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque em «Importar dicionário» para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 «사전 가져오기»를 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть «Імпортувати словник», щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على «استيراد قاموس» للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए «शब्दकोश आयात करें» पर टैप करें।"
           }
         }
       }
@@ -31593,6 +32313,78 @@
             "state": "new",
             "value": "Long-press a word in the article, then select \"Jump Search\" from the menu."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "长按文章中的单词以显示跳转搜索选项。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長按文章中的單字以顯示跳轉搜尋選項。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите и удерживайте слово в статье, чтобы появился вариант быстрого поиска."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén pulsada una palabra del artículo para ver la opción de búsqueda rápida."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halte ein Wort im Artikel gedrückt, um die Direktsuche-Option anzuzeigen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事内の単語を長押してジャンプ検索のオプションを表示してください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez longuement sur un mot de l'article pour afficher l'option de recherche rapide."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pressione e segure uma palavra no artigo para exibir a opção de busca rápida."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기사의 단어를 길게 눌러 빠른 검색 옵션을 표시하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть і утримайте слово в статті, щоб побачити опцію швидкого пошуку."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط باستمرار على كلمة في المقالة لعرض خيار البحث السريع."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तेज़ खोज विकल्प देखने के लिए आलेख में किसी शब्द को देर तक दबाएं।"
+          }
         }
       }
     },
@@ -31604,6 +32396,78 @@
           "stringUnit": {
             "state": "new",
             "value": "You pressed %@. Please check the shortcut reference and try the correct key combination."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您按了 %@。请参阅快捷键参考并重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您按了 %@。請參閱快捷鍵參考並重試。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы нажали %@. Пожалуйста, ознакомьтесь со справочником по сочетаниям клавиш и повторите попытку."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presionaste %@. Consulta la referencia de atajos y vuelve a intentarlo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast %@ gedrückt. Bitte schau in der Tastaturkürzel-Referenz nach und versuche es erneut."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を押しました。ショートカットリファレンスを確認してもう一度お試しください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez appuyé sur %@. Veuillez consulter le référentiel des raccourcis et réessayer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pressionou %@. Consulte a referência de atalhos e tente novamente."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@를 눌렀습니다. 단축키 참조를 확인하고 다시 시도하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви натиснули %@. Будь ласка, ознайомтесь з довідником зкорочень і спробуйте ще раз."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ضغطت على %@. يرجى مراجعة مرجع اختصارات لوحة المفاتيح والمحاولة مرة أخرى."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने %@ दबाया। किर्पया शॉर्टकट संदर्भ देखें और पुन: प्रयास करें।"
           }
         }
       }
@@ -31617,6 +32481,78 @@
             "state": "new",
             "value": "Please tap \"Manage Resources\" to continue."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击「管理资源」以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選「管理資源」以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите «Управление ресурсами», чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca «Administrar recursos» para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf «Ressourcen verwalten», um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるには「リソースを管理」をタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur « Gérer les ressources » pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque em «Gerenciar recursos» para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 «리소스 관리»를 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть «Управляти ресурсами», щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على «إدارة الموارد» للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए «संसाधन प्रबंधित करें» पर टैप करें।"
+          }
         }
       }
     },
@@ -31628,6 +32564,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Please tap the highlighted moon button to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击高亮的月亮按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選高亮的月亮按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите выделенную кнопку луны, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca el botón de luna resaltado para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf den hervorgehobenen Mond-Button, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはハイライトされた月ボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur le bouton lune mis en surbrillance pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque no botão da lua destacado para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 하이라이트된 달 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть виділену кнопку місяця, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على زر القمر المرئي للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए हाइलाइट किए गए चांद बटन पर टैप करें।"
           }
         }
       }
@@ -31724,6 +32732,78 @@
           "stringUnit": {
             "state": "new",
             "value": "Please tap one of the zoom buttons in the toolbar to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请点击工具栏中的缩放按鈕以继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請點選工具列中的縮放按鈕以繼續。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите одну из кнопок зума на панели инструментов, чтобы продолжить."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toca uno de los botones de zoom en la barra de herramientas para continuar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte tippe auf einen der Zoom-Buttons in der Symbolleiste, um fortzufahren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けるにはツールバーのズームボタンのいずれかをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez appuyer sur l'un des boutons de zoom dans la barre d'outils pour continuer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por favor, toque em um dos botões de zoom na barra de ferramentas para continuar."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속하려면 도구 모음의 줄 준 옵션 중 하나를 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь ласка, натисніть одну з кнопок масштабування на панелі інструментів, щоб продовжувати."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرجى النقر على أحد أزرار التكبير في شريط الأدوات للمتابعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जारी रखने के लिए टूलबार में किसी एक ज़ूम बटन पर टैप करें।"
           }
         }
       }
