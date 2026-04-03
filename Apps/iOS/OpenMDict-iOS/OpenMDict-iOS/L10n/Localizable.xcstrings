@@ -35661,6 +35661,3575 @@
           }
         }
       }
+    },
+    "tutorial.step.zoomAndLayout.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can adjust the text size using the zoom controls in the toolbar above."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您可以使用上方工具栏中的缩放控件调整文字大小。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您可以使用上方工具列中的縮放控制項調整文字大小。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы можете изменить размер текста с помощью элементов управления масштабом на панели инструментов выше."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes ajustar el tamaño del texto usando los controles de zoom en la barra de herramientas de arriba."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie können die Textgröße mit den Zoom-Steuerelementen in der Symbolleiste oben anpassen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上のツールバーのズームコントロールを使って文字サイズを調整できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous pouvez ajuster la taille du texte à l'aide des commandes de zoom dans la barre d'outils ci-dessus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode ajustar o tamanho do texto usando os controles de zoom na barra de ferramentas acima."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "위쪽 도구 모음의 확대/축소 컨트롤을 사용하여 텍스트 크기를 조정할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви можете змінити розмір тексту за допомогою елементів керування масштабом на панелі інструментів вище."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكنك ضبط حجم النص باستخدام عناصر التحكم في التكبير/التصغير في شريط الأدوات أعلاه."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप ऊपर टूलबार में ज़ूम नियंत्रणों का उपयोग करके टेक्स्ट का आकार समायोजित कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.zoomAndLayout.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try dragging the slider to change the text size."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试试拖动滑块来更改文字大小。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試試拖動滑桿來更改文字大小。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте перетащить ползунок, чтобы изменить размер текста."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intenta arrastrar el control deslizante para cambiar el tamaño del texto."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versuchen Sie, den Schieberegler zu ziehen, um die Textgröße zu ändern."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スライダーをドラッグして文字サイズを変更してみてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essayez de faire glisser le curseur pour modifier la taille du texte."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente arrastar o controle deslizante para alterar o tamanho do texto."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "슬라이더를 드래그하여 텍스트 크기를 변경해 보세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спробуйте перетягнути повзунок, щоб змінити розмір тексту."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جرب سحب شريط التمرير لتغيير حجم النص."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टेक्स्ट का आकार बदलने के लिए स्लाइडर को खींचकर देखें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.enhanceDarkMode.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The moon button lets you enhance readability in dark mode for each dictionary."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月亮按钮可让您为每部词典增强暗模式下的阅读体验。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月亮按鈕可讓您為每部詞典增強深色模式下的閱讀體驗。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кнопка с луной позволяет улучшить читаемость в тёмном режиме для каждого словаря."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El botón de luna te permite mejorar la legibilidad en el modo oscuro para cada diccionario."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Mond-Schaltfläche ermöglicht es Ihnen, die Lesbarkeit im Dunkelmodus für jedes Wörterbuch zu verbessern."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月ボタンを使うと、辞書ごとにダークモードでの読みやすさを向上させることができます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le bouton lune vous permet d'améliorer la lisibilité en mode sombre pour chaque dictionnaire."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O botão de lua permite melhorar a legibilidade no modo escuro para cada dicionário."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "달 버튼을 사용하면 각 사전의 다크 모드 가독성을 향상시킬 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кнопка місяця дозволяє покращити читабельність у темному режимі для кожного словника."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتيح لك زر القمر تحسين قابلية القراءة في الوضع الداكن لكل قاموس."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चंद्रमा बटन आपको प्रत्येक शब्दकोश के लिए डार्क मोड में पठनीयता बेहतर बनाने देता है।"
+          }
+        }
+      }
+    },
+    "tutorial.step.enhanceDarkMode.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the highlighted moon button to open the adjustment panel."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击高亮显示的月亮按钮以打开调节面板。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點擊高亮顯示的月亮按鈕以開啟調節面板。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите выделенную кнопку с луной, чтобы открыть панель настроек."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el botón de luna resaltado para abrir el panel de ajuste."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf die hervorgehobene Mond-Schaltfläche, um das Anpassungsfenster zu öffnen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトされた月ボタンをタップして調整パネルを開いてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton lune en surbrillance pour ouvrir le panneau de réglage."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão de lua destacado para abrir o painel de ajuste."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "강조 표시된 달 버튼을 탭하여 조정 패널을 여세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть виділену кнопку місяця, щоб відкрити панель налаштувань."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على زر القمر المميز لفتح لوحة الضبط."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समायोजन पैनल खोलने के लिए हाइलाइट किए गए चंद्रमा बटन पर टैप करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.enhanceDarkMode.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust the slider to find the perfect brightness. Each dictionary can have its own setting."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调整滑块以找到最佳亮度。每部词典都可以有自己的设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "調整滑桿以找到最佳亮度。每部詞典都可以有自己的設定。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройте ползунок, чтобы найти идеальную яркость. Каждый словарь может иметь свои настройки."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajusta el control deslizante para encontrar el brillo perfecto. Cada diccionario puede tener su propia configuración."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stellen Sie den Schieberegler ein, um die optimale Helligkeit zu finden. Jedes Wörterbuch kann seine eigene Einstellung haben."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スライダーを調整してちょうどいい明るさを見つけてください。辞書ごとに個別に設定できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustez le curseur pour trouver la luminosité idéale. Chaque dictionnaire peut avoir son propre réglage."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuste o controle deslizante para encontrar o brilho perfeito. Cada dicionário pode ter sua própria configuração."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "슬라이더를 조정하여 최적의 밝기를 찾으세요. 각 사전마다 개별 설정을 가질 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштуйте повзунок, щоб знайти ідеальну яскравість. Кожен словник може мати власне налаштування."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضبط شريط التمرير للعثور على السطوع المثالي. يمكن أن يكون لكل قاموس إعداده الخاص."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आदर्श चमक खोजने के लिए स्लाइडर को समायोजित करें। प्रत्येक शब्दकोश की अपनी सेटिंग हो सकती है।"
+          }
+        }
+      }
+    },
+    "tutorial.step.bookmarks.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a dictionary article. You can bookmark any article to save it for later."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这是一篇词典文章。您可以收藏任意文章，以便日后查阅。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這是一篇詞典文章。您可以收藏任意文章，以便日後查閱。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это статья словаря. Вы можете добавить любую статью в закладки, чтобы сохранить её на потом."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este es un artículo del diccionario. Puedes marcar cualquier artículo como favorito para guardarlo y verlo más tarde."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies ist ein Wörterbucheintrag. Sie können jeden Eintrag als Lesezeichen speichern, um ihn später zu lesen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これは辞書の記事です。任意の記事をブックマークして後で参照することができます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ceci est un article du dictionnaire. Vous pouvez mettre en favori n'importe quel article pour le retrouver plus tard."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este é um artigo do dicionário. Você pode marcar qualquer artigo como favorito para salvá-lo para depois."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이것은 사전 항목입니다. 나중에 보기 위해 모든 항목을 북마크할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Це стаття словника. Ви можете додати будь-яку статтю до закладок, щоб зберегти її на потім."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذه مقالة قاموسية. يمكنك وضع إشارة مرجعية على أي مقالة لحفظها لوقت لاحق."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह एक शब्दकोश लेख है। आप बाद में पढ़ने के लिए किसी भी लेख को बुकमार्क कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.bookmarks.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the highlighted bookmark button to save this article."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击高亮显示的书签按钮以保存此文章。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點擊高亮顯示的書籤按鈕以儲存此文章。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите выделенную кнопку закладки, чтобы сохранить эту статью."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el botón de marcador resaltado para guardar este artículo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf die hervorgehobene Lesezeichen-Schaltfläche, um diesen Eintrag zu speichern."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトされたブックマークボタンをタップしてこの記事を保存してください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton favori en surbrillance pour enregistrer cet article."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão de favorito destacado para salvar este artigo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "강조 표시된 북마크 버튼을 탭하여 이 항목을 저장하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть виділену кнопку закладки, щоб зберегти цю статтю."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على زر الإشارة المرجعية المميز لحفظ هذه المقالة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस लेख को सहेजने के लिए हाइलाइट किए गए बुकमार्क बटन पर टैप करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.bookmarks.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Great! The article is now bookmarked. You can find all your bookmarks in the Bookmarks tab."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "太棒了！文章已被收藏。您可以在「书签」标签页中找到所有收藏内容。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "太棒了！文章已被收藏。您可以在「書籤」標籤頁中找到所有收藏內容。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отлично! Статья добавлена в закладки. Все закладки можно найти на вкладке «Закладки»."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Genial! El artículo ha sido marcado. Puedes encontrar todos tus marcadores en la pestaña Marcadores."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Super! Der Eintrag wurde als Lesezeichen gespeichert. Alle Ihre Lesezeichen finden Sie im Tab \"Lesezeichen\"."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すばらしい！記事がブックマークされました。すべてのブックマークは「ブックマーク」タブで確認できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Super ! L'article est maintenant en favori. Vous pouvez retrouver tous vos favoris dans l'onglet Favoris."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ótimo! O artigo foi marcado como favorito. Você pode encontrar todos os seus favoritos na aba Favoritos."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "훌륭합니다! 항목이 북마크되었습니다. 모든 북마크는 북마크 탭에서 찾을 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чудово! Стаття додана до закладок. Усі закладки можна знайти на вкладці «Закладки»."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رائع! تمت إضافة المقالة إلى الإشارات المرجعية. يمكنك العثور على جميع إشاراتك المرجعية في تبويب الإشارات المرجعية."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बढ़िया! लेख अब बुकमार्क हो गया है। आप अपने सभी बुकमार्क बुकमार्क टैब में पा सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.jumpSearch.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When reading an article, you can look up any word by selecting it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阅读文章时，您可以通过选中任意单词来查找它。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閱讀文章時，您可以透過選取任意單字來查找它。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "При чтении статьи вы можете найти любое слово, выделив его."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mientras lees un artículo, puedes buscar cualquier palabra seleccionándola."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Lesen eines Eintrags können Sie jedes Wort nachschlagen, indem Sie es auswählen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事を読んでいるとき、任意の単語を選択して調べることができます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lors de la lecture d'un article, vous pouvez rechercher n'importe quel mot en le sélectionnant."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao ler um artigo, você pode pesquisar qualquer palavra selecionando-a."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기사를 읽는 동안 단어를 선택하여 찾아볼 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Під час читання статті ви можете знайти будь-яке слово, виділивши його."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أثناء قراءة مقالة، يمكنك البحث عن أي كلمة بتحديدها."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई लेख पढ़ते समय, आप किसी भी शब्द को चुनकर उसे खोज सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.jumpSearch.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long-press on a word to select it, then choose \"Jump Search\" from the context menu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "长按某个单词以选中它，然后从上下文菜单中选择「跳转搜索」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長按某個單字以選取它，然後從上下文選單中選擇「跳轉搜尋」。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите и удерживайте слово, чтобы выделить его, затем выберите «Быстрый поиск» в контекстном меню."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén presionada una palabra para seleccionarla y luego elige \"Búsqueda rápida\" en el menú contextual."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halten Sie ein Wort gedrückt, um es auszuwählen, und wählen Sie dann \"Schnellsuche\" aus dem Kontextmenü."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語を長押しして選択し、コンテキストメニューから「ジャンプ検索」を選んでください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez longuement sur un mot pour le sélectionner, puis choisissez \"Recherche rapide\" dans le menu contextuel."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pressione e segure uma palavra para selecioná-la, depois escolha \"Busca rápida\" no menu de contexto."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "단어를 길게 눌러 선택한 다음 상황에 맞는 메뉴에서 \"바로 검색\"을 선택하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть і утримуйте слово, щоб виділити його, потім виберіть «Швидкий пошук» у контекстному меню."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط مطولاً على كلمة لتحديدها، ثم اختر \"البحث السريع\" من القائمة السياقية."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किसी शब्द को लंबे समय तक दबाकर उसे चुनें, फिर संदर्भ मेनू से \"जंप सर्च\" चुनें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.jumpSearch.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jump Search will look up the selected word across all your dictionaries — it's like having a dictionary within a dictionary!"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳转搜索将在您所有词典中查找所选单词——就像词典中的词典！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳轉搜尋將在您所有詞典中查找所選單字——就像詞典中的詞典！"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Быстрый поиск найдёт выбранное слово во всех ваших словарях — как словарь внутри словаря!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La búsqueda rápida buscará la palabra seleccionada en todos tus diccionarios — ¡como tener un diccionario dentro de un diccionario!"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Schnellsuche sucht das ausgewählte Wort in all Ihren Wörterbüchern — wie ein Wörterbuch im Wörterbuch!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ジャンプ検索は選択した単語をすべての辞書から検索します。まるで辞書の中の辞書です！"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La recherche rapide cherchera le mot sélectionné dans tous vos dictionnaires — comme avoir un dictionnaire dans un dictionnaire !"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A busca rápida procurará a palavra selecionada em todos os seus dicionários — é como ter um dicionário dentro de um dicionário!"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "바로 검색은 선택한 단어를 모든 사전에서 찾아줍니다. 사전 속의 사전과 같습니다!"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Швидкий пошук знайде вибране слово у всіх ваших словниках — як словник у словнику!"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سيبحث \"البحث السريع\" عن الكلمة المحددة في جميع قواميسك — كأنك تمتلك قاموساً داخل قاموس!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जंप सर्च चयनित शब्द को आपके सभी शब्दकोशों में खोजेगा — जैसे शब्दकोश के अंदर एक शब्दकोश!"
+          }
+        }
+      }
+    },
+    "tutorial.step.findInPage.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The find button lets you search for specific text within an article."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查找按钮可让您在文章中搜索特定文本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查找按鈕可讓您在文章中搜尋特定文字。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кнопка поиска позволяет искать определённый текст в статье."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El botón de búsqueda te permite buscar texto específico dentro de un artículo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Suchen-Schaltfläche ermöglicht es Ihnen, nach bestimmtem Text in einem Eintrag zu suchen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索ボタンを使うと、記事内の特定のテキストを検索できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le bouton de recherche vous permet de chercher un texte spécifique dans un article."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O botão de busca permite pesquisar um texto específico dentro de um artigo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "찾기 버튼을 사용하면 기사 내에서 특정 텍스트를 검색할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кнопка пошуку дозволяє шукати певний текст у статті."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتيح لك زر البحث البحث عن نص محدد داخل مقالة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोज बटन आपको किसी लेख में विशिष्ट पाठ खोजने देता है।"
+          }
+        }
+      }
+    },
+    "tutorial.step.findInPage.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the highlighted find button to open the search bar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击高亮显示的查找按钮以打开搜索栏。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點擊高亮顯示的查找按鈕以開啟搜尋列。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите выделенную кнопку поиска, чтобы открыть строку поиска."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el botón de búsqueda resaltado para abrir la barra de búsqueda."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf die hervorgehobene Suchen-Schaltfläche, um die Suchleiste zu öffnen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトされた検索ボタンをタップして検索バーを開いてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton de recherche en surbrillance pour ouvrir la barre de recherche."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão de busca destacado para abrir a barra de pesquisa."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "강조 표시된 찾기 버튼을 탭하여 검색 창을 여세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть виділену кнопку пошуку, щоб відкрити рядок пошуку."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على زر البحث المميز لفتح شريط البحث."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोज बार खोलने के लिए हाइलाइट किए गए खोज बटन पर टैप करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.findInPage.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try searching for \"definition\" — you'll see all matches highlighted. Use the arrows to navigate between them."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试着搜索「definition」——您将看到所有匹配项被高亮显示。使用箭头在匹配项之间导航。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試著搜尋「definition」——您將看到所有符合項目被高亮顯示。使用箭頭在符合項目之間導覽。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте найти \"definition\" — вы увидите все совпадения, выделенные подсветкой. Используйте стрелки для перехода между ними."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intenta buscar \"definition\" — verás todas las coincidencias resaltadas. Usa las flechas para navegar entre ellas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versuchen Sie, nach \"definition\" zu suchen — Sie sehen alle Treffer hervorgehoben. Verwenden Sie die Pfeile, um zwischen den Treffern zu navigieren."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"definition\" を検索してみてください。すべての一致箇所がハイライト表示されます。矢印ボタンを使って一致箇所を移動できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essayez de rechercher \"definition\" — vous verrez toutes les correspondances surlignées. Utilisez les flèches pour naviguer entre elles."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente pesquisar \"definition\" — você verá todas as correspondências destacadas. Use as setas para navegar entre elas."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"definition\"을 검색해 보세요. 모든 일치 항목이 강조 표시됩니다. 화살표를 사용하여 항목 사이를 이동하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спробуйте знайти \"definition\" — ви побачите всі збіги, виділені підсвічуванням. Використовуйте стрілки для переходу між ними."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جرب البحث عن \"definition\" — ستظهر لك جميع النتائج مميزة بلون. استخدم الأسهم للتنقل بينها."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"definition\" खोजने का प्रयास करें — आप सभी मिलान हाइलाइट देखेंगे। उनके बीच नेविगेट करने के लिए तीरों का उपयोग करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.lookupBasics.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before you type anything, the word list shows your clipboard content and recent lookup history for quick access."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在您输入任何内容之前，单词列表会显示剪贴板内容和最近的查询历史，方便快速访问。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在您輸入任何內容之前，單字列表會顯示剪貼板內容和最近的查詢歷史，方便快速存取。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока вы ничего не ввели, список слов отображает содержимое буфера обмена и недавнюю историю поиска для быстрого доступа."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de escribir algo, la lista de palabras muestra el contenido del portapapeles y el historial de búsquedas recientes para un acceso rápido."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bevor Sie etwas eingeben, zeigt die Wortliste Ihren Zwischenablageinhalt und den letzten Suchverlauf für den schnellen Zugriff an."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "何も入力する前に、単語リストにはクリップボードの内容と最近の検索履歴が表示され、素早くアクセスできます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avant de saisir quoi que ce soit, la liste de mots affiche le contenu de votre presse-papiers et l'historique de recherche récent pour un accès rapide."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de digitar qualquer coisa, a lista de palavras mostra o conteúdo da área de transferência e o histórico de pesquisas recentes para acesso rápido."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아무것도 입력하기 전에, 단어 목록에는 클립보드 내용과 최근 검색 기록이 표시되어 빠르게 접근할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поки ви нічого не ввели, список слів відображає вміст буфера обміну та нещодавню історію пошуку для швидкого доступу."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قبل أن تكتب أي شيء، تعرض قائمة الكلمات محتوى الحافظة وسجل البحث الأخير للوصول السريع."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुछ भी टाइप करने से पहले, शब्द सूची आपके क्लिपबोर्ड की सामग्री और हाल की खोज इतिहास को त्वरित पहुँच के लिए दिखाती है।"
+          }
+        }
+      }
+    },
+    "tutorial.step.lookupBasics.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As you type, you'll see the results in real time. Tap any result to view full articles from all your dictionaries."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当您输入时，您将实时看到结果。点击任意结果可查看所有词典的完整词条。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當您輸入時，您將即時看到結果。點選任意結果可查看所有詞典的完整詞條。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "По мере ввода вы будете видеть результаты в реальном времени. Нажмите на любой результат, чтобы просмотреть полные статьи из всех ваших словарей."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A medida que escribe, verá los resultados en tiempo real. Toque cualquier resultado para ver los artículos completos de todos sus diccionarios."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Während Sie tippen, sehen Sie die Ergebnisse in Echtzeit. Tippen Sie auf ein Ergebnis, um vollständige Artikel aus allen Ihren Wörterbüchern anzuzeigen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力するにつれて、結果がリアルタイムで表示されます。任意の結果をタップすると、すべての辞書の全文記事を表示できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Au fur et à mesure que vous tapez, vous verrez les résultats en temps réel. Appuyez sur n'importe quel résultat pour afficher les articles complets de tous vos dictionnaires."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conforme você digita, verá os resultados em tempo real. Toque em qualquer resultado para ver os artigos completos de todos os seus dicionários."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "입력하는 동안 실시간으로 결과가 표시됩니다. 결과를 탭하면 모든 사전의 전체 항목을 볼 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Під час введення ви бачитимете результати в реальному часі. Торкніться будь-якого результату, щоб переглянути повні статті з усіх ваших словників."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أثناء الكتابة، ستظهر النتائج في الوقت الفعلي. اضغط على أي نتيجة لعرض المقالات الكاملة من جميع قواميسك."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जैसे-जैसे आप टाइप करते हैं, परिणाम रियल टाइम में दिखाई देंगे। अपने सभी शब्दकोशों के पूरे लेख देखने के लिए किसी भी परिणाम पर टैप करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.lookupBasics.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict automatically finds related forms — so searching for \"running\" also finds \"run\". Great for conjugations and inflections!"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict 会自动查找相关形式——因此搜索\"running\"也能找到\"run\"。非常适合动词变位和词形变化！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict 會自動尋找相關形式——因此搜尋「running」也能找到「run」。非常適合動詞變位和詞形變化！"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict автоматически находит связанные формы — поиск «running» также найдёт «run». Отлично подходит для спряжений и словоизменений!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict encuentra automáticamente formas relacionadas — así que buscar \"running\" también encuentra \"run\". ¡Ideal para conjugaciones e inflexiones!"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict findet automatisch verwandte Formen — die Suche nach \"running\" findet also auch \"run\". Perfekt für Konjugationen und Flexionen!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict は関連する形式を自動的に検索します。「running」を検索すると「run」も見つかります。活用形や語形変化に最適です！"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict trouve automatiquement les formes associées — ainsi, chercher \"running\" trouve aussi \"run\". Idéal pour les conjugaisons et les flexions !"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O OpenMDict encontra automaticamente formas relacionadas — então buscar \"running\" também encontra \"run\". Ótimo para conjugações e flexões!"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict는 관련 형태를 자동으로 찾아줍니다. 따라서 \"running\"을 검색하면 \"run\"도 찾을 수 있습니다. 활용형과 어형 변화에 매우 유용합니다!"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict автоматично знаходить пов'язані форми — тому пошук «running» також знайде «run». Чудово підходить для відмінювань та словозміни!"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يجد OpenMDict تلقائيًا الأشكال المرتبطة — لذا فإن البحث عن \"running\" يجد أيضًا \"run\". رائع للتصريفات والاشتقاقات!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenMDict स्वचालित रूप से संबंधित रूप खोजता है — इसलिए \"running\" खोजने पर \"run\" भी मिलता है। क्रिया रूपों और विभक्तियों के लिए बहुत उपयोगी!"
+          }
+        }
+      }
+    },
+    "tutorial.step.lookupBasics.step4": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If your query has a typo or too few direct matches, suggestions appear to help you find the right word through fuzzy matching."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果您的查询有拼写错误或直接匹配结果太少，系统会通过模糊匹配显示建议，帮助您找到正确的单词。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果您的查詢有拼寫錯誤或直接匹配結果太少，系統會透過模糊比對顯示建議，幫助您找到正確的單字。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если в вашем запросе есть опечатка или слишком мало прямых совпадений, появятся подсказки, которые помогут найти нужное слово с помощью нечёткого поиска."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si su consulta tiene un error tipográfico o muy pocas coincidencias directas, aparecen sugerencias para ayudarle a encontrar la palabra correcta mediante coincidencia aproximada."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn Ihre Suchanfrage einen Tippfehler enthält oder zu wenige direkte Treffer liefert, erscheinen Vorschläge, die Ihnen helfen, das richtige Wort durch unscharfe Suche zu finden."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クエリにタイプミスがある場合や直接一致する結果が少ない場合、あいまい検索によって正しい単語を見つけるための候補が表示されます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si votre recherche contient une faute de frappe ou trop peu de correspondances directes, des suggestions apparaissent pour vous aider à trouver le bon mot grâce à la recherche approximative."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se sua pesquisa tiver um erro de digitação ou poucas correspondências diretas, sugestões aparecem para ajudá-lo a encontrar a palavra certa por meio de correspondência aproximada."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검색어에 오타가 있거나 직접 일치 결과가 너무 적으면, 퍼지 매칭을 통해 올바른 단어를 찾을 수 있도록 제안이 표시됩니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Якщо у вашому запиті є помилка друку або занадто мало прямих збігів, з'являться підказки, які допоможуть знайти потрібне слово за допомогою нечіткого пошуку."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إذا كان استعلامك يحتوي على خطأ إملائي أو عدد قليل جدًا من التطابقات المباشرة، تظهر اقتراحات لمساعدتك في العثور على الكلمة الصحيحة من خلال المطابقة التقريبية."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यदि आपकी खोज में टाइपो है या सीधे मिलान बहुत कम हैं, तो फ़ज़ी मिलान के माध्यम से सही शब्द खोजने में मदद के लिए सुझाव दिखाई देते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.popupLookup.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pop-up Lookup lets you look up words from any app — Safari, Mail, Notes, and more — without leaving the page."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "弹出查词功能让您无需离开当前页面，就能从任何应用——Safari、邮件、备忘录等——查询单词。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "彈出查詞功能讓您無需離開目前頁面，就能從任何應用程式——Safari、郵件、備忘錄等——查詢單字。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всплывающий поиск позволяет искать слова в любом приложении — Safari, Почта, Заметки и других — не покидая страницу."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La búsqueda emergente le permite buscar palabras desde cualquier aplicación — Safari, Mail, Notas y más — sin salir de la página."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pop-up-Suche ermöglicht es Ihnen, Wörter aus jeder App — Safari, Mail, Notizen und mehr — nachzuschlagen, ohne die Seite zu verlassen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポップアップ検索を使うと、Safari、メール、メモなど、どのアプリからでもページを離れることなく単語を調べることができます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La recherche contextuelle vous permet de rechercher des mots depuis n'importe quelle application — Safari, Mail, Notes et plus encore — sans quitter la page."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pesquisa pop-up permite que você pesquise palavras em qualquer aplicativo — Safari, Mail, Notas e muito mais — sem sair da página."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "팝업 검색 기능을 사용하면 Safari, 메일, 메모 등 어떤 앱에서도 페이지를 벗어나지 않고 단어를 검색할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спливаючий пошук дозволяє шукати слова в будь-якому додатку — Safari, Пошта, Нотатки тощо — не покидаючи сторінку."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتيح لك ميزة البحث المنبثق البحث عن الكلمات من أي تطبيق — Safari والبريد والملاحظات وغيرها — دون مغادرة الصفحة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पॉप-अप लुकअप आपको किसी भी ऐप — Safari, Mail, Notes और अन्य — से पेज छोड़े बिना शब्द खोजने देता है।"
+          }
+        }
+      }
+    },
+    "tutorial.step.popupLookup.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try it now! Long-press a bold word below to select it, then tap \"Share\" and choose:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在试试吧！长按下方粗体单词以选中它，然后点击「分享」并选择："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在試試看！長按下方粗體單字以選取它，然後點選「分享」並選擇："
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте прямо сейчас! Удерживайте выделенное жирным слово ниже, затем нажмите «Поделиться» и выберите:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Pruébelo ahora! Mantenga presionada una palabra en negrita a continuación para seleccionarla, luego toque \"Compartir\" y elija:"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probieren Sie es jetzt aus! Halten Sie ein fett gedrucktes Wort unten gedrückt, um es auszuwählen, tippen Sie dann auf \"Teilen\" und wählen Sie:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ試してみましょう！下の太字の単語を長押しして選択し、「共有」をタップして選んでください："
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essayez maintenant ! Appuyez longuement sur un mot en gras ci-dessous pour le sélectionner, puis appuyez sur \"Partager\" et choisissez :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimente agora! Pressione e segure uma palavra em negrito abaixo para selecioná-la, toque em \"Compartilhar\" e escolha:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금 해보세요! 아래의 굵은 단어를 길게 눌러 선택한 다음 \"공유\"를 탭하고 선택하세요:"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спробуйте зараз! Утримуйте виділене жирним слово нижче, щоб вибрати його, потім натисніть «Поділитися» і виберіть:"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جربها الآن! اضغط مطولاً على كلمة غامقة أدناه لتحديدها، ثم اضغط على \"مشاركة\" واختر:"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी आज़माएं! नीचे किसी बोल्ड शब्द को लंबे समय तक दबाएं, फिर \"शेयर\" पर टैप करें और चुनें:"
+          }
+        }
+      }
+    },
+    "tutorial.step.popupLookup.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The lookup result appears in a compact overlay — you can browse articles, bookmark entries, adjust zooming and appearance, and even Jump Search, all without switching apps."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查词结果会以紧凑的浮层形式显示——您可以浏览词条、添加书签、调整缩放和外观，甚至使用「跳转搜索」，所有这些都无需切换应用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查詞結果會以緊湊的浮層形式顯示——您可以瀏覽詞條、加入書籤、調整縮放和外觀，甚至使用「跳轉搜尋」，所有這些都無需切換應用程式。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат поиска появляется в компактном наложении — вы можете просматривать статьи, добавлять записи в закладки, регулировать масштаб и оформление, а также использовать быстрый переход, не переключая приложения."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resultado de búsqueda aparece en una superposición compacta — puede navegar por artículos, marcar entradas como favoritas, ajustar el zoom y la apariencia, e incluso usar Búsqueda Rápida, todo sin cambiar de aplicación."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Suchergebnis erscheint in einer kompakten Überlagerung — Sie können Artikel durchsuchen, Einträge als Lesezeichen speichern, Zoom und Erscheinungsbild anpassen und sogar die Sprungsuche verwenden, ohne die App zu wechseln."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索結果はコンパクトなオーバーレイに表示されます。アプリを切り替えることなく、記事の閲覧、エントリのブックマーク、ズームや表示設定の調整、ジャンプ検索まで行えます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résultat de recherche apparaît dans une superposition compacte — vous pouvez parcourir les articles, ajouter des entrées aux favoris, ajuster le zoom et l'apparence, et même utiliser la Recherche Rapide, le tout sans changer d'application."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resultado da pesquisa aparece em uma sobreposição compacta — você pode navegar pelos artigos, marcar entradas, ajustar o zoom e a aparência, e até usar a Pesquisa Rápida, tudo sem trocar de aplicativo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검색 결과가 작은 오버레이로 표시됩니다. 앱을 전환하지 않고도 항목 탐색, 북마크 추가, 확대/축소 및 외관 조정, 점프 검색까지 모두 사용할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат пошуку з'являється у компактному оверлеї — ви можете переглядати статті, додавати записи до закладок, регулювати масштаб і зовнішній вигляд, а також використовувати швидкий перехід, не перемикаючи додатки."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تظهر نتيجة البحث في تراكب مضغوط — يمكنك تصفح المقالات، وإشارة الإدخالات كمفضلة، وضبط التكبير والمظهر، وحتى استخدام البحث السريع، كل ذلك دون تبديل التطبيقات."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोज परिणाम एक कॉम्पैक्ट ओवरले में दिखाई देता है — आप ऐप बदले बिना लेख ब्राउज़ कर सकते हैं, प्रविष्टियाँ बुकमार्क कर सकते हैं, ज़ूम और रूप-रंग समायोजित कर सकते हैं, और जंप सर्च भी उपयोग कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groups let you organize your dictionaries by topic or language — for example, \"Spanish\", \"Grammar\", or \"Medical\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分组让您可以按主题或语言整理词典——例如「西班牙语」、「语法」或「医学」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分組讓您可以按主題或語言整理詞典——例如「西班牙語」、「文法」或「醫學」。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Группы позволяют организовывать словари по теме или языку — например, «Испанский», «Грамматика» или «Медицина»."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los grupos le permiten organizar sus diccionarios por tema o idioma — por ejemplo, \"Español\", \"Gramática\" o \"Médico\"."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppen ermöglichen es Ihnen, Ihre Wörterbücher nach Thema oder Sprache zu ordnen — zum Beispiel \"Spanisch\", \"Grammatik\" oder \"Medizin\"."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを使うと、辞書をテーマや言語で整理できます。たとえば「スペイン語」「文法」「医学」などです。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les groupes vous permettent d'organiser vos dictionnaires par sujet ou par langue — par exemple, \"Espagnol\", \"Grammaire\" ou \"Médecine\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os grupos permitem organizar seus dicionários por tópico ou idioma — por exemplo, \"Espanhol\", \"Gramática\" ou \"Médico\"."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그룹을 사용하면 주제나 언어별로 사전을 정리할 수 있습니다. 예를 들어 \"스페인어\", \"문법\" 또는 \"의학\" 등입니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Групи дозволяють організовувати словники за темою або мовою — наприклад, «Іспанська», «Граматика» або «Медицина»."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتيح لك المجموعات تنظيم قواميسك حسب الموضوع أو اللغة — على سبيل المثال، \"الإسبانية\" أو \"القواعد\" أو \"الطب\"."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह आपको अपने शब्दकोशों को विषय या भाषा के अनुसार व्यवस्थित करने देते हैं — जैसे \"स्पैनिश\", \"व्याकरण\", या \"चिकित्सा\"।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each group contains a subset of your dictionaries. When you select a group, only its dictionaries are used for lookups."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个分组包含您词典的一个子集。当您选择某个分组时，仅该分组中的词典会用于查词。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每個分組包含您詞典的一個子集。當您選擇某個分組時，僅該分組中的詞典會用於查詞。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Каждая группа содержит подмножество ваших словарей. При выборе группы для поиска используются только её словари."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada grupo contiene un subconjunto de sus diccionarios. Cuando selecciona un grupo, solo sus diccionarios se usan para las búsquedas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Gruppe enthält eine Teilmenge Ihrer Wörterbücher. Wenn Sie eine Gruppe auswählen, werden nur deren Wörterbücher für die Suche verwendet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各グループには辞書の一部が含まれます。グループを選択すると、そのグループの辞書のみが検索に使用されます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque groupe contient un sous-ensemble de vos dictionnaires. Lorsque vous sélectionnez un groupe, seuls ses dictionnaires sont utilisés pour les recherches."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada grupo contém um subconjunto dos seus dicionários. Ao selecionar um grupo, apenas os dicionários dele são usados para pesquisas."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "각 그룹에는 사전의 일부가 포함됩니다. 그룹을 선택하면 해당 그룹의 사전만 검색에 사용됩니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кожна група містить підмножину ваших словників. Коли ви вибираєте групу, для пошуку використовуються лише її словники."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحتوي كل مجموعة على مجموعة فرعية من قواميسك. عند تحديد مجموعة، يتم استخدام قواميسها فقط لعمليات البحث."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रत्येक समूह में आपके शब्दकोशों का एक उपसमूह होता है। जब आप कोई समूह चुनते हैं, तो केवल उस समूह के शब्दकोश खोज के लिए उपयोग किए जाते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap \"Add New Group\" to create a group. You can then add dictionaries to it from the group editor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击「添加新分组」来创建一个分组，然后您可以通过分组编辑器向其中添加词典。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點選「新增群組」來建立一個分組，然後您可以透過群組編輯器向其中新增詞典。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите «Добавить новую группу», чтобы создать группу. Затем вы можете добавить словари в неё через редактор группы."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque \"Agregar nuevo grupo\" para crear un grupo. Luego puede agregar diccionarios desde el editor de grupos."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf \"Neue Gruppe hinzufügen\", um eine Gruppe zu erstellen. Anschließend können Sie Wörterbücher über den Gruppeneditor hinzufügen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「新しいグループを追加」をタップしてグループを作成します。グループエディタから辞書を追加できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur \"Ajouter un nouveau groupe\" pour créer un groupe. Vous pouvez ensuite y ajouter des dictionnaires depuis l'éditeur de groupe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em \"Adicionar novo grupo\" para criar um grupo. Você pode então adicionar dicionários a ele pelo editor de grupos."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"새 그룹 추가\"를 탭하여 그룹을 만드세요. 그런 다음 그룹 편집기에서 사전을 추가할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть «Додати нову групу», щоб створити групу. Потім ви можете додати словники до неї через редактор групи."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على \"إضافة مجموعة جديدة\" لإنشاء مجموعة. يمكنك بعد ذلك إضافة قواميس إليها من محرر المجموعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समूह बनाने के लिए \"नया समूह जोड़ें\" पर टैप करें। फिर आप समूह संपादक से उसमें शब्दकोश जोड़ सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step4": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the Edit button to enter editing mode, where you can manage groups and reorder them."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击「编辑」按钮进入编辑模式，在那里您可以管理分组并重新排序。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點選「編輯」按鈕進入編輯模式，在那裡您可以管理分組並重新排序。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку «Редактировать», чтобы войти в режим редактирования, где можно управлять группами и изменять их порядок."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque el botón Editar para entrar en el modo de edición, donde puede administrar grupos y reordenarlos."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf die Schaltfläche Bearbeiten, um den Bearbeitungsmodus aufzurufen, in dem Sie Gruppen verwalten und neu anordnen können."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「編集」ボタンをタップして編集モードに入ると、グループの管理や並び替えができます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton Modifier pour entrer en mode édition, où vous pouvez gérer les groupes et les réorganiser."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão Editar para entrar no modo de edição, onde você pode gerenciar grupos e reordená-los."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집 버튼을 탭하여 편집 모드로 진입하면 그룹을 관리하고 순서를 변경할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть кнопку «Редагувати», щоб увійти в режим редагування, де можна керувати групами та змінювати їх порядок."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على زر التعديل للدخول إلى وضع التعديل، حيث يمكنك إدارة المجموعات وإعادة ترتيبها."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादन मोड में प्रवेश करने के लिए संपादित करें बटन पर टैप करें, जहाँ आप समूहों को प्रबंधित और पुनर्व्यवस्थित कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step5": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the ℹ button on \"Japanese\" to view and edit this group's settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击「Japanese」上的 ℹ 按钮，查看和编辑该分组的设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點選「Japanese」上的 ℹ 按鈕，查看和編輯該分組的設定。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку ℹ на «Japanese», чтобы просмотреть и изменить настройки этой группы."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque el botón ℹ en \"Japanese\" para ver y editar la configuración de este grupo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf die Schaltfläche ℹ bei \"Japanese\", um die Einstellungen dieser Gruppe anzuzeigen und zu bearbeiten."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「Japanese」の ℹ ボタンをタップして、このグループの設定を表示・編集します。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton ℹ de \"Japanese\" pour afficher et modifier les paramètres de ce groupe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão ℹ em \"Japanese\" para visualizar e editar as configurações deste grupo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Japanese\"의 ℹ 버튼을 탭하여 이 그룹의 설정을 보고 편집하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть кнопку ℹ на «Japanese», щоб переглянути та відредагувати налаштування цієї групи."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على الزر ℹ في \"Japanese\" لعرض إعدادات هذه المجموعة وتعديلها."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस समूह की सेटिंग देखने और संपादित करने के लिए \"Japanese\" पर ℹ बटन टैप करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step6": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this info screen, you can view the selected group's metadata and statistics."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此信息页面，您可以查看所选分组的元数据和统计信息。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此資訊頁面，您可以查看所選分組的中繼資料和統計資訊。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На этом информационном экране вы можете просмотреть метаданные и статистику выбранной группы."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En esta pantalla de información, puede ver los metadatos y las estadísticas del grupo seleccionado."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Informationsbildschirm können Sie die Metadaten und Statistiken der ausgewählten Gruppe anzeigen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この情報画面では、選択したグループのメタデータと統計を表示できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur cet écran d'informations, vous pouvez consulter les métadonnées et les statistiques du groupe sélectionné."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nesta tela de informações, você pode visualizar os metadados e as estatísticas do grupo selecionado."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 정보 화면에서 선택한 그룹의 메타데이터와 통계를 볼 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На цьому інформаційному екрані ви можете переглянути метадані та статистику вибраної групи."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في شاشة المعلومات هذه، يمكنك عرض البيانات الوصفية والإحصاءات للمجموعة المحددة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस जानकारी स्क्रीन पर, आप चयनित समूह के मेटाडेटा और आँकड़े देख सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step7": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can also customize the group name by tapping the Edit button and input your desired group name."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您也可以通过点击「编辑」按钮并输入所需的分组名称来自定义分组名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您也可以透過點選「編輯」按鈕並輸入所需的分組名稱來自訂分組名稱。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы также можете настроить название группы, нажав кнопку «Редактировать» и введя нужное название группы."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "También puede personalizar el nombre del grupo tocando el botón Editar e ingresando el nombre de grupo deseado."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie können den Gruppennamen auch anpassen, indem Sie auf die Schaltfläche Bearbeiten tippen und den gewünschten Gruppennamen eingeben."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「編集」ボタンをタップして希望するグループ名を入力することで、グループ名をカスタマイズすることもできます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous pouvez également personnaliser le nom du groupe en appuyant sur le bouton Modifier et en saisissant le nom de groupe souhaité."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você também pode personalizar o nome do grupo tocando no botão Editar e inserindo o nome de grupo desejado."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집 버튼을 탭하고 원하는 그룹 이름을 입력하여 그룹 이름을 맞춤 설정할 수도 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви також можете налаштувати назву групи, натиснувши кнопку «Редагувати» та ввівши бажану назву групи."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكنك أيضًا تخصيص اسم المجموعة بالضغط على زر التعديل وإدخال اسم المجموعة المطلوب."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप संपादित करें बटन टैप करके और अपना इच्छित समूह नाम दर्ज करके समूह का नाम भी अनुकूलित कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step8": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To manage the dictionaries of this group, please tap the contained items button."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要管理此组中的词典，请点击包含项目按钮。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要管理此群組中的詞典，請點按包含項目按鈕。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чтобы управлять словарями этой группы, нажмите кнопку входящих элементов."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para gestionar los diccionarios de este grupo, toca el botón de elementos contenidos."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um die Wörterbücher dieser Gruppe zu verwalten, tippe auf die Schaltfläche für enthaltene Elemente."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このグループの辞書を管理するには、含まれるアイテムボタンをタップしてください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour gérer les dictionnaires de ce groupe, appuyez sur le bouton des éléments contenus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para gerenciar os dicionários deste grupo, toque no botão de itens contidos."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 그룹의 사전을 관리하려면 포함된 항목 버튼을 탭하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Щоб керувати словниками цієї групи, натисніть кнопку вмісту елементів."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لإدارة قواميس هذه المجموعة، انقر زر العناصر المتضمّنة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस समूह के शब्दकोशों को प्रबंधित करने के लिए, कृपया शामिल आइटम बटन दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.dictionaryGroups.step9": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The group editor shows dictionaries in this group and others available to add. You can drag to reorder, or use ⊕/⊖ to add or remove members."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群组编辑器显示此组中的词典以及可添加的其他词典。您可以拖动以重新排序，或使用 ⊕/⊖ 来添加或移除成员。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群組編輯器顯示此群組中的詞典以及可新增的其他詞典。您可以拖移以重新排序，或使用 ⊕/⊖ 來新增或移除成員。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактор группы показывает словари этой группы и другие, доступные для добавления. Вы можете перетаскивать для изменения порядка или использовать ⊕/⊖ для добавления или удаления участников."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El editor de grupo muestra los diccionarios de este grupo y otros disponibles para añadir. Puedes arrastrar para reordenar, o usar ⊕/⊖ para agregar o quitar miembros."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Gruppeneditor zeigt Wörterbücher in dieser Gruppe und andere, die hinzugefügt werden können. Du kannst sie per Drag-and-Drop neu anordnen oder ⊕/⊖ verwenden, um Mitglieder hinzuzufügen oder zu entfernen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループエディタには、このグループ内の辞書と追加可能な他の辞書が表示されます。ドラッグして並び替えるか、⊕/⊖ を使ってメンバーを追加または削除できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'éditeur de groupe affiche les dictionnaires de ce groupe et les autres disponibles à ajouter. Vous pouvez faire glisser pour réorganiser, ou utiliser ⊕/⊖ pour ajouter ou supprimer des membres."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O editor de grupo mostra os dicionários deste grupo e outros disponíveis para adicionar. Você pode arrastar para reordenar, ou usar ⊕/⊖ para adicionar ou remover membros."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그룹 편집기에는 이 그룹의 사전과 추가 가능한 다른 사전이 표시됩니다. 드래그하여 순서를 변경하거나 ⊕/⊖를 사용하여 구성원을 추가하거나 제거할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактор групи показує словники цієї групи та інші, доступні для додавання. Ви можете перетягувати для зміни порядку або використовувати ⊕/⊖ для додавання чи видалення учасників."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "محرر المجموعة يعرض القواميس في هذه المجموعة وغيرها المتاحة للإضافة. يمكنك السحب لإعادة الترتيب، أو استخدام ⊕/⊖ لإضافة الأعضاء أو إزالتهم."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ग्रुप संपादक इस ग्रुप के शब्दकोश और जोड़ने योग्य अन्य शब्दकोश दिखाता है। आप क्रम बदलने के लिए खिंच सकते हैं, या सदस्य जोड़ने या हटाने के लिए ⊕/⊖ का उपयोग कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Import Dictionary\" lets you add MDX dictionary files — via the Files app, AirDrop, or directly from this button."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「导入词典」让您通过文件 App、AirDrop 或直接从此按钮添加 MDX 词典文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「匯入詞典」讓您透過「檔案」App、AirDrop 或直接從此按鈕新增 MDX 詞典檔案。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Импортировать словарь\" позволяет добавлять файлы словарей MDX — через приложение \"Файлы\", AirDrop или непосредственно с этой кнопки."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Importar diccionario\" te permite añadir archivos de diccionario MDX — a través de la app Archivos, AirDrop o directamente desde este botón."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Wörterbuch importieren\" ermöglicht es dir, MDX-Wörterbuchdateien hinzuzufügen — über die Dateien-App, AirDrop oder direkt über diese Schaltfläche."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「辞書をインポート」では、ファイル App、AirDrop、またはこのボタンから直接 MDX 辞書ファイルを追加できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Importer un dictionnaire\" vous permet d'ajouter des fichiers de dictionnaire MDX — via l'app Fichiers, AirDrop ou directement depuis ce bouton."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Importar Dicionário\" permite adicionar arquivos de dicionário MDX — pelo app Arquivos, AirDrop ou diretamente por este botão."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"사전 가져오기\"를 사용하면 파일 앱, AirDrop 또는 이 버튼을 통해 직접 MDX 사전 파일을 추가할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Імпорт словника\" дозволяє додавати файли словників MDX — через застосунок \"Файли\", AirDrop або безпосередньо з цієї кнопки."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"استيراد قاموس\" يتيح لك إضافة ملفات قاموس MDX — عبر تطبيق الملفات أو AirDrop أو مباشرةً من هذا الزر."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"शब्दकोश आयात करें\" आपको Files ऐप, AirDrop या सीधे इस बटन से MDX शब्दकोश फ़ाइलें जोड़ने देता है।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the Edit button in the navigation bar to manage your imported dictionaries."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击导航栏中的编辑按钮，以管理您已导入的词典。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點按導覽列中的編輯按鈕，以管理您已匯入的詞典。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку «Редактировать» в панели навигации для управления импортированными словарями."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el botón Editar en la barra de navegación para gestionar tus diccionarios importados."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf die Schaltfläche Bearbeiten in der Navigationsleiste, um deine importierten Wörterbücher zu verwalten."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ナビゲーションバーの編集ボタンをタップして、インポートした辞書を管理します。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton Modifier dans la barre de navigation pour gérer vos dictionnaires importés."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão Editar na barra de navegação para gerenciar seus dicionários importados."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "탐색 막대의 편집 버튼을 탭하여 가져온 사전을 관리하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть кнопку «Редагувати» на панелі навігації, щоб керувати імпортованими словниками."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر زر تحرير في شريط التنقل لإدارة قواميسك المستوردة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपने आयात किए गए शब्दकोशों को प्रबंधित करने के लिए नेविगेशन बार में संपादित करें बटन दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the ℹ button on WordNet to view and edit its dictionary info."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击 WordNet 上的 ℹ 按钮，查看并编辑其词典信息。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點按 WordNet 上的 ℹ 按鈕，以檢視並編輯其詞典資訊。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите кнопку ℹ на WordNet, чтобы просмотреть и редактировать информацию о словаре."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el botón ℹ de WordNet para ver y editar su información de diccionario."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf die Schaltfläche ℹ bei WordNet, um die Wörterbuchinformationen anzuzeigen und zu bearbeiten."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WordNet の ℹ ボタンをタップして、辞書情報を表示・編集します。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur le bouton ℹ de WordNet pour afficher et modifier ses informations de dictionnaire."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque no botão ℹ do WordNet para visualizar e editar as informações do dicionário."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WordNet의 ℹ 버튼을 탭하여 사전 정보를 확인하고 편집하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть кнопку ℹ на WordNet, щоб переглянути та редагувати інформацію про словник."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر زر ℹ على WordNet لعرض معلومات القاموس وتحريرها."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WordNet पर ℹ बटन दबाएं ताकि उसकी शब्दकोश जानकारी देखें और संपादित करें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step4": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is the dictionary info screen. You can see metadata, lookup and bookmark counts, and customize the display name."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这是词典信息页面。您可以查看元数据、查阅次数和书签数量，并自定义显示名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這是詞典資訊頁面。您可以查看後設資料、查詢次數和書籤數量，並自訂顯示名稱。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это экран информации о словаре. Здесь можно просматривать метаданные, количество запросов и закладок, а также настраивать отображаемое имя."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta es la pantalla de información del diccionario. Puedes ver los metadatos, el recuento de búsquedas y marcadores, y personalizar el nombre de visualización."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies ist der Bildschirm mit den Wörterbuchinformationen. Du kannst Metadaten, Nachschlage- und Lesezeichenanzahl einsehen und den Anzeigenamen anpassen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これは辞書情報画面です。メタデータ、検索回数、ブックマーク数を確認し、表示名をカスタマイズできます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voici l'écran d'informations du dictionnaire. Vous pouvez consulter les métadonnées, le nombre de recherches et de signets, et personnaliser le nom d'affichage."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta é a tela de informações do dicionário. Você pode ver os metadados, contagens de consultas e favoritos, e personalizar o nome de exibição."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이것은 사전 정보 화면입니다. 메타데이터, 조회 수, 북마크 수를 확인하고 표시 이름을 사용자 지정할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Це екран інформації про словник. Ви можете переглядати метадані, кількість пошуків і закладок та налаштовувати відображувану назву."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذه شاشة معلومات القاموس. يمكنك عرض البيانات الوصفية وعدد مرات البحث والإشارات المرجعية، وتخصيص اسم العرض."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह शब्दकोश जानकारी स्क्रीन है। आप मेटाडेटा, खोज और बुकमार्क गिनती देख सकते हैं, और प्रदर्शन नाम अनुकूलित कर सकते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step5": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap \"Manage Resources\" to add supplementary files like MDD, CSS, or JavaScript."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击「管理资源」以添加 MDD、CSS 或 JavaScript 等补充文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點按「管理資源」以新增 MDD、CSS 或 JavaScript 等補充檔案。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите \"Управление ресурсами\", чтобы добавить дополнительные файлы, такие как MDD, CSS или JavaScript."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca \"Gestionar recursos\" para añadir archivos complementarios como MDD, CSS o JavaScript."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf \"Ressourcen verwalten\", um ergänzende Dateien wie MDD, CSS oder JavaScript hinzuzufügen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「リソースを管理」をタップして、MDD、CSS、JavaScript などの補助ファイルを追加します。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur \"Gérer les ressources\" pour ajouter des fichiers supplémentaires comme MDD, CSS ou JavaScript."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em \"Gerenciar Recursos\" para adicionar arquivos suplementares como MDD, CSS ou JavaScript."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"리소스 관리\"를 탭하여 MDD, CSS 또는 JavaScript 같은 보조 파일을 추가하세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть \"Керування ресурсами\", щоб додати допоміжні файли, такі як MDD, CSS або JavaScript."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر \"إدارة الموارد\" لإضافة ملفات تكميلية مثل MDD وCSS وJavaScript."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एमडीडी, सीएसएस या जावास्क्रिप्ट जैसी पूरक फ़ाइलें जोड़ने के लिए \"संसाधन प्रबंधित करें\" दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step6": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The resource editor shows all files associated with this dictionary. MDD files contain images and audio, while CSS and JS customize the article appearance."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "资源编辑器显示与此词典关联的所有文件。MDD 文件包含图片和音频，而 CSS 和 JS 则自定义文章外观。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資源編輯器顯示與此詞典相關的所有檔案。MDD 檔案包含圖片和音訊，而 CSS 和 JS 則自訂文章外觀。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактор ресурсов показывает все файлы, связанные с этим словарём. Файлы MDD содержат изображения и аудио, а CSS и JS настраивают внешний вид статей."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El editor de recursos muestra todos los archivos asociados a este diccionario. Los archivos MDD contienen imágenes y audio, mientras que CSS y JS personalizan la apariencia del artículo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ressourcen-Editor zeigt alle Dateien, die mit diesem Wörterbuch verbunden sind. MDD-Dateien enthalten Bilder und Audio, während CSS und JS das Erscheinungsbild des Artikels anpassen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リソースエディタには、この辞書に関連するすべてのファイルが表示されます。MDD ファイルには画像や音声が含まれており、CSS と JS は記事の外観をカスタマイズします。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'éditeur de ressources affiche tous les fichiers associés à ce dictionnaire. Les fichiers MDD contiennent des images et de l'audio, tandis que CSS et JS personnalisent l'apparence de l'article."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O editor de recursos exibe todos os arquivos associados a este dicionário. Arquivos MDD contêm imagens e áudio, enquanto CSS e JS personalizam a aparência do artigo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "리소스 편집기에는 이 사전과 관련된 모든 파일이 표시됩니다. MDD 파일에는 이미지와 오디오가 포함되어 있으며, CSS와 JS는 기사 모양을 사용자 지정합니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактор ресурсів показує всі файли, пов'язані з цим словником. Файли MDD містять зображення та аудіо, а CSS і JS налаштовують зовнішній вигляд статті."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "محرر الموارد يعرض جميع الملفات المرتبطة بهذا القاموس. تحتوي ملفات MDD على صور ومقاطع صوتية، بينما تُخصص CSS وJS مظهر المقالة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संसाधन संपादक इस शब्दकोश से जुड़ी सभी फ़ाइलें दिखाता है। MDD फ़ाइलों में चित्र और ऑडियो होते हैं, जबकि CSS और JS लेख की उपस्थिति अनुकूलित करते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.importAndResources.step7": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap \"Add MDD File\" to attach a resource archive. This is how you add pronunciation audio, images, or other media."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击「添加 MDD 文件」以附加资源档案。这是添加发音音频、图片或其他媒体的方式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點按「新增 MDD 檔案」以附加資源封存檔。這是新增發音音訊、圖片或其他媒體的方式。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите \"Добавить файл MDD\", чтобы прикрепить архив ресурсов. Так добавляется аудиопроизношение, изображения или другие медиафайлы."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca \"Añadir archivo MDD\" para adjuntar un archivo de recursos. Así es como añades audio de pronunciación, imágenes u otros medios."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf \"MDD-Datei hinzufügen\", um ein Ressourcenarchiv anzuhängen. So fügst du Aussprache-Audio, Bilder oder andere Medien hinzu."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「MDD ファイルを追加」をタップしてリソースアーカイブを添付します。これが発音音声、画像、その他のメディアを追加する方法です。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur \"Ajouter un fichier MDD\" pour joindre une archive de ressources. C'est ainsi que vous ajoutez de l'audio de prononciation, des images ou d'autres médias."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em \"Adicionar arquivo MDD\" para anexar um arquivo de recursos. É assim que você adiciona áudio de pronúncia, imagens ou outras mídias."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"MDD 파일 추가\"를 탭하여 리소스 아카이브를 첨부하세요. 이것이 발음 오디오, 이미지 또는 기타 미디어를 추가하는 방법입니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть \"Додати файл MDD\", щоб прикріпити архів ресурсів. Так додається аудіо вимови, зображення або інші медіафайли."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر \"إضافة ملف MDD\" لإرفاق أرشيف موارد. هكذا تُضيف صوت النطق والصور وغيرها من الوسائط."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक संसाधन आर्काइव संलग्न करने के लिए \"एमडीडी फ़ाइल जोड़ें\" दबाएं। इस तरह आप उच्चारण ऑडियो, चित्र या अन्य मीडिया जोड़ते हैं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap this button to open the current article in a new window. You can also long-press any search result to find the same option — great for comparing definitions side by side."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击此按钮，在新窗口中打开当前文章。您也可以长按任意搜索结果以找到相同选项——非常适合并排比较词义。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點按此按鈕，在新視窗中開啟目前的文章。您也可以長按任何搜尋結果以找到相同選項——非常適合並排比較詞義。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите эту кнопку, чтобы открыть текущую статью в новом окне. Вы также можете долго нажать на любой результат поиска, чтобы найти ту же опцию — отлично подходит для сравнения определений рядом."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca este botón para abrir el artículo actual en una nueva ventana. También puedes mantener pulsado cualquier resultado de búsqueda para encontrar la misma opción — ideal para comparar definiciones en paralelo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf diese Schaltfläche, um den aktuellen Artikel in einem neuen Fenster zu öffnen. Du kannst auch jedes Suchergebnis lang drücken, um dieselbe Option zu finden — ideal zum Vergleichen von Definitionen nebeneinander."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このボタンをタップして、現在の記事を新しいウィンドウで開きます。検索結果を長押しして同じオプションを見つけることもできます — 定義を並べて比較するのに便利です。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur ce bouton pour ouvrir l'article actuel dans une nouvelle fenêtre. Vous pouvez également appuyer longuement sur n'importe quel résultat de recherche pour trouver la même option — idéal pour comparer des définitions côte à côte."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque neste botão para abrir o artigo atual em uma nova janela. Você também pode pressionar e segurar qualquer resultado de pesquisa para encontrar a mesma opção — ótimo para comparar definições lado a lado."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 버튼을 탭하여 현재 기사를 새 창에서 엽니다. 검색 결과를 길게 눌러 같은 옵션을 찾을 수도 있습니다 — 정의를 나란히 비교하기에 좋습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть цю кнопку, щоб відкрити поточну статтю в новому вікні. Ви також можете довго натискати будь-який результат пошуку, щоб знайти той самий параметр — чудово підходить для порівняння визначень поруч."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر هذا الزر لفتح المقالة الحالية في نافذة جديدة. يمكنك أيضاً الضغط طويلاً على أي نتيجة بحث للعثور على نفس الخيار — رائع لمقارنة التعريفات جنباً إلى جنب."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वर्तमान लेख को एक नई विंडो में खोलने के लिए इस बटन को दबाएं। आप किसी भी खोज परिणाम को लंबे समय तक दबाकर वही विकल्प पा सकते हैं — परिभाषाओं को नाल जानच करने के लिए उपयुक्त।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.keyboardIntro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have a keyboard connected! Check the menus in the menu bar at the top of the screen to discover all available shortcuts. Let's practice a few:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您已连接键盘！请查看屏幕顶部菜单栏中的菜单，了解所有可用快捷键。我们来练习几个："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您已連接鍵盤！請查看螢幕頂部選單列中的選單，了解所有可用的快速鍵。讓我們練習幾個："
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У вас подключена клавиатура! Проверьте меню в строке меню вверху экрана, чтобы узнать все доступные сочетания клавиш. Давайте попрактикуемся с несколькими:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Tienes un teclado conectado! Revisa los menús en la barra de menús en la parte superior de la pantalla para descubrir todos los atajos disponibles. Practiquemos algunos:"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast eine Tastatur angeschlossen! Schau dir die Menüs in der Menüleiste oben auf dem Bildschirm an, um alle verfügbaren Kurzbefehle zu entdecken. Lass uns ein paar üben:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードが接続されています！画面上部のメニューバーにあるメニューを確認して、利用可能なすべてのショートカットを見つけましょう。いくつか練習してみましょう："
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez un clavier connecté ! Consultez les menus dans la barre de menus en haut de l'écran pour découvrir tous les raccourcis disponibles. Pratiquons-en quelques-uns :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você tem um teclado conectado! Verifique os menus na barra de menus na parte superior da tela para descobrir todos os atalhos disponíveis. Vamos praticar alguns:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드가 연결되어 있습니다! 화면 상단 메뉴 막대의 메뉴를 확인하여 사용 가능한 모든 단축키를 알아보세요. 몇 가지 연습해 봅시다:"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви підключили клавіатуру! Перегляньте меню в рядку меню у верхній частині екрана, щоб дізнатися про всі доступні комбінації клавіш. Давайте потренуємось:"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لديك لوحة مفاتيح متصلة! تحقق من القوائم في شريط القوائم أعلى الشاشة لاكتشاف جميع الاختصارات المتاحة. لنتدرب على بعضها:"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने कीबोर्ड जोड़ा हुआ है! सभी उपलब्ध शॉर्टकट खोजने के लिए स्क्रीन के शीर्ष पर मेनू बार में मेनू देखें। कुछ अभ्यास करते हैं:"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.quizZoom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find the shortcut for \"Zoom In\" in the menu bar, then press it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在菜单栏中找到「放大」的快捷键，然后按下它。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在選單列中找到「放大」的快速鍵，然後按下它。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Найдите сочетание клавиш для \"Увеличить\" в строке меню и нажмите его."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encuentra el atajo para \"Ampliar\" en la barra de menús y presiónalo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finde den Tastenkurzbefehl für \"Vergrößern\" in der Menüleiste und drücke ihn."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メニューバーで「拡大」のショートカットを見つけて押してください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trouvez le raccourci pour \"Zoom avant\" dans la barre de menus, puis appuyez dessus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encontre o atalho para \"Ampliar\" na barra de menus e pressione-o."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "메뉴 막대에서 \"확대\"의 단축키를 찾아 누르세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Знайдіть комбінацію клавіш для \"Збільшити\" в рядку меню та натисніть її."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابحث عن اختصار \"تكبير\" في شريط القوائم، ثم اضغط عليه."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेनू बार में \"ज़ूम इन\" का शॉर्टकट ढूंढें, फिर उसे दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.quizGrid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Well done! Shortcuts let you quickly switch between different layouts on iPad. Now find and press the shortcut for \"Grid Layout\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "很好！快捷键让您在 iPad 上快速切换不同布局。现在找到并按下「网格布局」的快捷键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "做得好！快速鍵讓您在 iPad 上快速切換不同版面配置。現在找到並按下「格狀版面配置」的快速鍵。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отлично! Сочетания клавиш позволяют быстро переключаться между разными макетами на iPad. Теперь найдите и нажмите сочетание клавиш для \"Сетчатый макет\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Bien hecho! Los atajos te permiten cambiar rápidamente entre diferentes diseños en el iPad. Ahora encuentra y presiona el atajo para \"Diseño de cuadrícula\"."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gut gemacht! Kurzbefehle ermöglichen es dir, auf dem iPad schnell zwischen verschiedenen Layouts zu wechseln. Finde und drücke nun den Kurzbefehl für \"Gitterlayout\"."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "よくできました！ショートカットを使うと iPad でさまざまなレイアウトをすばやく切り替えられます。今度は「グリッドレイアウト」のショートカットを見つけて押してください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bien joué ! Les raccourcis vous permettent de basculer rapidement entre différentes mises en page sur iPad. Trouvez maintenant et appuyez sur le raccourci pour \"Mise en page grille\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muito bem! Os atalhos permitem alternar rapidamente entre diferentes layouts no iPad. Agora encontre e pressione o atalho para \"Layout de grade\"."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잘했습니다! 단축키를 사용하면 iPad에서 다른 레이아웃으로 빠르게 전환할 수 있습니다. 이제 \"격자 레이아웃\"의 단축키를 찾아 누르세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чудово! Комбінації клавіш дозволяють швидко перемикатися між різними макетами на iPad. Тепер знайдіть і натисніть комбінацію клавіш для \"Сітчастий макет\"."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أحسنت! تتيح لك الاختصارات التبديل السريع بين تخطيطات مختلفة على iPad. الآن ابحث عن اختصار \"تخطيط شبكي\" واضغط عليه."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शाबाश! शॉर्टकट आपको iPad पर विभिन्न लेआउट के बीच तेज़ी से स्विच करने देते हैं। अब \"ग्रिड लेआउट\" का शॉर्टकट ढूंढें और दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.quizDict": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excellent! Bonus challenge: shortcuts are particularly useful for selecting a specific dictionary or group. Find and press the shortcut for \"Dictionary 1\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "极好！附加挑战：快捷键对于选择特定词典或词典组特别有用。找到并按下「词典 1」的快捷键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "太棒了！附加挑戰：快速鍵對於選擇特定詞典或詞典組特別實用。找到並按下「詞典 1」的快速鍵。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Превосходно! Дополнительное задание: сочетания клавиш особенно полезны для выбора конкретного словаря или группы. Найдите и нажмите сочетание клавиш для \"Словарь 1\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Excelente! Desafío adicional: los atajos son especialmente útiles para seleccionar un diccionario o grupo específico. Encuentra y presiona el atajo para \"Diccionario 1\"."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgezeichnet! Bonusaufgabe: Kurzbefehle sind besonders nützlich, um ein bestimmtes Wörterbuch oder eine Gruppe auszuwählen. Finde und drücke den Kurzbefehl für \"Wörterbuch 1\"."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "素晴らしい！ボーナスチャレンジ：特定の辞書やグループを選択する場合、ショートカットが特に役立ちます。「辞書 1」のショートカットを見つけて押してください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excellent ! Défi bonus : les raccourcis sont particulièrement utiles pour sélectionner un dictionnaire ou un groupe spécifique. Trouvez et appuyez sur le raccourci pour \"Dictionnaire 1\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excelente! Desafio bônus: os atalhos são particularmente úteis para selecionar um dicionário ou grupo específico. Encontre e pressione o atalho para \"Dicionário 1\"."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "훌륭합니다! 보너스 도전: 단축키는 특정 사전이나 그룹을 선택할 때 특히 유용합니다. \"사전 1\"의 단축키를 찾아 누르세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чудово! Додаткове завдання: комбінації клавіш особливо корисні для вибору певного словника або групи. Знайдіть і натисніть комбінацію клавіш для \"Словник 1\"."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ممتاز! تحدي إضافي: الاختصارات مفيدة بشكل خاص لاختيار قاموس أو مجموعة محددة. ابحث عن اختصار \"القاموس 1\" واضغط عليه."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उत्कृष्ट! बोनस चुनौती: विशिष्ट शब्दकोश या समूह चुनने के लिए शॉर्टकट विशेष रूप से उपयोगी होते हैं। \"शब्दकोश 1\" का शॉर्टकट ढूंढें और दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.noKeyboard": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When you connect a physical keyboard, check the menus in the menu bar at the top of the screen to discover all available keyboard shortcuts — from zooming and finding text to switching layouts and managing windows."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当您连接实体键盘时，请查看屏幕顶部菜单栏中的菜单，了解所有可用的键盘快捷键——从缩放和查找文本，到切换布局和管理窗口。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當您連接實體鍵盤時，請查看螢幕頂部選單列中的選單，了解所有可用的鍵盤快速鍵——從縮放和尋找文字，到切換版面配置和管理視窗。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Когда вы подключите физическую клавиатуру, проверьте меню в строке меню вверху экрана, чтобы узнать все доступные сочетания клавиш — от масштабирования и поиска текста до переключения макетов и управления окнами."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando conectes un teclado físico, revisa los menús en la barra de menús en la parte superior de la pantalla para descubrir todos los atajos de teclado disponibles — desde zoom y búsqueda de texto hasta cambio de diseño y gestión de ventanas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du eine physische Tastatur anschließt, schau dir die Menüs in der Menüleiste oben auf dem Bildschirm an, um alle verfügbaren Tastaturkurzbefehle zu entdecken — vom Zoomen und Textsuchen bis zum Wechseln von Layouts und Verwalten von Fenstern."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "物理キーボードを接続したら、画面上部のメニューバーにあるメニューを確認して、利用可能なすべてのキーボードショートカットを見つけましょう — ズームやテキスト検索から、レイアウトの切り替えやウィンドウ管理まで。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque vous connectez un clavier physique, consultez les menus dans la barre de menus en haut de l'écran pour découvrir tous les raccourcis clavier disponibles — du zoom et de la recherche de texte au changement de mise en page et à la gestion des fenêtres."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você conectar um teclado físico, verifique os menus na barra de menus na parte superior da tela para descobrir todos os atalhos de teclado disponíveis — de zoom e localização de texto a mudança de layout e gerenciamento de janelas."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 키보드를 연결하면 화면 상단 메뉴 막대의 메뉴를 확인하여 사용 가능한 모든 키보드 단축키를 알아보세요 — 확대/축소 및 텍스트 찾기부터 레이아웃 전환 및 창 관리까지."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Коли ви підключите фізичну клавіатуру, перегляньте меню в рядку меню у верхній частині екрана, щоб дізнатися про всі доступні комбінації клавіш — від масштабування та пошуку тексту до перемикання макетів і керування вікнами."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند توصيل لوحة مفاتيح مادية، تحقق من القوائم في شريط القوائم أعلى الشاشة لاكتشاف جميع اختصارات لوحة المفاتيح المتاحة — من التكبير والبحث في النصوص إلى تبديل التخطيطات وإدارة النوافذ."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आप भौतिक कीबोर्ड जोड़ते हैं, तो सभी उपलब्ध कीबोर्ड शॉर्टकट खोजने के लिए स्क्रीन के शीर्ष पर मेनू बार में मेनू देखें — ज़ूम करने और टेक्स्ट खोजने से लेकर लेआउट बदलने और विंडो प्रबंधित करने तक।"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
