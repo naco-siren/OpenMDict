@@ -39230,6 +39230,338 @@
           }
         }
       }
+    },
+    "tutorial.step.zoomAndLayout.step2.buttons": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try tapping a zoom button to change the text size."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试着点击缩放按钮来改变文字大小。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試著點擊縮放按鈕來改變文字大小。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте нажать кнопку масштабирования, чтобы изменить размер текста."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intenta tocar un botón de zoom para cambiar el tamaño del texto."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf eine Zoom-Schaltfläche, um die Textgröße zu ändern."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ズームボタンをタップして、文字サイズを変えてみましょう。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyez sur un bouton de zoom pour modifier la taille du texte."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente tocar em um botão de zoom para alterar o tamanho do texto."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확대/축소 버튼을 탭하여 텍스트 크기를 변경해 보세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спробуйте натиснути кнопку масштабування, щоб змінити розмір тексту."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جرِّب النقر على زر التكبير لتغيير حجم النص."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टेक्स्ट का आकार बदलने के लिए ज़ूम बटन पर टैप करके देखें।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.keyboardIntro.cmdKey": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have a keyboard connected! Hold down the ⌘ key to see all available shortcuts at a glance. Let's practice a few:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您已连接键盘！按住 ⌘ 键可一览所有可用快捷键。我们来练习几个："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您已連接鍵盤！按住 ⌘ 鍵可一覽所有可用快捷鍵。我們來練習幾個："
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Клавиатура подключена! Удерживайте клавишу ⌘, чтобы увидеть все доступные сочетания клавиш. Давайте потренируемся:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Tienes un teclado conectado! Mantén pulsada la tecla ⌘ para ver todos los atajos disponibles de un vistazo. Practiquemos algunos:"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast eine Tastatur verbunden! Halte die ⌘-Taste gedrückt, um alle verfügbaren Kurzbefehle auf einen Blick zu sehen. Lass uns ein paar üben:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードが接続されています！⌘ キーを長押しすると、利用可能なすべてのショートカットを一覧できます。いくつか練習してみましょう："
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un clavier est connecté ! Maintenez la touche ⌘ enfoncée pour voir tous les raccourcis disponibles en un coup d'œil. Pratiquons-en quelques-uns :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você tem um teclado conectado! Mantenha a tecla ⌘ pressionada para ver todos os atalhos disponíveis de uma vez. Vamos praticar alguns:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드가 연결되어 있습니다! ⌘ 키를 길게 눌러 사용 가능한 모든 단축키를 한눈에 확인하세요. 몇 가지 연습해 봅시다:"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Клавіатуру підключено! Утримуйте клавішу ⌘, щоб побачити всі доступні скорочення. Давайте потренуємося:"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لديك لوحة مفاتيح متصلة! اضغط مع الاستمرار على مفتاح ⌘ لرؤية جميع الاختصارات المتاحة دفعةً واحدة. لنتدرب على بعضها:"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका कीबोर्ड कनेक्ट है! सभी उपलब्ध शॉर्टकट एक नज़र में देखने के लिए ⌘ कुंजी दबाए रखें। आइए कुछ का अभ्यास करें:"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.quizZoom.cmdKey": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold ⌘ to open the cheat sheet, find the shortcut for \"Zoom In\", then press it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 ⌘ 打开快捷键速查表，找到放大的快捷键，然后按下它。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 ⌘ 打開快捷鍵速查表，找到放大的快捷鍵，然後按下它。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удержите ⌘, чтобы открыть шпаргалку, найдите ярлык для увеличения масштаба и нажмите его."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén pulsada ⌘ para abrir la hoja de referencia, encuentra el atajo para Acercar y presiónalo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halte ⌘ gedrückt, um das Spickzettel zu öffnen, finde den Kurzbefehl für Vergrößern und drücke ihn."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘ を長押ししてチートシートを開き、拡大のショートカットを見つけて押してください。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenez ⌘ pour ouvrir l'aide-mémoire, trouvez le raccourci pour Zoom avant, puis appuyez dessus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenha ⌘ pressionado para abrir a folha de referência, encontre o atalho para Ampliar e pressione-o."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘ 를 길게 눌러 치트 시트를 열고, 확대 단축키를 찾아 누르세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Утримуйте ⌘, щоб відкрити шпаргалку, знайдіть скорочення для збільшення та натисніть його."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط مع الاستمرار على ⌘ لفتح ورقة الغش، ابحث عن اختصار التكبير ثم اضغطه."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चीट शीट खोलने के लिए ⌘ दबाए रखें, ज़ूम इन का शॉर्टकट खोजें, फिर उसे दबाएं।"
+          }
+        }
+      }
+    },
+    "tutorial.step.iPadProductivity.noKeyboard.cmdKey": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When you connect a physical keyboard, hold down the ⌘ key to reveal a cheat sheet of all available keyboard shortcuts — from zooming and finding text to switching layouts and managing windows."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接实体键盘后，按住 ⌘ 键即可显示所有可用键盘快捷键的速查表——从缩放和查找文字，到切换布局和管理窗口，一应俱全。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連接實體鍵盤後，按住 ⌘ 鍵即可顯示所有可用鍵盤快捷鍵的速查表——從縮放和尋找文字，到切換版面和管理視窗，一應俱全。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключив физическую клавиатуру, удержите клавишу ⌘, чтобы вызвать шпаргалку со всеми доступными сочетаниями клавиш — от масштабирования и поиска текста до переключения раскладок и управления окнами."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando conectes un teclado físico, mantén pulsada la tecla ⌘ para mostrar una hoja de referencia con todos los atajos de teclado disponibles: desde zoom y búsqueda de texto hasta cambio de diseño y gestión de ventanas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobald du eine physische Tastatur anschließt, halte die ⌘-Taste gedrückt, um eine Übersicht aller verfügbaren Kurzbefehle anzuzeigen — vom Zoomen und Suchen über das Wechseln des Layouts bis hin zur Fensterverwaltung."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "物理キーボードを接続したら、⌘ キーを長押しすることで、利用可能なすべてのキーボードショートカットの一覧を表示できます。ズームやテキスト検索から、レイアウト切り替えやウィンドウ管理まで確認できます。"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque vous connectez un clavier physique, maintenez la touche ⌘ enfoncée pour afficher un aide-mémoire de tous les raccourcis clavier disponibles — du zoom et de la recherche de texte au changement de disposition et à la gestion des fenêtres."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao conectar um teclado físico, mantenha a tecla ⌘ pressionada para exibir uma folha de referência com todos os atalhos de teclado disponíveis — desde zoom e busca de texto até troca de layout e gerenciamento de janelas."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "물리적 키보드를 연결하면 ⌘ 키를 길게 눌러 모든 키보드 단축키 치트 시트를 볼 수 있습니다. 확대/축소 및 텍스트 찾기부터 레이아웃 전환 및 창 관리까지 확인할 수 있습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підключивши фізичну клавіатуру, утримуйте клавішу ⌘, щоб відобразити шпаргалку з усіма доступними скороченнями — від масштабування та пошуку тексту до перемикання розкладок і керування вікнами."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند توصيل لوحة مفاتيح فعلية، اضغط مع الاستمرار على مفتاح ⌘ لعرض ورقة غش بجميع اختصارات لوحة المفاتيح المتاحة — من التكبير والبحث في النص إلى تبديل التخطيطات وإدارة النوافذ."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आप कोई भौतिक कीबोर्ड कनेक्ट करें, तो सभी उपलब्ध कीबोर्ड शॉर्टकट की चीट शीट देखने के लिए ⌘ कुंजी दबाए रखें — ज़ूमिंग और टेक्स्ट खोजने से लेकर लेआउट बदलने और विंडो प्रबंधन तक।"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

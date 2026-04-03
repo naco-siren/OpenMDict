@@ -1471,7 +1471,19 @@ final class TutorialViewController: UIViewController {
     // MARK: - Step Messages
 
     private func tutorialStepMessage(for key: String) -> String {
-        let fullKey = "tutorial.step.\(key)"
+        // For strings whose content differs by OS version, use a distinct
+        // localization key per variant so each OS gets the correct translation.
+        var localKey = key
+        if key == "zoomAndLayout.step2", #unavailable(iOS 16) {
+            localKey = "zoomAndLayout.step2.buttons"
+        } else if key == "iPadProductivity.keyboardIntro", #unavailable(iOS 26) {
+            localKey = "iPadProductivity.keyboardIntro.cmdKey"
+        } else if key == "iPadProductivity.quizZoom", #unavailable(iOS 26) {
+            localKey = "iPadProductivity.quizZoom.cmdKey"
+        } else if key == "iPadProductivity.noKeyboard", #unavailable(iOS 26) {
+            localKey = "iPadProductivity.noKeyboard.cmdKey"
+        }
+        let fullKey = "tutorial.step.\(localKey)"
         return NSLocalizedString(fullKey, value: defaultMessage(for: key),
                                  comment: "Tutorial coaching step message")
     }
