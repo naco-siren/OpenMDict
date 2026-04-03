@@ -28,7 +28,13 @@ enum TutorialDictionaryProvider {
     // MARK: - Shared GCIDE-style CSS (inlined per article, same as preset build output)
 
     // swiftlint:disable line_length
+    /// Standard CSS with system dark-mode adaptation — used by most tutorial articles.
     private static let gcideCSS = "<style>.e{font-family:-apple-system,system-ui,sans-serif;max-width:600px;line-height:1.5;color:#1d1d1f;padding:0 12px}.hw{font-size:1.7em;font-weight:600;display:block}.sn{margin:8px 0;padding:8px 10px;background:#f8f8fa;border-radius:6px;border:1px solid #e5e5ea}.sn+.sn{margin-top:6px}.sn-hd{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}.pos{display:inline-block;font-size:0.85em;color:#fff;background:#aeaeb2;border-radius:3px;padding:0 5px}.pr{font-size:1.1em;color:#0071e3;font-style:italic;display:block;margin-top:2px}.et{font-size:0.85em;color:#6e6e73;margin:4px 0;line-height:1.4;display:block}.df{font-size:1.1em}.ex{font-size:0.85em;color:#6e6e73;margin:4px 0 2px 10px;padding:4px 0 4px 10px;border-left:3px solid #d1d1d6;line-height:1.4}.ex-q{display:block;font-style:italic}.syn{font-size:0.85em;color:#636366;margin:4px 0 0}.sep{margin:10px 0;border:none;border-top:1px solid #e5e5ea}.xr a{color:#0071e3;text-decoration:underline}@media(prefers-color-scheme:dark){.e{color:#f5f5f7}.sn{background:#2c2c2e;border-color:#38383a}.pos{background:#636366}.sep{border-color:#38383a}.pr{color:#64d2ff}.et{color:#98989d}.ex{color:#98989d;border-color:#48484a}.syn{color:#98989d}.xr a{color:#64d2ff}}</style>"
+
+    /// Hardcoded light-mode CSS with NO dark-mode @media adaptation.
+    /// Used for the Enhance Dark Mode tutorial so the user can actually see the problem
+    /// the feature solves: a third-party dictionary that bakes in light-mode colors.
+    private static let gcideCSSLightOnly = "<style>.e{font-family:-apple-system,system-ui,sans-serif;max-width:600px;line-height:1.5;color:#1d1d1f;padding:0 12px}.hw{font-size:1.7em;font-weight:600;display:block}.sn{margin:8px 0;padding:8px 10px;background:#f8f8fa;border-radius:6px;border:1px solid #e5e5ea}.sn+.sn{margin-top:6px}.sn-hd{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}.pos{display:inline-block;font-size:0.85em;color:#fff;background:#aeaeb2;border-radius:3px;padding:0 5px}.pr{font-size:1.1em;color:#0071e3;font-style:italic;display:block;margin-top:2px}.et{font-size:0.85em;color:#6e6e73;margin:4px 0;line-height:1.4;display:block}.df{font-size:1.1em}.ex{font-size:0.85em;color:#6e6e73;margin:4px 0 2px 10px;padding:4px 0 4px 10px;border-left:3px solid #d1d1d6;line-height:1.4}.ex-q{display:block;font-style:italic}.syn{font-size:0.85em;color:#636366;margin:4px 0 0}.sep{margin:10px 0;border:none;border-top:1px solid #e5e5ea}.xr a{color:#0071e3;text-decoration:underline}</style>"
     // swiftlint:enable line_length
 
     // MARK: - Article bodies (GCIDE-format HTML fragments)
@@ -98,7 +104,7 @@ enum TutorialDictionaryProvider {
             <span class="et">Definitions: Open English WordNet 2025 (CC BY 4.0)</span></div>
             """,
 
-        "moon": gcideCSS + """
+        "moon": gcideCSSLightOnly + """
             <div class="e"><span class="hw">Moon</span>\
             <span class="pr">/muːn/</span>\
             <div class="sn"><div class="sn-hd"><span class="pos">n.</span></div>\

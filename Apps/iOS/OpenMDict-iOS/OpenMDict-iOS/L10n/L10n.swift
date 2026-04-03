@@ -1584,7 +1584,7 @@ nonisolated enum L10n {
             NSLocalizedString("tutorial.zoomAndLayout.desc", value: "Adjust text size and article layout", comment: "Tutorial level description: zoom and layout")
         }
         static var enhanceDarkModeDesc: String {
-            NSLocalizedString("tutorial.enhanceDarkMode.desc", value: "Customize readability in dark mode", comment: "Tutorial level description: enhance dark mode")
+            NSLocalizedString("tutorial.enhanceDarkMode.desc", value: "Fix dark mode's readability on imported dictionaries with custom styles", comment: "Tutorial level description: enhance dark mode")
         }
         static var bookmarksDesc: String {
             NSLocalizedString("tutorial.bookmarks.desc", value: "Save and manage favorite entries", comment: "Tutorial level description: bookmarks")
