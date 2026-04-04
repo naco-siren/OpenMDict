@@ -453,13 +453,18 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 self?.handleDictionaryListChanged()
             }
 
-        // 2. Subscribe to group changes (groups added/removed/reordered)
+        // 2. Subscribe to group changes (groups added/removed/reordered/renamed via iCloud)
+        //    reloadGroupsFromCoreData() replaces the groups array with new MDicts
+        //    instances.  applySubscriptionSnapshot() handles structural changes
+        //    (add/remove), but when only a name changed the snapshot signature is
+        //    identical → refreshGroupAndDictCells() re-binds the live references.
         groupsChangeCancellable = dictionaryProvider.groupsPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.subscribeToAllGroupItems()
                 self?.applySubscriptionSnapshot()
+                self?.refreshGroupAndDictCells()
             }
 
         // 3. Subscribe to each dictionary's load state
