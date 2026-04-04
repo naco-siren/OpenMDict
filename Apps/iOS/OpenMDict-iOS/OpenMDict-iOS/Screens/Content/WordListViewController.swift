@@ -469,6 +469,15 @@ class WordListViewController: UIViewController {
                 self?.loadHistory()
             }
             .store(in: &cancellables)
+
+        // React to group/dict display name changes (local rename or iCloud sync)
+        DictionaryService.shared.$displayNameRevision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateTitleView()
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - History Data
