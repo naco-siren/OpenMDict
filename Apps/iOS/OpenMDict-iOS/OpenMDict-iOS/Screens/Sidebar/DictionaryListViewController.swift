@@ -468,12 +468,12 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         // 4. Subscribe to each group's items (dictionaries added/removed within a group)
         subscribeToAllGroupItems()
 
-        // 5. Subscribe to display name changes (remote renames synced from other devices)
+        // 5. Subscribe to display name changes (group renames, remote dict renames)
         displayNameCancellable = dictionaryProvider.displayNameRevisionPublisher
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.invalidateVisibleCellConfigurations()
+                self?.refreshGroupAndDictCells()
             }
 
         // 6. Subscribe to metadata revision (cloudSyncStatus changes after upload/download)
@@ -825,6 +825,41 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     private func invalidateVisibleCellConfigurations() {
         for cell in collectionView.visibleCells {
             cell.setNeedsUpdateConfiguration()
+        }
+    }
+
+    /// Refresh group and dictionary cells by re-binding their data references.
+    ///
+    /// `setNeedsUpdateConfiguration()` alone is not reliable for outline-
+    /// disclosure parent cells (UIKit may skip `updateConfiguration` when
+    /// the cell configuration state hasn't changed).  Work around this by
+    /// re-assigning the live `MDicts`/`MDict` reference on each visible cell,
+    /// then calling `updateConfiguration(using:)` directly.
+    private func refreshGroupAndDictCells() {
+        for cell in collectionView.visibleCells {
+            if let groupCell = cell as? UserGroupCell,
+               let group = groupCell.group,
+               let fresh = dictionaryProvider.group(id: group.id) {
+                groupCell.group = fresh
+                groupCell.updateConfiguration(using: groupCell.configurationState)
+            } else if let groupCell = cell as? DefaultGroupCell,
+                      let group = groupCell.group,
+                      let fresh = dictionaryProvider.group(id: group.id) {
+                groupCell.group = fresh
+                groupCell.updateConfiguration(using: groupCell.configurationState)
+            } else if let dictCell = cell as? DefaultGroupDictCell,
+                      let dict = dictCell.dict,
+                      let fresh = dictionaryProvider.dict(id: dict.id) {
+                dictCell.dict = fresh
+                dictCell.updateConfiguration(using: dictCell.configurationState)
+            } else if let dictCell = cell as? UserGroupDictCell,
+                      let dict = dictCell.dict,
+                      let fresh = dictionaryProvider.dict(id: dict.id) {
+                dictCell.dict = fresh
+                dictCell.updateConfiguration(using: dictCell.configurationState)
+            } else {
+                cell.setNeedsUpdateConfiguration()
+            }
         }
     }
     

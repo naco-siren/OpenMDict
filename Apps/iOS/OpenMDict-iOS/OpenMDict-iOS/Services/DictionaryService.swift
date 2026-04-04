@@ -831,7 +831,8 @@ final class DictionaryService: ObservableObject {
         group.modifiedAt = Date()
         
         persistGroups()
-        print("✏️ Renamed group \(id.prefix(8))... to: \(trimmedName)")
+        displayNameRevision += 1
+        debugLog("✏️ Renamed group \(id.prefix(8))... to: \(trimmedName)")
     }
     
     /// Error thrown when a group name already exists
