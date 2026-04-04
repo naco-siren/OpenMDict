@@ -326,7 +326,12 @@ final class CoreDataStack {
             queue: .main
         ) { [weak self] _ in
             debugLog("☁️ Remote change detected")
-            self?.scheduleRemoteChangeProcessing()
+            // NotificationCenter closure is @Sendable nonisolated even
+            // though queue: .main guarantees the main thread.  Hop to
+            // MainActor explicitly so Swift 6 can verify isolation.
+            Task { @MainActor in
+                self?.scheduleRemoteChangeProcessing()
+            }
         }
     }
 
