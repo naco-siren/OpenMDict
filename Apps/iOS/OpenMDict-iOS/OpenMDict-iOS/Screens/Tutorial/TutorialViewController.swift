@@ -1482,6 +1482,8 @@ final class TutorialViewController: UIViewController {
             localKey = "iPadProductivity.quizZoom.cmdKey"
         } else if key == "iPadProductivity.noKeyboard", #unavailable(iOS 26) {
             localKey = "iPadProductivity.noKeyboard.cmdKey"
+        } else if key == "popupLookup.step2", #unavailable(iOS 26) {
+            localKey = "popupLookup.step2.legacy"
         }
         let fullKey = "tutorial.step.\(localKey)"
         return NSLocalizedString(fullKey, value: defaultMessage(for: key),
@@ -1546,6 +1548,9 @@ final class TutorialViewController: UIViewController {
         case "popupLookup.step1":
             return "Pop-up Lookup lets you look up words from any app — Safari, Mail, Notes, and more — without leaving the page."
         case "popupLookup.step2":
+            if #available(iOS 26, *) {
+                return "Try it now! Long-press a bold word below to select it, then tap \"Share\", tap \"View More\", and choose:"
+            }
             return "Try it now! Long-press a bold word below to select it, then tap \"Share\" and choose:"
         case "popupLookup.step3":
             return "The lookup result appears in a compact overlay — you can browse articles, bookmark entries, adjust zooming and appearance, and even Jump Search, all without switching apps."

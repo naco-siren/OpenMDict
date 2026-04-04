@@ -37245,13 +37245,96 @@
         "en": {
           "stringUnit": {
             "state": "translated",
+            "value": "Try it now! Long-press a bold word below to select it, then tap \"Share\", tap \"View More\", and choose:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在试试吧！长按下方粗体单词以选中它，然后点击「共享」，再点击「查看更多」，并选择："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在試試看！長按下方粗體單字以選取它，然後點選「分享」，再點選「查看更多」，並選擇："
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте прямо сейчас! Удерживайте выделенное жирным слово ниже, затем нажмите «Поделиться», потом «Показать ещё» и выберите:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Pruébelo ahora! Mantenga presionada una palabra en negrita a continuación para seleccionarla, luego toque \"Compartir\", toque \"Ver más\" y elija:"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probieren Sie es jetzt aus! Halten Sie ein fett gedrucktes Wort unten gedrückt, um es auszuwählen, tippen Sie dann auf \"Teilen\", tippen Sie auf \"Mehr anzeigen\" und wählen Sie:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ試してみましょう！下の太字の単語を長押しして選択し、「共有」をタップして「詳細を表示」をタップし、選んでください："
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essayez maintenant ! Appuyez longuement sur un mot en gras ci-dessous pour le sélectionner, puis appuyez sur \"Partager\", appuyez sur \"Afficher plus\" et choisissez :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimente agora! Pressione e segure uma palavra em negrito abaixo para selecioná-la, toque em \"Compartilhar\", toque em \"Ver mais\" e escolha:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금 해보세요! 아래의 굵은 단어를 길게 눌러 선택한 다음 \"공유\"를 탭하고 \"더 보기\"를 탭한 후 선택하세요:"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спробуйте зараз! Утримуйте виділене жирним слово нижче, щоб вибрати його, потім натисніть «Поділитися», натисніть «Показати більше» і виберіть:"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جربها الآن! اضغط مطولاً على كلمة غامقة أدناه لتحديدها، ثم اضغط على \"مشاركة\"، اضغط على \"عرض المزيد\" واختر:"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी आज़माएं! नीचे किसी बोल्ड शब्द को लंबे समय तक दबाएं, फिर \"शेयर\" पर टैप करें, \"अधिक देखें\" पर टैप करें और चुनें:"
+          }
+        }
+      }
+    },
+    "tutorial.step.popupLookup.step2.legacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Try it now! Long-press a bold word below to select it, then tap \"Share\" and choose:"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "现在试试吧！长按下方粗体单词以选中它，然后点击「分享」并选择："
+            "value": "现在试试吧！长按下方粗体单词以选中它，然后点击「共享」并选择："
           }
         },
         "zh-Hant": {
