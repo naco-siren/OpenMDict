@@ -225,15 +225,23 @@ final class CoreDataStack {
             )
         }
 
-        // Persistent history tracking + remote change notifications.
-        // Both are required by NSPersistentCloudKitContainer for sync.
-        // In offline mode neither is needed — no history to export
-        // (reloadWithCloudKit is only called when the store is empty),
-        // and leaving history tracking on would bloat the SQLite file
-        // with change logs we never clean up.
+        // Persistent history tracking must be enabled in ALL processes that
+        // write to this store — including the Action Extension, which opens
+        // the same SQLite with enableCloudKit: false.
+        //
+        // If the main app has CloudKit enabled (history tracking ON) and any
+        // other process opens the store WITHOUT history tracking, CoreData
+        // cannot create the required transaction entries → ctx.save() throws
+        // → writes silently fail (e.g. bookmark toggle shows no response).
+        //
+        // Apple's requirement: "All processes sharing a CloudKit-backed store
+        // must enable persistent history tracking."
+        //
+        // Remote change notifications are separate: the Action Extension does
+        // not need to receive them, so keep that flag CloudKit-only.
+        description.setOption(true as NSNumber,
+                              forKey: NSPersistentHistoryTrackingKey)
         if enableCloudKit {
-            description.setOption(true as NSNumber,
-                                  forKey: NSPersistentHistoryTrackingKey)
             description.setOption(true as NSNumber,
                                   forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
