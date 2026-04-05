@@ -1216,7 +1216,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1253,7 +1253,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1466,7 +1466,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
@@ -1502,7 +1502,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1532,7 +1532,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1562,7 +1562,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1593,7 +1593,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1625,7 +1625,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1657,7 +1657,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4.17;
+				CURRENT_PROJECT_VERSION = 4.18;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
