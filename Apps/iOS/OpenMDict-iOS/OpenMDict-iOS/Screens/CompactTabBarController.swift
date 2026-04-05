@@ -144,6 +144,11 @@ class CompactTabBarController: UITabBarController {
     /// Loading modal for long-running operations (import)
     private weak var loadingVC: LoadingViewController?
 
+    /// Set when GroupInfoVC is opened via sidebar info button (not Management tab).
+    /// When true, popping GroupInfoVC returns to the Lookup tab (where the
+    /// sidebar lives) instead of staying in the Management tab.
+    private var groupInfoOpenedFromSidebar = false
+
     // MARK: - Management VCs (lazily created, pushed onto managementNav)
 
     private(set) lazy var dictInfoVC = DictInfoViewController()
@@ -167,6 +172,7 @@ class CompactTabBarController: UITabBarController {
             lookupWordListVC.searchSession = session
         }
 
+        managementNav.delegate = self
         viewControllers = [lookupNav, bookmarksNav, historyNav, managementNav]
 
         setupSidebarToggleButton()
@@ -477,8 +483,10 @@ class CompactTabBarController: UITabBarController {
 
         sidebarVC.onGroupInfoSelected = { [weak self] groupId in
             guard let self else { return }
-            hideSidebar()
-            selectedIndex = 3
+            // Prepare the management nav stack while the sidebar animates out.
+            // The tab switch + push must happen in the completion block —
+            // doing it during the sidebar animation causes UIKit to swallow
+            // the selectedIndex change.
             managementNav.popToRootViewController(animated: false)
             let group = DictionaryService.shared.group(id: groupId)
             if group?.isDefault == true {
@@ -490,7 +498,16 @@ class CompactTabBarController: UITabBarController {
                 groupInfoVC.showManagingMode(for: groupId)
                 groupDictEditorVC.showEditor(for: groupId)
             }
-            managementNav.pushViewController(groupInfoVC, animated: true)
+            // Hide "管理" back title — the user came from the Lookup tab's sidebar,
+            // not from the Management tab.  Show only the bare chevron.
+            managementVC.navigationItem.backButtonTitle = " "
+            managementNav.pushViewController(groupInfoVC, animated: false)
+
+            hideSidebar { [weak self] in
+                guard let self else { return }
+                groupInfoOpenedFromSidebar = true
+                selectedIndex = 3
+            }
         }
 
         sidebarVC.onManagePresetsSelected = { [weak self] in
@@ -734,6 +751,9 @@ class CompactTabBarController: UITabBarController {
         // GroupInfoVC callbacks
         groupInfoVC.onDismiss = { [weak self] in
             guard let self else { return }
+            // Don't clear sidebarGroupInfoOriginId here — let the
+            // UINavigationControllerDelegate handle the tab switch
+            // after the pop animation completes.
             DictionaryService.shared.groupSession.reset()
             managementNav.popToRootViewController(animated: true)
         }
@@ -745,6 +765,7 @@ class CompactTabBarController: UITabBarController {
 
         groupInfoVC.onCreateComplete = { [weak self] groupId in
             guard let self else { return }
+            groupInfoOpenedFromSidebar = false  // creation has its own nav logic
             managementNav.popToRootViewController(animated: false)
 
             // Select the newly created group and switch to lookup tab
@@ -763,6 +784,7 @@ class CompactTabBarController: UITabBarController {
 
         groupInfoVC.onDeleteComplete = { [weak self] groupId in
             guard let self else { return }
+            groupInfoOpenedFromSidebar = false  // deletion has its own nav logic
             managementNav.popToRootViewController(animated: true)
         }
     }
@@ -903,6 +925,34 @@ class CompactTabBarController: UITabBarController {
         let articles: [ArticleDisplayItem]
         let currentArticleIndex: Int
         let selectedTab: Int
+    }
+}
+
+// MARK: - UINavigationControllerDelegate (managementNav)
+
+extension CompactTabBarController: UINavigationControllerDelegate {
+
+    func navigationController(
+        _ navigationController: UINavigationController,
+        willShow viewController: UIViewController,
+        animated: Bool
+    ) {
+        guard navigationController === managementNav,
+              groupInfoOpenedFromSidebar else { return }
+
+        // GroupInfoVC is still showing → not popped yet
+        if viewController is GroupInfoViewController { return }
+        if viewController is GroupDictionaryEditorViewController { return }
+
+        // GroupInfoVC is about to be popped (back button, close button, or
+        // swipe gesture) and was opened from the sidebar.  Switch to the
+        // Lookup tab immediately in willShow — before the management root
+        // VC becomes visible — to avoid the brief flash of the management
+        // tab.
+        groupInfoOpenedFromSidebar = false
+        managementVC.navigationItem.backButtonTitle = nil  // restore default
+        DictionaryService.shared.groupSession.reset()
+        selectedIndex = 0
     }
 }
 
