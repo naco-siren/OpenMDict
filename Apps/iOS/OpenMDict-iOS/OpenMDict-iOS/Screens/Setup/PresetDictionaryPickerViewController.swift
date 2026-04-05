@@ -372,7 +372,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let selectedCount = langGroup.presets.filter { selectedIds.contains($0.id) }.count
         let totalCount = langGroup.presets.count
         let countLabel = UILabel()
-        countLabel.text = "\(selectedCount) / \(totalCount) selected"
+        countLabel.text = L10n.Picker.selectedCount(selectedCount, totalCount)
         countLabel.font = .preferredFont(forTextStyle: .footnote)
         countLabel.textColor = .secondaryLabel
         countLabel.sizeToFit()

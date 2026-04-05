@@ -152,6 +152,11 @@ nonisolated enum L10n {
             NSLocalizedString("picker.region.bible", value: "Bible", comment: "Picker section header: Bible translations region")
         }
 
+        // Language group header accessory
+        static func selectedCount(_ selected: Int, _ total: Int) -> String {
+            String(format: NSLocalizedString("picker.selectedCount", value: "%d / %d selected", comment: "Language group header: number of selected dictionaries out of total. %d = selected count, %d = total count"), selected, total)
+        }
+
         // Empty state
         static var allPresetsInstalled: String {
             NSLocalizedString("picker.allPresetsInstalled", value: "All available preset dictionaries have been installed on your device.", comment: "Empty state when all preset dictionaries are already imported")
