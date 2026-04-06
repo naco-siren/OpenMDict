@@ -48,71 +48,84 @@ enum ArticleHTMLRenderer {
                 a { color: \(cssColor(.link, traitCollection)); text-decoration: none; }
                 img { max-width: 100%; height: auto; }
                 
-                /* Find overlay - dims the page */
-                .find-overlay {
-                    position: fixed;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(0, 0, 0, 0.3);
-                    pointer-events: none;
-                    z-index: 9998;
-                }
-                
-                /* Find highlight - appears above overlay */
-                mark.find-hl {
-                    position: relative;
-                    z-index: 9999;
-                    background-color: #ffeb3b;
-                    border-radius: 3px;
-                    padding: 1px 2px;
-                    margin: -1px -2px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                }
+                /* Invisible positioning marks inside #_omdict_content */
+                mark.find-hl { background: transparent; color: inherit; }
             </style>
             <script>
-            var findOverlay = null;
-            
             function highlightKeyword(keyword) {
-                // Remove old highlights
-                document.querySelectorAll('mark.find-hl').forEach(m => {
-                    const text = document.createTextNode(m.textContent);
-                    m.parentNode.replaceChild(text, m);
+                var content = document.getElementById('_omdict_content');
+                if (!content) content = document.body;
+
+                // 1. Remove old invisible marks from content
+                content.querySelectorAll('mark.find-hl').forEach(function(m) {
+                    m.replaceWith(document.createTextNode(m.textContent));
                 });
-                document.body.normalize();
-                
-                // Remove overlay
-                if (findOverlay) { findOverlay.remove(); findOverlay = null; }
-                
-                if (!keyword || keyword.length < 1) return 0;
-                
-                // Add overlay
-                findOverlay = document.createElement('div');
-                findOverlay.className = 'find-overlay';
-                document.body.appendChild(findOverlay);
-                
-                // Escape regex special chars
-                const escaped = keyword.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
-                const regex = new RegExp('(' + escaped + ')', 'gi');
-                
-                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-                    acceptNode: n => n.parentNode.className === 'find-overlay' ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
-                });
-                const nodes = [];
+                content.normalize();
+
+                // 2. Remove old find layer
+                var oldFind = document.getElementById('_omdict_find');
+                if (oldFind) oldFind.remove();
+
+                if (!keyword || keyword.length < 1) return '[]';
+
+                // 3. Find matches in content, wrap in invisible marks
+                var escaped = keyword.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+                var regex = new RegExp('(' + escaped + ')', 'gi');
+                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null);
+                var nodes = [];
                 while (walker.nextNode()) nodes.push(walker.currentNode);
-                
-                let count = 0;
-                nodes.forEach(node => {
+
+                nodes.forEach(function(node) {
+                    regex.lastIndex = 0;
                     if (regex.test(node.nodeValue)) {
-                        const span = document.createElement('span');
+                        regex.lastIndex = 0;
+                        var span = document.createElement('span');
                         span.innerHTML = node.nodeValue.replace(regex, '<mark class="find-hl">$1</mark>');
                         node.parentNode.replaceChild(span, node);
-                        count += (node.nodeValue.match(regex) || []).length;
                     }
                 });
-                return count;
+
+                var marks = content.querySelectorAll('mark.find-hl');
+                if (marks.length === 0) return '[]';
+
+                // 4. Create find layer (sibling of content — NOT filtered)
+                var findLayer = document.createElement('div');
+                findLayer.id = '_omdict_find';
+                findLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:0;overflow:visible;pointer-events:none;z-index:9999';
+                document.body.appendChild(findLayer);
+
+                // 5. Dim overlay
+                var dim = document.createElement('div');
+                dim.textContent = '\\u200B';  // zero-width space defeats dict CSS "div:empty { display:none }"
+                dim.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);font-size:0';
+                findLayer.appendChild(dim);
+
+                // 6. Positioned highlight spans with copied font
+                var rects = [];
+                marks.forEach(function(m) {
+                    var r = m.getBoundingClientRect();
+                    var cs = window.getComputedStyle(m);
+                    var x = r.left + window.scrollX;
+                    var y = r.top + window.scrollY;
+
+                    var hl = document.createElement('span');
+                    hl.textContent = m.textContent;
+                    hl.style.cssText = 'position:absolute;background:#ffeb3b;color:#000;'
+                        + 'white-space:pre;border-radius:3px;padding:0 2px;margin:-2px 0;'
+                        + 'left:' + x + 'px;top:' + y + 'px;'
+                        + 'font:' + cs.font + ';'
+                        + 'line-height:' + cs.lineHeight + ';'
+                        + 'letter-spacing:' + cs.letterSpacing + ';';
+                    findLayer.appendChild(hl);
+
+                    rects.push({x:x, y:y, w:r.width, h:r.height});
+                });
+
+                return JSON.stringify(rects);
             }
             </script>
         </head>
-        <body>\(rewrittenHTML)</body>
+        <body><div id="_omdict_content">\(rewrittenHTML)</div></body>
         </html>
         """
     }

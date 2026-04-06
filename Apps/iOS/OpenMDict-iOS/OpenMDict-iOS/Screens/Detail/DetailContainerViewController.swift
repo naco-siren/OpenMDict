@@ -1161,7 +1161,10 @@ extension DetailContainerViewController: UISearchControllerDelegate {
     }
 
     func willDismissSearchController(_ searchController: UISearchController) {
-        //Swift.debugPrint("UISearchControllerDelegate invoked method: \(#function).")
+        // Clear find-in-page highlights when the search bar is dismissed
+        if #available(iOS 16, *) {
+            articlesVC.highlightKeywordInAllCells(nil)
+        }
     }
 
     func didDismissSearchController(_ searchController: UISearchController) {

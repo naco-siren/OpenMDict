@@ -183,7 +183,7 @@ nonisolated enum EnhanceDarkModeStrength: Int16 {
 
     /// Precomputed `tableValues` for the **reverse** (undo) SVG filter,
     /// applied to `img`/`video`/`svg` to restore their original colors
-    /// after the parent's forward gamma-invert.
+    /// after the content wrapper's forward gamma-invert.
     ///
     /// This is the exact inverse of `svgTableValues`:
     /// `output(y) = pow(1 - pow(clamp((y - floor)/(1 - floor)), γ), 1/γ)`

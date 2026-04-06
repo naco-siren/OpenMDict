@@ -90,6 +90,17 @@ class ArticlePageView: UIView {
     /// Set by highlightKeyword(); applied in webView(_:didFinish:).
     private var pendingHighlightKeyword: String?
 
+    // MARK: - Find Highlight (pure DOM, outside CSS filter)
+    //
+    // The dark mode CSS filter is scoped to #_omdict_content.
+    // Find elements (#_omdict_find) are siblings — NOT filtered.
+    // JS handles everything: dim overlay + positioned yellow spans
+    // with copied font metrics.  Swift just calls JS and validates
+    // the generation counter to discard stale async callbacks.
+
+    /// Generation counter — stale JS callbacks are discarded.
+    private var findGeneration: UInt = 0
+
     // MARK: - Views
 
     private let containerView = UIView()
@@ -347,6 +358,7 @@ class ArticlePageView: UIView {
         isGridLayout = false
         currentDictId = ""
         pendingHighlightKeyword = nil
+        clearFindHighlights()
         updateBookmarkAppearance()
         updateEnhanceDarkModeButtonAppearance()
         lookupCountLabel?.isHidden = true
@@ -432,21 +444,23 @@ class ArticlePageView: UIView {
                 + "<feFuncG type=\"table\" tableValues=\"\(rev)\"/>"
                 + "<feFuncB type=\"table\" tableValues=\"\(rev)\"/>"
                 + "</feComponentTransfer></filter>"
-            css += "html[data-enhance=\"\(tag)\"]{filter:url(#_gi_\(tag)) hue-rotate(180deg);background:#fff !important}"
-                + "html[data-enhance=\"\(tag)\"] body{color:#000 !important}"
-                + "html[data-enhance=\"\(tag)\"] img,"
-                + "html[data-enhance=\"\(tag)\"] video,"
-                + "html[data-enhance=\"\(tag)\"] svg:not(#_omdict_svg),"
-                + "html[data-enhance=\"\(tag)\"] picture{filter:url(#_gi_r_\(tag)) hue-rotate(180deg)}"
-                + "html[data-enhance=\"\(tag)\"] .dir{display:inline-block;filter:url(#_gi_r_\(tag)) hue-rotate(180deg)}"
+            let revert = "filter:url(#_gi_r_\(tag)) hue-rotate(180deg)"
+            let sel = "html[data-enhance=\"\(tag)\"] #_omdict_content"
+            css += "\(sel){filter:url(#_gi_\(tag)) hue-rotate(180deg);background:#fff !important;color:#000 !important}"
+                + "\(sel) img,\(sel) video,\(sel) svg:not(#_omdict_svg),\(sel) picture{\(revert)}"
+                + "\(sel) .dir{display:inline-block;\(revert)}"
         }
         let activeTag = tier.filterTag
         let js = "(function(){"
+            + "var c=document.getElementById('_omdict_content');"
+            + "if(!c){c=document.createElement('div');c.id='_omdict_content';"
+            + "while(document.body.firstChild)c.appendChild(document.body.firstChild);"
+            + "document.body.insertBefore(c,document.body.firstChild);}"
             + "var svg=document.getElementById('_omdict_svg');"
             + "if(!svg){svg=document.createElementNS('http://www.w3.org/2000/svg','svg');"
             + "svg.id='_omdict_svg';"
             + "svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');"
-            + "document.body.insertBefore(svg,document.body.firstChild);}"
+            + "c.insertBefore(svg,c.firstChild);}"
             + "svg.innerHTML='\(svgFilters)';"
             + "var s=document.getElementById('_omdict_invert');"
             + "if(!s){s=document.createElement('style');s.id='_omdict_invert';document.head.appendChild(s);}"
@@ -570,9 +584,28 @@ class ArticlePageView: UIView {
 
     func highlightKeyword(_ keyword: String?) {
         pendingHighlightKeyword = keyword
-        let escaped = (keyword ?? "").replacingOccurrences(of: "'", with: "\\'")
+        clearFindHighlights()
+
+        guard let keyword, !keyword.isEmpty else { return }
+
+        findGeneration &+= 1
+        let gen = findGeneration
+
+        let escaped = keyword.replacingOccurrences(of: "'", with: "\\'")
         let js = "highlightKeyword('\(escaped)')"
-        webView.evaluateJavaScript(js) { _, _ in }
+        webView.evaluateJavaScript(js) { [weak self] result, _ in
+            // Discard stale callback (user typed faster than JS responded)
+            guard let self, self.findGeneration == gen else { return }
+            // JS handles everything — dim + highlights are in the DOM.
+            // Result is rect JSON but we don't need it on the Swift side.
+            _ = result
+        }
+    }
+
+    /// Remove all find-in-page DOM elements (dim + highlights + invisible marks).
+    private func clearFindHighlights() {
+        findGeneration &+= 1  // invalidate any in-flight JS callbacks
+        webView?.evaluateJavaScript("highlightKeyword('')", completionHandler: nil)
     }
 
     // MARK: - Static: Jump Search Menu
@@ -756,8 +789,7 @@ extension ArticlePageView: WKNavigationDelegate {
 
         // Apply pending highlight keyword (set before WebView finished loading)
         if let keyword = pendingHighlightKeyword, !keyword.isEmpty {
-            let escaped = keyword.replacingOccurrences(of: "'", with: "\\'")
-            webView.evaluateJavaScript("highlightKeyword('\(escaped)')") { _, _ in }
+            highlightKeyword(keyword)
         }
     }
 }
