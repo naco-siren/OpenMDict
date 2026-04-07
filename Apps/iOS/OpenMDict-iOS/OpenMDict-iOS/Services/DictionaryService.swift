@@ -249,6 +249,13 @@ final class DictionaryService: ObservableObject {
                 let dictDir = storage.dictionaryDirectoryURL(id: dictId)
                 try? FileManager.default.removeItem(at: dictDir)
                 storage.invalidateDictManifestCache(id: dictId)
+                // Drop the persistent sidecar index so the cache doesn't
+                // accumulate orphans. dictId == MDX header SHA256 in this
+                // app, so it doubles as the sidecar file name.
+                // `DictionaryStorageService.deleteDictionary()` already does
+                // this for the user-initiated delete path — mirror it here
+                // for the iCloud remote-delete path.
+                MDictReader.removeSidecarCache(forHeaderSHA256: dictId)
                 // Unload from memory + remove from groups
                 refreshAfterDelete(dictId)
                 // De-index from Spotlight
