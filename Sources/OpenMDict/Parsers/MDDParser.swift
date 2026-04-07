@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import os
 
 // MARK: - MDD Resource Reader
 
@@ -30,6 +31,16 @@ public final class MDDParser {
     /// Load a resource file
     /// - Parameter path: Path to .mdd file
     public init(path: String) throws {
+        // Signpost interval — same shape as MDXParser.init. See
+        // `MDictPerfLog.swift` for the collection instructions.
+        let signpostID = mdictPerfSignposter.makeSignpostID()
+        let state = mdictPerfSignposter.beginInterval(
+            "MDDParser.init",
+            id: signpostID,
+            "\((path as NSString).lastPathComponent)"
+        )
+        defer { mdictPerfSignposter.endInterval("MDDParser.init", state) }
+
         guard FileManager.default.fileExists(atPath: path) else {
             throw MDictError.fileNotFound(path)
         }
@@ -61,11 +72,13 @@ public final class MDDParser {
         let resolvedSortedIndices: [UInt32]
 
         if let payload = sidecarPayload {
+            mdictPerfSignposter.emitEvent("MDDParser.path", id: signpostID, "fast")
             resolvedKeywords = payload.keywords
             resolvedBlocks = payload.recordBlocks
             resolvedSortedIndices = payload.sortedIndices
         } else {
             // Slow path: full parse
+            mdictPerfSignposter.emitEvent("MDDParser.path", id: signpostID, "slow")
             let keywordData = try Self.parseKeywordSection(reader, header: header)
             let blocks = try Self.parseRecordBlockInfo(reader, header: header)
             let kws = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)

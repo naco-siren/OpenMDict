@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import os
 
 // MARK: - Internal Info Structure
 
@@ -53,6 +54,20 @@ internal final class MDXParser {
     /// - Parameter path: Path to .mdx file
     /// - Throws: MDictError on failure
     init(path: String) throws {
+        // === Signpost interval: "MDXParser.init" ===
+        // Instruments: Points of Interest / os_signpost, subsystem
+        // "io.github.naco-siren.openmdict", category "perf". The interval
+        // spans header parse + sidecar lookup + (fast path OR slow path).
+        // A child event "path" fires with value "fast" or "slow" to
+        // attribute time to the right branch.
+        let signpostID = mdictPerfSignposter.makeSignpostID()
+        let state = mdictPerfSignposter.beginInterval(
+            "MDXParser.init",
+            id: signpostID,
+            "\((path as NSString).lastPathComponent)"
+        )
+        defer { mdictPerfSignposter.endInterval("MDXParser.init", state) }
+
         guard FileManager.default.fileExists(atPath: path) else {
             throw MDictError.fileNotFound(path)
         }
@@ -86,11 +101,13 @@ internal final class MDXParser {
 
         if let payload = sidecarPayload {
             // Fast path: everything came from the sidecar
+            mdictPerfSignposter.emitEvent("MDXParser.path", id: signpostID, "fast")
             resolvedKeywords = payload.keywords
             resolvedBlocks = payload.recordBlocks
             resolvedSortedIndices = payload.sortedIndices
         } else {
             // Slow path: full parse
+            mdictPerfSignposter.emitEvent("MDXParser.path", id: signpostID, "slow")
             let keywordData = try Self.parseKeywordSection(reader, header: header)
             let blocks = try Self.parseRecordBlockInfo(reader, header: header)
             let kws = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)

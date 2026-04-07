@@ -15,7 +15,16 @@
 
 import Foundation
 import Combine
+import os
 import OpenMDictKit
+
+/// iOS app-level signposter for dictionary bulk-load performance.
+/// Shares the same subsystem as the core lib's `mdictPerfSignposter` so
+/// Instruments groups all OpenMDict-related intervals together.
+private let iosBulkLoadSignposter = OSSignposter(
+    subsystem: "io.github.naco-siren.openmdict",
+    category: "perf"
+)
 
 // MARK: - Search Context
 
@@ -544,6 +553,16 @@ final class DictionaryService: ObservableObject {
         let startTime = CFAbsoluteTimeGetCurrent()
         let loadSequence = sortedLoadSequence()
 
+        // Umbrella signpost interval — wraps the entire bulk load so
+        // Instruments shows the whole phase as a single span, with each
+        // per-dict MDXParser.init / MDDParser.init nested inside it.
+        let bulkSignpostID = iosBulkLoadSignposter.makeSignpostID()
+        let bulkState = iosBulkLoadSignposter.beginInterval(
+            "DictionaryService.bulkLoad",
+            id: bulkSignpostID,
+            "count=\(loadSequence.count)"
+        )
+
         for dict in loadSequence {
             do {
                 try await dict.load()
@@ -552,6 +571,9 @@ final class DictionaryService: ObservableObject {
                 print("❌ Failed to load \(dict.id): \(error)")
             }
         }
+
+        iosBulkLoadSignposter.endInterval("DictionaryService.bulkLoad", bulkState)
+
         let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
         print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms")
 
