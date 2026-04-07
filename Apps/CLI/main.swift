@@ -23,9 +23,9 @@ func colored(_ text: String, _ color: ANSIColor) -> String {
 
 func printUsage() {
     print("""
-    
+
     \(colored("OpenMDict", .bold)) - MDict MDX/MDD Parser
-    
+
     \(colored("Usage:", .yellow))
         openmdict <mdx_file>                        Show dictionary info
         openmdict <mdx_file> lookup <word>          Look up a word
@@ -33,12 +33,21 @@ func printUsage() {
         openmdict <mdx_file> list [count]           List first N entries
         openmdict <mdx_file> resources [count]      List resources from MDD
         openmdict <mdx_file> resource <path>        Get a specific resource
-    
+
     \(colored("Debug Commands:", .yellow))
         openmdict <mdx_file> header                 Show raw header XML
         openmdict <mdx_file> describe               Parse description (test extraction)
         openmdict <mdx_file> debug <word>           Debug key lookup (hex bytes)
-    
+
+    \(colored("Sidecar Index Commands:", .yellow))
+        openmdict sidecar info <mdx_file>           Show sidecar status for a dictionary
+        openmdict sidecar rebuild <mdx_file>        Force rebuild the sidecar (delete + reload)
+        openmdict sidecar list <cache_dir>          List all .idx files in a sidecar cache directory
+
+    \(colored("Environment:", .yellow))
+        OPENMDICT_SIDECAR_DIR   Enable sidecar fast-path for normal commands.
+                                Required for sidecar info/rebuild to locate existing cache.
+
     \(colored("Examples:", .yellow))
         openmdict MyDict.mdx
         openmdict MyDict.mdx lookup hello
@@ -48,7 +57,11 @@ func printUsage() {
         openmdict MyDict.mdx resource mydict.css
         openmdict MyDict.mdx header
         openmdict MyDict.mdx describe
-    
+
+        OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache openmdict sidecar info MyDict.mdx
+        OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache openmdict sidecar rebuild MyDict.mdx
+        openmdict sidecar list /tmp/mdx-cache
+
     """)
 }
 
@@ -58,6 +71,23 @@ func main() {
     guard args.count >= 2 else {
         printUsage()
         exit(1)
+    }
+
+    // Top-level sidecar subcommand branch:
+    // `openmdict sidecar <subcommand> <arg>` bypasses the
+    // `openmdict <mdx_file> [command]` form because "list" takes a
+    // directory argument instead of an MDX file, and "info"/"rebuild"
+    // should print diagnostic output rather than loading the full dict.
+    if args[1] == "sidecar" {
+        guard args.count >= 4 else {
+            print(colored("Error: Missing arguments for sidecar command", .red))
+            print("  openmdict sidecar info <mdx_file>")
+            print("  openmdict sidecar rebuild <mdx_file>")
+            print("  openmdict sidecar list <cache_dir>")
+            exit(1)
+        }
+        handleSidecarSubcommand(subcommand: args[2], arg: args[3])
+        exit(0)
     }
 
     let mdxPath = args[1]
@@ -420,6 +450,262 @@ func getResource(dict: MDictReader, path: String) {
             print("  \(slice.joined(separator: " "))")
         }
     }
+    print()
+}
+
+// MARK: - Sidecar Subcommands
+
+/// Entry point for `openmdict sidecar <info|rebuild|list> <arg>`.
+func handleSidecarSubcommand(subcommand: String, arg: String) {
+    switch subcommand {
+    case "info":
+        sidecarInfo(mdxPath: arg)
+    case "rebuild":
+        sidecarRebuild(mdxPath: arg)
+    case "list":
+        sidecarList(cacheDir: arg)
+    default:
+        print(colored("Unknown sidecar subcommand: \(subcommand)", .red))
+        print("  Valid subcommands: info, rebuild, list")
+        exit(1)
+    }
+}
+
+/// Resolve the effective sidecar cache directory for info/rebuild operations.
+/// Reads `OPENMDICT_SIDECAR_DIR` env var. Returns nil + prints an error if unset.
+private func resolveSidecarCacheDir() -> URL? {
+    guard let envDir = ProcessInfo.processInfo.environment["OPENMDICT_SIDECAR_DIR"] else {
+        print(colored("Error: OPENMDICT_SIDECAR_DIR environment variable is not set.", .red))
+        print("  Example: OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache openmdict sidecar info MyDict.mdx")
+        return nil
+    }
+    let url = URL(fileURLWithPath: envDir)
+    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    return url
+}
+
+/// Format bytes as KB / MB for display.
+private func formatByteSize(_ bytes: Int64) -> String {
+    if bytes >= 1024 * 1024 {
+        return String(format: "%.2f MB", Double(bytes) / (1024.0 * 1024.0))
+    }
+    if bytes >= 1024 {
+        return String(format: "%.1f KB", Double(bytes) / 1024.0)
+    }
+    return "\(bytes) B"
+}
+
+/// `openmdict sidecar info <mdx_file>` — report whether a sidecar exists
+/// for the given MDX, how old it is, how big it is, and whether its
+/// three-field identity (fileSize + mtime + headerSHA256) matches the
+/// current MDX. Also prints the same info for any paired .mdd files.
+func sidecarInfo(mdxPath: String) {
+    guard FileManager.default.fileExists(atPath: mdxPath) else {
+        print(colored("Error: File not found: \(mdxPath)", .red))
+        exit(1)
+    }
+    guard let cacheDir = resolveSidecarCacheDir() else { exit(1) }
+
+    // Report MDX + any paired MDD in the same directory.
+    let mdxURL = URL(fileURLWithPath: mdxPath)
+    let base = mdxURL.deletingPathExtension().lastPathComponent
+    let parent = mdxURL.deletingLastPathComponent()
+    var targets: [(label: String, path: String)] = [("MDX", mdxPath)]
+    if let siblings = try? FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil) {
+        for s in siblings where s.pathExtension.lowercased() == "mdd"
+            && s.deletingPathExtension().lastPathComponent == base {
+            targets.append(("MDD", s.path))
+        }
+    }
+
+    print()
+    print(colored("📇 Sidecar info", .bold))
+    print(colored("  cache dir:", .dim), cacheDir.path)
+    print()
+
+    for target in targets {
+        print(colored("\(target.label): \(target.path)", .cyan))
+        guard let meta = MDictReader.loadMetadata(from: target.path),
+              let sha = meta.headerSHA256 else {
+            print(colored("  ✗ Could not read header (unsupported encryption?)", .red))
+            print()
+            continue
+        }
+        print("  header sha256: \(sha.prefix(32))…")
+
+        let sidecarURL = cacheDir.appendingPathComponent("\(sha).idx", isDirectory: false)
+        let sidecarPath = sidecarURL.path
+
+        guard FileManager.default.fileExists(atPath: sidecarPath) else {
+            print(colored("  ✗ No sidecar on disk", .yellow))
+            print("    expected at: \(sidecarPath)")
+            print()
+            continue
+        }
+
+        // File size + mtime
+        let attrs = (try? FileManager.default.attributesOfItem(atPath: sidecarPath)) ?? [:]
+        let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
+        let mtime = attrs[.modificationDate] as? Date
+        let ageString: String = {
+            guard let mtime else { return "?" }
+            let interval = Date().timeIntervalSince(mtime)
+            if interval < 60 { return String(format: "%.0fs", interval) }
+            if interval < 3600 { return String(format: "%.0fm", interval / 60) }
+            if interval < 86400 { return String(format: "%.1fh", interval / 3600) }
+            return String(format: "%.1fd", interval / 86400)
+        }()
+
+        print(colored("  ✓ Sidecar present", .green))
+        print("    file:  \(sidecarPath)")
+        print("    size:  \(formatByteSize(size))")
+        print("    age:   \(ageString) (modified \(mtime.map { "\($0)" } ?? "?"))")
+
+        // Validate by actually asking the loader to accept it — this runs
+        // the full three-field identity check exactly as the parser would.
+        MDictSidecarCache.cacheDirectory = cacheDir
+        MDictSidecarCache.writeMode = .disabled  // don't rewrite on parse
+        let before = Date()
+        do {
+            _ = try MDictReader(path: target.path)
+            let ms = Date().timeIntervalSince(before) * 1000
+            print(colored("    valid: ✓ (reader init succeeded in \(String(format: "%.1f", ms)) ms)", .green))
+        } catch {
+            print(colored("    valid: ✗ \(error)", .red))
+        }
+        MDictSidecarCache.cacheDirectory = nil  // reset for next iteration
+        print()
+    }
+}
+
+/// `openmdict sidecar rebuild <mdx_file>` — delete the existing sidecar
+/// (if any) and construct a fresh `MDictReader`, triggering the slow path
+/// and writing a new sidecar. Waits for the background write to flush.
+func sidecarRebuild(mdxPath: String) {
+    guard FileManager.default.fileExists(atPath: mdxPath) else {
+        print(colored("Error: File not found: \(mdxPath)", .red))
+        exit(1)
+    }
+    guard let cacheDir = resolveSidecarCacheDir() else { exit(1) }
+
+    guard let meta = MDictReader.loadMetadata(from: mdxPath),
+          let sha = meta.headerSHA256 else {
+        print(colored("Error: Could not compute header SHA256", .red))
+        exit(1)
+    }
+
+    let sidecarURL = cacheDir.appendingPathComponent("\(sha).idx", isDirectory: false)
+
+    print()
+    print(colored("🔨 Rebuilding sidecar for", .cyan), mdxPath)
+    print(colored("  target:", .dim), sidecarURL.path)
+
+    // Delete existing
+    if FileManager.default.fileExists(atPath: sidecarURL.path) {
+        try? FileManager.default.removeItem(at: sidecarURL)
+        print(colored("  deleted existing sidecar", .dim))
+    }
+
+    // Slow-path parse with immediate write
+    MDictSidecarCache.cacheDirectory = cacheDir
+    MDictSidecarCache.writeMode = .immediate
+    let before = Date()
+    do {
+        let reader = try MDictReader(path: mdxPath)
+        let parseMs = Date().timeIntervalSince(before) * 1000
+        print("  parsed \(reader.entryCount) entries in \(String(format: "%.1f", parseMs)) ms")
+    } catch {
+        print(colored("Error during parse: \(error)", .red))
+        exit(1)
+    }
+
+    // Wait for the background write to flush
+    print(colored("  waiting for background sidecar write …", .dim))
+    Thread.sleep(forTimeInterval: 2.0)
+
+    // Confirm
+    if FileManager.default.fileExists(atPath: sidecarURL.path) {
+        let size = (try? FileManager.default.attributesOfItem(atPath: sidecarURL.path)[.size] as? Int64) ?? 0
+        print(colored("  ✓ sidecar written", .green), "(\(formatByteSize(size)))")
+    } else {
+        print(colored("  ✗ sidecar did NOT appear on disk (write may have failed)", .red))
+    }
+    print()
+}
+
+/// `openmdict sidecar list <cache_dir>` — enumerate all `.idx` files in a
+/// sidecar cache directory with size + age. Distinguishes valid sidecars
+/// (magic + format version OK) from orphaned / corrupt files.
+func sidecarList(cacheDir: String) {
+    let url = URL(fileURLWithPath: cacheDir)
+    guard let files = try? FileManager.default.contentsOfDirectory(
+        at: url,
+        includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey]
+    ) else {
+        print(colored("Error: Could not read directory: \(cacheDir)", .red))
+        exit(1)
+    }
+
+    let idxFiles = files.filter { $0.pathExtension == "idx" }.sorted {
+        $0.lastPathComponent < $1.lastPathComponent
+    }
+    let tmpFiles = files.filter { $0.lastPathComponent.contains(".tmp-") }
+
+    print()
+    print(colored("📇 Sidecar index files in", .bold), cacheDir)
+    print()
+
+    if idxFiles.isEmpty && tmpFiles.isEmpty {
+        print(colored("  (empty)", .dim))
+        print()
+        return
+    }
+
+    var totalBytes: Int64 = 0
+    var validCount = 0
+    var invalidCount = 0
+
+    for f in idxFiles {
+        let vals = try? f.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+        let size = Int64(vals?.fileSize ?? 0)
+        totalBytes += size
+        let mtime = vals?.contentModificationDate
+        let ageString: String = {
+            guard let mtime else { return "?" }
+            let interval = Date().timeIntervalSince(mtime)
+            if interval < 3600 { return String(format: "%.0fm ago", interval / 60) }
+            if interval < 86400 { return String(format: "%.1fh ago", interval / 3600) }
+            return String(format: "%.1fd ago", interval / 86400)
+        }()
+
+        // Quick magic-byte check — we don't have the source MDX here so
+        // we can't validate the 3-field identity, only the format magic.
+        let isValidMagic: Bool = {
+            guard let handle = try? FileHandle(forReadingFrom: f),
+                  let data = try? handle.read(upToCount: 8) else { return false }
+            defer { try? handle.close() }
+            guard data.count == 8 else { return false }
+            // "MDIX" bytes: 0x4D 0x44 0x49 0x58
+            return data[0] == 0x4D && data[1] == 0x44 && data[2] == 0x49 && data[3] == 0x58
+        }()
+
+        let status = isValidMagic ? colored("✓", .green) : colored("✗", .red)
+        if isValidMagic { validCount += 1 } else { invalidCount += 1 }
+
+        let sha = f.deletingPathExtension().lastPathComponent
+        print("  \(status) \(sha.prefix(16))…   \(formatByteSize(size).padding(toLength: 10, withPad: " ", startingAt: 0))  \(ageString)")
+    }
+
+    print()
+    print(colored("Summary:", .bold))
+    print("  valid:   \(validCount)")
+    if invalidCount > 0 {
+        print(colored("  invalid: \(invalidCount)", .yellow))
+    }
+    if !tmpFiles.isEmpty {
+        print(colored("  orphan .tmp-*: \(tmpFiles.count)", .yellow))
+    }
+    print("  total:   \(formatByteSize(totalBytes))")
     print()
 }
 
