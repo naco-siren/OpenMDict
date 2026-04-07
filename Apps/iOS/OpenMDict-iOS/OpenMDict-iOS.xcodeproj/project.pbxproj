@@ -447,6 +447,7 @@
 		F8F797F82F42F58500D47B41 /* Exceptions for "OpenMDict-iOS" folder in "OpenMDict-ActionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Data/AppGroupPaths.swift,
 				Data/Constants.swift,
 				Data/MDictURL.swift,
 				Data/ViewModels/AppearanceMode.swift,

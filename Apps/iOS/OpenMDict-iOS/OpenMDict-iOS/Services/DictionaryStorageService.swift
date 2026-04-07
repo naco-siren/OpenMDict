@@ -317,6 +317,13 @@ final class DictionaryStorageService {
         return root
     }()
 
+    /// Root directory for the persistent sidecar index cache inside the App
+    /// Group shared container. Delegates to `AppGroupPaths` so the Action
+    /// Extension can compute the same path without pulling in this whole
+    /// service. Sidecar files are pure derived data — the slow-path parser
+    /// can always rebuild them from the MDX/MDD source.
+    var sidecarIndexCacheURL: URL { AppGroupPaths.sidecarIndexCacheURL }
+
     /// Directory for a specific dictionary
     func dictionaryDirectoryURL(id: String) -> URL {
         rootDirectoryURL.appendingPathComponent(id, isDirectory: true)

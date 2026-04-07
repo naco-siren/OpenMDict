@@ -82,6 +82,37 @@ final class DictionaryService: ObservableObject {
 
     private init() {}
 
+    // MARK: - Sidecar Index Cache Bootstrap
+
+    /// Configure the OpenMDict core lib's sidecar index cache.
+    ///
+    /// Must be called once per host process, **before any `MDictReader` is
+    /// constructed**, so the parsers can use the sidecar fast-path on first
+    /// dictionary load.
+    ///
+    /// - Parameter writeMode: How the parser should handle sidecar *write*
+    ///   work. Reads are always enabled when the cache directory is set.
+    ///     - `.disabled` — never write (use for Action Extensions, so the
+    ///       main app is the single source of truth for sidecar generation).
+    ///     - `.batched` — queue writes and drain them on a later
+    ///       `MDictSidecarCache.flushPendingWrites()` call. The main app
+    ///       uses this during its initial bulk dictionary load so all CPU
+    ///       goes into parsing.
+    ///     - `.immediate` — dispatch each write as soon as the parser hands
+    ///       it over (default, used by CLI / tests / benches, and by the
+    ///       main app once its bulk load is done).
+    ///
+    /// The storage location is owned by `DictionaryStorageService` — this
+    /// method just wires that path into the core lib.
+    func bootstrapSidecarCache(writeMode: SidecarWriteMode) {
+        let dir = storage.sidecarIndexCacheURL
+        // Best-effort creation. The writer will also create it lazily, but
+        // doing it up-front surfaces permission problems at launch time.
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        MDictSidecarCache.cacheDirectory = dir
+        MDictSidecarCache.writeMode = writeMode
+    }
+
     // MARK: - Reset
 
     /// Discard all in-memory dictionaries and groups.

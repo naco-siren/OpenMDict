@@ -53,4 +53,19 @@ final class LocalDataResetService {
 
         debugLog("🗑️ Deleted MDD cache")
     }
+
+    // MARK: - MDX Sidecar Index Cache
+
+    /// Delete every persistent sidecar index file under
+    /// `AppGroup/Library/Caches/MDXIndex/` and recreate the empty directory.
+    /// Sidecar files are pure derived data, so this is always safe — the
+    /// next dictionary load will simply rebuild them on the slow path.
+    func deleteMDXIndexCache() {
+        let cacheDir = DictionaryStorageService.shared.sidecarIndexCacheURL
+        try? FileManager.default.removeItem(at: cacheDir)
+        try? FileManager.default.createDirectory(
+            at: cacheDir, withIntermediateDirectories: true
+        )
+        debugLog("🗑️ Deleted MDX sidecar index cache")
+    }
 }
