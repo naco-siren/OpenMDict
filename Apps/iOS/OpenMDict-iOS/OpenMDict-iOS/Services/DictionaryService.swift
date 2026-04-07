@@ -547,35 +547,80 @@ final class DictionaryService: ObservableObject {
         print("📖 All metadata loaded in \(String(format: "%.0f", elapsed))ms")
     }
 
-    /// Load full reader for all dictionaries (slow, sequential)
-    /// MDict.$state changes will notify subscribers directly
+    /// Load full reader for all dictionaries.
+    ///
+    /// On **high-RAM devices** (`DeviceCapability.ramTier == .high`, i.e.
+    /// ≥ 6 GB physical RAM — roughly iPhone 13 Pro / iPad M1 and above)
+    /// loads are dispatched concurrently via `TaskGroup` with bounded
+    /// parallelism, so an 8-performance-core chip can load 10 dictionaries
+    /// in roughly the time of the single slowest one. On mid- and low-RAM
+    /// devices we stay sequential to avoid piling several dicts' parse
+    /// buffers into memory simultaneously — jetsam on a 2 GB iPhone 8 is
+    /// unforgiving and sequential loads never exceed one dict's worth of
+    /// transient heap at a time.
+    ///
+    /// Concurrency is safe because the mmap-backed `BinaryReader` has no
+    /// cross-reader shared state, and `MDictSidecarCache.enqueueWrite` is
+    /// protected by its own `NSLock`.
+    ///
+    /// `MDict.$state` changes notify subscribers regardless of path.
     func loadAllDictionaries() async {
         let startTime = CFAbsoluteTimeGetCurrent()
         let loadSequence = sortedLoadSequence()
 
-        // Umbrella signpost interval — wraps the entire bulk load so
-        // Instruments shows the whole phase as a single span, with each
-        // per-dict MDXParser.init / MDDParser.init nested inside it.
+        // Umbrella signpost — wraps the whole bulk load so Instruments
+        // shows one span containing all nested MDXParser/MDDParser.init
+        // intervals. Tagged with dict count + execution mode for quick
+        // interpretation in the timeline.
         let bulkSignpostID = iosBulkLoadSignposter.makeSignpostID()
+        let parallel = DeviceCapability.ramTier == .high
         let bulkState = iosBulkLoadSignposter.beginInterval(
             "DictionaryService.bulkLoad",
             id: bulkSignpostID,
-            "count=\(loadSequence.count)"
+            "count=\(loadSequence.count) mode=\(parallel ? "parallel" : "serial")"
         )
 
-        for dict in loadSequence {
-            do {
-                try await dict.load()
-                print("✅ Loaded: \(dict.loggingTitle)")
-            } catch {
-                print("❌ Failed to load \(dict.id): \(error)")
+        if parallel {
+            // Bounded concurrency: up to `maxConcurrent` dicts loading at
+            // once. Cap at the min of (dict count, physical CPU count, 6)
+            // so we neither spin off idle slots nor oversubscribe a device
+            // with only 2 P-cores. The ceiling of 6 exists because dict
+            // parsing is mostly LZO/zlib decompression (CPU-bound) and
+            // diminishing returns kick in quickly past 4–6 concurrent.
+            let maxConcurrent = Swift.min(
+                loadSequence.count,
+                Swift.max(2, ProcessInfo.processInfo.activeProcessorCount),
+                6
+            )
+
+            await withTaskGroup(of: Void.self) { group in
+                var iterator = loadSequence.makeIterator()
+                var inFlight = 0
+
+                // Prime the pipe with `maxConcurrent` initial tasks.
+                while inFlight < maxConcurrent, let next = iterator.next() {
+                    group.addTask { await Self.loadOne(next) }
+                    inFlight += 1
+                }
+                // Keep the pipe full: whenever one task finishes, spawn
+                // the next dict in the sorted load order.
+                while await group.next() != nil {
+                    if let next = iterator.next() {
+                        group.addTask { await Self.loadOne(next) }
+                    }
+                }
+            }
+        } else {
+            // Sequential fallback: identical semantics, lower peak memory.
+            for dict in loadSequence {
+                await Self.loadOne(dict)
             }
         }
 
         iosBulkLoadSignposter.endInterval("DictionaryService.bulkLoad", bulkState)
 
         let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-        print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms")
+        print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms (\(parallel ? "parallel" : "serial"))")
 
         // Bulk load phase is done. Flush any sidecar writes that were queued
         // while `writeMode == .batched`, then switch to `.immediate` so any
@@ -587,6 +632,18 @@ final class DictionaryService: ObservableObject {
         }
         MDictSidecarCache.flushPendingWrites()
         MDictSidecarCache.writeMode = .immediate
+    }
+
+    /// Single-dict load wrapper used by both the parallel TaskGroup path
+    /// and the sequential fallback. Kept as a static helper so the
+    /// TaskGroup closure doesn't have to capture `self`.
+    private static func loadOne(_ dict: MDict) async {
+        do {
+            try await dict.load()
+            print("✅ Loaded: \(dict.loggingTitle)")
+        } catch {
+            print("❌ Failed to load \(dict.id): \(error)")
+        }
     }
 
     // MARK: - Load Order
