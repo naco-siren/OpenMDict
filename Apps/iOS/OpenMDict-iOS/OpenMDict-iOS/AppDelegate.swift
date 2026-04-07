@@ -4,6 +4,7 @@
 //
 
 import UIKit
+import OpenMDictKit   // re-exports OpenMDict.SidecarWriteMode for the bootstrap call
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -53,6 +54,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             UserDefaults.shared.setAppearanceModeStamped(mode)
             UserDefaults.standard.appearanceModeTimestamp = UserDefaults.shared.appearanceModeTimestamp
         }
+
+        // Bootstrap the OpenMDict sidecar index cache. Must run before any
+        // MDictReader is constructed so the parsers can use the fast path
+        // on first dictionary load.
+        //
+        // `.batched` mode queues slow-path sidecar writes rather than
+        // dispatching them immediately — this concentrates all CPU on
+        // parsing during the initial bulk load. `DictionaryService.loadAll
+        // Dictionaries()` drains the queue and switches to `.immediate`
+        // once loading is done.
+        DictionaryService.shared.bootstrapSidecarCache(writeMode: .batched)
 
         // Initialize persistent store — CloudKit enabled only when user opted in.
         let syncMode = SyncModeService.shared.currentMode

@@ -507,6 +507,17 @@ final class DictionaryService: ObservableObject {
         }
         let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
         print("📚 All dictionaries loaded in \(String(format: "%.0f", elapsed))ms")
+
+        // Bulk load phase is done. Flush any sidecar writes that were queued
+        // while `writeMode == .batched`, then switch to `.immediate` so any
+        // subsequently imported / downloaded dictionaries write their
+        // sidecars as soon as the parser finishes (no batch to join).
+        let pending = MDictSidecarCache.pendingWriteCount
+        if pending > 0 {
+            print("📝 Flushing \(pending) pending sidecar write(s)")
+        }
+        MDictSidecarCache.flushPendingWrites()
+        MDictSidecarCache.writeMode = .immediate
     }
 
     // MARK: - Load Order

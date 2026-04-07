@@ -128,6 +128,22 @@ class ActionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Bootstrap the shared OpenMDict sidecar index cache (same App Group
+        // directory used by the main app). Must run before any MDictReader.
+        //
+        // `.disabled` write mode — the Action Extension is a pure *reader*
+        // of sidecar files. The main app is the single source of truth for
+        // generation, so the extension never writes .idx files even if it
+        // hits the slow path. The main app has almost certainly written
+        // them already, since the user must have launched it at least once
+        // to import or download the dictionary in the first place.
+        //
+        // Path comes from `AppGroupPaths` (a small shared helper) — the
+        // full `DictionaryService` / `DictionaryStorageService` facade is
+        // main-app-only and not linked into this extension.
+        MDictSidecarCache.cacheDirectory = AppGroupPaths.sidecarIndexCacheURL
+        MDictSidecarCache.writeMode = .disabled
+
         // Extensions are short-lived, read-only — never need CloudKit sync.
         CoreDataStack.shared.setup(enableCloudKit: false)
 

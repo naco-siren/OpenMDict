@@ -709,16 +709,20 @@ final class DictionaryStorageService {
     /// Delete a dictionary from Library/Dictionaries/
     func deleteDictionary(id: String) throws {
         let dirURL = dictionaryDirectoryURL(id: id)
-        
+
         if FileManager.default.fileExists(atPath: dirURL.path) {
             try FileManager.default.removeItem(at: dirURL)
         }
-        
+
         // Invalidate cache
         invalidateDictManifestCache(id: id)
-        
+
         metadataService.delete(dictId: id)
-        
+
+        // Drop the persistent sidecar index for this dictionary so the cache
+        // does not accumulate orphans. The dict id is the MDX header SHA256.
+        MDictReader.removeSidecarCache(forHeaderSHA256: id)
+
         print("🗑️ Deleted dictionary: \(id)")
     }
     
