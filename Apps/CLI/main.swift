@@ -54,19 +54,29 @@ func printUsage() {
 
 func main() {
     let args = CommandLine.arguments
-    
+
     guard args.count >= 2 else {
         printUsage()
         exit(1)
     }
-    
+
     let mdxPath = args[1]
-    
+
     guard FileManager.default.fileExists(atPath: mdxPath) else {
         print(colored("Error: File not found: \(mdxPath)", .red))
         exit(1)
     }
-    
+
+    // Optional: enable persistent sidecar index cache via env var
+    // (export OPENMDICT_SIDECAR_DIR=/some/dir before running). The cache
+    // dramatically speeds up cold-load of large dictionaries by skipping
+    // the decompress/parse/calculate pipeline on subsequent launches.
+    if let envDir = ProcessInfo.processInfo.environment["OPENMDICT_SIDECAR_DIR"] {
+        let dirURL = URL(fileURLWithPath: envDir)
+        try? FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
+        MDictSidecarCache.cacheDirectory = dirURL
+    }
+
     print()
     print(colored("📖 Opening:", .cyan), mdxPath)
     print()
@@ -596,3 +606,10 @@ func showResourceRefs(refs: [ResourceRef], dict: MDictReader) {
 }
 
 main()
+
+// When sidecar caching is enabled (smoke testing), give background writes
+// time to flush before exiting the short-lived CLI process. iOS apps don't
+// need this — they live long enough for the dispatch to complete naturally.
+if ProcessInfo.processInfo.environment["OPENMDICT_SIDECAR_DIR"] != nil {
+    Thread.sleep(forTimeInterval: 2.0)
+}

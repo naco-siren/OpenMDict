@@ -1,29 +1,30 @@
 import Foundation
+import CryptoKit
 
 // MARK: - MDD Resource Reader
 
 /// MDict resource file (.mdd) reader
 /// Used for CSS, images, audio, and other assets
 public final class MDDParser {
-    
+
     // MARK: - Public Properties
-    
+
     /// Number of resources
     public let resourceCount: Int
-    
+
     /// All resource paths
     public var allPaths: [String] {
         keywords.map { $0.keyword }
     }
-    
+
     // MARK: - Internal State
-    
+
     private let reader: BinaryReader
     private let header: MDictHeader
     private let keywords: [KeywordEntry]
     private let recordBlocks: [RecordBlockInfo]
     private let keywordIndex: [String: Int]
-    
+
     // MARK: - Initialization
 
     /// Load a resource file
@@ -32,37 +33,102 @@ public final class MDDParser {
         guard FileManager.default.fileExists(atPath: path) else {
             throw MDictError.fileNotFound(path)
         }
-        
+
         self.reader = try BinaryReader(path: path)
-        
+
         // Parse header (MDD uses UTF-16 for paths)
-        self.header = try Self.parseHeader(reader)
-        
+        let (parsedHeader, headerData) = try Self.parseHeaderWithData(reader)
+        self.header = parsedHeader
+
         // Check encryption
         if header.hasKeywordHeaderEncryption {
             throw MDictError.unsupportedEncryption
         }
-        
-        // Parse keyword section (resource paths)
-        let keywordData = try Self.parseKeywordSection(reader, header: header)
-        
-        // Parse record block info
-        let blocks = try Self.parseRecordBlockInfo(reader, header: header)
-        self.recordBlocks = blocks
-        
-        // Calculate record info
-        self.keywords = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)
-        self.resourceCount = keywords.count
-        
-        // Build index for O(1) lookup
+
+        // === Sidecar fast path ===
+        // Same shape as MDXParser: if a sidecar cache directory is configured
+        // and a valid sidecar exists, skip the entire parse pipeline.
+        let headerSHA256Hex = Self.sha256Hex(of: headerData)
+        var sidecarPayload: SidecarPayload? = nil
+        if let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex),
+           let identity = SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex),
+           let payload = SidecarLoader.load(from: sidecarURL, expectedIdentity: identity) {
+            sidecarPayload = payload
+        }
+
+        let resolvedKeywords: [KeywordEntry]
+        let resolvedBlocks: [RecordBlockInfo]
+        let resolvedSortedIndices: [UInt32]
+
+        if let payload = sidecarPayload {
+            resolvedKeywords = payload.keywords
+            resolvedBlocks = payload.recordBlocks
+            resolvedSortedIndices = payload.sortedIndices
+        } else {
+            // Slow path: full parse
+            let keywordData = try Self.parseKeywordSection(reader, header: header)
+            let blocks = try Self.parseRecordBlockInfo(reader, header: header)
+            let kws = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)
+            // sortedIndices is required by the sidecar format, even though
+            // MDD lookups go through the dict — generation is cheap (a few
+            // ms for typical 30k-entry MDDs).
+            let sorted = SidecarWriter.computeSortedIndices(kws)
+            resolvedKeywords = kws
+            resolvedBlocks = blocks
+            resolvedSortedIndices = sorted
+        }
+
+        self.keywords = resolvedKeywords
+        self.recordBlocks = resolvedBlocks
+        self.resourceCount = resolvedKeywords.count
+
+        // Build O(1) lookup dict (kept for MDD — typical 30k entries means
+        // build cost is <10ms and per-lookup latency matters more here
+        // because each article triggers many resource fetches).
         var index: [String: Int] = [:]
-        index.reserveCapacity(keywords.count)
-        for (i, entry) in keywords.enumerated() {
+        index.reserveCapacity(resolvedKeywords.count)
+        for (i, entry) in resolvedKeywords.enumerated() {
             // MDD paths are case-insensitive and use backslash
             let key = entry.keyword.lowercased().replacingOccurrences(of: "\\", with: "/")
             index[key] = i
         }
         self.keywordIndex = index
+
+        // === Background sidecar write (slow path only) ===
+        // See MDXParser for the rationale behind MDictSidecarCache.enqueueWrite.
+        if sidecarPayload == nil,
+           let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex),
+           let identity = SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex) {
+            let kws = resolvedKeywords
+            let blks = resolvedBlocks
+            let sorted = resolvedSortedIndices
+            let encoding = header.encoding
+            let caseSensitive = header.keyCaseSensitive
+            MDictSidecarCache.enqueueWrite {
+                do {
+                    try SidecarWriter.write(
+                        to: sidecarURL,
+                        identity: identity,
+                        keywords: kws,
+                        recordBlocks: blks,
+                        sortedIndices: sorted,
+                        encoding: encoding,
+                        isCaseSensitive: caseSensitive
+                    )
+                } catch {
+                    #if DEBUG
+                    print("⚠️ MDDParser: sidecar write failed: \(error)")
+                    #endif
+                }
+            }
+        }
+    }
+
+    // MARK: - SHA256 helper (used for sidecar identity)
+
+    private static func sha256Hex(of data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
     
     // MARK: - Public API
@@ -149,22 +215,28 @@ public final class MDDParser {
 
 extension MDDParser {
     
-    static func parseHeader(_ reader: BinaryReader) throws -> MDictHeader {
+    /// Parse the MDD header and return both the parsed struct and raw bytes
+    /// (raw bytes are used by the sidecar fast-path to compute headerSHA256).
+    static func parseHeaderWithData(_ reader: BinaryReader) throws -> (MDictHeader, Data) {
         let headerLen = try reader.readUInt32BE()
-        let headerData = try reader.readBytes(Int(headerLen))
+        let headerBytes = try reader.readBytes(Int(headerLen))
         _ = try reader.readUInt32LE()  // adler32
-        
+
         // MDD header is always UTF-16 LE
         let headerStr: String
-        if headerData.count >= 2 && headerData[0] == 0xFF && headerData[1] == 0xFE {
-            headerStr = String(data: Data(headerData), encoding: .utf16LittleEndian) ?? ""
-        } else if headerData.count >= 2 && headerData.suffix(2) == Data([0x00, 0x00]) {
-            headerStr = String(data: Data(headerData.dropLast(2)), encoding: .utf16LittleEndian) ?? ""
+        if headerBytes.count >= 2 && headerBytes[0] == 0xFF && headerBytes[1] == 0xFE {
+            headerStr = String(data: Data(headerBytes), encoding: .utf16LittleEndian) ?? ""
+        } else if headerBytes.count >= 2 && headerBytes.suffix(2) == Data([0x00, 0x00]) {
+            headerStr = String(data: Data(headerBytes.dropLast(2)), encoding: .utf16LittleEndian) ?? ""
         } else {
-            headerStr = String(data: Data(headerData), encoding: .utf16LittleEndian) ?? ""
+            headerStr = String(data: Data(headerBytes), encoding: .utf16LittleEndian) ?? ""
         }
-        
-        return parseHeaderXML(headerStr)
+
+        return (parseHeaderXML(headerStr), headerBytes)
+    }
+
+    static func parseHeader(_ reader: BinaryReader) throws -> MDictHeader {
+        try parseHeaderWithData(reader).0
     }
     
     private static func parseHeaderXML(_ xml: String) -> MDictHeader {
@@ -277,9 +349,13 @@ extension MDDParser {
         
         for blockInfo in keyBlockInfos {
             let compressedBlock = try reader.readBytes(Int(blockInfo.compSize))
-            // See loadRecord for the rationale on this guard.
+            // Every block carries an 8-byte header (1 byte compression type
+            // + 4 byte checksum + 3 byte padding). A block shorter than 8
+            // bytes means the MDD index was miscomputed or the file is
+            // truncated/corrupt — fail cleanly instead of indexing into
+            // an empty Data which traps.
             guard compressedBlock.count >= 8 else {
-                throw MDictError.invalidFormat("MDD keyword block too small: \(compressedBlock.count) bytes")
+                throw MDictError.invalidFormat("MDD keyword block too small: \(compressedBlock.count) bytes (need >= 8)")
             }
             let blockCompType = compressedBlock[0]
 

@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 // MARK: - Internal Info Structure
 
@@ -35,16 +36,19 @@ internal final class MDXParser {
     }
     
     // MARK: - Internal State (initialized once)
-    
+
     private let reader: BinaryReader
     private let header: MDictHeader
     private let keywords: [KeywordEntry]
     private let recordBlocks: [RecordBlockInfo]
-    private let exactIndex: [String: Int]        // exact keyword -> index
-    private let caseInsensitiveIndex: [String: Int]  // lowercased keyword -> index (for case-insensitive dicts)
-    
+    /// Indices into `keywords`, sorted by `keywords[i].keyword.lowercased()`.
+    /// Backs both prefix search (binary search → forward scan) and exact
+    /// lookup (binary search → tie-break by case). Replaces the per-keyword
+    /// `[String: Int]` dictionaries that the slow path used to build.
+    private let sortedIndices: [UInt32]
+
     // MARK: - Initialization
-    
+
     /// Load a dictionary from file
     /// - Parameter path: Path to .mdx file
     /// - Throws: MDictError on failure
@@ -52,43 +56,54 @@ internal final class MDXParser {
         guard FileManager.default.fileExists(atPath: path) else {
             throw MDictError.fileNotFound(path)
         }
-        
+
         self.reader = try BinaryReader(path: path)
-        
-        // Parse header
-        self.header = try Self.parseHeader(reader)
-        
+
+        // Parse header (always needed — cheap, a few KB)
+        let (parsedHeader, headerData) = try Self.parseHeaderWithData(reader)
+        self.header = parsedHeader
+
         // Check for unsupported encryption (DRM)
         if header.hasKeywordHeaderEncryption {
             throw MDictError.unsupportedEncryption
         }
-        
-        // Parse keyword section
-        let keywordData = try Self.parseKeywordSection(reader, header: header)
-        
-        // Parse record block info
-        let blocks = try Self.parseRecordBlockInfo(reader, header: header)
-        self.recordBlocks = blocks
-        
-        // Post-process keywords (calculate record sizes and block indices)
-        self.keywords = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)
-        
-        // Build keyword indexes for O(1) lookup
-        var exact: [String: Int] = [:]
-        var caseInsensitive: [String: Int] = [:]
-        exact.reserveCapacity(keywords.count)
-        if !header.keyCaseSensitive {
-            caseInsensitive.reserveCapacity(keywords.count)
+
+        // === Sidecar fast path ===
+        // If a sidecar cache directory is configured AND a valid sidecar
+        // exists for this MDX, skip the entire decompress/parse/calculate
+        // pipeline and load directly from the pre-computed sidecar.
+        let headerSHA256Hex = Self.sha256Hex(of: headerData)
+        var sidecarPayload: SidecarPayload? = nil
+        if let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex),
+           let identity = SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex),
+           let payload = SidecarLoader.load(from: sidecarURL, expectedIdentity: identity) {
+            sidecarPayload = payload
         }
-        for (i, entry) in keywords.enumerated() {
-            exact[entry.keyword] = i
-            if !header.keyCaseSensitive {
-                caseInsensitive[entry.keyword.lowercased()] = i
-            }
+
+        let resolvedKeywords: [KeywordEntry]
+        let resolvedBlocks: [RecordBlockInfo]
+        let resolvedSortedIndices: [UInt32]
+
+        if let payload = sidecarPayload {
+            // Fast path: everything came from the sidecar
+            resolvedKeywords = payload.keywords
+            resolvedBlocks = payload.recordBlocks
+            resolvedSortedIndices = payload.sortedIndices
+        } else {
+            // Slow path: full parse
+            let keywordData = try Self.parseKeywordSection(reader, header: header)
+            let blocks = try Self.parseRecordBlockInfo(reader, header: header)
+            let kws = Self.calculateRecordInfo(keywords: keywordData.keywords, recordBlocks: blocks)
+            let sorted = SidecarWriter.computeSortedIndices(kws)
+            resolvedKeywords = kws
+            resolvedBlocks = blocks
+            resolvedSortedIndices = sorted
         }
-        self.exactIndex = exact
-        self.caseInsensitiveIndex = caseInsensitive
-        
+
+        self.keywords = resolvedKeywords
+        self.recordBlocks = resolvedBlocks
+        self.sortedIndices = resolvedSortedIndices
+
         // Create public info
         self.info = MDictInfo(
             title: header.title,
@@ -101,6 +116,48 @@ internal final class MDXParser {
             isEncrypted: header.encrypted != 0,
             isCaseSensitive: header.keyCaseSensitive
         )
+
+        // === Background sidecar write (only when slow path was used) ===
+        // Hand the serialization to `MDictSidecarCache.enqueueWrite`, which
+        // either dispatches it immediately (default) or appends to a pending
+        // queue that the host app flushes after its initial bulk load
+        // (reduces CPU contention with parsing). Captured locals are
+        // immutable value types, safe to ferry to another queue.
+        if sidecarPayload == nil,
+           let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex),
+           let identity = SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex) {
+            let kws = resolvedKeywords
+            let blks = resolvedBlocks
+            let sorted = resolvedSortedIndices
+            let encoding = header.encoding
+            let caseSensitive = header.keyCaseSensitive
+            MDictSidecarCache.enqueueWrite {
+                do {
+                    try SidecarWriter.write(
+                        to: sidecarURL,
+                        identity: identity,
+                        keywords: kws,
+                        recordBlocks: blks,
+                        sortedIndices: sorted,
+                        encoding: encoding,
+                        isCaseSensitive: caseSensitive
+                    )
+                } catch {
+                    // Sidecar write is best-effort: a failure just means the
+                    // next launch will go through the slow path again.
+                    #if DEBUG
+                    print("⚠️ MDXParser: sidecar write failed: \(error)")
+                    #endif
+                }
+            }
+        }
+    }
+
+    // MARK: - SHA256 helper (used for sidecar identity)
+
+    private static func sha256Hex(of data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
     
     // MARK: - Lookup API
@@ -114,38 +171,75 @@ internal final class MDXParser {
         return lookupWithRedirect(keyword, depth: 0)
     }
 
-    /// Internal lookup with redirect following
+    /// Internal lookup with redirect following.
+    ///
+    /// Uses binary search over `sortedIndices` (which is sorted by lowercased
+    /// keyword) instead of the previous `[String: Int]` dictionaries. This
+    /// is O(log n) per lookup but eliminates the per-init dict construction
+    /// (which cost ~50–100ms and ~10–20MB for 300k-entry dictionaries).
+    ///
     /// - Parameters:
     ///   - keyword: The word to look up
     ///   - depth: Current redirect depth (to prevent infinite loops)
     /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
     private func lookupWithRedirect(_ keyword: String, depth: Int) -> (String, String, Int)? {
-       // Prevent infinite redirect loops (MDict spec: max 1 redirect; allow 2 for safety)
+        // Prevent infinite redirect loops (MDict spec: max 1 redirect; allow 2 for safety)
         guard depth < 2 else {
             print("⚠️ MDXParser: Max redirect depth reached for '\(keyword)'")
             return nil
         }
 
-        // 1. Try exact match first
-        if let idx = exactIndex[keyword] {
-            guard let definition = try? loadRecord(keywords[idx]) else {
-                return nil
-            }
-            return resolveRedirect(keyword: keywords[idx].keyword, definition: definition, index: idx, depth: depth)
+        guard let idx = findKeywordIndex(keyword) else { return nil }
+        guard let definition = try? loadRecord(keywords[idx]) else {
+            return nil
         }
-        
-        // 2. Fallback to case-insensitive match (only for case-insensitive dicts)
-        if !header.keyCaseSensitive {
-            let searchKey = keyword.lowercased()
-            if let idx = caseInsensitiveIndex[searchKey] {
-                guard let definition = try? loadRecord(keywords[idx]) else {
-                    return nil
-                }
-                return resolveRedirect(keyword: keywords[idx].keyword, definition: definition, index: idx, depth: depth)
-            }
+        return resolveRedirect(
+            keyword: keywords[idx].keyword,
+            definition: definition,
+            index: idx,
+            depth: depth
+        )
+    }
+
+    /// Find the index of a keyword via binary search over `sortedIndices`.
+    ///
+    /// Semantics preserved from the previous dict-based implementation:
+    /// - Case-sensitive dict: only an exact-case match is returned.
+    /// - Case-insensitive dict: prefer an exact-case match, otherwise fall
+    ///   back to the first case-insensitive match.
+    private func findKeywordIndex(_ query: String) -> Int? {
+        let loweredQuery = query.lowercased()
+
+        // Binary search for the first sortedIndices position whose
+        // lowercased(keyword) >= loweredQuery.
+        var lo = 0
+        var hi = sortedIndices.count
+        while lo < hi {
+            let mid = (lo + hi) >> 1
+            let mk = keywords[Int(sortedIndices[mid])].keyword.lowercased()
+            if mk < loweredQuery { lo = mid + 1 } else { hi = mid }
         }
-        
-        return nil
+
+        // Walk forward through entries that lowercase to the same string
+        // (i.e. ties in case-insensitive ordering).
+        var firstLowerMatch: Int? = nil
+        var i = lo
+        while i < sortedIndices.count {
+            let idx = Int(sortedIndices[i])
+            let kw = keywords[idx].keyword
+            if kw.lowercased() != loweredQuery { break }
+
+            if kw == query {
+                return idx  // exact case match always wins
+            }
+            if firstLowerMatch == nil {
+                firstLowerMatch = idx
+            }
+            i += 1
+        }
+
+        // No exact-case hit. Case-insensitive dicts fall back to lowered match.
+        return header.keyCaseSensitive ? nil : firstLowerMatch
     }
     
     /// Check if definition is a @@@LINK= redirect and follow it
@@ -192,23 +286,57 @@ internal final class MDXParser {
         return (kw.keyword, definition)
     }
     
-    /// Search for keywords with a prefix
+    /// Search for keywords with a prefix.
+    ///
+    /// Uses binary search over `sortedIndices` (sorted by lowercased keyword)
+    /// to locate the first match in O(log n), then scans forward sequentially
+    /// while keys still share the prefix. Replaces the previous O(n) linear
+    /// scan over the entire keyword list.
+    ///
+    /// Note: although MDX files do not strictly enforce alphabetical key order
+    /// in their on-disk layout, `sortedIndices` is built by us during slow-path
+    /// parsing (or loaded from sidecar) so binary search is always safe.
+    ///
     /// - Parameters:
     ///   - prefix: Prefix to search for
     ///   - limit: Maximum results (default 20)
     /// - Returns: Array of matching keywords (original case preserved)
     func search(prefix: String, limit: Int = 20) -> [String] {
-        let searchPrefix = header.keyCaseSensitive ? prefix : prefix.lowercased()
-        
+        guard !prefix.isEmpty else { return [] }
+        let loweredPrefix = prefix.lowercased()
+
+        // Binary search for first sortedIndices position whose
+        // lowercased(keyword) >= loweredPrefix.
+        var lo = 0
+        var hi = sortedIndices.count
+        while lo < hi {
+            let mid = (lo + hi) >> 1
+            let mk = keywords[Int(sortedIndices[mid])].keyword.lowercased()
+            if mk < loweredPrefix { lo = mid + 1 } else { hi = mid }
+        }
+
         var results: [String] = []
         results.reserveCapacity(min(limit, 100))
-        
-        for entry in keywords {
-            let key = header.keyCaseSensitive ? entry.keyword : entry.keyword.lowercased()
-            if key.hasPrefix(searchPrefix) {
-                results.append(entry.keyword)
+        let caseSensitive = header.keyCaseSensitive
+
+        var i = lo
+        while i < sortedIndices.count {
+            let kw = keywords[Int(sortedIndices[i])].keyword
+            let lowerKw = kw.lowercased()
+            // Stop as soon as we leave the prefix range.
+            guard lowerKw.hasPrefix(loweredPrefix) else { break }
+
+            if caseSensitive {
+                // Honour original case-sensitive semantics.
+                if kw.hasPrefix(prefix) {
+                    results.append(kw)
+                    if results.count >= limit { break }
+                }
+            } else {
+                results.append(kw)
                 if results.count >= limit { break }
             }
+            i += 1
         }
         return results
     }
@@ -274,11 +402,6 @@ internal final class MDXParser {
             count: Int(blockInfo.compressedSize)
         )
 
-        // Every block carries an 8-byte header (1 byte compression type
-        // + 4 byte checksum + 3 byte padding). A block shorter than 8
-        // bytes means the MDX index was miscomputed or the file is
-        // truncated/corrupt — fail cleanly instead of indexing into
-        // a Data slice with `[0]`, which would trap.
         guard compressedData.count >= 8 else {
             throw MDictError.invalidFormat("MDX record block too small: \(compressedData.count) bytes")
         }

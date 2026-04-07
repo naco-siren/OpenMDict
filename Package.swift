@@ -10,7 +10,8 @@ let package = Package(
     products: [
         .library(name: "OpenMDict", targets: ["OpenMDict"]),
         .library(name: "OpenMDictKit", targets: ["OpenMDictKit"]),
-        .executable(name: "openmdict", targets: ["OpenMDictCLI"])
+        .executable(name: "openmdict", targets: ["OpenMDictCLI"]),
+        .executable(name: "openmdict-bench", targets: ["OpenMDictBench"])
     ],
     targets: [
         // C library for LZO decompression
@@ -39,6 +40,13 @@ let package = Package(
             name: "OpenMDictCLI",
             dependencies: ["OpenMDict"],
             path: "Apps/CLI"
+        ),
+
+        // Performance benchmark tool (sidecar index A/B)
+        .executableTarget(
+            name: "OpenMDictBench",
+            dependencies: ["OpenMDict"],
+            path: "Apps/Bench"
         ),
         
         // Tests

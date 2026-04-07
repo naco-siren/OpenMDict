@@ -300,6 +300,18 @@ public final class MDictReader: @unchecked Sendable {
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
     }
+
+    // MARK: - Sidecar Cache Management
+
+    /// Delete any cached sidecar index file(s) for the given header SHA256.
+    ///
+    /// Call this from the host app when a dictionary is removed so the cache
+    /// directory does not accumulate orphans. No-op if `MDictSidecarCache.cacheDirectory`
+    /// is not configured or the file does not exist.
+    public static func removeSidecarCache(forHeaderSHA256 sha256: String) {
+        guard let url = MDictSidecarCache.sidecarURL(forHeaderSHA256: sha256) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
     
     // MARK: - Private Helpers
     
