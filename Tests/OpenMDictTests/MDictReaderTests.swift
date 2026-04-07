@@ -26,10 +26,15 @@ struct MDictReaderTests {
         ProcessInfo.processInfo.environment["MDICT_TEST_WORD"]
     }
     
-    // Shared reader instance
-    static var _reader: MDictReader?
-    static var _initialized = false
-    
+    // Shared reader instance.
+    //
+    // `nonisolated(unsafe)` is the correct escape hatch for Swift 6 strict
+    // concurrency here: the enclosing `@Suite(.serialized)` already
+    // guarantees these tests run sequentially, so there is no actual data
+    // race on this lazy-init fixture.
+    nonisolated(unsafe) static var _reader: MDictReader?
+    nonisolated(unsafe) static var _initialized = false
+
     static var reader: MDictReader? {
         if !_initialized {
             _initialized = true
@@ -40,7 +45,8 @@ struct MDictReaderTests {
             }
             do {
                 _reader = try MDictReader(path: path)
-                print("✅ [MDictReader] Loaded: \(_reader!.metadata.title)")
+                let title = _reader!.metadata.title ?? "(untitled)"
+                print("✅ [MDictReader] Loaded: \(title)")
                 print("   Entries: \(_reader!.entryCount), Resources: \(_reader!.resourceCount)")
             } catch {
                 print("❌ [MDictReader] Failed: \(error)")
@@ -54,8 +60,12 @@ struct MDictReaderTests {
     @Test("Facade provides dictionary metadata")
     func facadeMetadata() throws {
         let reader = try #require(Self.reader)
-        
-        #expect(!reader.metadata.title.isEmpty)
+
+        // `title` is Optional — either there is no title at all (some
+        // MDX files ship a placeholder) or there is a non-empty one.
+        if let title = reader.metadata.title {
+            #expect(!title.isEmpty)
+        }
         #expect(reader.entryCount > 0)
     }
     

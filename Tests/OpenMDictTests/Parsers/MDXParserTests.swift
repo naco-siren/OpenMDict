@@ -43,9 +43,10 @@ struct MDXParserTests {
         return Array(parser.allKeywords.prefix(count))
     }
     
-    // Shared parser instance
-    static var _parser: MDXParser?
-    static var _initialized = false
+    // Shared parser instance.
+    // `nonisolated(unsafe)` — serialized suite guarantees no concurrent access.
+    nonisolated(unsafe) static var _parser: MDXParser?
+    nonisolated(unsafe) static var _initialized = false
     
     static var parser: MDXParser? {
         if !_initialized {
@@ -101,8 +102,8 @@ struct MDXParserTests {
         for word in words {
             let result = parser.lookupWithIndex(word)
             #expect(result != nil, "'\(word)' should exist")
-            
-            if let (definition, _) = result {
+
+            if let (_, definition, _) = result {
                 #expect(!definition.isEmpty, "Definition for '\(word)' should not be empty")
             }
         }
@@ -176,14 +177,14 @@ struct MDXParserTests {
         
         let result = parser.lookupWithIndex(testWord)
         #expect(result != nil)
-        
-        if let (_, index) = result {
+
+        if let (_, _, index) = result {
             // Navigate to prev
             if index > 0 {
                 let prev = parser.entryAt(index - 1)
                 #expect(prev != nil)
             }
-            
+
             // Navigate to next
             if index < parser.entryCount - 1 {
                 let next = parser.entryAt(index + 1)
@@ -238,8 +239,8 @@ struct MDXParserTests {
         let firstWord = Self.testWords.first ?? parser.allKeywords[0]
         let result = parser.lookupWithIndex(firstWord)
         #expect(result != nil)
-        
-        if let (definition, _) = result {
+
+        if let (_, definition, _) = result {
             // Most MDict dictionaries use HTML format
             let hasHTML = definition.contains("<") && definition.contains(">")
             #expect(hasHTML, "Definition should contain HTML tags")

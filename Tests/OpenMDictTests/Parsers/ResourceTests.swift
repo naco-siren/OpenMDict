@@ -7,9 +7,10 @@ import Foundation
 @Suite(.serialized)
 struct ResourceTests {
     
-    static var mdxPath: String?
-    static var resourceProvider: ResourceProvider?
-    static var _initialized = false
+    // `nonisolated(unsafe)` — serialized suite guarantees no concurrent access.
+    nonisolated(unsafe) static var mdxPath: String?
+    nonisolated(unsafe) static var resourceProvider: ResourceProvider?
+    nonisolated(unsafe) static var _initialized = false
     
     static func initialize() {
         guard !_initialized else { return }
