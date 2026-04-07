@@ -104,6 +104,11 @@ final class DictionaryService: ObservableObject {
     ///
     /// The storage location is owned by `DictionaryStorageService` — this
     /// method just wires that path into the core lib.
+    ///
+    /// Also opportunistically sweeps orphan `.tmp-*` sidecar files that
+    /// may have been left behind if a previous sidecar write was killed
+    /// mid-rename. iOS will eventually evict them under disk pressure, but
+    /// doing it up-front is essentially free and keeps `Caches` tidy.
     func bootstrapSidecarCache(writeMode: SidecarWriteMode) {
         let dir = storage.sidecarIndexCacheURL
         // Best-effort creation. The writer will also create it lazily, but
@@ -111,6 +116,41 @@ final class DictionaryService: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         MDictSidecarCache.cacheDirectory = dir
         MDictSidecarCache.writeMode = writeMode
+
+        // Detached background sweep — we don't want to block launch on
+        // filesystem enumeration even for a few ms.
+        Task.detached(priority: .background) {
+            Self.sweepOrphanSidecarTempFiles(in: dir)
+        }
+    }
+
+    /// Remove orphan `.idx.tmp-*` files that are older than one hour.
+    /// These can only come from a `SidecarWriter.write` call that was
+    /// killed between `Data.write(.atomic)` and the `replaceItemAt` /
+    /// `moveItem` rename — the rename is atomic so a successful write
+    /// never leaves a tmp file behind. One hour is a generous threshold
+    /// to avoid racing an in-flight write from another concurrently
+    /// running process (e.g. the Action Extension — though it's
+    /// configured with `.disabled` writeMode and should never produce
+    /// these files).
+    nonisolated private static func sweepOrphanSidecarTempFiles(in dir: URL) {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: [.contentModificationDateKey]
+        ) else { return }
+
+        let oneHourAgo = Date().addingTimeInterval(-3600)
+        var removed = 0
+        for f in files where f.lastPathComponent.contains(".tmp-") {
+            if let mtime = try? f.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+               mtime < oneHourAgo {
+                try? FileManager.default.removeItem(at: f)
+                removed += 1
+            }
+        }
+        if removed > 0 {
+            debugLog("🗑️ Swept \(removed) orphan sidecar tmp file(s)")
+        }
     }
 
     // MARK: - Reset
