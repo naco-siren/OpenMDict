@@ -114,7 +114,10 @@ public final class MDDParser {
             at: blockInfo.fileOffset,
             count: Int(blockInfo.compressedSize)
         )
-        
+
+        guard compressedData.count >= 8 else {
+            throw MDictError.invalidFormat("MDD record block too small: \(compressedData.count) bytes")
+        }
         let compType = compressedData[0]
         guard let compression = CompressionType(rawValue: compType) else {
             throw MDictError.invalidFormat("Unknown compression type: \(compType)")
@@ -219,9 +222,12 @@ extension MDDParser {
         if isV2 { _ = try reader.readUInt32BE() }  // adler32
         
         let keyIndexData = try reader.readBytes(Int(keyIndexCompLen))
+        guard keyIndexData.count >= 8 else {
+            throw MDictError.invalidFormat("MDD key-index data too small: \(keyIndexData.count) bytes")
+        }
         let compType = keyIndexData[0]
         var indexDataToDecompress = Data(keyIndexData.dropFirst(8))
-        
+
         if header.hasKeywordIndexEncryption {
             let checksumBytes = Data(keyIndexData[4..<8])
             indexDataToDecompress = KeyIndexDecryptor.decrypt(Data(keyIndexData.dropFirst(8)), checksumBytes: checksumBytes)
@@ -271,8 +277,12 @@ extension MDDParser {
         
         for blockInfo in keyBlockInfos {
             let compressedBlock = try reader.readBytes(Int(blockInfo.compSize))
+            // See loadRecord for the rationale on this guard.
+            guard compressedBlock.count >= 8 else {
+                throw MDictError.invalidFormat("MDD keyword block too small: \(compressedBlock.count) bytes")
+            }
             let blockCompType = compressedBlock[0]
-            
+
             let decompressedBlock: Data
             if let compression = CompressionType(rawValue: blockCompType), compression != .none {
                 decompressedBlock = try Decompressor.decompress(Data(compressedBlock.dropFirst(8)), type: compression, decompressedSize: Int(blockInfo.decompSize))

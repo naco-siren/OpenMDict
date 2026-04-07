@@ -273,7 +273,15 @@ internal final class MDXParser {
             at: blockInfo.fileOffset,
             count: Int(blockInfo.compressedSize)
         )
-        
+
+        // Every block carries an 8-byte header (1 byte compression type
+        // + 4 byte checksum + 3 byte padding). A block shorter than 8
+        // bytes means the MDX index was miscomputed or the file is
+        // truncated/corrupt — fail cleanly instead of indexing into
+        // a Data slice with `[0]`, which would trap.
+        guard compressedData.count >= 8 else {
+            throw MDictError.invalidFormat("MDX record block too small: \(compressedData.count) bytes")
+        }
         let compType = compressedData[0]
         guard let compression = CompressionType(rawValue: compType) else {
             throw MDictError.invalidFormat("Unknown compression type: \(compType)")
@@ -477,10 +485,13 @@ extension MDXParser {
         if isV2 { _ = try reader.readUInt32BE() }  // adler32
         
         let keyIndexData = try reader.readBytes(Int(keyIndexCompLen))
-        
+
         let decompressedIndex: Data
         if isV2 {
             // V2: key index has 8-byte header (compression type + checksum)
+            guard keyIndexData.count >= 8 else {
+                throw MDictError.invalidFormat("MDX key-index data too small: \(keyIndexData.count) bytes")
+            }
             let compType = keyIndexData[0]
             var indexDataToDecompress = Data(keyIndexData.dropFirst(8))
             
@@ -540,8 +551,11 @@ extension MDXParser {
         
         for blockInfo in keyBlockInfos {
             let compressedBlock = try reader.readBytes(Int(blockInfo.compSize))
+            guard compressedBlock.count >= 8 else {
+                throw MDictError.invalidFormat("MDX keyword block too small: \(compressedBlock.count) bytes")
+            }
             let blockCompType = compressedBlock[0]
-            
+
             let decompressedBlock: Data
             if let compression = CompressionType(rawValue: blockCompType), compression != .none {
                 decompressedBlock = try Decompressor.decompress(Data(compressedBlock.dropFirst(8)), type: compression, decompressedSize: Int(blockInfo.decompSize))
