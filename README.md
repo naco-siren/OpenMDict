@@ -205,6 +205,65 @@ slow path (which then overwrites it). A corrupt sidecar (wrong magic bytes
 or format version) is rejected the same way — corruption never causes a
 crash or incorrect lookup results.
 
+## Performance Profiling
+
+The core lib emits `OSSignposter` intervals around the parser hot paths so
+you can profile dictionary loading in Instruments without adding any
+custom timing code. Always-on; `os_signpost` is essentially free when
+nobody is collecting events.
+
+**Subsystem**: `io.github.naco-siren.openmdict`
+**Category**: `perf`
+
+Three nested intervals:
+
+| Name | Tag | Where | Notes |
+|---|---|---|---|
+| `MDXParser.init` | filename | core lib | Fires `MDXParser.path` event with payload `"fast"` or `"slow"` after the sidecar branch resolves. |
+| `MDDParser.init` | filename | core lib | Same shape; tags resource files. |
+| `DictionaryService.bulkLoad` | `count=N mode=parallel\|serial` | iOS app | Umbrella span for the initial bulk load. Per-dict parser intervals nest inside it. |
+
+### Collecting from Instruments
+
+1. Profile the iOS app in **Instruments**.
+2. Pick the **Points of Interest** template (or *os_signpost*).
+3. Filter the timeline by subsystem `io.github.naco-siren.openmdict`.
+
+The bulk-load span shows up as a single bar with the per-dict parser
+intervals nested as children. The `path` event lets you tell at a glance
+whether each dict went through the fast or slow path.
+
+### Collecting from a connected device via the command line
+
+```bash
+log stream --device --predicate 'subsystem == "io.github.naco-siren.openmdict"'
+```
+
+### Production aggregation via MetricKit (optional, opt-in)
+
+The signposts are automatically picked up by `MXMetricManager` **if the
+host app explicitly subscribes**. The data then flows back to App Store
+Connect / Xcode Organizer's Metrics panel as anonymized aggregates from
+real users on TestFlight / App Store builds — no server of your own
+required. See Apple's
+[`MetricKit` documentation](https://developer.apple.com/documentation/metrickit)
+for the subscription boilerplate (`MXMetricManager.shared.add(subscriber)`).
+
+### Privacy posture
+
+`os_signpost` events emitted by this library are written to the device's
+**local** unified log only. They are never transmitted off the device on
+their own — local-only diagnostic instrumentation does not constitute
+"data collection" for the purposes of the App Store privacy nutrition
+label. An app that uses this library and does **not** subscribe to
+`MXMetricManager` can still legitimately answer "Data Not Collected"
+on App Store Connect.
+
+If a host app **does** subscribe to MetricKit, the standard MetricKit
+disclosure rules apply (typically "Diagnostics → Performance Data" and
+"Diagnostics → Crash Data"); this library doesn't subscribe on its own,
+so the choice is the host app's.
+
 ## CLI Tools
 
 Two executables ship with the package: `openmdict` (general-purpose reader)
