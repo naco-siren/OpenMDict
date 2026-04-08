@@ -563,6 +563,19 @@ final class DictionaryService: ObservableObject {
     /// cross-reader shared state, and `MDictSidecarCache.enqueueWrite` is
     /// protected by its own `NSLock`.
     ///
+    /// **Note on Top-1 ordering**: under parallel mode, the first dict in
+    /// `sortedLoadSequence()` (the user's Top-1 in `.auto` mode) is still
+    /// the first task *dispatched* — it starts loading at t=0 alongside
+    /// the rest of the first `maxConcurrent` batch — but its *completion*
+    /// is no longer guaranteed to be first. If Top-1 happens to be the
+    /// largest dict and it's a cold launch (slow path), faster dicts may
+    /// finish before it. Sequential mode preserves the strict ordering.
+    /// The trade-off favours parallel because (a) warm launches dominate
+    /// once the sidecar exists, (b) on warm launches the per-dict init
+    /// is sub-25ms so completion order is imperceptible, and (c) inserting
+    /// a serial preamble for Top-1 would hurt everyone to fix a rare cold-
+    /// launch edge case.
+    ///
     /// `MDict.$state` changes notify subscribers regardless of path.
     func loadAllDictionaries() async {
         let startTime = CFAbsoluteTimeGetCurrent()
