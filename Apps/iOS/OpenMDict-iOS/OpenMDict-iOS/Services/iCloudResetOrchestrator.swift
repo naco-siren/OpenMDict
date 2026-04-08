@@ -127,6 +127,7 @@ final class iCloudResetOrchestrator {
         onProgress(.deletingLocalData)
         LocalDataResetService.shared.deleteAllDictionaryFiles()
         LocalDataResetService.shared.deleteMDDCache()
+        LocalDataResetService.shared.deleteMDXIndexCache()
 
         // ── Step 5: Reset sync mode → .notDecided ─────────────────────
         // Forces the full setup flow (sync mode chooser) on next UI reset,
@@ -165,6 +166,7 @@ final class iCloudResetOrchestrator {
         onProgress(.deletingLocalData)
         LocalDataResetService.shared.deleteAllDictionaryFiles()
         LocalDataResetService.shared.deleteMDDCache()
+        LocalDataResetService.shared.deleteMDXIndexCache()
 
         // ── Step 3: Reset sync mode → .notDecided ────────────────────
         SyncModeService.shared.currentMode = .notDecided
@@ -227,6 +229,7 @@ final class iCloudResetOrchestrator {
         // 3. Delete local files.
         LocalDataResetService.shared.deleteAllDictionaryFiles()
         LocalDataResetService.shared.deleteMDDCache()
+        LocalDataResetService.shared.deleteMDXIndexCache()
 
         // 4. Reset sync mode → .notDecided (full setup flow on UI reset).
         SyncModeService.shared.currentMode = .notDecided
