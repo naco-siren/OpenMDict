@@ -266,6 +266,10 @@ class MainSplitViewController: UISplitViewController {
             self?.showTroubleshootingScreen()
         }
 
+        dictionaryListVC.onAICoachSelected = { [weak self] in
+            self?.showAICoachPOC()
+        }
+
         wordListVC.onWordSelected = { [weak self] word in
             self?.select(word: word)
         }
@@ -579,6 +583,22 @@ class MainSplitViewController: UISplitViewController {
         nav.modalPresentationStyle = traitCollection.horizontalSizeClass == .regular
             ? .formSheet : .pageSheet
         present(nav, animated: true)
+    }
+
+    // MARK: - AI Coach POC (M14)
+
+    /// Present the AI Coach flashcard POC.
+    ///
+    /// Gate is `isVisible` (not `isGenerationReady`): if the row is showing
+    /// in the sidebar, tapping it should always open the modal. The POC VC
+    /// itself surfaces a friendly "not ready" message via
+    /// `AICoach.unavailableDescription` if the on-device model isn't
+    /// actually available — that's better UX than silently doing nothing.
+    private func showAICoachPOC() {
+        guard AICoach.isVisible else { return }
+        if #available(iOS 26, *) {
+            presentAICoachChooser(from: self)
+        }
     }
 
     // MARK: - iCloud Troubleshooting

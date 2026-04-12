@@ -717,6 +717,9 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .iCloudTroubleshoot:
             content.text = L10n.Troubleshoot.title
             content.image = UIImage(systemName: "key.icloud")
+        case .aiCoach:
+            content.text = L10n.Sidebar.aiCoach
+            content.image = UIImage(systemName: "sparkles")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

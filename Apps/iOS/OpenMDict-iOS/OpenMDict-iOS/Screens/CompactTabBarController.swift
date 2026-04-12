@@ -541,6 +541,27 @@ class CompactTabBarController: UITabBarController {
             hideSidebar()
             showTroubleshootingScreen()
         }
+
+        sidebarVC.onAICoachSelected = { [weak self] in
+            guard let self else { return }
+            hideSidebar()
+            presentAICoachPOC()
+        }
+    }
+
+    // MARK: - AI Coach POC (M14)
+
+    /// Present the M14 flashcard POC modal.
+    ///
+    /// Gate is `isVisible` (matches the sidebar/management row visibility).
+    /// The POC VC surfaces a friendly "not ready" state via
+    /// `AICoach.unavailableDescription` if the on-device model itself
+    /// isn't available — better UX than silently doing nothing on tap.
+    private func presentAICoachPOC() {
+        guard AICoach.isVisible else { return }
+        if #available(iOS 26, *) {
+            presentAICoachChooser(from: self)
+        }
     }
 
     // MARK: - Word Selection (Lookup tab)
@@ -692,6 +713,10 @@ class CompactTabBarController: UITabBarController {
 
         managementVC.onTroubleshootSelected = { [weak self] in
             self?.showTroubleshootingScreen()
+        }
+
+        managementVC.onAICoachSelected = { [weak self] in
+            self?.presentAICoachPOC()
         }
 
         managementVC.onAppSettingsSelected = {

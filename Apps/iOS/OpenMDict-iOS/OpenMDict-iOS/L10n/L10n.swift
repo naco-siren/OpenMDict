@@ -240,6 +240,180 @@ nonisolated enum L10n {
         static var lookupHistory: String {
             NSLocalizedString("sidebar.lookupHistory", value: "My Lookup History", comment: "Sidebar management action: lookup history")
         }
+        /// M14 POC. English-only for this round — other languages fall back to this value.
+        static var aiCoach: String {
+            NSLocalizedString("sidebar.aiCoach", value: "AI Coach (POC)", comment: "Sidebar management action: AI-powered study flashcard POC")
+        }
+    }
+
+    // MARK: - AI Coach (M14)
+
+    enum AICoach {
+        static var title: String {
+            NSLocalizedString("aiCoach.title", value: "AI Coach", comment: "AI Coach: nav bar title for chooser")
+        }
+        static var chooseMode: String {
+            NSLocalizedString("aiCoach.chooseMode", value: "Choose a study mode", comment: "AI Coach: chooser action sheet message")
+        }
+        static var flashcard: String {
+            NSLocalizedString("aiCoach.flashcard", value: "Flashcard", comment: "AI Coach: chooser option — flashcard mode")
+        }
+        static var wordQuiz: String {
+            NSLocalizedString("aiCoach.wordQuiz", value: "Word Relationship Quiz", comment: "AI Coach: chooser option — word quiz mode")
+        }
+        static var openSettings: String {
+            NSLocalizedString("aiCoach.openSettings", value: "Open OpenMDict Settings", comment: "AI Coach: button to open app settings")
+        }
+
+        // MARK: Flashcard
+
+        enum Flashcard {
+            static var title: String {
+                NSLocalizedString("aiCoach.flashcard.title", value: "AI Coach (POC)", comment: "Flashcard: nav bar title")
+            }
+            static var sectionDefinition: String {
+                NSLocalizedString("aiCoach.flashcard.definition", value: "Definition", comment: "Flashcard: section title")
+            }
+            static var sectionExample: String {
+                NSLocalizedString("aiCoach.flashcard.example", value: "Example", comment: "Flashcard: section title")
+            }
+            static var sectionMnemonic: String {
+                NSLocalizedString("aiCoach.flashcard.mnemonic", value: "Mnemonic", comment: "Flashcard: section title")
+            }
+            static var sectionRelated: String {
+                NSLocalizedString("aiCoach.flashcard.related", value: "Related words", comment: "Flashcard: section title")
+            }
+            static var reveal: String {
+                NSLocalizedString("aiCoach.flashcard.reveal", value: "Reveal", comment: "Flashcard: reveal button")
+            }
+            static var again: String {
+                NSLocalizedString("aiCoach.flashcard.again", value: "Again", comment: "Flashcard: rating button — need to review again")
+            }
+            static var good: String {
+                NSLocalizedString("aiCoach.flashcard.good", value: "Good", comment: "Flashcard: rating button — understood")
+            }
+            static var easy: String {
+                NSLocalizedString("aiCoach.flashcard.easy", value: "Easy", comment: "Flashcard: rating button — already knew")
+            }
+            static var nextCard: String {
+                NSLocalizedString("aiCoach.flashcard.nextCard", value: "Next card →", comment: "Flashcard: next card button")
+            }
+            static func cardProgress(_ current: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.flashcard.cardProgress", value: "Card %d of %d", comment: "Flashcard: progress header — Card 1 of 5"), current, total)
+            }
+            static var generating: String {
+                NSLocalizedString("aiCoach.flashcard.generating", value: "Generating flashcard with on-device AI\u{2026}", comment: "Flashcard: loading status")
+            }
+            static var ready: String {
+                NSLocalizedString("aiCoach.flashcard.ready", value: "Ready. Reveal when you want to check yourself.", comment: "Flashcard: generation complete status")
+            }
+            static var noContent: String {
+                NSLocalizedString("aiCoach.flashcard.noContent", value: "Model returned no content.", comment: "Flashcard: empty generation result")
+            }
+            static var noCards: String {
+                NSLocalizedString("aiCoach.flashcard.noCards", value: "Bookmark some English words first, then come back to try AI Coach. It reviews up to 5 of your most recent bookmarks.", comment: "Flashcard: empty state — no bookmarks")
+            }
+            static func allDone(_ count: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.flashcard.allDone", value: "That's all %d cards for this session.", comment: "Flashcard: all cards completed"), count)
+            }
+            static var notReady: String {
+                NSLocalizedString("aiCoach.flashcard.notReady", value: "Not ready", comment: "Flashcard: header when AI not available")
+            }
+        }
+
+        // MARK: Word Quiz
+
+        enum Quiz {
+            static var title: String {
+                NSLocalizedString("aiCoach.quiz.title", value: "Word Quiz", comment: "Quiz: nav bar title")
+            }
+            static var instruction: String {
+                NSLocalizedString("aiCoach.quiz.instruction", value: "Classify each word's relationship:", comment: "Quiz: instruction label")
+            }
+            static var synonym: String {
+                NSLocalizedString("aiCoach.quiz.synonym", value: "Synonym", comment: "Quiz: relationship option")
+            }
+            static var antonym: String {
+                NSLocalizedString("aiCoach.quiz.antonym", value: "Antonym", comment: "Quiz: relationship option")
+            }
+            static var irrelevant: String {
+                NSLocalizedString("aiCoach.quiz.irrelevant", value: "Irrelevant", comment: "Quiz: relationship option — not related")
+            }
+            static var checkAnswers: String {
+                NSLocalizedString("aiCoach.quiz.checkAnswers", value: "Check Answers", comment: "Quiz: submit button")
+            }
+            static func score(_ correct: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.score", value: "Score: %d / %d", comment: "Quiz: score display — Score: 7 / 9"), correct, total)
+            }
+            static var generating: String {
+                NSLocalizedString("aiCoach.quiz.generating", value: "Generating quiz with on-device AI\u{2026}", comment: "Quiz: loading status")
+            }
+            static var noBookmarks: String {
+                NSLocalizedString("aiCoach.quiz.noBookmarks", value: "Bookmark some English words first, then come back.", comment: "Quiz: empty state — no bookmarks")
+            }
+            static var noCandidates: String {
+                NSLocalizedString("aiCoach.quiz.noCandidates", value: "Couldn't verify any candidates in your dictionaries. Try bookmarking words from a monolingual English dictionary (like WordNet).", comment: "Quiz: no verified candidates")
+            }
+
+            // Grading result subtitles: "Actually, X is [a synonym]."
+            static func correctResult(_ word: String, _ relationship: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.correctResult", value: "Correct — \"%@\" is %@.", comment: "Quiz: grading — correct answer. Args: word, relationship"), word, relationship)
+            }
+            static func incorrectResult(_ word: String, _ relationship: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.incorrectResult", value: "Actually, \"%@\" is %@.", comment: "Quiz: grading — incorrect answer. Args: word, relationship"), word, relationship)
+            }
+            static var aSynonym: String {
+                NSLocalizedString("aiCoach.quiz.aSynonym", value: "a synonym", comment: "Quiz: relationship article form for subtitle")
+            }
+            static var anAntonym: String {
+                NSLocalizedString("aiCoach.quiz.anAntonym", value: "an antonym", comment: "Quiz: relationship article form for subtitle")
+            }
+            static var aSimilarWord: String {
+                NSLocalizedString("aiCoach.quiz.aSimilarWord", value: "a similar-looking but different word", comment: "Quiz: relationship article form for subtitle")
+            }
+            static var unrelated: String {
+                NSLocalizedString("aiCoach.quiz.unrelated", value: "irrelevant", comment: "Quiz: relationship article form for subtitle")
+            }
+        }
+
+        // MARK: Dismiss confirmation
+
+        static var leaveTitle: String {
+            NSLocalizedString("aiCoach.leave.title", value: "Leave Quiz?", comment: "AI Coach: dismiss confirmation alert title")
+        }
+        static var leaveMessage: String {
+            NSLocalizedString("aiCoach.leave.message", value: "Your progress will be lost.", comment: "AI Coach: dismiss confirmation alert message")
+        }
+        static var leaveAction: String {
+            NSLocalizedString("aiCoach.leave.action", value: "Leave", comment: "AI Coach: dismiss confirmation — destructive action")
+        }
+        static var stayAction: String {
+            NSLocalizedString("aiCoach.leave.stay", value: "Stay", comment: "AI Coach: dismiss confirmation — cancel action")
+        }
+
+        // MARK: Availability / error messages
+
+        static var deviceNotEligible: String {
+            NSLocalizedString("aiCoach.error.deviceNotEligible", value: "This device does not support Apple Intelligence on-device language models. AI Coach requires an iPhone 15 Pro / iPhone 16 / Apple silicon iPad or Mac.", comment: "AI Coach: device not eligible error")
+        }
+        static var aiNotEnabled: String {
+            NSLocalizedString("aiCoach.error.aiNotEnabled", value: "Apple Intelligence is not enabled on this device. Open Settings \u{2192} Apple Intelligence & Siri and turn on Apple Intelligence, then try again.", comment: "AI Coach: Apple Intelligence not enabled error")
+        }
+        static var modelNotReady: String {
+            NSLocalizedString("aiCoach.error.modelNotReady", value: "The on-device language model is still downloading or warming up. Try again in a few minutes.", comment: "AI Coach: model not ready error")
+        }
+        static var contextTooLong: String {
+            NSLocalizedString("aiCoach.error.contextTooLong", value: "The word and its dictionary definition together are too long for the on-device model (>4096 tokens). Try a shorter definition.", comment: "AI Coach: context window exceeded error")
+        }
+        static var guardrail: String {
+            NSLocalizedString("aiCoach.error.guardrail", value: "The on-device model blocked this content (safety guardrail). Skip this word for now.", comment: "AI Coach: guardrail violation error")
+        }
+        static var assetsUnavailable: String {
+            NSLocalizedString("aiCoach.error.assetsUnavailable", value: "The on-device language model assets aren't available yet. They may still be downloading \u{2014} try again in a few minutes.", comment: "AI Coach: assets unavailable error")
+        }
+        static var rateLimited: String {
+            NSLocalizedString("aiCoach.error.rateLimited", value: "The on-device model is rate-limited right now. Wait a moment and try again.", comment: "AI Coach: rate limited error")
+        }
     }
 
     // MARK: - Word List & Search

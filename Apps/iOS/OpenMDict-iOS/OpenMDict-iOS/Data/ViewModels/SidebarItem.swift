@@ -24,6 +24,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     case newUserGuide          // Management section: new user guide / pro tips
     case changeAppIcon         // Management section: change app icon
     case iCloudTroubleshoot    // Management section: iCloud troubleshooting (visible only when sync enabled)
+    case aiCoach               // Management section: AI Coach POC (visible only when AICoach.isVisible)
     case settings
 
     var itemId: String {
@@ -41,6 +42,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
         case .newUserGuide: return "action:newUserGuide"
         case .changeAppIcon: return "action:changeAppIcon"
         case .iCloudTroubleshoot: return "action:iCloudTroubleshoot"
+        case .aiCoach: return "action:aiCoach"
         case .settings: return "action:settings"
         }
     }

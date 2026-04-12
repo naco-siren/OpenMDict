@@ -148,6 +148,24 @@
 			<key>DefaultValue</key>
 			<true/>
 		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>AI_COACH_GROUP</string>
+			<key>FooterText</key>
+			<string>AI_COACH_FOOTER</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>AI_COACH_ENABLED</string>
+			<key>Key</key>
+			<string>aiCoachEnabled</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
 	</array>
 </dict>
 </plist>

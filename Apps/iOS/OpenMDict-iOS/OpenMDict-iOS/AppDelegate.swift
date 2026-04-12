@@ -23,6 +23,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "dictionaryLoadOrder": 1,  // .auto (tiered lexicographic)
             "showLookupCount": true,
             "showEnhanceDarkMode": true,
+            // M14 POC: off by default. User opts in via Settings.app; the
+            // in-app entry point additionally checks iOS 26 + hardware support.
+            "aiCoachEnabled": false,
         ]
         UserDefaults.standard.register(defaults: defaults)
         UserDefaults.shared.register(defaults: defaults)
@@ -95,6 +98,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             Task {
                 await iCloudResetOrchestrator.shared.checkAndHandlePassiveReset()
             }
+        }
+
+        // M14 POC: prewarm the Foundation Models session if the AI Coach
+        // feature is both supported AND enabled by the user. Prewarm is
+        // fire-and-forget and cuts first-generation latency by ~40%; it
+        // compiles only on iOS 26+ SDK because it touches FoundationModels.
+        if #available(iOS 26, *), AICoach.isGenerationReady {
+            AICoachService.shared.prewarm()
         }
 
         // iPadOS 26+: use UIMainMenuSystem.Configuration to declaratively

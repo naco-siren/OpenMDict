@@ -577,6 +577,7 @@ final class TutorialViewController: UIViewController {
         mgmtVC.onDownloadPresetsSelected = noop
         mgmtVC.onChangeAppIconSelected = noop
         mgmtVC.onTroubleshootSelected = noop
+        mgmtVC.onAICoachSelected = noop
         mgmtVC.onAppSettingsSelected = noop
         mgmtVC.onNewUserGuideSelected = noop
 
@@ -613,6 +614,7 @@ final class TutorialViewController: UIViewController {
         sidebarVC.onNewUserGuideSelected = {}
         sidebarVC.onChangeAppIconSelected = {}
         sidebarVC.onTroubleshootSelected = {}
+        sidebarVC.onAICoachSelected = {}
 
         return sidebarVC
     }

@@ -28,6 +28,7 @@ private nonisolated enum MgmtItem: Hashable, Sendable {
     case newUserGuide
     case changeAppIcon
     case iCloudTroubleshoot
+    case aiCoach
     case appSettings
 }
 
@@ -55,6 +56,9 @@ class CompactManagementViewController: UIViewController {
     /// "iCloud Troubleshooting" tapped
     var onTroubleshootSelected: (() -> Void)?
 
+    /// "AI Coach" tapped (iOS 26+, only visible when AICoach.isVisible)
+    var onAICoachSelected: (() -> Void)?
+
     /// "App Settings" tapped
     var onAppSettingsSelected: (() -> Void)?
 
@@ -74,6 +78,23 @@ class CompactManagementViewController: UIViewController {
 
         setupCollectionView()
         setupDataSource()
+        rebuildSnapshot()
+
+        // M14 POC: the AI Coach row is gated by a Settings.bundle toggle
+        // the user flips in Settings.app, outside our process. Observe
+        // scene activation so the row appears/disappears immediately when
+        // the user comes back — `rebuildSnapshot()` is idempotent and
+        // cheap (static items, DiffableDataSource no-ops on equal diffs).
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDidBecomeActive),
+            name: UIScene.didActivateNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleDidBecomeActive() {
+        debugLog("🪄 management didBecomeActive → \(AICoach.diagnosticSummary)")
         rebuildSnapshot()
     }
 
@@ -116,6 +137,9 @@ class CompactManagementViewController: UIViewController {
             case .iCloudTroubleshoot:
                 config.text = L10n.Troubleshoot.title
                 config.image = UIImage(systemName: "key.icloud")
+            case .aiCoach:
+                config.text = L10n.Sidebar.aiCoach
+                config.image = UIImage(systemName: "sparkles")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")
@@ -138,7 +162,15 @@ class CompactManagementViewController: UIViewController {
     private func rebuildSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<MgmtSection, MgmtItem>()
         snapshot.appendSections([.actions])
-        let items: [MgmtItem] = [.addGroup, .importDictionary, .downloadPresets, .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .appSettings]
+        var items: [MgmtItem] = []
+        // M14 POC: AI Coach at the top of the tab when enabled.
+        if AICoach.isVisible {
+            items.append(.aiCoach)
+        }
+        items.append(contentsOf: [
+            .addGroup, .importDictionary, .downloadPresets,
+            .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .appSettings,
+        ])
         snapshot.appendItems(items, toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -172,6 +204,8 @@ extension CompactManagementViewController: UICollectionViewDelegate {
             onChangeAppIconSelected?()
         case .iCloudTroubleshoot:
             onTroubleshootSelected?()
+        case .aiCoach:
+            onAICoachSelected?()
         case .appSettings:
             onAppSettingsSelected?()
         }

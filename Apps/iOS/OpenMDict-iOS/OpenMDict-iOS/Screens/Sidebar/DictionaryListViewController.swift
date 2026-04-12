@@ -33,6 +33,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onNewUserGuideSelected: (() -> Void)?
     var onChangeAppIconSelected: (() -> Void)?
     var onTroubleshootSelected: (() -> Void)?
+    var onAICoachSelected: (() -> Void)?
 
     // MARK: - Data Providers
 
@@ -502,6 +503,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
 
     @objc private func handleDidBecomeActive() {
         refreshCKAccountStatus()
+        // M14 POC: the AI Coach sidebar row is gated by a Settings.bundle
+        // toggle the user flips outside the app. When they come back,
+        // rebuild the snapshot so the row appears/disappears immediately
+        // — `applySubscriptionSnapshot()` is cheap when the signature is
+        // unchanged (cached `lastSnapshotSignature` short-circuits the
+        // outline apply), so this is safe to call unconditionally.
+        debugLog("🪄 sidebar didBecomeActive → \(AICoach.diagnosticSummary)")
+        applySubscriptionSnapshot()
     }
 
     /// Async-check CKAccountStatus and cache the result.
@@ -690,7 +699,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 
             case .importDictionary, .addGroup, .bookmarks, .lookupHistory,
                  .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                 .newUserGuide, .changeAppIcon, .iCloudTroubleshoot, .settings:
+                 .newUserGuide, .changeAppIcon, .iCloudTroubleshoot, .aiCoach, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -740,11 +749,19 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         if isCompactSidebarMode {
             mgmtItems = []
         } else {
-            let actions: [SidebarItem] = [
+            var actions: [SidebarItem] = [
                 .header(L10n.Sidebar.management, isBold: false),
+            ]
+            // M14 POC: AI Coach sits at the top of the Management section
+            // when enabled — it's the most prominent new capability and we
+            // want users to find it first.
+            if AICoach.isVisible {
+                actions.append(.aiCoach)
+            }
+            actions.append(contentsOf: [
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
                 .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .settings,
-            ]
+            ])
             mgmtItems = actions
         }
 
@@ -807,10 +824,15 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             var mgmtSnapshot = NSDiffableDataSourceSectionSnapshot<SidebarItem>()
             let mgmtHeader = SidebarItem.header(L10n.Sidebar.management, isBold: false)
             mgmtSnapshot.append([mgmtHeader])
-            let mgmtChildren: [SidebarItem] = [
+            var mgmtChildren: [SidebarItem] = []
+            // M14 POC: AI Coach at the top of the section when enabled.
+            if AICoach.isVisible {
+                mgmtChildren.append(.aiCoach)
+            }
+            mgmtChildren.append(contentsOf: [
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
                 .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .settings,
-            ]
+            ])
             mgmtSnapshot.append(mgmtChildren, to: mgmtHeader)
             mgmtSnapshot.expand([mgmtHeader])
             dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
@@ -1033,6 +1055,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .iCloudTroubleshoot:
             return !isEditing
 
+        case .aiCoach:
+            return !isEditing
+
         case .settings:
             // Management actions are disabled in edit mode
             return !isEditing
@@ -1181,6 +1206,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .iCloudTroubleshoot:
             collectionView.deselectItem(at: indexPath, animated: true)
             onTroubleshootSelected?()
+
+        case .aiCoach:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onAICoachSelected?()
 
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)
