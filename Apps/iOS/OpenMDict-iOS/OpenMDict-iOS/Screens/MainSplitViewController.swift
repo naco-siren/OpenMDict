@@ -597,7 +597,7 @@ class MainSplitViewController: UISplitViewController {
     private func showAICoachPOC() {
         guard AICoach.isVisible else { return }
         if #available(iOS 26, *) {
-            presentAICoachChooser(from: self)
+            presentAICoach(from: self)
         }
     }
 

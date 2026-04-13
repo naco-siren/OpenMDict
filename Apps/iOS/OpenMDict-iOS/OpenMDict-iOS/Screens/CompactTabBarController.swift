@@ -560,7 +560,7 @@ class CompactTabBarController: UITabBarController {
     private func presentAICoachPOC() {
         guard AICoach.isVisible else { return }
         if #available(iOS 26, *) {
-            presentAICoachChooser(from: self)
+            presentAICoach(from: self)
         }
     }
 

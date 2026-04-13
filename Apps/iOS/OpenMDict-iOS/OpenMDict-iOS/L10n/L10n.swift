@@ -261,6 +261,12 @@ nonisolated enum L10n {
         static var wordQuiz: String {
             NSLocalizedString("aiCoach.wordQuiz", value: "Word Relationship Quiz", comment: "AI Coach: chooser option — word quiz mode")
         }
+        static var wordQuizDesc: String {
+            NSLocalizedString("aiCoach.wordQuizDesc", value: "Classify synonyms, antonyms, and look-alikes", comment: "AI Coach: word quiz mode description")
+        }
+        static var flashcardDesc: String {
+            NSLocalizedString("aiCoach.flashcardDesc", value: "AI-generated flashcards from your bookmarks", comment: "AI Coach: flashcard mode description")
+        }
         static var openSettings: String {
             NSLocalizedString("aiCoach.openSettings", value: "Open OpenMDict Settings", comment: "AI Coach: button to open app settings")
         }
@@ -327,8 +333,32 @@ nonisolated enum L10n {
             static var title: String {
                 NSLocalizedString("aiCoach.quiz.title", value: "Word Quiz", comment: "Quiz: nav bar title")
             }
+            static var titleShort: String {
+                NSLocalizedString("aiCoach.quiz.titleShort", value: "Word Relationship", comment: "Quiz: compact nav bar title (next to icon)")
+            }
+            static var selectAnswer: String {
+                NSLocalizedString("aiCoach.quiz.selectAnswer", value: "Select your answer", comment: "Quiz: candidate cell placeholder subtitle")
+            }
+            static func questionsToGo(_ count: Int) -> String {
+                let fmt = count == 1
+                    ? NSLocalizedString("aiCoach.quiz.questionsToGo.one", value: "%d question to go", comment: "Quiz: CTA — 1 question remaining")
+                    : NSLocalizedString("aiCoach.quiz.questionsToGo.other", value: "%d questions to go", comment: "Quiz: CTA — N questions remaining")
+                return String(format: fmt, count)
+            }
+            static var next: String {
+                NSLocalizedString("aiCoach.quiz.next", value: "Next", comment: "Quiz: CTA after grading — start next quiz")
+            }
             static var instruction: String {
                 NSLocalizedString("aiCoach.quiz.instruction", value: "Classify each word's relationship:", comment: "Quiz: instruction label")
+            }
+            static func classifyInstruction(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.classifyInstruction", value: "Please classify each word's relationship to \"%@\":", comment: "Quiz: header message below card — Args: quiz word"), word)
+            }
+            static var viewDefinitions: String {
+                NSLocalizedString("aiCoach.quiz.viewDefinitions", value: "Tap on each word card to view its definition.", comment: "Quiz: header message after grading")
+            }
+            static func scoreMessage(_ correct: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.scoreMessage", value: "You got %d out of %d correct.", comment: "Quiz: score alert message — Args: correct count, total count"), correct, total)
             }
             static var synonym: String {
                 NSLocalizedString("aiCoach.quiz.synonym", value: "Synonym", comment: "Quiz: relationship option")
@@ -348,8 +378,44 @@ nonisolated enum L10n {
             static var generating: String {
                 NSLocalizedString("aiCoach.quiz.generating", value: "Generating quiz with on-device AI\u{2026}", comment: "Quiz: loading status")
             }
+            static var generatingTitle: String {
+                NSLocalizedString("aiCoach.quiz.generatingTitle", value: "Brewing your quiz\u{2026}", comment: "Quiz: placeholder title during generation")
+            }
+            static var generatingMessage: String {
+                NSLocalizedString("aiCoach.quiz.generatingMessage", value: "On-device AI is picking words for you.", comment: "Quiz: placeholder message during generation")
+            }
+            static var retryingTitle: String {
+                NSLocalizedString("aiCoach.quiz.retryingTitle", value: "Trying another word\u{2026}", comment: "Quiz: placeholder title during retry")
+            }
+            static var errorTitle: String {
+                NSLocalizedString("aiCoach.quiz.errorTitle", value: "Something went wrong", comment: "Quiz: placeholder title on error")
+            }
+            static func retrying(_ attempt: Int, _ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.retrying", value: "Retrying with \"%@\"\u{2026} (attempt %d)", comment: "Quiz: retry status — Args: word, attempt number"), word, attempt + 1)
+            }
+            static func retryingGeneric(_ attempt: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.retryingGeneric", value: "Retrying\u{2026} (attempt %d)", comment: "Quiz: retry status without word — Args: attempt number"), attempt + 1)
+            }
+            static func allRetriesFailed(_ error: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.allRetriesFailed", value: "Could not generate a quiz after multiple attempts.\n%@", comment: "Quiz: all retries exhausted — Args: error description"), error)
+            }
+            static var tryAgain: String {
+                NSLocalizedString("aiCoach.quiz.tryAgain", value: "Try Again", comment: "Quiz: CTA on error — retry from scratch")
+            }
+            static var completedTitle: String {
+                NSLocalizedString("aiCoach.quiz.completedTitle", value: "You did it!", comment: "Quiz: all quizzes completed title")
+            }
+            static var completedMessage: String {
+                NSLocalizedString("aiCoach.quiz.completedMessage", value: "You've gone through all your bookmarked words. Come back after adding more bookmarks for new challenges!", comment: "Quiz: all quizzes completed message")
+            }
             static var noBookmarks: String {
                 NSLocalizedString("aiCoach.quiz.noBookmarks", value: "Bookmark some English words first, then come back.", comment: "Quiz: empty state — no bookmarks")
+            }
+            static var noBookmarksTitle: String {
+                NSLocalizedString("aiCoach.quiz.noBookmarksTitle", value: "No bookmarks yet", comment: "Quiz: empty state title — no English bookmarks")
+            }
+            static var noBookmarksMessage: String {
+                NSLocalizedString("aiCoach.quiz.noBookmarksMessage", value: "Bookmark some English words first, then come back for a quiz.", comment: "Quiz: empty state message — no English bookmarks")
             }
             static var noCandidates: String {
                 NSLocalizedString("aiCoach.quiz.noCandidates", value: "Couldn't verify any candidates in your dictionaries. Try bookmarking words from a monolingual English dictionary (like WordNet).", comment: "Quiz: no verified candidates")

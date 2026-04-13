@@ -228,6 +228,22 @@ final class AICoachService {
         return response.content
     }
 
+    /// Filter a list of candidate words, keeping only those truly unrelated
+    /// to the target word. Used to verify random noise candidates.
+    @Generable
+    struct UnrelatedFilter: Equatable {
+        @Guide(description: "Words from the input list that are truly unrelated to the target word — no synonyms, antonyms, or semantic association.")
+        var unrelatedWords: [String]
+    }
+
+    func filterUnrelated(targetWord: String, candidates: [String]) async throws -> [String] {
+        let session = LanguageModelSession(instructions:
+            "You are a vocabulary expert. Given a target English word and a list of candidate words, return ONLY the words that are truly unrelated to the target — not synonyms, not antonyms, not semantically associated. If unsure, keep the word.")
+        let prompt = "Target word: \"\(targetWord)\"\nCandidate words: \(candidates.joined(separator: ", "))"
+        let response = try await session.respond(to: prompt, generating: UnrelatedFilter.self)
+        return response.content.unrelatedWords
+    }
+
     /// Fire-and-forget prewarm. Safe to call multiple times; only the first
     /// call does real work. Reduces first-generation latency by ~40%.
     func prewarm() {

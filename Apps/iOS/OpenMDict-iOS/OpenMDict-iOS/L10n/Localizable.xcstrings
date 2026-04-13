@@ -925,6 +925,858 @@
         }
       }
     },
+    "aiCoach.chooseMode" : {
+      "comment" : "AI Coach: chooser action sheet message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose a study mode"
+          }
+        }
+      }
+    },
+    "aiCoach.error.aiNotEnabled" : {
+      "comment" : "AI Coach: Apple Intelligence not enabled error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Apple Intelligence is not enabled on this device. Open Settings → Apple Intelligence & Siri and turn on Apple Intelligence, then try again."
+          }
+        }
+      }
+    },
+    "aiCoach.error.assetsUnavailable" : {
+      "comment" : "AI Coach: assets unavailable error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The on-device language model assets aren't available yet. They may still be downloading — try again in a few minutes."
+          }
+        }
+      }
+    },
+    "aiCoach.error.contextTooLong" : {
+      "comment" : "AI Coach: context window exceeded error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The word and its dictionary definition together are too long for the on-device model (>4096 tokens). Try a shorter definition."
+          }
+        }
+      }
+    },
+    "aiCoach.error.deviceNotEligible" : {
+      "comment" : "AI Coach: device not eligible error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This device does not support Apple Intelligence on-device language models. AI Coach requires an iPhone 15 Pro / iPhone 16 / Apple silicon iPad or Mac."
+          }
+        }
+      }
+    },
+    "aiCoach.error.guardrail" : {
+      "comment" : "AI Coach: guardrail violation error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The on-device model blocked this content (safety guardrail). Skip this word for now."
+          }
+        }
+      }
+    },
+    "aiCoach.error.modelNotReady" : {
+      "comment" : "AI Coach: model not ready error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The on-device language model is still downloading or warming up. Try again in a few minutes."
+          }
+        }
+      }
+    },
+    "aiCoach.error.rateLimited" : {
+      "comment" : "AI Coach: rate limited error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The on-device model is rate-limited right now. Wait a moment and try again."
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard" : {
+      "comment" : "AI Coach: chooser option — flashcard mode",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Flashcard"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.again" : {
+      "comment" : "Flashcard: rating button — need to review again",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Again"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.allDone" : {
+      "comment" : "Flashcard: all cards completed",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "That's all %d cards for this session."
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.cardProgress" : {
+      "comment" : "Flashcard: progress header — Card 1 of 5",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Card %1$d of %2$d"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.definition" : {
+      "comment" : "Flashcard: section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Definition"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.easy" : {
+      "comment" : "Flashcard: rating button — already knew",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Easy"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.example" : {
+      "comment" : "Flashcard: section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Example"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.generating" : {
+      "comment" : "Flashcard: loading status",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generating flashcard with on-device AI…"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.good" : {
+      "comment" : "Flashcard: rating button — understood",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Good"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.mnemonic" : {
+      "comment" : "Flashcard: section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mnemonic"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.nextCard" : {
+      "comment" : "Flashcard: next card button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next card →"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.noCards" : {
+      "comment" : "Flashcard: empty state — no bookmarks",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark some English words first, then come back to try AI Coach. It reviews up to 5 of your most recent bookmarks."
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.noContent" : {
+      "comment" : "Flashcard: empty generation result",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Model returned no content."
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.notReady" : {
+      "comment" : "Flashcard: header when AI not available",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not ready"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.ready" : {
+      "comment" : "Flashcard: generation complete status",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ready. Reveal when you want to check yourself."
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.related" : {
+      "comment" : "Flashcard: section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Related words"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.reveal" : {
+      "comment" : "Flashcard: reveal button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reveal"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcard.title" : {
+      "comment" : "Flashcard: nav bar title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "AI Coach (POC)"
+          }
+        }
+      }
+    },
+    "aiCoach.flashcardDesc" : {
+      "comment" : "AI Coach: flashcard mode description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "AI-generated flashcards from your bookmarks"
+          }
+        }
+      }
+    },
+    "aiCoach.leave.action" : {
+      "comment" : "AI Coach: dismiss confirmation — destructive action",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Leave"
+          }
+        }
+      }
+    },
+    "aiCoach.leave.message" : {
+      "comment" : "AI Coach: dismiss confirmation alert message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your progress will be lost."
+          }
+        }
+      }
+    },
+    "aiCoach.leave.stay" : {
+      "comment" : "AI Coach: dismiss confirmation — cancel action",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Stay"
+          }
+        }
+      }
+    },
+    "aiCoach.leave.title" : {
+      "comment" : "AI Coach: dismiss confirmation alert title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Leave Quiz?"
+          }
+        }
+      }
+    },
+    "aiCoach.openSettings" : {
+      "comment" : "AI Coach: button to open app settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open OpenMDict Settings"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.allRetriesFailed" : {
+      "comment" : "Quiz: all retries exhausted — Args: error description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not generate a quiz after multiple attempts.\n%@"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.anAntonym" : {
+      "comment" : "Quiz: relationship article form for subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "an antonym"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.antonym" : {
+      "comment" : "Quiz: relationship option",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Antonym"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.aSimilarWord" : {
+      "comment" : "Quiz: relationship article form for subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "a similar-looking but different word"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.aSynonym" : {
+      "comment" : "Quiz: relationship article form for subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "a synonym"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.checkAnswers" : {
+      "comment" : "Quiz: submit button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Check Answers"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.classifyInstruction" : {
+      "comment" : "Quiz: header message below card — Args: quiz word",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please classify each word's relationship to \"%@\":"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.completedMessage" : {
+      "comment" : "Quiz: all quizzes completed message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You've gone through all your bookmarked words. Come back after adding more bookmarks for new challenges!"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.completedTitle" : {
+      "comment" : "Quiz: all quizzes completed title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You did it!"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.correctResult" : {
+      "comment" : "Quiz: grading — correct answer. Args: word, relationship",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Correct — \"%1$@\" is %2$@."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.errorTitle" : {
+      "comment" : "Quiz: placeholder title on error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Something went wrong"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.generating" : {
+      "comment" : "Quiz: loading status",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generating quiz with on-device AI…"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.generatingMessage" : {
+      "comment" : "Quiz: placeholder message during generation",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "On-device AI is picking words for you."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.generatingTitle" : {
+      "comment" : "Quiz: placeholder title during generation",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Brewing your quiz…"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.incorrectResult" : {
+      "comment" : "Quiz: grading — incorrect answer. Args: word, relationship",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Actually, \"%1$@\" is %2$@."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.instruction" : {
+      "comment" : "Quiz: instruction label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Classify each word's relationship:"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.irrelevant" : {
+      "comment" : "Quiz: relationship option — not related",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Irrelevant"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.next" : {
+      "comment" : "Quiz: CTA after grading — start next quiz",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.noBookmarks" : {
+      "comment" : "Quiz: empty state — no bookmarks",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark some English words first, then come back."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.noBookmarksMessage" : {
+      "comment" : "Quiz: empty state message — no English bookmarks",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark some English words first, then come back for a quiz."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.noBookmarksTitle" : {
+      "comment" : "Quiz: empty state title — no English bookmarks",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No bookmarks yet"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.noCandidates" : {
+      "comment" : "Quiz: no verified candidates",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't verify any candidates in your dictionaries. Try bookmarking words from a monolingual English dictionary (like WordNet)."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.questionsToGo.one" : {
+      "comment" : "Quiz: CTA — 1 question remaining",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%d question to go"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.questionsToGo.other" : {
+      "comment" : "Quiz: CTA — N questions remaining",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%d questions to go"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.retrying" : {
+      "comment" : "Quiz: retry status — Args: word, attempt number",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Retrying with \"%1$@\"… (attempt %2$d)"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.retryingGeneric" : {
+      "comment" : "Quiz: retry status without word — Args: attempt number",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Retrying… (attempt %d)"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.retryingTitle" : {
+      "comment" : "Quiz: placeholder title during retry",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trying another word…"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.score" : {
+      "comment" : "Quiz: score display — Score: 7 / 9",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Score: %1$d / %2$d"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.scoreMessage" : {
+      "comment" : "Quiz: score alert message — Args: correct count, total count",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You got %1$d out of %2$d correct."
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.selectAnswer" : {
+      "comment" : "Quiz: candidate cell placeholder subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Select your answer"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.synonym" : {
+      "comment" : "Quiz: relationship option",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Synonym"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.title" : {
+      "comment" : "Quiz: nav bar title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Word Quiz"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.titleShort" : {
+      "comment" : "Quiz: compact nav bar title (next to icon)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Word Relationship"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.tryAgain" : {
+      "comment" : "Quiz: CTA on error — retry from scratch",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.unrelated" : {
+      "comment" : "Quiz: relationship article form for subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "irrelevant"
+          }
+        }
+      }
+    },
+    "aiCoach.quiz.viewDefinitions" : {
+      "comment" : "Quiz: header message after grading",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tap on each word card to view its definition."
+          }
+        }
+      }
+    },
+    "aiCoach.title" : {
+      "comment" : "AI Coach: nav bar title for chooser",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "AI Coach"
+          }
+        }
+      }
+    },
+    "aiCoach.wordQuiz" : {
+      "comment" : "AI Coach: chooser option — word quiz mode",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Word Relationship Quiz"
+          }
+        }
+      }
+    },
+    "aiCoach.wordQuizDesc" : {
+      "comment" : "AI Coach: word quiz mode description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Classify synonyms, antonyms, and look-alikes"
+          }
+        }
+      }
+    },
     "Ancient Greek" : {
       "comment" : "Language name for Ancient Greek",
       "localizations" : {
