@@ -293,11 +293,11 @@ nonisolated enum L10n {
         static var flashcard: String {
             NSLocalizedString("aiCoach.flashcard", value: "Flashcard", comment: "AI Coach: chooser option — flashcard mode")
         }
-        static var wordQuiz: String {
-            NSLocalizedString("aiCoach.wordQuiz", value: "Word Relationship Quiz", comment: "AI Coach: chooser option — word quiz mode")
+        static var wordTinder: String {
+            NSLocalizedString("aiCoach.wordTinder", value: "Word Tinder", comment: "AI Coach: chooser option — word tinder mode")
         }
-        static var wordQuizDesc: String {
-            NSLocalizedString("aiCoach.wordQuizDesc", value: "Classify synonyms, antonyms, and look-alikes", comment: "AI Coach: word quiz mode description")
+        static var wordTinderDesc: String {
+            NSLocalizedString("aiCoach.wordTinderDesc", value: "Swipe to classify synonyms, antonyms, and look-alikes", comment: "AI Coach: word tinder mode description")
         }
         static var flashcardDesc: String {
             NSLocalizedString("aiCoach.flashcardDesc", value: "AI-generated flashcards from your bookmarks", comment: "AI Coach: flashcard mode description")
@@ -369,7 +369,7 @@ nonisolated enum L10n {
                 NSLocalizedString("aiCoach.quiz.title", value: "Word Quiz", comment: "Quiz: nav bar title")
             }
             static var titleShort: String {
-                NSLocalizedString("aiCoach.quiz.titleShort", value: "Word Relationship", comment: "Quiz: compact nav bar title (next to icon)")
+                NSLocalizedString("aiCoach.quiz.titleShort", value: "Word Tinder", comment: "Quiz: compact nav bar title (next to icon)")
             }
             static var selectAnswer: String {
                 NSLocalizedString("aiCoach.quiz.selectAnswer", value: "Select your answer", comment: "Quiz: candidate cell placeholder subtitle")

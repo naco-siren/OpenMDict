@@ -351,7 +351,7 @@ final class LookupSession: ObservableObject, LookupSessionProtocol {
 /// Compute distance-ranked suggestions on a background thread.
 /// `MDictReader` is `@unchecked Sendable` with thread safety guaranteed by
 /// internal NSLock guards (BinaryReader.atomicRead, ResourceProvider.cacheLock).
-/// `suggestions()` operates on immutable in-memory keyword data — no I/O, no locks needed.
+/// `suggestions()` operates on immutable in-memory keyword data — no I/O, no locks needed.cc
 ///
 /// Each reader returns `[ScoredSuggestion]` (word + distance). This function merges
 /// across readers, deduplicates (keeping min distance), and returns globally ranked results.

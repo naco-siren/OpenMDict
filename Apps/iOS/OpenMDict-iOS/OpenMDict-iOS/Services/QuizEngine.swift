@@ -98,14 +98,12 @@ enum QuizEngine {
         debugLog("🧩 QuizEngine Phase 2: \(verified.count) candidates after verification + Levenshtein filter")
 
         // ── Phase 2b: Randomize counts ──────────────────────────────
-        // Break the symmetric pattern so users can't infer antonym count
-        // from synonym count. For each relationship group with ≥2 items,
-        // randomly keep all or drop one.
-        verified = randomizeCounts(verified)
+        // Only drop if we have enough — skip if already sparse.
+        if verified.count >= 6 {
+            verified = randomizeCounts(verified)
+        }
 
         // ── Phase 3: Multi-source irrelevant words + shuffle ────────
-        // Gather noise candidates from 3 sources (0–N each, randomized),
-        // merge, cap at 5, then LLM-verify they're truly unrelated.
         var noiseCandidates = gatherNoiseCandidates(
             targetWord: targetWord,
             dictId: targetDictId,
@@ -113,17 +111,46 @@ enum QuizEngine {
             seenWords: seenWords,
             usedNoiseWords: usedNoiseWords
         )
-        // LLM double-check: ask the model to filter out any that are
-        // actually related to the target. Fail silently → keep all.
         noiseCandidates = await filterUnrelatedCandidates(
             noiseCandidates, targetWord: targetWord
         )
         verified.append(contentsOf: noiseCandidates)
 
-        // Final dedup by word (case-insensitive) — belt-and-suspenders
-        // guard against duplicate section identifiers in DiffableDataSource.
+        // ── Phase 4: Backfill if too few candidates ─────────────────
+        // Priority: AI-generated > bookmark/history > random dict entries
+        let minCandidates = 6
+        if verified.count < minCandidates {
+            let allSeenSoFar = Set(verified.map { $0.word.lowercased() }).union(seenWords)
+            verified = await backfill(
+                verified: verified,
+                targetWord: targetWord,
+                targetDictId: targetDictId,
+                otherBookmarkedWords: otherBookmarkedWords,
+                seenWords: allSeenSoFar,
+                usedNoiseWords: usedNoiseWords,
+                minCount: minCandidates
+            )
+        }
+
+        // Final dedup
         var finalSeen = Set<String>()
         verified = verified.filter { finalSeen.insert($0.word.lowercased()).inserted }
+
+        // ── Minimum quality guard ───────────────────────────────────
+        // A quiz with < 2 synonym/antonym candidates teaches nothing —
+        // user just sees random irrelevant words. Return empty to skip.
+        let synAntCount = verified.filter {
+            $0.correctRelationship == .synonym || $0.correctRelationship == .antonym
+        }.count
+        if synAntCount < 2 {
+            debugLog("⚠️ QuizEngine: '\(targetWord)' has only \(synAntCount) syn/ant — skipping")
+            return WordRelationshipQuiz(
+                targetWord: targetWord,
+                targetDefinition: "",
+                targetDictName: "",
+                candidates: []
+            )
+        }
 
         let shuffled = verified.shuffled()
 
@@ -142,6 +169,114 @@ enum QuizEngine {
 
     // MARK: - Noise Candidate Sourcing
 
+    // MARK: - Backfill (when candidates < minimum)
+
+    /// Backfill candidates when total is below `minCount`.
+    /// Priority: AI-generated (most important, most costly) > bookmark/history > random.
+    /// Each source gets a share of the deficit proportional to its priority.
+    private static func backfill(
+        verified: [QuizCandidate],
+        targetWord: String,
+        targetDictId: String,
+        otherBookmarkedWords: [String],
+        seenWords: Set<String>,
+        usedNoiseWords: Set<String>,
+        minCount: Int
+    ) async -> [QuizCandidate] {
+        var result = verified
+        var seen = seenWords
+        let deficit = minCount - result.count
+        guard deficit > 0 else { return result }
+
+        debugLog("🧩 QuizEngine backfill: need \(deficit) more candidates")
+
+        // ── Round 1 (highest priority): Ask AI for more synonyms/antonyms ──
+        // Retry up to 3 times (different generation each time).
+        let aiQuota = max(2, (deficit + 1) / 2)
+        for aiAttempt in 0..<3 {
+            var aiAdded = 0
+            do {
+                let more = try await AICoachService.shared.generateCandidates(
+                    targetWord: targetWord
+                )
+                let allAI = more.synonyms.map { ($0, WordRelationship.synonym) }
+                    + more.antonyms.map { ($0, WordRelationship.antonym) }
+                for (word, rel) in allAI where aiAdded < aiQuota {
+                    let lc = word.lowercased()
+                    guard !seen.contains(lc) else { continue }
+                    if let (def, name) = lookupInSourceDict(word, dictId: targetDictId) {
+                        result.append(QuizCandidate(
+                            word: word, correctRelationship: rel,
+                            definition: def, dictName: name))
+                        seen.insert(lc)
+                        aiAdded += 1
+                    }
+                }
+                debugLog("🧩 QuizEngine backfill round 1 attempt \(aiAttempt + 1): +\(aiAdded)")
+            } catch {
+                debugLog("⚠️ QuizEngine backfill AI attempt \(aiAttempt + 1) failed: \(error)")
+            }
+            // Stop retrying if we've filled enough or hit quota
+            if result.count >= minCount { break }
+        }
+
+        guard result.count < minCount else { return result }
+
+        // ── Round 2: More bookmarks + lookup history ──────────────────
+        let historyQuota = max(1, (minCount - result.count + 1) / 2)  // ~50% of remaining deficit
+        let historyPool = LookupHistoryService.shared.allGroupedHistory()
+            .flatMap(\.records)
+            .filter { $0.isDictAvailable && !seen.contains($0.word.lowercased())
+                && !usedNoiseWords.contains($0.word.lowercased()) }
+            .shuffled()
+        let bookmarkPool = otherBookmarkedWords
+            .filter { !seen.contains($0.lowercased()) && !usedNoiseWords.contains($0.lowercased()) }
+            .shuffled()
+        var round2Added = 0
+        for word in (bookmarkPool + historyPool.map(\.word)) {
+            guard round2Added < historyQuota else { break }
+            guard !seen.contains(word.lowercased()) else { continue }
+            guard isPlausibleNoise(word, targetWord: targetWord) else { continue }
+            if let (def, name) = lookupInSourceDict(word, dictId: targetDictId) {
+                result.append(QuizCandidate(
+                    word: word, correctRelationship: .noise,
+                    definition: def, dictName: name))
+                seen.insert(word.lowercased())
+                round2Added += 1
+            }
+        }
+        debugLog("🧩 QuizEngine backfill round 2 (bookmark+history): +\(round2Added)")
+
+        guard result.count < minCount else { return result }
+
+        // ── Round 3: More random dictionary entries ───────────────────
+        let randomQuota = minCount - result.count
+        if let dict = DictionaryService.shared.dict(id: targetDictId),
+           let reader = dict.reader {
+            let allKeys = reader.allKeys
+            guard !allKeys.isEmpty else { return result }
+            var round3Added = 0
+            // Try up to randomQuota * 10 random picks (may fail plausibility)
+            for _ in 0..<(randomQuota * 10) {
+                guard round3Added < randomQuota else { break }
+                let word = allKeys[Int.random(in: 0..<allKeys.count)]
+                let lc = word.lowercased()
+                guard !seen.contains(lc) else { continue }
+                guard isPlausibleNoise(word, targetWord: targetWord) else { continue }
+                if let (def, name) = lookupInSourceDict(word, dictId: targetDictId) {
+                    result.append(QuizCandidate(
+                        word: word, correctRelationship: .noise,
+                        definition: def, dictName: name))
+                    seen.insert(lc)
+                    round3Added += 1
+                }
+            }
+            debugLog("🧩 QuizEngine backfill round 3 (random): +\(round3Added)")
+        }
+
+        return result
+    }
+
     /// Gather irrelevant/noise candidates from multiple sources:
     /// 1. Random dictionary entries (0–2)
     /// 2. Random bookmarks (0–3)
@@ -157,8 +292,8 @@ enum QuizEngine {
         var pool: [String] = []
         var seen = seenWords.union(usedNoiseWords)
 
-        // Source 1: Random dictionary entries (0–2)
-        let dictSampleCount = Int.random(in: 0...2)
+        // Source 1: Random dictionary entries (0–4)
+        let dictSampleCount = Int.random(in: 0...4)
         if dictSampleCount > 0,
            let dict = DictionaryService.shared.dict(id: dictId),
            let reader = dict.reader {
@@ -175,8 +310,8 @@ enum QuizEngine {
             }
         }
 
-        // Source 2: Random bookmarks (0–3)
-        let bookmarkSampleCount = Int.random(in: 0...3)
+        // Source 2: Random bookmarks (0–6)
+        let bookmarkSampleCount = Int.random(in: 0...6)
         if bookmarkSampleCount > 0 {
             let available = otherBookmarkedWords.filter { !seen.contains($0.lowercased()) }
             for word in available.shuffled().prefix(bookmarkSampleCount) {
@@ -185,8 +320,8 @@ enum QuizEngine {
             }
         }
 
-        // Source 3: Random lookup history (0–4)
-        let historySampleCount = Int.random(in: 0...4)
+        // Source 3: Random lookup history (0–8)
+        let historySampleCount = Int.random(in: 0...8)
         if historySampleCount > 0 {
             let history = LookupHistoryService.shared.allGroupedHistory()
                 .flatMap(\.records)
@@ -200,9 +335,9 @@ enum QuizEngine {
         // Plausibility filter: drop candidates that look obviously wrong
         pool = pool.filter { isPlausibleNoise($0, targetWord: targetWord) }
 
-        // Shuffle and cap at 5
+        // Shuffle and cap at 10
         pool.shuffle()
-        if pool.count > 5 { pool = Array(pool.prefix(5)) }
+        if pool.count > 10 { pool = Array(pool.prefix(10)) }
 
         // Verify each exists in the source dictionary
         return pool.compactMap { word in

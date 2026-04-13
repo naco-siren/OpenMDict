@@ -1700,7 +1700,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Word Relationship"
+            "value" : "Word Tinder"
           }
         }
       }
@@ -1873,26 +1873,26 @@
         }
       }
     },
-    "aiCoach.wordQuiz" : {
-      "comment" : "AI Coach: chooser option — word quiz mode",
+    "aiCoach.wordTinder" : {
+      "comment" : "AI Coach: chooser option — word tinder mode",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Word Relationship Quiz"
+            "value" : "Word Tinder"
           }
         }
       }
     },
-    "aiCoach.wordQuizDesc" : {
-      "comment" : "AI Coach: word quiz mode description",
+    "aiCoach.wordTinderDesc" : {
+      "comment" : "AI Coach: word tinder mode description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Classify synonyms, antonyms, and look-alikes"
+            "value" : "Swipe to classify synonyms, antonyms, and look-alikes"
           }
         }
       }

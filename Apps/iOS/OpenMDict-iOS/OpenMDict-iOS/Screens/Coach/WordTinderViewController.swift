@@ -1,8 +1,8 @@
 //
-//  WordRelationshipQuizViewController.swift
+//  WordTinderViewController.swift
 //  OpenMDict-iOS
 //
-//  M14 MVP: Word relationship classification quiz.
+//  M14: Word Tinder — swipe-based vocabulary quiz.
 //  Quiz word pinned at top, CTA button pinned at bottom,
 //  candidates scroll in the middle collection view.
 //
@@ -16,7 +16,7 @@ import FoundationModels
 #endif
 
 @available(iOS 26, *)
-final class WordRelationshipQuizViewController: UIViewController {
+final class WordTinderViewController: UIViewController {
 
     // MARK: - State
 
@@ -75,7 +75,11 @@ final class WordRelationshipQuizViewController: UIViewController {
     private let quizWordDisclosure = UIImageView()
     private let quizWordSeparator = UIView()
 
-    // Pinned bottom: CTA
+    // Tinder swipe UI
+    private let cardStackView = CardStackView()
+    private let tinderFooter = TinderFooterView()
+
+    // Pinned bottom: CTA (shown in graded/completed phases)
     private let ctaContainer = UIView()
     private let ctaButton = UIButton(type: .system)
     private let ctaSeparator = UIView()
@@ -95,6 +99,7 @@ final class WordRelationshipQuizViewController: UIViewController {
         setupQuizWordView()
         setupQuizWordTap()
         setupCTAView()
+        setupSwipeUI()
         setupCollectionView()
         setupDataSource()
         setupPlaceholder()
@@ -103,6 +108,13 @@ final class WordRelationshipQuizViewController: UIViewController {
         ctaContainer.isHidden = true
 
         buildQueueAndStart()
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            quizWordCard.layer.borderColor = UIColor.systemGray2.cgColor
+        }
     }
 
     // MARK: - Title View
@@ -171,7 +183,13 @@ final class WordRelationshipQuizViewController: UIViewController {
         quizWordCard.translatesAutoresizingMaskIntoConstraints = false
         quizWordCard.backgroundColor = .secondarySystemGroupedBackground
         quizWordCard.layer.cornerRadius = 10
-        quizWordCard.clipsToBounds = true
+        quizWordCard.layer.borderWidth = 1.5
+        quizWordCard.layer.borderColor = UIColor.systemGray2.cgColor
+        quizWordCard.layer.shadowColor = UIColor.black.cgColor
+        quizWordCard.layer.shadowOpacity = 0.12
+        quizWordCard.layer.shadowRadius = 6
+        quizWordCard.layer.shadowOffset = CGSize(width: 0, height: 3)
+        quizWordCard.clipsToBounds = false
         quizWordContainer.addSubview(quizWordCard)
 
         // Leading icon
@@ -182,7 +200,7 @@ final class WordRelationshipQuizViewController: UIViewController {
         quizWordCard.addSubview(quizWordIcon)
 
         // Text stack inside card: word + subtitle
-        quizWordLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        quizWordLabel.font = .systemFont(ofSize: 34, weight: .bold)
         quizWordSubtitle.font = .preferredFont(forTextStyle: .footnote)
         quizWordSubtitle.textColor = .tertiaryLabel
 
@@ -201,7 +219,7 @@ final class WordRelationshipQuizViewController: UIViewController {
         quizWordCard.addSubview(quizWordDisclosure)
 
         // Message label below card (instruction → result hint)
-        quizWordInstruction.font = .preferredFont(forTextStyle: .subheadline)
+        quizWordInstruction.font = .preferredFont(forTextStyle: .body)
         quizWordInstruction.textColor = .secondaryLabel
         quizWordInstruction.numberOfLines = 0
         quizWordInstruction.translatesAutoresizingMaskIntoConstraints = false
@@ -297,18 +315,9 @@ final class WordRelationshipQuizViewController: UIViewController {
         case .loading:
             ctaContainer.isHidden = true
 
-        case .answering(let quiz):
-            ctaContainer.isHidden = false
-            let remaining = quiz.candidates.count - userAnswers.count
-            if remaining > 0 {
-                ctaButton.setTitle(L10n.AICoach.Quiz.questionsToGo(remaining), for: .normal)
-                ctaButton.isEnabled = false
-                ctaButton.backgroundColor = .systemGray3
-            } else {
-                ctaButton.setTitle(L10n.AICoach.Quiz.checkAnswers, for: .normal)
-                ctaButton.isEnabled = true
-                ctaButton.backgroundColor = .systemBlue
-            }
+        case .answering:
+            // Swipe UI handles interaction — hide CTA
+            ctaContainer.isHidden = true
 
         case .graded:
             ctaContainer.isHidden = false
@@ -329,9 +338,8 @@ final class WordRelationshipQuizViewController: UIViewController {
 
     @objc private func ctaTapped() {
         switch phase {
-        case .answering(let quiz):
-            let results = QuizEngine.grade(quiz: quiz, userAnswers: userAnswers)
-            showResults(quiz, results)
+        case .answering:
+            break  // Swipe UI handles answering, CTA not visible
         case .graded:
             resetAndStartNext()
         case .failed:
@@ -342,6 +350,51 @@ final class WordRelationshipQuizViewController: UIViewController {
         default:
             break
         }
+    }
+
+    // MARK: - Swipe UI (Tinder mode)
+
+    private func setupSwipeUI() {
+        cardStackView.translatesAutoresizingMaskIntoConstraints = false
+        cardStackView.delegate = self
+        cardStackView.isHidden = true
+        view.addSubview(cardStackView)
+
+        tinderFooter.translatesAutoresizingMaskIntoConstraints = false
+        tinderFooter.delegate = self
+        tinderFooter.isHidden = true
+        view.addSubview(tinderFooter)
+
+        NSLayoutConstraint.activate([
+            // Card stack fills space between header and footer
+            cardStackView.topAnchor.constraint(equalTo: quizWordContainer.bottomAnchor, constant: 8),
+            cardStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            cardStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            cardStackView.bottomAnchor.constraint(equalTo: tinderFooter.topAnchor, constant: -32),
+
+            // Footer pinned to bottom
+            tinderFooter.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tinderFooter.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tinderFooter.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+        ])
+    }
+
+    private func showSwipeUI(_ quiz: WordRelationshipQuiz) {
+        cardStackView.configure(words: quiz.candidates.map(\.word))
+        cardStackView.isHidden = false
+        tinderFooter.isHidden = false
+        tinderFooter.resetHighlight()
+        collectionView.isHidden = true
+        ctaContainer.isHidden = true
+
+        // Ensure swipe views are above collection view / placeholder in z-order
+        view.bringSubviewToFront(cardStackView)
+        view.bringSubviewToFront(tinderFooter)
+    }
+
+    private func hideSwipeUI() {
+        cardStackView.isHidden = true
+        tinderFooter.isHidden = true
     }
 
     // MARK: - Collection View Setup
@@ -593,22 +646,8 @@ final class WordRelationshipQuizViewController: UIViewController {
             usedNoiseWords.insert(c.word.lowercased())
         }
 
-        // Flush stale cells from previous quiz — without this,
-        // DiffableDataSource reuses cells for same-named candidates
-        // (e.g. "deeds" appearing in consecutive quizzes) and their
-        // old graded visual state bleeds through.
-        dataSource.apply(.init(), animatingDifferences: false)
-
-        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-
-        for candidate in quiz.candidates {
-            let section = Section.candidate(candidate.word)
-            snapshot.appendSections([section])
-            snapshot.appendItems([.candidate(candidate.word)], toSection: section)
-        }
-
-        dataSource.apply(snapshot, animatingDifferences: true)
-        updateCTA()
+        // Show Tinder swipe UI (hide collection view + CTA)
+        showSwipeUI(quiz)
     }
 
     private func showResults(_ quiz: WordRelationshipQuiz, _ results: [GradedCandidate]) {
@@ -618,9 +657,18 @@ final class WordRelationshipQuizViewController: UIViewController {
         let correct = results.filter(\.isCorrect).count
         let total = results.count
 
-        var snapshot = dataSource.snapshot()
-        let candidateItems = quiz.candidates.map { Item.candidate($0.word) }
-        snapshot.reconfigureItems(candidateItems)
+        // Switch from swipe UI to collection view for results
+        hideSwipeUI()
+        collectionView.isHidden = false
+
+        // Build fresh snapshot with graded state
+        dataSource.apply(.init(), animatingDifferences: false)
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        for candidate in quiz.candidates {
+            let section = Section.candidate(candidate.word)
+            snapshot.appendSections([section])
+            snapshot.appendItems([.candidate(candidate.word)], toSection: section)
+        }
         dataSource.apply(snapshot, animatingDifferences: true)
         updateCTA()
 
@@ -1006,7 +1054,7 @@ final class WordRelationshipQuizViewController: UIViewController {
         case .noise:
             return correct
                 ? "Correct! It's a random word."
-                : "Actually, it's a totally random word."
+                : "Actually, it's just a random word."
         default:
             let article = relationshipArticle(relationship)
             return correct
@@ -1031,7 +1079,7 @@ final class WordRelationshipQuizViewController: UIViewController {
 // MARK: - UICollectionViewDelegate
 
 @available(iOS 26, *)
-extension WordRelationshipQuizViewController: UICollectionViewDelegate {
+extension WordTinderViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
@@ -1060,7 +1108,7 @@ extension WordRelationshipQuizViewController: UICollectionViewDelegate {
 // MARK: - Quiz Word Tap (graded → push article)
 
 @available(iOS 26, *)
-extension WordRelationshipQuizViewController: UIGestureRecognizerDelegate {
+extension WordTinderViewController: UIGestureRecognizerDelegate {
 
     private func setupQuizWordTap() {
         let tap = UITapGestureRecognizer(target: self, action: #selector(quizWordTapped))
@@ -1070,6 +1118,50 @@ extension WordRelationshipQuizViewController: UIGestureRecognizerDelegate {
     @objc private func quizWordTapped() {
         guard case .graded = phase, let quiz = currentQuiz else { return }
         pushArticle(for: quiz.targetWord, relationship: nil, isQuizWord: true)
+    }
+}
+
+// MARK: - CardStackViewDelegate
+
+@available(iOS 26, *)
+extension WordTinderViewController: CardStackViewDelegate {
+
+    func cardStack(_ stack: CardStackView, didSwipe word: String,
+                   direction: CandidateCardView.SwipeDirection) {
+        let answer: UserAnswer
+        switch direction {
+        case .right: answer = .synonym
+        case .left:  answer = .antonym
+        case .up:    answer = .unrelated
+        }
+        userAnswers[word] = answer
+        tinderFooter.resetHighlight()
+    }
+
+    func cardStack(_ stack: CardStackView, didUpdateDrag direction: CandidateCardView.SwipeDirection,
+                   progress: CGFloat) {
+        tinderFooter.updateHighlight(direction: direction, progress: progress)
+    }
+
+    func cardStackDidCancelDrag(_ stack: CardStackView) {
+        tinderFooter.resetHighlight()
+    }
+
+    func cardStackDidEmpty(_ stack: CardStackView) {
+        // All cards swiped — auto-grade and show results
+        guard let quiz = currentQuiz else { return }
+        let results = QuizEngine.grade(quiz: quiz, userAnswers: userAnswers)
+        showResults(quiz, results)
+    }
+}
+
+// MARK: - TinderFooterViewDelegate
+
+@available(iOS 26, *)
+extension WordTinderViewController: TinderFooterViewDelegate {
+
+    func tinderFooter(_ footer: TinderFooterView, didTap direction: CandidateCardView.SwipeDirection) {
+        cardStackView.swipeFrontCard(direction: direction)
     }
 }
 

@@ -29,26 +29,26 @@ final class AICoachViewController: UIViewController {
     }
 
     private nonisolated enum StudyMode: Int, CaseIterable, Hashable, Sendable {
-        case wordRelationship
+        case wordTinder
         case flashcard
 
         var symbolName: String {
             switch self {
-            case .wordRelationship: return "plus.forwardslash.minus"
+            case .wordTinder: return "plus.forwardslash.minus"
             case .flashcard:        return "rectangle.on.rectangle"
             }
         }
 
         var title: String {
             switch self {
-            case .wordRelationship: return L10n.AICoach.wordQuiz
+            case .wordTinder: return L10n.AICoach.wordTinder
             case .flashcard:        return L10n.AICoach.flashcard
             }
         }
 
         var description: String {
             switch self {
-            case .wordRelationship: return L10n.AICoach.wordQuizDesc
+            case .wordTinder: return L10n.AICoach.wordTinderDesc
             case .flashcard:        return L10n.AICoach.flashcardDesc
             }
         }
@@ -330,8 +330,8 @@ extension AICoachViewController: UICollectionViewDelegate {
         case .mode(let mode):
             let vc: UIViewController
             switch mode {
-            case .wordRelationship:
-                vc = WordRelationshipQuizViewController()
+            case .wordTinder:
+                vc = WordTinderViewController()
             case .flashcard:
                 vc = FlashcardPOCViewController()
             }
