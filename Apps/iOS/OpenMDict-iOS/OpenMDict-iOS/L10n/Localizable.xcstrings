@@ -1753,6 +1753,126 @@
         }
       }
     },
+    "aiCoach.triage.deviceMessage" : {
+      "comment" : "Triage: device not eligible explanation",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "AI Coach requires a device that supports Apple Intelligence, such as iPhone 15 Pro or an iPad with M1 chip or later."
+          }
+        }
+      }
+    },
+    "aiCoach.triage.deviceTitle" : {
+      "comment" : "Triage: device lacks Apple Intelligence hardware",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Device Not Supported"
+          }
+        }
+      }
+    },
+    "aiCoach.triage.downloadingMessage" : {
+      "comment" : "Triage: wait for model download",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please wait for Apple Intelligence to finish downloading, then come back."
+          }
+        }
+      }
+    },
+    "aiCoach.triage.downloadingTitle" : {
+      "comment" : "Triage: model still downloading",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Setting Up Apple Intelligence"
+          }
+        }
+      }
+    },
+    "aiCoach.triage.learnMore" : {
+      "comment" : "Triage: button to open Apple Support page",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Learn More"
+          }
+        }
+      }
+    },
+    "aiCoach.triage.localeWarning" : {
+      "comment" : "Triage: locale warning banner in quiz list",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your device language isn't directly supported by Apple Intelligence. Quizzes use English-based prompts and should still work."
+          }
+        }
+      }
+    },
+    "aiCoach.triage.notEnabledMessage" : {
+      "comment" : "Triage: how to enable AI",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn on Apple Intelligence in Settings → Apple Intelligence & Siri, then come back."
+          }
+        }
+      }
+    },
+    "aiCoach.triage.notEnabledTitle" : {
+      "comment" : "Triage: AI feature not turned on",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Apple Intelligence Not Enabled"
+          }
+        }
+      }
+    },
+    "aiCoach.triage.unknownMessage" : {
+      "comment" : "Triage: generic fallback message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The on-device language model is unavailable. Please check your device settings."
+          }
+        }
+      }
+    },
+    "aiCoach.triage.unknownTitle" : {
+      "comment" : "Triage: unknown unavailability reason",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "AI Unavailable"
+          }
+        }
+      }
+    },
     "aiCoach.wordQuiz" : {
       "comment" : "AI Coach: chooser option — word quiz mode",
       "extractionState" : "extracted_with_value",

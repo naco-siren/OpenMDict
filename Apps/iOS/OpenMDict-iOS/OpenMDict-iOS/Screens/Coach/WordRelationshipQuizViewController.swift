@@ -665,32 +665,45 @@ final class WordRelationshipQuizViewController: UIViewController {
     private static let maxSkipsPerLoad = 3
 
     /// Build the shuffled word queue from bookmarks and start the first quiz.
+    /// Bookmark fetch is on MainActor (viewContext), language filtering is
+    /// offloaded via @Concurrent to avoid blocking UI with large bookmark sets.
     private func buildQueueAndStart() {
-        let bookmarks = BookmarkService.shared.allBookmarks()
-        let englishBookmarks = bookmarks.filter { looksEnglish($0.word) }
-
-        guard !englishBookmarks.isEmpty else {
-            phase = .completed
-            showPlaceholder(loading: false,
-                            title: L10n.AICoach.Quiz.noBookmarksTitle,
-                            message: L10n.AICoach.Quiz.noBookmarksMessage)
-            placeholderIcon.image = UIImage(systemName: "info.bubble")
-            placeholderIcon.tintColor = .tertiaryLabel
-            updateCTA()
-            return
-        }
-
-        queueWords = englishBookmarks
-            .map { ($0.word, $0.dictId) }
-            .shuffled()
-        queueCursor = 0
-        preloadedQuiz = nil
-        preloadTask?.cancel()
-        preloadTask = nil
-
-        updateTitleProgress()
         showLoadingState()
-        loadQuizAtCursor()
+
+        Task {
+            let bookmarks = BookmarkService.shared.allBookmarks()
+            let filtered = await Self.filterEnglishBookmarks(bookmarks)
+
+            guard !filtered.isEmpty else {
+                phase = .completed
+                showPlaceholder(loading: false,
+                                title: L10n.AICoach.Quiz.noBookmarksTitle,
+                                message: L10n.AICoach.Quiz.noBookmarksMessage)
+                placeholderIcon.image = UIImage(systemName: "info.bubble")
+                placeholderIcon.tintColor = .tertiaryLabel
+                updateCTA()
+                return
+            }
+
+            queueWords = filtered.shuffled()
+            queueCursor = 0
+            preloadedQuiz = nil
+            preloadTask?.cancel()
+            preloadTask = nil
+
+            updateTitleProgress()
+            loadQuizAtCursor()
+        }
+    }
+
+    /// Pure language filter — @concurrent runs off MainActor.
+    @concurrent
+    private static func filterEnglishBookmarks(
+        _ bookmarks: [BookmarkItem]
+    ) async -> [(word: String, dictId: String)] {
+        bookmarks
+            .filter { looksEnglish($0.word) }
+            .map { ($0.word, $0.dictId) }
     }
 
     /// Load the quiz for queueWords[cursor], with skip-on-failure.
@@ -1002,7 +1015,7 @@ final class WordRelationshipQuizViewController: UIViewController {
         }
     }
 
-    private func looksEnglish(_ word: String) -> Bool {
+    nonisolated private static func looksEnglish(_ word: String) -> Bool {
         var hasAscii = false
         for scalar in word.unicodeScalars {
             let v = scalar.value

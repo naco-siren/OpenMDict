@@ -252,6 +252,41 @@ nonisolated enum L10n {
         static var title: String {
             NSLocalizedString("aiCoach.title", value: "AI Coach", comment: "AI Coach: nav bar title for chooser")
         }
+
+        // MARK: Triage (availability states)
+
+        enum Triage {
+            static var deviceTitle: String {
+                NSLocalizedString("aiCoach.triage.deviceTitle", value: "Device Not Supported", comment: "Triage: device lacks Apple Intelligence hardware")
+            }
+            static var deviceMessage: String {
+                NSLocalizedString("aiCoach.triage.deviceMessage", value: "AI Coach requires a device that supports Apple Intelligence, such as iPhone 15 Pro or an iPad with M1 chip or later.", comment: "Triage: device not eligible explanation")
+            }
+            static var learnMore: String {
+                NSLocalizedString("aiCoach.triage.learnMore", value: "Learn More", comment: "Triage: button to open Apple Support page")
+            }
+            static var notEnabledTitle: String {
+                NSLocalizedString("aiCoach.triage.notEnabledTitle", value: "Apple Intelligence Not Enabled", comment: "Triage: AI feature not turned on")
+            }
+            static var notEnabledMessage: String {
+                NSLocalizedString("aiCoach.triage.notEnabledMessage", value: "Turn on Apple Intelligence in Settings → Apple Intelligence & Siri, then come back.", comment: "Triage: how to enable AI")
+            }
+            static var downloadingTitle: String {
+                NSLocalizedString("aiCoach.triage.downloadingTitle", value: "Setting Up Apple Intelligence", comment: "Triage: model still downloading")
+            }
+            static var downloadingMessage: String {
+                NSLocalizedString("aiCoach.triage.downloadingMessage", value: "Please wait for Apple Intelligence to finish downloading, then come back.", comment: "Triage: wait for model download")
+            }
+            static var unknownTitle: String {
+                NSLocalizedString("aiCoach.triage.unknownTitle", value: "AI Unavailable", comment: "Triage: unknown unavailability reason")
+            }
+            static var unknownMessage: String {
+                NSLocalizedString("aiCoach.triage.unknownMessage", value: "The on-device language model is unavailable. Please check your device settings.", comment: "Triage: generic fallback message")
+            }
+            static var localeWarning: String {
+                NSLocalizedString("aiCoach.triage.localeWarning", value: "Your device language isn't directly supported by Apple Intelligence. Quizzes use English-based prompts and should still work.", comment: "Triage: locale warning banner in quiz list")
+            }
+        }
         static var chooseMode: String {
             NSLocalizedString("aiCoach.chooseMode", value: "Choose a study mode", comment: "AI Coach: chooser action sheet message")
         }
