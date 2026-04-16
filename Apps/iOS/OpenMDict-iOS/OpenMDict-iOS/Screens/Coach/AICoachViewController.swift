@@ -30,26 +30,30 @@ final class AICoachViewController: UIViewController {
 
     private nonisolated enum StudyMode: Int, CaseIterable, Hashable, Sendable {
         case wordTinder
+        case amongWurds
         case flashcard
 
         var symbolName: String {
             switch self {
-            case .wordTinder: return "plus.forwardslash.minus"
-            case .flashcard:        return "rectangle.on.rectangle"
+            case .wordTinder:  return "plus.forwardslash.minus"
+            case .amongWurds:  return "person.3.fill"
+            case .flashcard:   return "rectangle.on.rectangle"
             }
         }
 
         var title: String {
             switch self {
-            case .wordTinder: return L10n.AICoach.wordTinder
-            case .flashcard:        return L10n.AICoach.flashcard
+            case .wordTinder:  return L10n.AICoach.wordTinder
+            case .amongWurds:  return L10n.AICoach.amongWurds
+            case .flashcard:   return L10n.AICoach.flashcard
             }
         }
 
         var description: String {
             switch self {
-            case .wordTinder: return L10n.AICoach.wordTinderDesc
-            case .flashcard:        return L10n.AICoach.flashcardDesc
+            case .wordTinder:  return L10n.AICoach.wordTinderDesc
+            case .amongWurds:  return L10n.AICoach.amongWurdsDesc
+            case .flashcard:   return L10n.AICoach.flashcardDesc
             }
         }
     }
@@ -332,6 +336,8 @@ extension AICoachViewController: UICollectionViewDelegate {
             switch mode {
             case .wordTinder:
                 vc = WordTinderViewController()
+            case .amongWurds:
+                vc = AmongWurdsViewController()
             case .flashcard:
                 vc = FlashcardPOCViewController()
             }

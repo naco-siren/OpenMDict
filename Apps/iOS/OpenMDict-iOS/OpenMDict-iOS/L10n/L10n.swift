@@ -302,6 +302,12 @@ nonisolated enum L10n {
         static var flashcardDesc: String {
             NSLocalizedString("aiCoach.flashcardDesc", value: "AI-generated flashcards from your bookmarks", comment: "AI Coach: flashcard mode description")
         }
+        static var amongWurds: String {
+            NSLocalizedString("aiCoach.amongWurds", value: "Among wUrdS", comment: "AI Coach: chooser option — morphology quiz mode")
+        }
+        static var amongWurdsDesc: String {
+            NSLocalizedString("aiCoach.amongWurdsDesc", value: "Find imposter words hiding among true relatives", comment: "AI Coach: morphology quiz mode description")
+        }
         static var openSettings: String {
             NSLocalizedString("aiCoach.openSettings", value: "Open OpenMDict Settings", comment: "AI Coach: button to open app settings")
         }
@@ -514,6 +520,111 @@ nonisolated enum L10n {
         }
         static var rateLimited: String {
             NSLocalizedString("aiCoach.error.rateLimited", value: "The on-device model is rate-limited right now. Wait a moment and try again.", comment: "AI Coach: rate limited error")
+        }
+
+        // MARK: Among wUrdS (morphology quiz)
+
+        enum AmongWurds {
+            static var title: String {
+                NSLocalizedString("aiCoach.amongWurds.title", value: "Among wUrdS", comment: "Among wUrdS: nav bar title")
+            }
+            static func impostersAmongUs(_ count: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.amongWurds.impostersAmongUs", value: "There are %d imposters among us", comment: "Among wUrdS: imposter count banner"), count)
+            }
+            static var eject: String {
+                NSLocalizedString("aiCoach.amongWurds.eject", value: "Eject", comment: "Among wUrdS: eject button")
+            }
+            static var rootLabel: String {
+                NSLocalizedString("aiCoach.amongWurds.rootLabel", value: "Root", comment: "Among wUrdS: root morpheme label")
+            }
+            static var markSus: String {
+                NSLocalizedString("aiCoach.amongWurds.markSus", value: "Tap words you think are imposters", comment: "Among wUrdS: instruction text")
+            }
+            static func scoreMessage(_ correct: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.amongWurds.scoreMessage", value: "%d of %d correctly identified", comment: "Among wUrdS: score summary"), correct, total)
+            }
+            static var generatingTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.generatingTitle", value: "Assigning roles\u{2026}", comment: "Among wUrdS: loading placeholder title")
+            }
+            static var generatingMessage: String {
+                NSLocalizedString("aiCoach.amongWurds.generatingMessage", value: "Analyzing word origins\u{2026}", comment: "Among wUrdS: loading placeholder message")
+            }
+            static func onboarded(_ count: Int) -> String {
+                let noun = count == 1 ? "member" : "members"
+                return "\(count) \(noun) onboarded"
+            }
+            static var next: String {
+                NSLocalizedString("aiCoach.amongWurds.next", value: "Next", comment: "Among wUrdS: next quiz button")
+            }
+            static var tryAgain: String {
+                NSLocalizedString("aiCoach.amongWurds.tryAgain", value: "Try Again", comment: "Among wUrdS: retry button")
+            }
+            static var errorTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.errorTitle", value: "Error", comment: "Among wUrdS: error placeholder title")
+            }
+            static var completedTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.completedTitle", value: "Mission Complete!", comment: "Among wUrdS: all quizzes done title")
+            }
+            static var completedMessage: String {
+                NSLocalizedString("aiCoach.amongWurds.completedMessage", value: "All crew members verified.", comment: "Among wUrdS: all quizzes done message")
+            }
+            static var noBookmarksTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.noBookmarksTitle", value: "No Bookmarks", comment: "Among wUrdS: empty state title")
+            }
+            static var noBookmarksMessage: String {
+                NSLocalizedString("aiCoach.amongWurds.noBookmarksMessage", value: "Bookmark some English words first, then come back to hunt imposters.", comment: "Among wUrdS: empty state message")
+            }
+            static var allRetriesFailed: String {
+                NSLocalizedString("aiCoach.amongWurds.allRetriesFailed", value: "Could not generate a quiz for your bookmarks. Try adding more English words.", comment: "Among wUrdS: all quiz attempts failed")
+            }
+            static var victoryTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.victoryTitle", value: "\u{1F389} Victory", comment: "Among wUrdS: victory alert title")
+            }
+            static var victoryMessage: String {
+                NSLocalizedString("aiCoach.amongWurds.victoryMessage", value: "All imposters have been ejected.", comment: "Among wUrdS: victory alert message")
+            }
+            static var defeatTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.defeatTitle", value: "Defeat", comment: "Among wUrdS: defeat alert title")
+            }
+            static var defeatMessage: String {
+                NSLocalizedString("aiCoach.amongWurds.defeatMessage", value: "The crew has been eliminated.", comment: "Among wUrdS: defeat alert message")
+            }
+            /// In-game banner text shown in the reveal header (reuses the
+            /// imposter-count label slot).
+            static var victoryBanner: String {
+                NSLocalizedString("aiCoach.amongWurds.victoryBanner", value: "Victory!", comment: "Among wUrdS: reveal banner when player wins")
+            }
+            /// First line of the defeat banner. Rendered red. The reason
+            /// follows on a second line, rendered white.
+            static var defeatBannerTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.defeatBannerTitle", value: "Defeat", comment: "Among wUrdS: defeat banner title (first line, red)")
+            }
+            /// Defeat reason: all crewmates are dead or ejected.
+            static var defeatReasonAllDead: String {
+                NSLocalizedString("aiCoach.amongWurds.defeatReasonAllDead", value: "the crew has been eliminated", comment: "Among wUrdS: defeat reason — zero crewmates alive")
+            }
+            /// Defeat reason: imposters reached parity — Among Us classic lose condition.
+            static var defeatReasonNotEnough: String {
+                NSLocalizedString("aiCoach.amongWurds.defeatReasonNotEnough", value: "not enough crewmates left alive", comment: "Among wUrdS: defeat reason — imposters reached parity")
+            }
+            static var verifyIdentities: String {
+                NSLocalizedString("aiCoach.amongWurds.verifyIdentities", value: "Verify Identities", comment: "Among wUrdS: reveal button in endgame alert")
+            }
+            static var crewmateLabel: String {
+                NSLocalizedString("aiCoach.amongWurds.crewmateLabel", value: "CREWMATE", comment: "Among wUrdS: revealed crewmate subtitle")
+            }
+            static var imposterLabel: String {
+                NSLocalizedString("aiCoach.amongWurds.imposterLabel", value: "IMPOSTER", comment: "Among wUrdS: revealed imposter subtitle")
+            }
+            static var reactorMeltdown: String {
+                NSLocalizedString("aiCoach.amongWurds.reactorMeltdown", value: "Reactor Meltdown!", comment: "Among wUrdS: loading failure — ship exploded, retry")
+            }
+            static var reassemblingCrew: String {
+                NSLocalizedString("aiCoach.amongWurds.reassemblingCrew", value: "Reassembling crew\u{2026}", comment: "Among wUrdS: brief message after reactor meltdown before next attempt")
+            }
+            static func ejectLimitAlert(_ max: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.amongWurds.ejectLimitAlert", value: "You can only eject up to %d crew members at a time.", comment: "Among wUrdS: eject limit warning"), max)
+            }
         }
     }
 

@@ -925,6 +925,390 @@
         }
       }
     },
+    "aiCoach.amongWurds" : {
+      "comment" : "AI Coach: chooser option — morphology quiz mode",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Among wUrdS"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.allRetriesFailed" : {
+      "comment" : "Among wUrdS: all quiz attempts failed",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not generate a quiz for your bookmarks. Try adding more English words."
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.completedMessage" : {
+      "comment" : "Among wUrdS: all quizzes done message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "All crew members verified."
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.completedTitle" : {
+      "comment" : "Among wUrdS: all quizzes done title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mission Complete!"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.crewmateLabel" : {
+      "comment" : "Among wUrdS: revealed crewmate subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CREWMATE"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.defeatBannerTitle" : {
+      "comment" : "Among wUrdS: defeat banner title (first line, red)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Defeat"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.defeatMessage" : {
+      "comment" : "Among wUrdS: defeat alert message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The crew has been eliminated."
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.defeatReasonAllDead" : {
+      "comment" : "Among wUrdS: defeat reason — zero crewmates alive",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "the crew has been eliminated"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.defeatReasonNotEnough" : {
+      "comment" : "Among wUrdS: defeat reason — imposters reached parity",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "not enough crewmates left alive"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.defeatTitle" : {
+      "comment" : "Among wUrdS: defeat alert title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Defeat"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.eject" : {
+      "comment" : "Among wUrdS: eject button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Eject"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.ejectLimitAlert" : {
+      "comment" : "Among wUrdS: eject limit warning",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You can only eject up to %d crew members at a time."
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.errorTitle" : {
+      "comment" : "Among wUrdS: error placeholder title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Error"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.generatingMessage" : {
+      "comment" : "Among wUrdS: loading placeholder message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Analyzing word origins…"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.generatingTitle" : {
+      "comment" : "Among wUrdS: loading placeholder title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Assigning roles…"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.imposterLabel" : {
+      "comment" : "Among wUrdS: revealed imposter subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "IMPOSTER"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.impostersAmongUs" : {
+      "comment" : "Among wUrdS: imposter count banner",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "There are %d imposters among us"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.markSus" : {
+      "comment" : "Among wUrdS: instruction text",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tap words you think are imposters"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.next" : {
+      "comment" : "Among wUrdS: next quiz button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.noBookmarksMessage" : {
+      "comment" : "Among wUrdS: empty state message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark some English words first, then come back to hunt imposters."
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.noBookmarksTitle" : {
+      "comment" : "Among wUrdS: empty state title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Bookmarks"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.reactorMeltdown" : {
+      "comment" : "Among wUrdS: loading failure — ship exploded, retry",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reactor Meltdown!"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.reassemblingCrew" : {
+      "comment" : "Among wUrdS: brief message after reactor meltdown before next attempt",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reassembling crew…"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.rootLabel" : {
+      "comment" : "Among wUrdS: root morpheme label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Root"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.scoreMessage" : {
+      "comment" : "Among wUrdS: score summary",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$d of %2$d correctly identified"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.title" : {
+      "comment" : "Among wUrdS: nav bar title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Among wUrdS"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.tryAgain" : {
+      "comment" : "Among wUrdS: retry button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.verifyIdentities" : {
+      "comment" : "Among wUrdS: reveal button in endgame alert",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Verify Identities"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.victoryBanner" : {
+      "comment" : "Among wUrdS: reveal banner when player wins",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Victory!"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.victoryMessage" : {
+      "comment" : "Among wUrdS: victory alert message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "All imposters have been ejected."
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurds.victoryTitle" : {
+      "comment" : "Among wUrdS: victory alert title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "🎉 Victory"
+          }
+        }
+      }
+    },
+    "aiCoach.amongWurdsDesc" : {
+      "comment" : "AI Coach: morphology quiz mode description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Find imposter words hiding among true relatives"
+          }
+        }
+      }
+    },
     "aiCoach.chooseMode" : {
       "comment" : "AI Coach: chooser action sheet message",
       "extractionState" : "extracted_with_value",

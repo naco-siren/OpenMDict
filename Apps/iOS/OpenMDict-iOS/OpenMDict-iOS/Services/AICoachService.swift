@@ -187,6 +187,28 @@ final class AICoachService {
     /// model (in QuizEngine) — if the model hallucinates a non-word, the
     /// dict lookup drops it silently.
     ///
+    /// Morphology challenge for Among wUrdS quiz. The model analyzes the
+    /// etymological root of the target word, finds genuine cognates that
+    /// share the same root, and produces false relatives that look related
+    /// but derive from a different root.
+    @Generable
+    struct MorphologyChallenge: Equatable {
+        @Guide(description: "The root morpheme shared by the target word and its relatives (e.g. 'ple' from Latin plere, to fill). Just the root, no explanation.")
+        var root: String
+
+        @Guide(description: "The prefix of the target word and its meaning, if any (e.g. 'com- (together)'). Empty string if no prefix.")
+        var prefix: String
+
+        @Guide(description: "The suffix of the target word and its meaning, if any (e.g. '-tion (noun form)'). Empty string if no suffix.")
+        var suffix: String
+
+        @Guide(description: "English words that genuinely share the same root morpheme as the target word. Provide as many as requested in the prompt.", .count(3...10))
+        var sameRootWords: [String]
+
+        @Guide(description: "English words that look superficially related to the target word (e.g. share a prefix) but actually derive from a different etymological root. Provide as many as requested in the prompt.", .count(2...7))
+        var falseRelatives: [String]
+    }
+
     /// The prompt is just the target word — NO dictionary definition is
     /// sent, so bilingual-dictionary content language detection is not an
     /// issue. The model draws from its own vocabulary knowledge.
@@ -224,6 +246,41 @@ final class AICoachService {
         )
 
         Self.signposter.endInterval("ai.candidates", interval)
+        Self.lastError = nil
+        return response.content
+    }
+
+    /// Generate a morphology challenge for Among wUrdS quiz. Non-streaming
+    /// (single `respond` call) because the output is small and we need the
+    /// complete result before building the quiz.
+    ///
+    /// - Parameters:
+    ///   - targetWord: the headword to analyze.
+    ///   - crewmateCount: desired number of same-root words (4...10).
+    ///   - imposterCount: desired number of false relatives (2...7).
+    func generateMorphologyChallenge(
+        targetWord: String,
+        crewmateCount: Int = 4,
+        imposterCount: Int = 2
+    ) async throws -> MorphologyChallenge {
+        let native = Self.detectModelLanguage()
+        let instructions = Self.morphologyInstructions(for: native)
+        let session = LanguageModelSession(instructions: instructions)
+        let prompt = Self.morphologyPrompt(
+            targetWord: targetWord, native: native,
+            crewmateCount: crewmateCount, imposterCount: imposterCount
+        )
+
+        let signpostID = Self.signposter.makeSignpostID()
+        let interval = Self.signposter.beginInterval(
+            "ai.morphology", id: signpostID, "word=\(targetWord)")
+
+        let response = try await session.respond(
+            to: prompt,
+            generating: MorphologyChallenge.self
+        )
+
+        Self.signposter.endInterval("ai.morphology", interval)
         Self.lastError = nil
         return response.content
     }
@@ -441,6 +498,105 @@ final class AICoachService {
                 """
         }
     }
+
+    // MARK: - Morphology challenge templates (Among wUrdS)
+
+    private static func morphologyInstructions(for native: NativeLanguage) -> String {
+        switch native {
+        case .english: return morphologyInstructionsEN
+        case .chinese: return morphologyInstructionsZH
+        }
+    }
+
+    private static func morphologyPrompt(
+        targetWord: String, native: NativeLanguage,
+        crewmateCount: Int, imposterCount: Int
+    ) -> String {
+        switch native {
+        case .english:
+            return """
+                Target word: \(targetWord)
+                Generate exactly \(crewmateCount) same-root words and \
+                exactly \(imposterCount) false relatives.
+                """
+        case .chinese:
+            return """
+                目标单词：\(targetWord)
+                请生成恰好 \(crewmateCount) 个同根词和 \
+                \(imposterCount) 个伪同源词。
+                """
+        }
+    }
+
+    private static let morphologyInstructionsEN: String = """
+        You are an expert etymologist. Given a target English word, \
+        analyze its root morpheme and produce words that share the \
+        SAME ETYMOLOGICAL ROOT — not synonyms, not semantic relatives.
+
+        Output:
+        1. The root morpheme (e.g. "duct" from Latin ducere = to lead).
+        2. Prefix with meaning (e.g. "con- (together)"). Empty string \
+           if none.
+        3. Suffix with meaning (e.g. "-ion (noun)"). Empty string if none.
+        4. Same-root words: other English words with the SAME root.
+        5. False relatives: words that LOOK related but have a DIFFERENT root.
+
+        CRITICAL — same-root words must share visible letter patterns:
+        ✅ CORRECT example for "conduct":
+           root = "duct" (Latin ducere, to lead)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → All contain "duc/duct" — the shared root is VISIBLE in spelling.
+        ❌ WRONG — DO NOT do this:
+           target = "complain", sameRootWords = ["grumble", "whine", "grouse"]
+           → These are SYNONYMS, not same-root words! They share NO morpheme.
+        ❌ WRONG — DO NOT do this:
+           target = "happy", sameRootWords = ["glad", "joyful", "cheerful"]
+           → Semantic similarity ≠ shared root. "glad" has no morpheme in \
+             common with "happy".
+
+        Rules:
+        - All words must be real, common English words (no archaic/rare).
+        - The root must be a real Latin, Greek, or Germanic morpheme.
+        - Every same-root word MUST contain the root's letter pattern \
+          (e.g. root "duct" → words must contain "duc" or "duct").
+        - False relatives should share a PREFIX with the target (e.g. \
+          "compose" vs "complete" both start with "com-" but have \
+          different roots: "ponere" vs "plere").
+        - Do not repeat the target word itself.
+        - Prefer words with clear, well-known Latin/Greek etymology. \
+          Skip words with unclear or disputed origins.
+        """
+
+    private static let morphologyInstructionsZH: String = """
+        你是一位词源学专家。给定一个目标英文单词，请分析其词根并生成 \
+        共享同一词源学词根的单词——注意：不是同义词，不是语义相关词。
+
+        输出：
+        1. 词根（例如 "duct" 来自拉丁语 ducere = 引导）。
+        2. 前缀及含义（例如 "con- (一起)"）。若无则为空字符串。
+        3. 后缀及含义（例如 "-ion (名词)"）。若无则为空字符串。
+        4. 同根词：其他包含相同词根的英文单词。
+        5. 假同源词：看起来相关但实际上词根不同的单词。
+
+        关键要求——同根词必须在拼写上包含词根的字母模式：
+        ✅ 正确示例 "conduct":
+           root = "duct" (拉丁语 ducere, 引导)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → 都包含 "duc/duct"——共享词根在拼写中可见。
+        ❌ 错误——绝对不要这样做：
+           target = "complain", sameRootWords = ["grumble", "whine", "grouse"]
+           → 这些是同义词，不是同根词！它们没有共享任何词素。
+
+        规则：
+        - 所有单词必须是真实的、常用的英文单词（不要生僻词）。
+        - 词根必须是真正的拉丁语、希腊语或日耳曼语词素。
+        - 每个同根词的拼写中必须包含词根的字母模式（例如词根 \
+          "duct" → 单词必须包含 "duc" 或 "duct"）。
+        - 假同源词应与目标词共享前缀（例如 "compose" 和 "complete" \
+          都以 "com-" 开头，但词根不同）。
+        - 不要重复目标词本身。
+        - 优先选择词源清晰的常见单词，跳过词源有争议的单词。
+        """
 
     // MARK: - Candidate generation templates (Word Relationship Quiz)
 
