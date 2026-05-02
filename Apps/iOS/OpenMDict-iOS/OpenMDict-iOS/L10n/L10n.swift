@@ -308,6 +308,12 @@ nonisolated enum L10n {
         static var amongWurdsDesc: String {
             NSLocalizedString("aiCoach.amongWurdsDesc", value: "Find imposter words hiding among true relatives", comment: "AI Coach: morphology quiz mode description")
         }
+        static var morphemeMaury: String {
+            NSLocalizedString("aiCoach.morphemeMaury", value: "Morpheme Maury", comment: "AI Coach: chooser option — Maury Show style morphology reveal")
+        }
+        static var morphemeMauryDesc: String {
+            NSLocalizedString("aiCoach.morphemeMauryDesc", value: "Daytime-TV paternity showdown: is this word really in the family?", comment: "AI Coach: Morpheme Maury mode description")
+        }
         static var openSettings: String {
             NSLocalizedString("aiCoach.openSettings", value: "Open OpenMDict Settings", comment: "AI Coach: button to open app settings")
         }
@@ -624,6 +630,76 @@ nonisolated enum L10n {
             }
             static func ejectLimitAlert(_ max: Int) -> String {
                 String(format: NSLocalizedString("aiCoach.amongWurds.ejectLimitAlert", value: "You can only eject up to %d crew members at a time.", comment: "Among wUrdS: eject limit warning"), max)
+            }
+        }
+
+        // MARK: Morpheme Maury
+
+        enum Maury {
+            static var title: String {
+                NSLocalizedString("aiCoach.maury.title", value: "Morpheme Maury", comment: "Maury: nav bar title")
+            }
+            static func episodeIntro(_ target: String) -> String {
+                String(format: NSLocalizedString("aiCoach.maury.episodeIntro", value: "Today on Morpheme Maury\u{2026} is \u{201C}%@\u{201D} really the root father?", comment: "Maury: show intro banner; %@ is target word"), target)
+            }
+            static var curtainUp: String {
+                NSLocalizedString("aiCoach.maury.curtainUp", value: "Curtain up\u{2026}", comment: "Maury: loading state")
+            }
+            static var stagehandsAtWork: String {
+                NSLocalizedString("aiCoach.maury.stagehandsAtWork", value: "Stagehands at work\u{2026}", comment: "Maury: loading secondary message")
+            }
+            static func caseProgress(_ current: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.maury.caseProgress", value: "Case %d of %d", comment: "Maury: progress label — Case 3 of 6"), current, total)
+            }
+            static var verdictFamily: String {
+                NSLocalizedString("aiCoach.maury.verdictFamily", value: "FAMILY!", comment: "Maury: user verdict button — believes candidate shares root")
+            }
+            static var verdictLiar: String {
+                NSLocalizedString("aiCoach.maury.verdictLiar", value: "LIAR!", comment: "Maury: user verdict button — believes candidate is false relative")
+            }
+            static var resultsAreIn: String {
+                NSLocalizedString("aiCoach.maury.resultsAreIn", value: "THE RESULTS ARE IN\u{2026}", comment: "Maury: envelope reveal headline")
+            }
+            static var tapEnvelope: String {
+                NSLocalizedString("aiCoach.maury.tapEnvelope", value: "Tap the envelope to reveal", comment: "Maury: envelope instruction")
+            }
+            /// Big verdict text — candidate IS in the root family
+            static var youAreTheMorpheme: String {
+                NSLocalizedString("aiCoach.maury.youAreTheMorpheme", value: "you ARE\nthe morpheme!", comment: "Maury: reveal text for true cognate")
+            }
+            /// Big verdict text — candidate is NOT in the root family
+            static var youAreNotTheMorpheme: String {
+                NSLocalizedString("aiCoach.maury.youAreNotTheMorpheme", value: "you are NOT\nthe morpheme!", comment: "Maury: reveal text for false relative")
+            }
+            static var caseClosed: String {
+                NSLocalizedString("aiCoach.maury.caseClosed", value: "Case Closed.", comment: "Maury: finale title")
+            }
+            static func finalScore(_ correct: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.maury.finalScore", value: "You judged %d of %d correctly.", comment: "Maury: finale score; %d correct out of %d total"), correct, total)
+            }
+            static var nextEpisode: String {
+                NSLocalizedString("aiCoach.maury.nextEpisode", value: "Next Episode", comment: "Maury: next quiz button")
+            }
+            static var backstageTitle: String {
+                NSLocalizedString("aiCoach.maury.backstageTitle", value: "Leaving the show?", comment: "Maury: dismiss confirmation title")
+            }
+            static var backstageMessage: String {
+                NSLocalizedString("aiCoach.maury.backstageMessage", value: "The audience is waiting on your verdict.", comment: "Maury: dismiss confirmation message")
+            }
+            static var stayOnStage: String {
+                NSLocalizedString("aiCoach.maury.stayOnStage", value: "Back to the Stage", comment: "Maury: cancel dismiss")
+            }
+            static var leaveShow: String {
+                NSLocalizedString("aiCoach.maury.leaveShow", value: "Leave Show", comment: "Maury: confirm dismiss")
+            }
+            static var noBookmarksTitle: String {
+                NSLocalizedString("aiCoach.maury.noBookmarksTitle", value: "No Guests Booked", comment: "Maury: empty state title")
+            }
+            static var noBookmarksMessage: String {
+                NSLocalizedString("aiCoach.maury.noBookmarksMessage", value: "Bookmark some English words first — Maury needs guests for the show.", comment: "Maury: empty state message")
+            }
+            static var episodeBusted: String {
+                NSLocalizedString("aiCoach.maury.episodeBusted", value: "We couldn't book an episode with any of your bookmarks. Try adding more English words with Latin or Greek roots.", comment: "Maury: all quizzes failed")
             }
         }
     }

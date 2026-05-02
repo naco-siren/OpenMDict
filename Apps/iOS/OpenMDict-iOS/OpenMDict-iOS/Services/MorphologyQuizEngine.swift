@@ -128,6 +128,10 @@ enum MorphologyQuizEngine {
         var verifiedInAttempt = 0
 
         for word in raw.sameRootWords {
+            guard sharesStartOrEnd(word, target: targetWord) else {
+                debugLog("🔪   skip '\(word)' (no 2+ char prefix/suffix match with target)")
+                continue
+            }
             if let c = verifyCandidate(word, isImposter: false, dictId: targetDictId, seenWords: &seenWords) {
                 let color = colorPool.isEmpty ? Int.random(in: 0..<10) : colorPool.removeFirst()
                 crewmates.append(MorphologyCandidate(
@@ -140,6 +144,10 @@ enum MorphologyQuizEngine {
         }
 
         for word in raw.falseRelatives {
+            guard sharesStartOrEnd(word, target: targetWord) else {
+                debugLog("🔪   skip '\(word)' (no 2+ char prefix/suffix match with target)")
+                continue
+            }
             if let c = verifyCandidate(word, isImposter: true, dictId: targetDictId, seenWords: &seenWords) {
                 let color = colorPool.isEmpty ? Int.random(in: 0..<10) : colorPool.removeFirst()
                 imposters.append(MorphologyCandidate(
@@ -169,6 +177,20 @@ enum MorphologyQuizEngine {
             prefix: raw.prefix.isEmpty ? nil : raw.prefix,
             suffix: raw.suffix.isEmpty ? nil : raw.suffix,
             allCandidates: allCandidates, imposterCount: imposters.count)
+    }
+
+    /// Shallow visual-similarity guard: candidate and target must share
+    /// at least 2 leading OR 2 trailing characters (case-insensitive).
+    /// Catches obvious AI failures like "complain → grumble" where the
+    /// model went semantic instead of morphological — grumble doesn't
+    /// share any start or end chars with complain.
+    private static func sharesStartOrEnd(_ candidate: String, target: String) -> Bool {
+        let c = candidate.lowercased()
+        let t = target.lowercased()
+        guard c.count >= 2, t.count >= 2 else { return false }
+        let sharedStart = c.prefix(2) == t.prefix(2)
+        let sharedEnd = c.suffix(2) == t.suffix(2)
+        return sharedStart || sharedEnd
     }
 
     private static func verifyCandidate(

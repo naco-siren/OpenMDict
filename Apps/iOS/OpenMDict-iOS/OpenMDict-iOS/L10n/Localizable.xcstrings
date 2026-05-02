@@ -1681,6 +1681,282 @@
         }
       }
     },
+    "aiCoach.maury.backstageMessage" : {
+      "comment" : "Maury: dismiss confirmation message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The audience is waiting on your verdict."
+          }
+        }
+      }
+    },
+    "aiCoach.maury.backstageTitle" : {
+      "comment" : "Maury: dismiss confirmation title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Leaving the show?"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.caseClosed" : {
+      "comment" : "Maury: finale title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Case Closed."
+          }
+        }
+      }
+    },
+    "aiCoach.maury.caseProgress" : {
+      "comment" : "Maury: progress label — Case 3 of 6",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Case %1$d of %2$d"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.curtainUp" : {
+      "comment" : "Maury: loading state",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Curtain up…"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.episodeBusted" : {
+      "comment" : "Maury: all quizzes failed",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "We couldn't book an episode with any of your bookmarks. Try adding more English words with Latin or Greek roots."
+          }
+        }
+      }
+    },
+    "aiCoach.maury.episodeIntro" : {
+      "comment" : "Maury: show intro banner; %@ is target word",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Today on Morpheme Maury… is “%@” really the root father?"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.finalScore" : {
+      "comment" : "Maury: finale score; %d correct out of %d total",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You judged %1$d of %2$d correctly."
+          }
+        }
+      }
+    },
+    "aiCoach.maury.leaveShow" : {
+      "comment" : "Maury: confirm dismiss",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Leave Show"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.nextEpisode" : {
+      "comment" : "Maury: next quiz button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next Episode"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.noBookmarksMessage" : {
+      "comment" : "Maury: empty state message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark some English words first — Maury needs guests for the show."
+          }
+        }
+      }
+    },
+    "aiCoach.maury.noBookmarksTitle" : {
+      "comment" : "Maury: empty state title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Guests Booked"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.resultsAreIn" : {
+      "comment" : "Maury: envelope reveal headline",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "THE RESULTS ARE IN…"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.stagehandsAtWork" : {
+      "comment" : "Maury: loading secondary message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Stagehands at work…"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.stayOnStage" : {
+      "comment" : "Maury: cancel dismiss",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Back to the Stage"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.tapEnvelope" : {
+      "comment" : "Maury: envelope instruction",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tap the envelope to reveal"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.title" : {
+      "comment" : "Maury: nav bar title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Morpheme Maury"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.verdictFamily" : {
+      "comment" : "Maury: user verdict button — believes candidate shares root",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FAMILY!"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.verdictLiar" : {
+      "comment" : "Maury: user verdict button — believes candidate is false relative",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "LIAR!"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.youAreNotTheMorpheme" : {
+      "comment" : "Maury: reveal text for false relative",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "you are NOT\nthe morpheme!"
+          }
+        }
+      }
+    },
+    "aiCoach.maury.youAreTheMorpheme" : {
+      "comment" : "Maury: reveal text for true cognate",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "you ARE\nthe morpheme!"
+          }
+        }
+      }
+    },
+    "aiCoach.morphemeMaury" : {
+      "comment" : "AI Coach: chooser option — Maury Show style morphology reveal",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Morpheme Maury"
+          }
+        }
+      }
+    },
+    "aiCoach.morphemeMauryDesc" : {
+      "comment" : "AI Coach: Morpheme Maury mode description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Daytime-TV paternity showdown: is this word really in the family?"
+          }
+        }
+      }
+    },
     "aiCoach.openSettings" : {
       "comment" : "AI Coach: button to open app settings",
       "extractionState" : "extracted_with_value",
