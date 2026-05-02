@@ -102,7 +102,7 @@ enum AICoach {
             if !isOSSupported {
                 return "AI Coach requires iOS 26 or later. This device is on an older OS."
             }
-            return "AI Coach is disabled. Enable it in Settings → OpenMDict → AI Coach (POC)."
+            return "AI Coach is disabled. Enable it in Settings → OpenMDict → AI Coach."
         }
         #if canImport(FoundationModels)
         if #available(iOS 26, *) {

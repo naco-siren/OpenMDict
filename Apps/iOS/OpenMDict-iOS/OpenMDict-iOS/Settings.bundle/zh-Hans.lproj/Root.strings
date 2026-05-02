@@ -27,3 +27,8 @@
 "ARTICLES_FEWER" = "较少";
 "ARTICLES_DEFAULT" = "默认";
 "ARTICLES_MORE" = "较多";
+
+/* M14 — AI Coach */
+"AI_COACH_GROUP" = "AI 教练";
+"AI_COACH_ENABLED" = "启用 AI 教练";
+"AI_COACH_FOOTER" = "需要 iOS 26 和支持 Apple 智能的设备。启用后，「AI 教练」操作将出现在边栏和管理选项卡中。AI 教练使用 Apple 的设备端 Foundation Models，从您收藏的英文单词生成词汇测验。所有运算均在本地完成——数据不会离开您的设备。";

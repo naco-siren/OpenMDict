@@ -240,9 +240,9 @@ nonisolated enum L10n {
         static var lookupHistory: String {
             NSLocalizedString("sidebar.lookupHistory", value: "My Lookup History", comment: "Sidebar management action: lookup history")
         }
-        /// M14 POC. English-only for this round — other languages fall back to this value.
+        /// M14. Sidebar / Management entry cell — opens the AI Coach mode chooser.
         static var aiCoach: String {
-            NSLocalizedString("sidebar.aiCoach", value: "AI Coach (POC)", comment: "Sidebar management action: AI-powered study flashcard POC")
+            NSLocalizedString("sidebar.aiCoach", value: "AI Coach", comment: "Sidebar management action: opens the AI Coach mode chooser")
         }
     }
 
@@ -283,8 +283,76 @@ nonisolated enum L10n {
             static var unknownMessage: String {
                 NSLocalizedString("aiCoach.triage.unknownMessage", value: "The on-device language model is unavailable. Please check your device settings.", comment: "Triage: generic fallback message")
             }
-            static var localeWarning: String {
-                NSLocalizedString("aiCoach.triage.localeWarning", value: "Your device language isn't directly supported by Apple Intelligence. Quizzes use English-based prompts and should still work.", comment: "Triage: locale warning banner in quiz list")
+            // MARK: Locale mismatch (unified — replaces the old separate
+            // languageNotSupported / regionMismatch states)
+            //
+            // The new framing centers on what the user just *touched* (their
+            // app/device language) given a fixed prerequisite (device region).
+            // The screen presents up to two solutions:
+            //   1. Change app language (via per-app language override — low
+            //      impact, doesn't touch device-wide setting)
+            //   2. Change device region (high impact, side-effect warning
+            //      attached as info row)
+            // Solution headers are dynamically numbered based on which ones
+            // are visible (only Solution 1 visible → renumber as "1", etc.).
+
+            static var localeMismatchTitle: String {
+                NSLocalizedString("aiCoach.triage.localeMismatchTitle", value: "AI Coach Not Available", comment: "Triage: title for the unified locale-mismatch screen — covers both the diaspora region-mismatch case and the entirely-unsupported-language case")
+            }
+            /// Frames the problem as: given device region X (the prerequisite
+            /// the user rarely touches), AI Coach doesn't support their
+            /// chosen app language Y (the variable they just touched).
+            /// Args: %1$@ = localized region name, %2$@ = localized language name.
+            static func localeMismatchSubtitle(region: String, language: String) -> String {
+                String(format: NSLocalizedString("aiCoach.triage.localeMismatchSubtitle", value: "When your device region is %1$@, Apple Intelligence doesn't support your current app language (%2$@).", comment: "Triage: subtitle framing the issue with region as prerequisite and language as variable. Arg 1 = localized region name, Arg 2 = localized language name."), region, language)
+            }
+
+            /// Solution section header — formatted with the dynamic ordinal
+            /// number ("1" or "2" depending on which other solutions are
+            /// visible) and the descriptor (changeAppLanguage / changeRegion).
+            /// Example: "Solution 1: Change App Language".
+            /// Args: %1$d = ordinal, %2$@ = descriptor.
+            static func solutionHeader(number: Int, descriptor: String) -> String {
+                String(format: NSLocalizedString("aiCoach.triage.solutionHeaderFormat", value: "Solution %1$d: %2$@", comment: "Triage: format for solution-section header. Arg 1 = ordinal number, Arg 2 = solution descriptor (changeAppLanguage / changeRegion)."), number, descriptor)
+            }
+            static var solutionChangeAppLanguage: String {
+                NSLocalizedString("aiCoach.triage.solutionChangeAppLanguage", value: "Change App Language", comment: "Triage: descriptor for Solution 1 — this is the per-app language override, NOT a device-wide language change. The wording should make clear it only affects this app.")
+            }
+            static var solutionChangeRegion: String {
+                NSLocalizedString("aiCoach.triage.solutionChangeRegion", value: "Change Region", comment: "Triage: descriptor for Solution 2 — this is the device-wide region change.")
+            }
+
+            // MARK: Solution 1 — change app language (per-app override)
+
+            /// Step 1 of Solution 1: navigation path to OpenMDict's settings
+            /// page. The cell is tappable (chevron + tap gesture) and opens
+            /// the page directly via UIApplication.openSettingsURLString.
+            /// Arg 1 = app display name (e.g. "OpenMDict").
+            static func solutionLanguageStep1(appName: String) -> String {
+                String(format: NSLocalizedString("aiCoach.triage.solutionLanguageStep1Format", value: "Settings \u{2192} Apps \u{2192} %@", comment: "Triage: Solution 1 step 1 — navigation path to the app's Settings page. Arg 1 = app display name. The path uses iOS 18+ Settings layout which has a unified 'Apps' subgroup; AI Coach is iOS 26+ only so older layouts don't apply."), appName)
+            }
+            static var solutionLanguageStep2: String {
+                NSLocalizedString("aiCoach.triage.solutionLanguageStep2", value: "Tap Preferred Language and pick a supported one.", comment: "Triage: Solution 1 step 2 — the per-app language picker is system-provided and labeled 'Preferred Language' in iOS")
+            }
+
+            // MARK: Solution 2 — change device region
+
+            /// Step 1 of Solution 2: navigation path to Language & Region.
+            /// Read-only (no deep-link API exists for this pane).
+            static var solutionRegionStep1: String {
+                NSLocalizedString("aiCoach.triage.solutionRegionStep1", value: "Settings \u{2192} General \u{2192} Language & Region", comment: "Triage: Solution 2 step 1 — navigation path to the Language & Region screen")
+            }
+            static var solutionRegionStep2: String {
+                NSLocalizedString("aiCoach.triage.solutionRegionStep2", value: "Tap Region and pick a supported region.", comment: "Triage: Solution 2 step 2 — the supported-region list renders separately as the cell's subtitle (computed at runtime).")
+            }
+            static var solutionRegionWarning: String {
+                NSLocalizedString("aiCoach.triage.solutionRegionWarning", value: "Changing Region affects calendars, currency, and App Store defaults.", comment: "Triage: Solution 2 warning info row — the side effects of changing device region. Solution 1 (per-app language) avoids these.")
+            }
+
+            // MARK: Fallback — neither solution applicable (e.g. ru-RU)
+
+            static var fallbackMessage: String {
+                NSLocalizedString("aiCoach.triage.fallbackMessage", value: "Apple Intelligence isn't available for your language and region combination. To use AI Coach, change your iPhone Language and Region in Settings to a supported combination.", comment: "Triage: fallback message when neither Solution 1 nor Solution 2 has any candidates (rare — e.g. ru-RU where neither Russian nor Russia is in Apple's supported list).")
             }
         }
         static var chooseMode: String {
@@ -322,7 +390,7 @@ nonisolated enum L10n {
 
         enum Flashcard {
             static var title: String {
-                NSLocalizedString("aiCoach.flashcard.title", value: "AI Coach (POC)", comment: "Flashcard: nav bar title")
+                NSLocalizedString("aiCoach.flashcard.title", value: "Flashcard", comment: "Flashcard: nav bar title (DEBUG-only mode)")
             }
             static var sectionDefinition: String {
                 NSLocalizedString("aiCoach.flashcard.definition", value: "Definition", comment: "Flashcard: section title")

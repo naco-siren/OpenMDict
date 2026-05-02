@@ -28,7 +28,7 @@
 "ARTICLES_DEFAULT" = "Default";
 "ARTICLES_MORE" = "More";
 
-/* M14 POC — AI Coach (on-device Foundation Models) */
-"AI_COACH_GROUP" = "AI Coach (POC)";
+/* M14 — AI Coach (on-device Foundation Models) */
+"AI_COACH_GROUP" = "AI Coach";
 "AI_COACH_ENABLED" = "Enable AI Coach";
-"AI_COACH_FOOTER" = "Requires iOS 26 and a device with Apple Intelligence. When enabled, an “AI Coach” action appears in the sidebar and Management tab. This is an experimental preview that uses Apple’s on-device Foundation Models to turn your bookmarked English words into AI-generated flashcards. Everything runs locally — no data leaves your device.";
+"AI_COACH_FOOTER" = "Requires iOS 26 and a device with Apple Intelligence. When enabled, an “AI Coach” action appears in the sidebar and Management tab. AI Coach uses Apple’s on-device Foundation Models to generate vocabulary quizzes from your bookmarked English words. Everything runs locally — no data leaves your device.";

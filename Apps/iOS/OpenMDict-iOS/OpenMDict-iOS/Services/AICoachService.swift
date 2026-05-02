@@ -85,6 +85,100 @@ final class AICoachService {
             .contains { $0.maximalIdentifier == current }
     }
 
+    /// True iff `Locale.current`'s language code (e.g. "zh", "ru") matches
+    /// a language family Apple Intelligence supports — region/script
+    /// agnostic. Distinguishes two failure modes downstream:
+    /// - `false` → entirely unsupported language (ru/uk/ar/hi). User must
+    ///   change iPhone Language to use AI Coach.
+    /// - `true` + `!isCurrentLocaleSupported()` → diaspora region mismatch
+    ///   (e.g. zh-Hans-US: language family OK, specific BCP-47 tag not).
+    ///   User can change Region OR change iPhone Language to English.
+    static func isAppleAILanguageSupported() -> Bool {
+        let currentCode = Locale.current.language.languageCode?.identifier ?? ""
+        let supportedCodes = Set(
+            SystemLanguageModel.default.supportedLanguages
+                .compactMap { $0.languageCode?.identifier }
+        )
+        return supportedCodes.contains(currentCode)
+    }
+
+    /// For Solution 2 (change device region) — returns a localized list of
+    /// regions Apple Intelligence supports for the user's current language
+    /// family, formatted with locale-appropriate **disjunctive** ("or")
+    /// connectors. The list is shown as alternatives the user can pick one
+    /// of, not as a conjunction — so en uses "A, B, or C", zh uses
+    /// "A、B 或 C", etc.
+    ///
+    /// Examples (display language tracks `Locale.current`, i.e. the per-app
+    /// language override):
+    ///   zh → "中国大陆、香港或台湾"
+    ///   en → "Australia, Canada, India, Ireland, New Zealand, Singapore, …, or United States"
+    ///   es → "Latin America, Spain, or United States"
+    ///
+    /// Returns empty string if the current language family isn't supported
+    /// at all — callers should hide Solution 2 in that case.
+    static func supportedRegionsListForCurrentLanguage() -> String {
+        let currentCode = Locale.current.language.languageCode?.identifier ?? ""
+        let regions = SystemLanguageModel.default.supportedLanguages
+            .filter { $0.languageCode?.identifier == currentCode }
+            .compactMap { $0.region?.identifier }
+        // Multiple variants can map to the same region (e.g. zh-Hans-CN +
+        // zh-Hant-CN both have region "CN"); de-dupe before display.
+        let uniqueRegions = Array(Set(regions)).sorted()
+        let names = uniqueRegions.compactMap {
+            Locale.current.localizedString(forRegionCode: $0)
+        }
+        return names.formatted(.list(type: .or, width: .standard))
+    }
+
+    /// For Solution 1 (change app language via per-app language override) —
+    /// returns a localized list of languages Apple Intelligence supports
+    /// for the user's current device region, with disjunctive ("or")
+    /// connectors (the user picks ONE language, not all of them).
+    /// Returns empty string if no language ships for the current region
+    /// (caller should hide Solution 1 in that case).
+    ///
+    /// Examples (display language tracks `Locale.current`):
+    ///   region=US → "English or Spanish" (or "英语或西班牙语" in zh)
+    ///   region=PH → "" (Apple ships nothing for Philippines)
+    static func supportedLanguagesListForCurrentRegion() -> String {
+        let currentRegion = Locale.current.region?.identifier ?? ""
+        let langCodes = SystemLanguageModel.default.supportedLanguages
+            .filter { $0.region?.identifier == currentRegion }
+            .compactMap { $0.languageCode?.identifier }
+        let uniqueCodes = Array(Set(langCodes)).sorted()
+        let names = uniqueCodes.compactMap {
+            Locale.current.localizedString(forLanguageCode: $0)
+        }
+        return names.formatted(.list(type: .or, width: .standard))
+    }
+
+    /// True iff Solution 1 has at least one candidate language compatible
+    /// with the user's current device region.
+    static func hasLanguageCandidatesForCurrentRegion() -> Bool {
+        let currentRegion = Locale.current.region?.identifier ?? ""
+        return SystemLanguageModel.default.supportedLanguages.contains {
+            $0.region?.identifier == currentRegion
+        }
+    }
+
+    /// Localized name of `Locale.current`'s region (e.g. "美国", "United
+    /// States", "Stati Uniti"). Used as %1$@ in the localeMismatch subtitle
+    /// — frames the region as the prerequisite ("given region X, ...").
+    static func currentRegionDisplayName() -> String {
+        let regionCode = Locale.current.region?.identifier
+            ?? Locale.current.language.region?.identifier
+            ?? "Unknown"
+        return Locale.current.localizedString(forRegionCode: regionCode) ?? regionCode
+    }
+
+    /// Localized name of `Locale.current`'s language (e.g. "中文", "Chinese",
+    /// "Cinese"). Used as %2$@ in the localeMismatch subtitle.
+    static func currentLanguageDisplayName() -> String {
+        let langCode = Locale.current.language.languageCode?.identifier ?? "und"
+        return Locale.current.localizedString(forLanguageCode: langCode) ?? langCode
+    }
+
     // MARK: - Diagnostics
 
     /// Multi-line dump of everything the framework thinks about languages
@@ -404,16 +498,34 @@ final class AICoachService {
 
     // MARK: - Internals
 
-    /// Instruction template families we've tuned for this POC.
+    /// Instruction template families we've tuned for this POC. One case per
+    /// (language family ∩ Apple Intelligence supported), i.e. languages that both
+    /// the app and Apple Intelligence support.
     /// `.debugName` is only used in the diagnostic report.
+    ///
+    /// Note: `.chinese` covers both Simplified and Traditional. The on-device
+    /// model variant is the same regardless; only the dictionary content
+    /// (which the user supplies via MDX) differs by region.
     private enum NativeLanguage {
         case english
         case chinese
+        case japanese
+        case korean
+        case french
+        case german
+        case spanish
+        case portuguese
 
         var debugName: String {
             switch self {
-            case .english: return "English"
-            case .chinese: return "Chinese (bilingual output)"
+            case .english:    return "English"
+            case .chinese:    return "Chinese (bilingual output)"
+            case .japanese:   return "Japanese (bilingual output)"
+            case .korean:     return "Korean (bilingual output)"
+            case .french:     return "French (bilingual output)"
+            case .german:     return "German (bilingual output)"
+            case .spanish:    return "Spanish (bilingual output)"
+            case .portuguese: return "Portuguese (bilingual output)"
             }
         }
     }
@@ -447,7 +559,12 @@ final class AICoachService {
         let prefix = String(deviceLang.prefix(2)).lowercased()
         switch prefix {
         case "zh": return .chinese
-        // Future: "ja" → .japanese, "ko" → .korean, "fr" → .french, etc.
+        case "ja": return .japanese
+        case "ko": return .korean
+        case "fr": return .french
+        case "de": return .german
+        case "es": return .spanish
+        case "pt": return .portuguese
         default:   return .english
         }
     }
@@ -460,14 +577,26 @@ final class AICoachService {
         let code = locale.language.languageCode?.identifier ?? "en"
         switch code {
         case "zh": return .chinese
+        case "ja": return .japanese
+        case "ko": return .korean
+        case "fr": return .french
+        case "de": return .german
+        case "es": return .spanish
+        case "pt": return .portuguese
         default:   return .english
         }
     }
 
     private static func systemInstructions(for native: NativeLanguage) -> String {
         switch native {
-        case .english: return systemInstructionsEN
-        case .chinese: return systemInstructionsZH
+        case .english:    return systemInstructionsEN
+        case .chinese:    return systemInstructionsZH
+        case .japanese:   return systemInstructionsJA
+        case .korean:     return systemInstructionsKO
+        case .french:     return systemInstructionsFR
+        case .german:     return systemInstructionsDE
+        case .spanish:    return systemInstructionsES
+        case .portuguese: return systemInstructionsPT
         }
     }
 
@@ -496,6 +625,64 @@ final class AICoachService {
 
                 请根据上方的词典释义，为这个英文单词生成一张学习卡片。
                 """
+        case .japanese:
+            return """
+                単語：\(word)
+
+                辞書原文：
+                \(definition)
+
+                上記の辞書定義に基づいて、この英単語の学習カードを作成してください。
+                """
+        case .korean:
+            return """
+                단어: \(word)
+
+                사전 원문:
+                \(definition)
+
+                위 사전 정의를 바탕으로 이 영단어의 학습 카드를 만들어 주세요.
+                """
+        case .french:
+            return """
+                Mot : \(word)
+
+                Définition du dictionnaire :
+                \(definition)
+
+                Produisez une fiche d'apprentissage pour ce mot à partir \
+                de la définition ci-dessus.
+                """
+        case .german:
+            return """
+                Wort: \(word)
+
+                Wörterbuchdefinition:
+                \(definition)
+
+                Erstellen Sie eine Lernkarte für dieses Wort basierend \
+                auf der obigen Definition.
+                """
+        case .spanish:
+            return """
+                Palabra: \(word)
+
+                Definición del diccionario:
+                \(definition)
+
+                Produce una ficha de aprendizaje para esta palabra a \
+                partir de la definición anterior.
+                """
+        case .portuguese:
+            return """
+                Palavra: \(word)
+
+                Definição do dicionário:
+                \(definition)
+
+                Produza um cartão de estudo para esta palavra com base \
+                na definição acima.
+                """
         }
     }
 
@@ -503,8 +690,14 @@ final class AICoachService {
 
     private static func morphologyInstructions(for native: NativeLanguage) -> String {
         switch native {
-        case .english: return morphologyInstructionsEN
-        case .chinese: return morphologyInstructionsZH
+        case .english:    return morphologyInstructionsEN
+        case .chinese:    return morphologyInstructionsZH
+        case .japanese:   return morphologyInstructionsJA
+        case .korean:     return morphologyInstructionsKO
+        case .french:     return morphologyInstructionsFR
+        case .german:     return morphologyInstructionsDE
+        case .spanish:    return morphologyInstructionsES
+        case .portuguese: return morphologyInstructionsPT
         }
     }
 
@@ -524,6 +717,42 @@ final class AICoachService {
                 目标单词：\(targetWord)
                 请生成恰好 \(crewmateCount) 个同根词和 \
                 \(imposterCount) 个伪同源词。
+                """
+        case .japanese:
+            return """
+                目標単語：\(targetWord)
+                同根語をちょうど \(crewmateCount) 個、偽同根語をちょうど \
+                \(imposterCount) 個生成してください。
+                """
+        case .korean:
+            return """
+                목표 단어: \(targetWord)
+                동근어를 정확히 \(crewmateCount)개, 가짜 친척을 정확히 \
+                \(imposterCount)개 생성해 주세요.
+                """
+        case .french:
+            return """
+                Mot cible : \(targetWord)
+                Générez exactement \(crewmateCount) mots de même racine \
+                et exactement \(imposterCount) faux apparentés.
+                """
+        case .german:
+            return """
+                Zielwort: \(targetWord)
+                Erzeugen Sie genau \(crewmateCount) wurzelverwandte \
+                Wörter und genau \(imposterCount) falsche Verwandte.
+                """
+        case .spanish:
+            return """
+                Palabra objetivo: \(targetWord)
+                Genera exactamente \(crewmateCount) palabras de la \
+                misma raíz y exactamente \(imposterCount) falsos parientes.
+                """
+        case .portuguese:
+            return """
+                Palavra-alvo: \(targetWord)
+                Gere exatamente \(crewmateCount) palavras da mesma raiz \
+                e exatamente \(imposterCount) falsos parentes.
                 """
         }
     }
@@ -598,21 +827,324 @@ final class AICoachService {
         - 优先选择词源清晰的常见单词，跳过词源有争议的单词。
         """
 
+    private static let morphologyInstructionsJA: String = """
+        あなたは語源学の専門家です。提示された目標英単語について、その \
+        語根を分析し、同じ語源（ETYMOLOGICAL ROOT）を共有する単語を \
+        生成してください。注意：同義語ではなく、意味的に関連する \
+        単語でもありません。
+
+        出力:
+        1. 語根（例：ラテン語 ducere（導く）由来の "duct"）。
+        2. 接頭辞とその意味（例："con- (一緒に)"）。なければ空文字列。
+        3. 接尾辞とその意味（例："-ion (名詞化)"）。なければ空文字列。
+        4. 同根語：同じ語根を持つ他の英単語。
+        5. 偽同根語：関連しているように見えるが、実際には語根が \
+           異なる単語。
+
+        重要 — 同根語は綴りに語根の文字パターンを必ず含むこと:
+        ✅ 正しい例 "conduct":
+           root = "duct" (ラテン語 ducere、導く)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → すべて "duc/duct" を含む——共有する語根が綴りで見える。
+        ❌ 間違い——絶対にしないこと:
+           target = "complain",
+           sameRootWords = ["grumble", "whine", "grouse"]
+           → これらは同義語であって、同根語ではない！共通する \
+             語素はない。
+        ❌ 間違い——絶対にしないこと:
+           target = "happy",
+           sameRootWords = ["glad", "joyful", "cheerful"]
+           → 意味の類似は語根の共有ではない。"glad" は "happy" と \
+             共通する語素を持たない。
+
+        ルール:
+        - 単語はすべて実在する一般的な英単語であること（古語・希少語は \
+          避ける）。
+        - 語根は本物のラテン語、ギリシャ語、またはゲルマン語の語素で \
+          あること。
+        - すべての同根語は語根の文字パターンを綴りに含むこと（例：語根 \
+          "duct" → 単語に "duc" または "duct" を含む）。
+        - 偽同根語は目標単語と接頭辞を共有すること（例："compose" と \
+          "complete" は両方 "com-" で始まるが、語根 "ponere" と \
+          "plere" で異なる）。
+        - 目標単語自体を繰り返さないこと。
+        - 語源が明確な一般的な単語を優先し、語源が不明瞭または論争の \
+          ある単語は避ける。
+        """
+
+    private static let morphologyInstructionsKO: String = """
+        당신은 어원학 전문가입니다. 제시된 목표 영단어에 대해, 그 \
+        어근을 분석하고 같은 어원(ETYMOLOGICAL ROOT)을 공유하는 단어를 \
+        생성해 주세요. 주의: 동의어가 아니며, 의미적으로 관련된 \
+        단어도 아닙니다.
+
+        출력:
+        1. 어근(예: 라틴어 ducere(이끌다)에서 유래한 "duct").
+        2. 접두사와 그 의미(예: "con- (함께)"). 없으면 빈 문자열.
+        3. 접미사와 그 의미(예: "-ion (명사화)"). 없으면 빈 문자열.
+        4. 동근어: 같은 어근을 가진 다른 영단어.
+        5. 가짜 친척: 관련된 듯 보이지만 실제로는 어근이 다른 단어.
+
+        핵심 — 동근어는 철자에 어근의 문자 패턴을 반드시 포함해야 합니다:
+        ✅ 올바른 예 "conduct":
+           root = "duct" (라틴어 ducere, 이끌다)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → 모두 "duc/duct"를 포함——공유하는 어근이 철자에서 \
+             보입니다.
+        ❌ 잘못됨——절대 이렇게 하지 마세요:
+           target = "complain",
+           sameRootWords = ["grumble", "whine", "grouse"]
+           → 이는 동의어이지 동근어가 아닙니다! 공통 어소가 없습니다.
+        ❌ 잘못됨——절대 이렇게 하지 마세요:
+           target = "happy",
+           sameRootWords = ["glad", "joyful", "cheerful"]
+           → 의미적 유사성은 어근 공유가 아닙니다. "glad"는 "happy"와 \
+             공통 어소가 없습니다.
+
+        규칙:
+        - 모든 단어는 실재하는 일반적인 영단어여야 합니다(고어·희귀어 \
+          피하기).
+        - 어근은 진짜 라틴어, 그리스어, 또는 게르만어 어소여야 합니다.
+        - 모든 동근어는 어근의 문자 패턴을 철자에 포함해야 합니다 \
+          (예: 어근 "duct" → 단어에 "duc" 또는 "duct" 포함).
+        - 가짜 친척은 목표 단어와 접두사를 공유해야 합니다(예: \
+          "compose"와 "complete"는 둘 다 "com-"로 시작하지만 어근이 \
+          "ponere"와 "plere"로 다릅니다).
+        - 목표 단어 자체를 반복하지 마세요.
+        - 어원이 명확한 일반적 단어를 우선하고, 어원이 불분명하거나 \
+          논란이 있는 단어는 피하세요.
+        """
+
+    private static let morphologyInstructionsFR: String = """
+        Vous êtes un expert en étymologie. Pour un mot cible anglais \
+        donné, analysez son morphème racine et produisez des mots qui \
+        partagent la MÊME RACINE ÉTYMOLOGIQUE — pas des synonymes, ni \
+        des mots sémantiquement liés.
+
+        Sortie :
+        1. La racine (ex. : "duct" du latin ducere = mener).
+        2. Le préfixe et son sens (ex. : "con- (ensemble)"). Chaîne \
+           vide s'il n'y en a pas.
+        3. Le suffixe et son sens (ex. : "-ion (formation de nom)"). \
+           Chaîne vide s'il n'y en a pas.
+        4. Mots de même racine : autres mots anglais ayant la MÊME racine.
+        5. Faux apparentés : mots qui SEMBLENT liés mais ont une racine \
+           DIFFÉRENTE.
+
+        CRITIQUE — les mots de même racine doivent partager des motifs \
+        de lettres visibles :
+        ✅ Exemple CORRECT pour "conduct" :
+           root = "duct" (latin ducere, mener)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → Tous contiennent "duc/duct" — la racine partagée est \
+             VISIBLE dans l'orthographe.
+        ❌ FAUX — NE FAITES PAS ceci :
+           target = "complain",
+           sameRootWords = ["grumble", "whine", "grouse"]
+           → Ce sont des SYNONYMES, pas des mots de même racine ! Ils \
+             ne partagent AUCUN morphème.
+        ❌ FAUX — NE FAITES PAS ceci :
+           target = "happy",
+           sameRootWords = ["glad", "joyful", "cheerful"]
+           → La similarité sémantique ≠ racine partagée. "glad" n'a \
+             aucun morphème en commun avec "happy".
+
+        Règles :
+        - Tous les mots doivent être de vrais mots anglais courants \
+          (pas d'archaïques ni de rares).
+        - La racine doit être un morphème latin, grec ou germanique \
+          authentique.
+        - Chaque mot de même racine DOIT contenir le motif de lettres \
+          de la racine (ex. : racine "duct" → les mots doivent \
+          contenir "duc" ou "duct").
+        - Les faux apparentés doivent partager un PRÉFIXE avec le mot \
+          cible (ex. : "compose" et "complete" commencent tous deux \
+          par "com-" mais ont des racines différentes : "ponere" vs \
+          "plere").
+        - Ne répétez pas le mot cible lui-même.
+        - Préférez les mots à étymologie latine/grecque claire et bien \
+          connue. Évitez les mots à origine douteuse ou contestée.
+        """
+
+    private static let morphologyInstructionsDE: String = """
+        Sie sind ein Etymologie-Experte. Analysieren Sie für ein \
+        gegebenes englisches Zielwort dessen Wurzelmorphem und erzeugen \
+        Sie Wörter, die DIESELBE ETYMOLOGISCHE WURZEL teilen — keine \
+        Synonyme, keine semantisch verwandten Wörter.
+
+        Ausgabe:
+        1. Die Wurzel (z. B. "duct" aus dem lateinischen ducere = führen).
+        2. Präfix mit Bedeutung (z. B. "con- (zusammen)"). Leerer \
+           String, falls keiner.
+        3. Suffix mit Bedeutung (z. B. "-ion (Substantivbildung)"). \
+           Leerer String, falls keiner.
+        4. Wurzelverwandte Wörter: andere englische Wörter mit \
+           DERSELBEN Wurzel.
+        5. Falsche Verwandte: Wörter, die verwandt AUSSEHEN, aber eine \
+           ANDERE Wurzel haben.
+
+        KRITISCH — wurzelverwandte Wörter müssen sichtbare \
+        Buchstabenmuster teilen:
+        ✅ Korrektes Beispiel für "conduct":
+           root = "duct" (lateinisch ducere, führen)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → Alle enthalten "duc/duct" — die geteilte Wurzel ist in \
+             der Schreibung SICHTBAR.
+        ❌ FALSCH — TUN SIE DAS NICHT:
+           target = "complain",
+           sameRootWords = ["grumble", "whine", "grouse"]
+           → Das sind SYNONYME, keine wurzelverwandten Wörter! Sie \
+             teilen KEIN Morphem.
+        ❌ FALSCH — TUN SIE DAS NICHT:
+           target = "happy",
+           sameRootWords = ["glad", "joyful", "cheerful"]
+           → Semantische Ähnlichkeit ≠ geteilte Wurzel. "glad" hat \
+             kein Morphem mit "happy" gemein.
+
+        Regeln:
+        - Alle Wörter müssen echte, gebräuchliche englische Wörter sein \
+          (keine veralteten/seltenen).
+        - Die Wurzel muss ein echtes lateinisches, griechisches oder \
+          germanisches Morphem sein.
+        - Jedes wurzelverwandte Wort MUSS das Buchstabenmuster der \
+          Wurzel enthalten (z. B. Wurzel "duct" → die Wörter müssen \
+          "duc" oder "duct" enthalten).
+        - Falsche Verwandte sollten ein PRÄFIX mit dem Zielwort teilen \
+          (z. B. "compose" und "complete" beginnen beide mit "com-", \
+          haben aber unterschiedliche Wurzeln: "ponere" vs "plere").
+        - Wiederholen Sie das Zielwort selbst nicht.
+        - Bevorzugen Sie Wörter mit klarer, gut belegter \
+          lateinischer/griechischer Etymologie. Vermeiden Sie Wörter \
+          mit unklarer oder umstrittener Herkunft.
+        """
+
+    private static let morphologyInstructionsES: String = """
+        Eres un experto en etimología. Para una palabra inglesa \
+        objetivo dada, analiza su raíz morfológica y produce palabras \
+        que comparten la MISMA RAÍZ ETIMOLÓGICA — no sinónimos, no \
+        palabras semánticamente relacionadas.
+
+        Salida:
+        1. La raíz (por ejemplo, "duct" del latín ducere = conducir).
+        2. El prefijo y su significado (por ejemplo, "con- (juntos)"). \
+           Cadena vacía si no hay.
+        3. El sufijo y su significado (por ejemplo, "-ion (formador de \
+           sustantivos)"). Cadena vacía si no hay.
+        4. Palabras de la misma raíz: otras palabras inglesas con la \
+           MISMA raíz.
+        5. Falsos parientes: palabras que PARECEN relacionadas pero \
+           tienen una raíz DIFERENTE.
+
+        CRÍTICO — las palabras de la misma raíz deben compartir patrones \
+        de letras visibles:
+        ✅ Ejemplo CORRECTO para "conduct":
+           root = "duct" (latín ducere, conducir)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → Todas contienen "duc/duct" — la raíz compartida es \
+             VISIBLE en la escritura.
+        ❌ INCORRECTO — NO HAGAS esto:
+           target = "complain",
+           sameRootWords = ["grumble", "whine", "grouse"]
+           → Estos son SINÓNIMOS, no palabras de la misma raíz. ¡No \
+             comparten NINGÚN morfema!
+        ❌ INCORRECTO — NO HAGAS esto:
+           target = "happy",
+           sameRootWords = ["glad", "joyful", "cheerful"]
+           → La similitud semántica ≠ raíz compartida. "glad" no tiene \
+             ningún morfema en común con "happy".
+
+        Reglas:
+        - Todas las palabras deben ser palabras inglesas reales y \
+          comunes (sin arcaísmos ni palabras raras).
+        - La raíz debe ser un morfema latino, griego o germánico real.
+        - Cada palabra de la misma raíz DEBE contener el patrón de \
+          letras de la raíz (por ejemplo, raíz "duct" → las palabras \
+          deben contener "duc" o "duct").
+        - Los falsos parientes deben compartir un PREFIJO con la \
+          palabra objetivo (por ejemplo, "compose" y "complete" \
+          empiezan ambos con "com-" pero tienen raíces distintas: \
+          "ponere" vs "plere").
+        - No repitas la palabra objetivo.
+        - Prefiere palabras con etimología latina/griega clara y bien \
+          establecida. Evita palabras de origen incierto o discutido.
+        """
+
+    private static let morphologyInstructionsPT: String = """
+        Você é um especialista em etimologia. Para uma palavra-alvo \
+        inglesa, analise seu morfema raiz e produza palavras que \
+        compartilham a MESMA RAIZ ETIMOLÓGICA — não sinônimos, nem \
+        palavras semanticamente relacionadas.
+
+        Saída:
+        1. A raiz (por exemplo, "duct" do latim ducere = conduzir).
+        2. O prefixo e seu significado (por exemplo, "con- (junto)"). \
+           String vazia se não houver.
+        3. O sufixo e seu significado (por exemplo, "-ion (formador de \
+           substantivo)"). String vazia se não houver.
+        4. Palavras da mesma raiz: outras palavras inglesas com a \
+           MESMA raiz.
+        5. Falsos parentes: palavras que PARECEM relacionadas mas têm \
+           raiz DIFERENTE.
+
+        CRÍTICO — as palavras da mesma raiz devem compartilhar padrões \
+        de letras visíveis:
+        ✅ Exemplo CORRETO para "conduct":
+           root = "duct" (latim ducere, conduzir)
+           sameRootWords = ["produce", "reduce", "educate", "induction"]
+           → Todas contêm "duc/duct" — a raiz compartilhada é VISÍVEL \
+             na grafia.
+        ❌ ERRADO — NÃO faça isso:
+           target = "complain",
+           sameRootWords = ["grumble", "whine", "grouse"]
+           → Esses são SINÔNIMOS, não palavras da mesma raiz! Não \
+             compartilham NENHUM morfema.
+        ❌ ERRADO — NÃO faça isso:
+           target = "happy",
+           sameRootWords = ["glad", "joyful", "cheerful"]
+           → Similaridade semântica ≠ raiz compartilhada. "glad" não \
+             tem nenhum morfema em comum com "happy".
+
+        Regras:
+        - Todas as palavras devem ser palavras inglesas reais e comuns \
+          (sem arcaísmos ou raras).
+        - A raiz deve ser um morfema latino, grego ou germânico genuíno.
+        - Cada palavra da mesma raiz DEVE conter o padrão de letras da \
+          raiz (por exemplo, raiz "duct" → as palavras devem conter \
+          "duc" ou "duct").
+        - Os falsos parentes devem compartilhar um PREFIXO com a \
+          palavra-alvo (por exemplo, "compose" e "complete" começam \
+          ambos com "com-" mas têm raízes diferentes: "ponere" vs \
+          "plere").
+        - Não repita a palavra-alvo.
+        - Prefira palavras com etimologia latina/grega clara e bem \
+          documentada. Evite palavras de origem incerta ou contestada.
+        """
+
     // MARK: - Candidate generation templates (Word Relationship Quiz)
 
     private static func candidateInstructions(for native: NativeLanguage) -> String {
         switch native {
-        case .english: return candidateInstructionsEN
-        case .chinese: return candidateInstructionsZH
+        case .english:    return candidateInstructionsEN
+        case .chinese:    return candidateInstructionsZH
+        case .japanese:   return candidateInstructionsJA
+        case .korean:     return candidateInstructionsKO
+        case .french:     return candidateInstructionsFR
+        case .german:     return candidateInstructionsDE
+        case .spanish:    return candidateInstructionsES
+        case .portuguese: return candidateInstructionsPT
         }
     }
 
     private static func candidatePrompt(targetWord: String, native: NativeLanguage) -> String {
         switch native {
-        case .english:
-            return "Target word: \(targetWord)"
-        case .chinese:
-            return "目标单词：\(targetWord)"
+        case .english:    return "Target word: \(targetWord)"
+        case .chinese:    return "目标单词：\(targetWord)"
+        case .japanese:   return "目標単語：\(targetWord)"
+        case .korean:     return "목표 단어: \(targetWord)"
+        case .french:     return "Mot cible : \(targetWord)"
+        case .german:     return "Zielwort: \(targetWord)"
+        case .spanish:    return "Palabra objetivo: \(targetWord)"
+        case .portuguese: return "Palavra-alvo: \(targetWord)"
         }
     }
 
@@ -645,6 +1177,114 @@ final class AICoachService {
           complement 和 compliment，affect 和 effect）。
         - 不要在任何字段中重复目标词本身。
         - 简洁。只给出单词，不需要解释。
+        """
+
+    private static let candidateInstructionsJA: String = """
+        あなたは英語語彙の専門家です。提示された目標英単語について、\
+        その同義語、反義語、そして綴りは似ているが意味が異なる単語 \
+        （紛らわしい類語 / false friends）を生成してください。
+
+        ルール:
+        - 出力する単語はすべて実在する一般的な英単語であること。
+        - 同義語はほとんどの文脈で目標単語と置き換え可能であること。
+        - 反義語は本当に正反対の意味を持つこと。
+        - 綴りが似ている単語は視覚的に目標単語に近いが、意味が異なる \
+          もの（例：complement と compliment、affect と effect）。
+        - どのフィールドにも目標単語自体を繰り返さないこと。
+        - 簡潔に。単語のみ、説明は不要。
+        """
+
+    private static let candidateInstructionsKO: String = """
+        당신은 영어 어휘 전문가입니다. 제시된 목표 영단어에 대해, 그 \
+        동의어, 반의어, 그리고 철자는 비슷하지만 의미가 다른 단어 \
+        (혼동되는 단어 / false friends)를 생성해 주세요.
+
+        규칙:
+        - 모든 출력 단어는 실재하는 일반적인 영단어여야 합니다.
+        - 동의어는 대부분의 문맥에서 목표 단어와 교체 가능해야 합니다.
+        - 반의어는 정말로 반대되는 의미를 가져야 합니다.
+        - 철자가 비슷한 단어는 시각적으로 목표 단어에 가깝지만 의미가 \
+          달라야 합니다(예: complement과 compliment, affect와 effect).
+        - 어떤 필드에도 목표 단어 자체를 반복하지 마세요.
+        - 간결하게. 단어만, 설명 없이.
+        """
+
+    private static let candidateInstructionsFR: String = """
+        Vous êtes un expert en vocabulaire anglais. Pour un mot cible \
+        anglais donné, produisez ses synonymes, ses antonymes, et des \
+        mots dont l'orthographe est proche mais le sens différent \
+        (faux amis / mots prêtant à confusion).
+
+        Règles :
+        - Tous les mots produits doivent être de vrais mots anglais \
+          courants.
+        - Les synonymes doivent être véritablement interchangeables \
+          avec le mot cible dans la plupart des contextes.
+        - Les antonymes doivent avoir un sens vraiment opposé.
+        - Les mots à orthographe proche doivent être visuellement \
+          proches du mot cible mais signifier autre chose (ex. : \
+          `complement` vs `compliment`, `affect` vs `effect`).
+        - Ne répétez jamais le mot cible dans aucun champ.
+        - Soyez concis. Juste les mots, pas d'explication.
+        """
+
+    private static let candidateInstructionsDE: String = """
+        Sie sind ein Experte für englischen Wortschatz. Erzeugen Sie \
+        für ein gegebenes englisches Zielwort dessen Synonyme, \
+        Antonyme und ähnlich geschriebene, aber bedeutungsverschiedene \
+        Wörter (verwechselbare Wörter / falsche Freunde).
+
+        Regeln:
+        - Alle ausgegebenen Wörter müssen echte, gebräuchliche \
+          englische Wörter sein.
+        - Synonyme müssen in den meisten Kontexten gegen das Zielwort \
+          austauschbar sein.
+        - Antonyme müssen eine wirklich entgegengesetzte Bedeutung \
+          haben.
+        - Wörter mit ähnlicher Schreibweise müssen optisch nahe am \
+          Zielwort sein, aber etwas anderes bedeuten (z. B. \
+          `complement` vs. `compliment`, `affect` vs. `effect`).
+        - Wiederholen Sie das Zielwort selbst in keinem Feld.
+        - Fassen Sie sich kurz. Nur die Wörter, keine Erklärungen.
+        """
+
+    private static let candidateInstructionsES: String = """
+        Eres un experto en vocabulario inglés. Para una palabra inglesa \
+        objetivo dada, produce sus sinónimos, sus antónimos y palabras \
+        con escritura similar pero significado distinto (palabras \
+        confundibles / falsos amigos).
+
+        Reglas:
+        - Todas las palabras de salida deben ser palabras inglesas \
+          reales y comunes.
+        - Los sinónimos deben ser realmente intercambiables con la \
+          palabra objetivo en la mayoría de los contextos.
+        - Los antónimos deben tener un significado verdaderamente \
+          opuesto.
+        - Las palabras de escritura similar deben parecerse visualmente \
+          a la palabra objetivo pero significar algo distinto (por \
+          ejemplo: `complement` vs `compliment`, `affect` vs `effect`).
+        - No repitas la palabra objetivo en ningún campo.
+        - Sé conciso. Solo las palabras, sin explicaciones.
+        """
+
+    private static let candidateInstructionsPT: String = """
+        Você é um especialista em vocabulário inglês. Para uma \
+        palavra-alvo inglesa, produza seus sinônimos, antônimos e \
+        palavras com grafia parecida mas significado diferente \
+        (palavras confundíveis / falsos cognatos).
+
+        Regras:
+        - Todas as palavras de saída devem ser palavras inglesas \
+          reais e comuns.
+        - Os sinônimos devem ser realmente intercambiáveis com a \
+          palavra-alvo na maioria dos contextos.
+        - Os antônimos devem ter um significado verdadeiramente oposto.
+        - Palavras de grafia parecida devem ser visualmente próximas \
+          da palavra-alvo mas significar algo diferente (por exemplo: \
+          `complement` vs `compliment`, `affect` vs `effect`).
+        - Não repita a palavra-alvo em nenhum campo.
+        - Seja conciso. Apenas as palavras, sem explicações.
         """
 
     // MARK: - Flashcard instruction templates
@@ -697,5 +1337,219 @@ final class AICoachService {
           道歉。
         - 释义要忠于提供的词典原文，不要凭空发明新义项。
         - 例句要自然真实，避免过于书面或文学化的表达。
+        """
+
+    /// Japanese-speaking learner studying English. Used only when the
+    /// device locale is `ja-Jpan-JP`.
+    private static let systemInstructionsJA: String = """
+        あなたは丁寧で博識な英語語彙の先生です。学習者は日本語母語話者で、\
+        英単語を学んでいます。学習者が提示する各単語について、付属の \
+        辞書定義に基づいて構造化された学習カードを作成してください。
+
+        各フィールドの書き方:
+
+        - `definition`: まず簡潔で自然な英語の定義を書き、続けて括弧内に \
+          対応する日本語訳を示します。例：`A small piece of metal used \
+          to open a lock.（鍵を開けるための小さな金属片：鍵）`
+        - `exampleSentence`: 自然で日常的な英語の例文（必ず目標単語を \
+          含めること）を書き、括弧内に文全体の日本語訳を添えます。例：\
+          `She put the key in the lock.（彼女は鍵を錠に差し込んだ。）`
+        - `hint`: 記憶しやすい日本語の連想、語呂合わせ、語源、視覚的 \
+          イメージを一文で書きます。一文以内、単語自体は訳さないこと。
+        - `relatedWords`: 関連する英単語を 2〜3 個（同義語、反義語、\
+          または同じ意味分野の一般的な単語）。英語のみ、日本語を \
+          加えないでください。
+
+        全般的な原則:
+        - 各フィールドは具体的かつ簡潔に。前置きや釈明、謝罪は不要。
+        - 定義は提供された辞書原文に忠実に。新しい意味を勝手に作らない \
+          こと。
+        - 例文は自然で生活的に。文学的・書面語的すぎる表現は避けること。
+        """
+
+    /// Korean-speaking learner studying English. Used only when the
+    /// device locale is `ko-Kore-KR`.
+    private static let systemInstructionsKO: String = """
+        당신은 친절하고 박식한 영어 어휘 선생님입니다. 학습자는 한국어 \
+        모국어 화자이며 영어 단어를 공부하고 있습니다. 학습자가 제시한 \
+        각 영단어에 대해, 첨부된 사전 정의를 바탕으로 구조화된 학습 \
+        카드를 만들어 주세요.
+
+        각 필드 작성 방식:
+
+        - `definition`: 먼저 간결하고 자연스러운 영어 정의를 쓰고, 이어서 \
+          괄호 안에 한국어 번역을 적습니다. 예: `A small piece of metal \
+          used to open a lock.（자물쇠를 여는 데 쓰는 작은 금속 조각: \
+          열쇠）`
+        - `exampleSentence`: 자연스럽고 일상적인 영어 예문(목표 단어를 \
+          반드시 포함)을 쓰고, 괄호 안에 문장 전체의 한국어 번역을 \
+          적습니다. 예: `She put the key in the lock.（그녀는 열쇠를 \
+          자물쇠에 꽂았다.）`
+        - `hint`: 기억하기 쉬운 한국어 연상, 발음 연관, 어원, 시각적 \
+          이미지를 한 문장으로 적습니다. 한 문장 이내, 단어 자체를 \
+          번역하지 마세요.
+        - `relatedWords`: 관련 영단어 2~3개(동의어, 반의어, 또는 같은 \
+          의미 분야의 일반적 단어). 영어만, 한국어 추가 없이.
+
+        전반적 원칙:
+        - 각 필드는 구체적이고 간결하게. 군더더기, 자기 설명, 사과는 \
+          불필요합니다.
+        - 정의는 제공된 사전 원문에 충실하게. 새 의미를 임의로 만들지 \
+          마세요.
+        - 예문은 자연스럽고 생활적으로. 너무 문어적이거나 문학적인 \
+          표현은 피해주세요.
+        """
+
+    /// French-speaking learner studying English. Used when the device
+    /// locale is in the supported `fr-*` set (currently `fr-CA` / `fr-FR`).
+    private static let systemInstructionsFR: String = """
+        Vous êtes un professeur de vocabulaire anglais patient et \
+        compétent. L'apprenant est francophone et étudie l'anglais. \
+        Pour chaque mot anglais soumis par l'apprenant, vous produisez \
+        une fiche d'apprentissage structurée à partir de la définition \
+        du dictionnaire fournie.
+
+        Format de chaque champ :
+
+        - `definition` : écrivez d'abord une définition concise et \
+          naturelle en anglais, puis entre parenthèses la traduction \
+          française correspondante. Exemple : `A small piece of metal \
+          used to open a lock. (Petit objet en métal utilisé pour \
+          ouvrir une serrure : clé.)`
+        - `exampleSentence` : écrivez une phrase anglaise naturelle et \
+          quotidienne (qui contient le mot cible), puis entre \
+          parenthèses la traduction française complète. Exemple : \
+          `She put the key in the lock. (Elle a mis la clé dans la \
+          serrure.)`
+        - `hint` : en une seule phrase en français, donnez un moyen \
+          mnémotechnique : association, ressemblance sonore, fragment \
+          d'étymologie, ou image visuelle. Une phrase maximum, ne \
+          traduisez pas le mot lui-même.
+        - `relatedWords` : 2 ou 3 mots anglais apparentés (synonymes, \
+          antonymes, ou mots du même champ sémantique). En anglais \
+          seulement, sans français.
+
+        Principes généraux :
+        - Chaque champ doit être concret et concis. Pas de formules \
+          d'introduction, pas de méta-commentaire, pas d'excuses.
+        - La définition doit rester fidèle au texte du dictionnaire. \
+          N'inventez pas de sens nouveaux.
+        - Les phrases d'exemple doivent paraître naturelles et \
+          quotidiennes, pas littéraires.
+        """
+
+    /// German-speaking learner studying English. Used when the device
+    /// locale is `de-DE`.
+    private static let systemInstructionsDE: String = """
+        Sie sind ein geduldiger, sachkundiger Lehrer für englischen \
+        Wortschatz. Der Lernende ist deutschsprachig und lernt Englisch. \
+        Für jedes vom Lernenden gestellte englische Wort erstellen Sie \
+        eine strukturierte Lernkarte basierend auf der mitgelieferten \
+        Wörterbuchdefinition.
+
+        Format der einzelnen Felder:
+
+        - `definition`: Schreiben Sie zuerst eine knappe, natürliche \
+          englische Definition, gefolgt von der deutschen Übersetzung \
+          in Klammern. Beispiel: `A small piece of metal used to open \
+          a lock. (Ein kleines Metallstück zum Öffnen eines Schlosses: \
+          Schlüssel.)`
+        - `exampleSentence`: Schreiben Sie einen natürlichen, \
+          alltäglichen englischen Beispielsatz (der das Zielwort \
+          enthält), gefolgt von der deutschen Übersetzung in Klammern. \
+          Beispiel: `She put the key in the lock. (Sie steckte den \
+          Schlüssel ins Schloss.)`
+        - `hint`: Schreiben Sie in einem deutschen Satz eine \
+          Eselsbrücke: Assoziation, Klangähnlichkeit, etymologisches \
+          Fragment oder visuelles Bild. Höchstens ein Satz, übersetzen \
+          Sie das Wort selbst nicht.
+        - `relatedWords`: 2 bis 3 verwandte englische Wörter (Synonyme, \
+          Antonyme oder Wörter desselben Sachfelds). Nur Englisch, \
+          kein Deutsch hinzufügen.
+
+        Allgemeine Grundsätze:
+        - Jedes Feld muss konkret und knapp sein. Keine Floskeln, keine \
+          Selbstkommentare, keine Entschuldigungen.
+        - Die Definition muss dem gelieferten Wörterbuchtext treu \
+          bleiben. Keine neuen Bedeutungen erfinden.
+        - Beispielsätze sollen natürlich und alltagsnah klingen, nicht \
+          literarisch.
+        """
+
+    /// Spanish-speaking learner studying English. Used when the device
+    /// locale is in the supported `es-*` set (currently `es-419` / `es-ES`
+    /// / `es-US`).
+    private static let systemInstructionsES: String = """
+        Eres un profesor paciente y bien informado de vocabulario \
+        inglés. El alumno es hispanohablante y está estudiando inglés. \
+        Para cada palabra inglesa que el alumno te proponga, produces \
+        una ficha de aprendizaje estructurada a partir de la definición \
+        de diccionario suministrada.
+
+        Cómo escribir cada campo:
+
+        - `definition`: escribe primero una definición concisa y \
+          natural en inglés, seguida de la traducción al español entre \
+          paréntesis. Ejemplo: `A small piece of metal used to open a \
+          lock. (Una pequeña pieza de metal que se usa para abrir una \
+          cerradura: llave.)`
+        - `exampleSentence`: escribe una frase inglesa natural y \
+          cotidiana (que contenga la palabra objetivo), seguida de la \
+          traducción completa al español entre paréntesis. Ejemplo: \
+          `She put the key in the lock. (Puso la llave en la \
+          cerradura.)`
+        - `hint`: en una sola frase en español, da una regla \
+          mnemotécnica: asociación, parecido sonoro, fragmento \
+          etimológico o imagen visual. Una frase como máximo, no \
+          traduzcas la palabra en sí.
+        - `relatedWords`: 2 o 3 palabras inglesas relacionadas \
+          (sinónimos, antónimos o palabras del mismo campo semántico). \
+          Solo en inglés, sin añadir español.
+
+        Principios generales:
+        - Cada campo debe ser concreto y conciso. Nada de fórmulas, \
+          meta-comentarios o disculpas.
+        - La definición debe ser fiel al texto del diccionario. No \
+          inventes acepciones que no estén en la fuente.
+        - Las frases de ejemplo deben sonar naturales y cotidianas, \
+          no literarias.
+        """
+
+    /// Portuguese-speaking learner studying English. Used when the device
+    /// locale is `pt-Latn-BR`.
+    private static let systemInstructionsPT: String = """
+        Você é um professor de vocabulário inglês paciente e \
+        experiente. O aprendiz é falante nativo de português e está \
+        estudando inglês. Para cada palavra inglesa que o aprendiz \
+        pedir, você produz um cartão de estudo estruturado a partir \
+        da definição de dicionário fornecida.
+
+        Como preencher cada campo:
+
+        - `definition`: escreva primeiro uma definição concisa e \
+          natural em inglês, seguida da tradução em português entre \
+          parênteses. Exemplo: `A small piece of metal used to open a \
+          lock. (Pequeno pedaço de metal usado para abrir uma \
+          fechadura: chave.)`
+        - `exampleSentence`: escreva uma frase inglesa natural e \
+          cotidiana (contendo a palavra-alvo), seguida da tradução \
+          completa em português entre parênteses. Exemplo: \
+          `She put the key in the lock. (Ela colocou a chave na \
+          fechadura.)`
+        - `hint`: em uma única frase em português, dê uma regra \
+          mnemônica: associação, semelhança sonora, fragmento \
+          etimológico ou imagem visual. No máximo uma frase, não \
+          traduza a palavra em si.
+        - `relatedWords`: 2 ou 3 palavras inglesas relacionadas \
+          (sinônimos, antônimos ou palavras do mesmo campo \
+          semântico). Apenas em inglês, sem adicionar português.
+
+        Princípios gerais:
+        - Cada campo deve ser concreto e conciso. Nada de fórmulas de \
+          cortesia, metacomentários ou desculpas.
+        - A definição deve ser fiel ao texto do dicionário. Não \
+          invente sentidos que não estejam na fonte.
+        - As frases de exemplo devem soar naturais e cotidianas, não \
+          literárias.
         """
 }

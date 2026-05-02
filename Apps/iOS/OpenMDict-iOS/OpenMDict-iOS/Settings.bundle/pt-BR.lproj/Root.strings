@@ -27,3 +27,8 @@
 "ARTICLES_FEWER" = "Menos";
 "ARTICLES_DEFAULT" = "Padrão";
 "ARTICLES_MORE" = "Mais";
+
+/* M14 — AI Coach */
+"AI_COACH_GROUP" = "AI Coach";
+"AI_COACH_ENABLED" = "Ativar AI Coach";
+"AI_COACH_FOOTER" = "Requer iOS 26 e um dispositivo compatível com Apple Intelligence. Quando ativado, a ação «AI Coach» aparece na barra lateral e na aba Gerenciar. O AI Coach usa os Foundation Models no dispositivo da Apple para gerar quizzes de vocabulário a partir das suas palavras em inglês favoritadas. Tudo é processado localmente — nenhum dado sai do seu dispositivo.";
