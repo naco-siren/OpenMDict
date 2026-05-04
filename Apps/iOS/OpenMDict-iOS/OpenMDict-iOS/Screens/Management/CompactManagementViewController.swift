@@ -139,7 +139,7 @@ class CompactManagementViewController: UIViewController {
                 config.image = UIImage(systemName: "key.icloud")
             case .aiCoach:
                 config.text = L10n.Sidebar.aiCoach
-                config.image = UIImage(systemName: "sparkles")
+                config.image = UIImage(systemName: "apple.intelligence")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")

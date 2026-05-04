@@ -49,13 +49,31 @@ final class AICoachViewController: UIViewController {
             #endif
         }
 
-        var symbolName: String {
+        /// Leading icon for the cell. Word Tinder uses an SF symbol; Among
+        /// wUrdS and Morpheme Maury use bespoke artwork (template-rendered
+        /// PNGs in `Assets.xcassets`) — the imagesets are configured with
+        /// `template-rendering-intent: template`, so `imageProperties.tintColor`
+        /// applies to them like it does to SF symbols.
+        var image: UIImage? {
             switch self {
-            case .wordTinder:     return "plus.forwardslash.minus"
-            case .amongWurds:     return "person.3.fill"
-            case .morphemeMaury:  return "theatermasks.fill"
+            case .wordTinder:     return UIImage(systemName: "flame")
+            case .amongWurds:     return UIImage(named: "AmongWurds")
+            case .morphemeMaury:  return UIImage(named: "MorphemeMaury")
             #if DEBUG
-            case .flashcard:      return "rectangle.on.rectangle"
+            case .flashcard:      return UIImage(systemName: "rectangle.on.rectangle")
+            #endif
+            }
+        }
+
+        /// Per-mode tint applied to the leading icon (works for both SF
+        /// symbols and template-rendered PNGs).
+        var iconTint: UIColor {
+            switch self {
+            case .wordTinder:     return .systemPink
+            case .amongWurds:     return .systemOrange
+            case .morphemeMaury:  return .systemIndigo
+            #if DEBUG
+            case .flashcard:      return .tintColor
             #endif
             }
         }
@@ -793,8 +811,20 @@ final class AICoachViewController: UIViewController {
             var content = UIListContentConfiguration.subtitleCell()
             content.text = mode.title
             content.secondaryText = mode.description
-            content.image = UIImage(systemName: mode.symbolName)
-            content.imageProperties.tintColor = .tintColor
+            content.image = mode.image
+            content.imageProperties.tintColor = mode.iconTint
+            // App-Store-style "featured card" sizing — icons fill enough of
+            // the leading column to show off bespoke artwork detail (the
+            // hand-drawn curves in AmongWurds / MorphemeMaury would be
+            // unreadable at the default ~22pt body-text size).
+            content.imageProperties.preferredSymbolConfiguration =
+                UIImage.SymbolConfiguration(pointSize: 44, weight: .regular)
+            // Hard cap on rendered size — keeps PNGs from blowing out and
+            // bounds SF symbols from going beyond the column.
+            content.imageProperties.maximumSize = CGSize(width: 56, height: 56)
+            // Reserve a fixed-width column so text after the image starts at
+            // the same x regardless of the icon's intrinsic aspect ratio.
+            content.imageProperties.reservedLayoutSize = CGSize(width: 60, height: 60)
             cell.contentConfiguration = content
             cell.accessories = [.disclosureIndicator()]
         }
