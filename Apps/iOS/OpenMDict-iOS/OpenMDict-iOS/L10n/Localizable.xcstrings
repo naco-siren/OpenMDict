@@ -2029,6 +2029,30 @@
         }
       }
     },
+    "aiCoach.phraseFeud" : {
+      "comment" : "AI Coach: chooser option — Family Feud-style collocation quiz",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Phrase Feud"
+          }
+        }
+      }
+    },
+    "aiCoach.phraseFeudDesc" : {
+      "comment" : "AI Coach: Phrase Feud mode description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Game-show survey: name the words sharing a category"
+          }
+        }
+      }
+    },
     "aiCoach.openSettings" : {
       "comment" : "AI Coach: button to open app settings",
       "extractionState" : "extracted_with_value",

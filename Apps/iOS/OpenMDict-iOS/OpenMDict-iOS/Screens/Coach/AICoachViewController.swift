@@ -34,6 +34,7 @@ final class AICoachViewController: UIViewController {
         case wordTinder
         case amongWurds
         case morphemeMaury
+        case phraseFeud
         #if DEBUG
         case flashcard
         #endif
@@ -43,9 +44,9 @@ final class AICoachViewController: UIViewController {
         /// callsite and survives future refactors that toggle the flag.
         static var allCases: [StudyMode] {
             #if DEBUG
-            return [.wordTinder, .amongWurds, .morphemeMaury, .flashcard]
+            return [.wordTinder, .amongWurds, .morphemeMaury, .phraseFeud, .flashcard]
             #else
-            return [.wordTinder, .amongWurds, .morphemeMaury]
+            return [.wordTinder, .amongWurds, .morphemeMaury, .phraseFeud]
             #endif
         }
 
@@ -53,12 +54,15 @@ final class AICoachViewController: UIViewController {
         /// wUrdS and Morpheme Maury use bespoke artwork (template-rendered
         /// PNGs in `Assets.xcassets`) — the imagesets are configured with
         /// `template-rendering-intent: template`, so `imageProperties.tintColor`
-        /// applies to them like it does to SF symbols.
+        /// applies to them like it does to SF symbols. Phrase Feud uses
+        /// `square.grid.2x2.fill` — directly evokes the show's 2-column
+        /// answer board.
         var image: UIImage? {
             switch self {
             case .wordTinder:     return UIImage(systemName: "flame")
             case .amongWurds:     return UIImage(named: "AmongWurds")
             case .morphemeMaury:  return UIImage(named: "MorphemeMaury")
+            case .phraseFeud:     return UIImage(systemName: "square.grid.2x2.fill")
             #if DEBUG
             case .flashcard:      return UIImage(systemName: "rectangle.on.rectangle")
             #endif
@@ -72,6 +76,7 @@ final class AICoachViewController: UIViewController {
             case .wordTinder:     return .systemPink
             case .amongWurds:     return .systemOrange
             case .morphemeMaury:  return .systemIndigo
+            case .phraseFeud:     return .systemYellow  // Family Feud iconic gold
             #if DEBUG
             case .flashcard:      return .tintColor
             #endif
@@ -83,6 +88,7 @@ final class AICoachViewController: UIViewController {
             case .wordTinder:     return L10n.AICoach.wordTinder
             case .amongWurds:     return L10n.AICoach.amongWurds
             case .morphemeMaury:  return L10n.AICoach.morphemeMaury
+            case .phraseFeud:     return L10n.AICoach.phraseFeud
             #if DEBUG
             case .flashcard:      return L10n.AICoach.flashcard
             #endif
@@ -94,6 +100,7 @@ final class AICoachViewController: UIViewController {
             case .wordTinder:     return L10n.AICoach.wordTinderDesc
             case .amongWurds:     return L10n.AICoach.amongWurdsDesc
             case .morphemeMaury:  return L10n.AICoach.morphemeMauryDesc
+            case .phraseFeud:     return L10n.AICoach.phraseFeudDesc
             #if DEBUG
             case .flashcard:      return L10n.AICoach.flashcardDesc
             #endif
@@ -867,6 +874,8 @@ extension AICoachViewController: UICollectionViewDelegate {
                 vc = AmongWurdsViewController()
             case .morphemeMaury:
                 vc = MorphemeMauryViewController()
+            case .phraseFeud:
+                vc = PhraseFeudViewController()
             #if DEBUG
             case .flashcard:
                 vc = FlashcardPOCViewController()
