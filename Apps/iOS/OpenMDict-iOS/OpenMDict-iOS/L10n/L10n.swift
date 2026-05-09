@@ -382,11 +382,11 @@ nonisolated enum L10n {
         static var morphemeMauryDesc: String {
             NSLocalizedString("aiCoach.morphemeMauryDesc", value: "Daytime-TV paternity showdown: is this word really in the family?", comment: "AI Coach: Morpheme Maury mode description")
         }
-        static var phraseFeud: String {
-            NSLocalizedString("aiCoach.phraseFeud", value: "Phrase Feud", comment: "AI Coach: chooser option — Family Feud-style collocation quiz")
+        static var phrasyFeud: String {
+            NSLocalizedString("aiCoach.phrasyFeud", value: "Phrasy Feud", comment: "AI Coach: chooser option — Family Feud-style collocation quiz")
         }
-        static var phraseFeudDesc: String {
-            NSLocalizedString("aiCoach.phraseFeudDesc", value: "Game-show survey: name the words sharing a category", comment: "AI Coach: Phrase Feud mode description")
+        static var phrasyFeudDesc: String {
+            NSLocalizedString("aiCoach.phrasyFeudDesc", value: "Game-show survey: name the words sharing a category", comment: "AI Coach: Phrasy Feud mode description")
         }
         static var openSettings: String {
             NSLocalizedString("aiCoach.openSettings", value: "Open OpenMDict Settings", comment: "AI Coach: button to open app settings")

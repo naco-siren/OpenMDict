@@ -2029,20 +2029,20 @@
         }
       }
     },
-    "aiCoach.phraseFeud" : {
+    "aiCoach.phrasyFeud" : {
       "comment" : "AI Coach: chooser option — Family Feud-style collocation quiz",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Phrase Feud"
+            "value" : "Phrasy Feud"
           }
         }
       }
     },
-    "aiCoach.phraseFeudDesc" : {
-      "comment" : "AI Coach: Phrase Feud mode description",
+    "aiCoach.phrasyFeudDesc" : {
+      "comment" : "AI Coach: Phrasy Feud mode description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {

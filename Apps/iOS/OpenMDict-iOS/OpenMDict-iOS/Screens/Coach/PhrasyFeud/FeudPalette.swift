@@ -2,7 +2,7 @@
 //  FeudPalette.swift
 //  OpenMDict-iOS
 //
-//  Shared colors and fonts for the Phrase Feud mode. Consolidated here so
+//  Shared colors and fonts for the Phrasy Feud mode. Consolidated here so
 //  the board / cards / banner / overlays all stay visually consistent and
 //  any future themed tweak (e.g. "British Family Feud" black-and-red era)
 //  is a single-file edit.

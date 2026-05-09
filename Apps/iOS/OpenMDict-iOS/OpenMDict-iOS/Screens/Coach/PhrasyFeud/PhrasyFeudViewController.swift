@@ -1,5 +1,5 @@
 //
-//  PhraseFeudViewController.swift
+//  PhrasyFeudViewController.swift
 //  OpenMDict-iOS
 //
 //  Family Feud parody quiz. The user's bookmarked words become the
@@ -24,7 +24,7 @@
 import UIKit
 
 @available(iOS 26, *)
-final class PhraseFeudViewController: UIViewController {
+final class PhrasyFeudViewController: UIViewController {
 
     // MARK: - Phase machine
 
@@ -50,7 +50,7 @@ final class PhraseFeudViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = L10n.AICoach.phraseFeud
+        title = L10n.AICoach.phrasyFeud
         navigationItem.largeTitleDisplayMode = .never
         view.backgroundColor = .black
 

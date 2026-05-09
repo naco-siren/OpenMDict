@@ -92,8 +92,8 @@ final class FeudBuzzerView: UIControl {
     /// preference to the procedural `renderBuzzer(size:)` fallback —
     /// procedurally faking a glossy plastic button never quite reaches
     /// "晶莹剔透" in practice. Drop a PNG into
-    /// `Assets.xcassets/PhraseFeudButton.imageset/` to switch.
-    private static let assetName = "PhraseFeudButton"
+    /// `Assets.xcassets/PhrasyFeudButton.imageset/` to switch.
+    private static let assetName = "PhrasyFeudButton"
 
     override func layoutSubviews() {
         super.layoutSubviews()
