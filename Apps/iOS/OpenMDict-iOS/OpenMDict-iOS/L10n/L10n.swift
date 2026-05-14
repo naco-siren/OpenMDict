@@ -801,6 +801,36 @@ nonisolated enum L10n {
             static var tryAgain: String {
                 NSLocalizedString("aiCoach.phrasyFeud.tryAgain", value: "Try Again", comment: "Phrasy Feud: retry button after engine error")
             }
+            static var leaveTitle: String {
+                NSLocalizedString("aiCoach.phrasyFeud.leaveTitle", value: "Leaving the show?", comment: "Phrasy Feud: back-nav double-check alert title")
+            }
+            static var leaveMessage: String {
+                NSLocalizedString("aiCoach.phrasyFeud.leaveMessage", value: "Your current round will end. Sure you want to leave?", comment: "Phrasy Feud: back-nav double-check alert body")
+            }
+            static var leaveShow: String {
+                NSLocalizedString("aiCoach.phrasyFeud.leaveShow", value: "Leave", comment: "Phrasy Feud: confirm leaving mid-round")
+            }
+            static var stayOnShow: String {
+                NSLocalizedString("aiCoach.phrasyFeud.stayOnShow", value: "Stay", comment: "Phrasy Feud: cancel leaving mid-round")
+            }
+            static func finaleTitle(_ points: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.phrasyFeud.finaleTitle", value: "%d POINTS", comment: "Phrasy Feud: end-of-round headline — the points scored, formatted as the large hero text"), points)
+            }
+            static func finaleScore(_ correct: Int, _ total: Int) -> String {
+                String(format: NSLocalizedString("aiCoach.phrasyFeud.finaleScore", value: "%d of %d answers found", comment: "Phrasy Feud: finale subtitle line under the points; %1$d correct, %2$d total"), correct, total)
+            }
+            static var nextRound: String {
+                NSLocalizedString("aiCoach.phrasyFeud.nextRound", value: "Next Round", comment: "Phrasy Feud: button to start the next round from the finale screen")
+            }
+            static var timerLabel: String {
+                NSLocalizedString("aiCoach.phrasyFeud.timerLabel", value: "TIME", comment: "Phrasy Feud: small label above the countdown timer LCD (left of buzzer)")
+            }
+            static var scoreLabel: String {
+                NSLocalizedString("aiCoach.phrasyFeud.scoreLabel", value: "TOTAL", comment: "Phrasy Feud: small label above the running-score LCD (right of buzzer)")
+            }
+            static var tapToStart: String {
+                NSLocalizedString("aiCoach.phrasyFeud.tapToStart", value: "Tap to Start", comment: "Phrasy Feud: banner CTA shown before the user taps to flip the banner and start the timer")
+            }
         }
     }
 

@@ -14,8 +14,20 @@ final class FeudQuestionBanner: UIView {
 
     private let questionLabel = UILabel()
 
+    private let verticalPadding: CGFloat
+
     override init(frame: CGRect) {
+        self.verticalPadding = 12
         super.init(frame: frame)
+        setupViews()
+    }
+
+    /// Customizable top/bottom padding around the question label. The
+    /// top banner uses the default 12pt; the centered START prompt
+    /// overlay passes 24pt for a beefier card.
+    init(verticalPadding: CGFloat = 12) {
+        self.verticalPadding = verticalPadding
+        super.init(frame: .zero)
         setupViews()
     }
 
@@ -40,16 +52,36 @@ final class FeudQuestionBanner: UIView {
         addSubview(questionLabel)
 
         NSLayoutConstraint.activate([
-            questionLabel.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+            questionLabel.topAnchor.constraint(equalTo: topAnchor, constant: verticalPadding),
             questionLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
             questionLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-            questionLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            questionLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -verticalPadding),
         ])
     }
 
-    func setQuestion(_ question: String) {
+    /// Override the question label's font. Used by the centered START
+    /// prompt overlay which wants 3× the size of the top banner.
+    func setFont(_ font: UIFont) {
+        questionLabel.font = font
+    }
+
+    func setQuestion(_ question: String, animated: Bool = false) {
         // ALL CAPS to match the broadcast banner style.
-        questionLabel.text = question.uppercased()
+        let upper = question.uppercased()
+        if animated {
+            // Same horizontal-axis flip the answer cards use, so the
+            // banner reading "TAP TO START" → actual question lands
+            // with a coherent visual language.
+            UIView.transition(
+                with: self,
+                duration: 0.45,
+                options: [.transitionFlipFromBottom, .curveEaseOut]
+            ) {
+                self.questionLabel.text = upper
+            }
+        } else {
+            questionLabel.text = upper
+        }
     }
 
     override func layoutSubviews() {

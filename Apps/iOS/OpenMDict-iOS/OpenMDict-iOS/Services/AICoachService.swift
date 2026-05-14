@@ -354,6 +354,36 @@ final class AICoachService {
         var reason: String
     }
 
+    /// Per-word verdict in the batched fitness check. The generator
+    /// model often produces answers that LOOK plausible but don't
+    /// actually satisfy the question's constraint (e.g. 'quetch' for
+    /// "Name a word ending in -tion", or 'adduction' for "Name a word
+    /// meaning to lead" — the Latin root means "to lead" but the modern
+    /// English word doesn't). A separate verification pass catches
+    /// these cases.
+    @Generable
+    struct FeudWordVerdict: Equatable {
+        @Guide(description: "The word being judged, repeated character-for-character from the input list.")
+        var word: String
+
+        @Guide(description: "True iff the word UNAMBIGUOUSLY satisfies the question's constraint in its modern English meaning. Etymology / shared root is NOT enough.")
+        var fits: Bool
+
+        @Guide(description: "If fits=false, one short English phrase (≤ 60 chars) explaining why. Empty string if fits=true.")
+        var reason: String
+    }
+
+    /// Batched per-answer fitness check. ONE model call evaluates all
+    /// candidate answers at once — cheaper than N sequential calls and
+    /// keeps the 3 B model focused on a structured list task. Returned
+    /// `verdicts` must include EVERY input word (same character-for-
+    /// character spelling). The engine cross-references by lowercase.
+    @Generable
+    struct FeudAnswerBatchCheck: Equatable {
+        @Guide(description: "For EACH input candidate word, a verdict saying whether it fits the question. Output length must equal input length; output words must be character-for-character from the input list.", .count(1...10))
+        var verdicts: [FeudWordVerdict]
+    }
+
     /// The prompt is just the target word — NO dictionary definition is
     /// sent, so bilingual-dictionary content language detection is not an
     /// issue. The model draws from its own vocabulary knowledge.
@@ -477,6 +507,37 @@ final class AICoachService {
 
         let response = try await session.respond(
             to: prompt, generating: FeudQuestionVerdict.self
+        )
+        Self.lastError = nil
+        return response.content
+    }
+
+    /// Batched per-answer fitness check. Given the generator's question
+    /// and the pool-verified candidate answers, ask the model to mark
+    /// EACH word with a strict fit/no-fit verdict. The engine's previous
+    /// validation passes only check that the question itself is good
+    /// (not lazy/degenerate) — this is where we catch "the answer the
+    /// generator picked doesn't actually fit the question it wrote"
+    /// (e.g. 'quetch' under "ends in -tion", 'adduction' under "means
+    /// to lead"). See `FeudWordVerdict` doc comment for the canonical
+    /// examples this pass exists to catch.
+    func checkAnswersFit(words: [String], question: String) async throws -> FeudAnswerBatchCheck {
+        let native = Self.detectModelLanguage()
+        let session = LanguageModelSession(
+            instructions: Self.phrasyFeudFitnessInstructions(for: native)
+        )
+        let prompt = Self.phrasyFeudFitnessPrompt(
+            words: words, question: question, native: native
+        )
+
+        let signpostID = Self.signposter.makeSignpostID()
+        let interval = Self.signposter.beginInterval(
+            "ai.phrasyFeud.fitness", id: signpostID, "count=\(words.count)"
+        )
+        defer { Self.signposter.endInterval("ai.phrasyFeud.fitness", interval) }
+
+        let response = try await session.respond(
+            to: prompt, generating: FeudAnswerBatchCheck.self
         )
         Self.lastError = nil
         return response.content
@@ -1726,6 +1787,99 @@ final class AICoachService {
         }
     }
 
+    private static func phrasyFeudFitnessInstructions(for native: NativeLanguage) -> String {
+        switch native {
+        case .english:    return phrasyFeudFitnessInstructionsEN
+        case .chinese:    return phrasyFeudFitnessInstructionsZH
+        case .japanese:   return phrasyFeudFitnessInstructionsJA
+        case .korean:     return phrasyFeudFitnessInstructionsKO
+        case .french:     return phrasyFeudFitnessInstructionsFR
+        case .german:     return phrasyFeudFitnessInstructionsDE
+        case .spanish:    return phrasyFeudFitnessInstructionsES
+        case .portuguese: return phrasyFeudFitnessInstructionsPT
+        }
+    }
+
+    private static func phrasyFeudFitnessPrompt(
+        words: [String], question: String, native: NativeLanguage
+    ) -> String {
+        let wordsList = words.map { "- \($0)" }.joined(separator: "\n")
+        switch native {
+        case .english:
+            return """
+                Question: "\(question)"
+
+                Candidate words to verify:
+                \(wordsList)
+
+                For EACH word, output a verdict (fits=true/false + reason).
+                """
+        case .chinese:
+            return """
+                问题："\(question)"
+
+                待验证的候选单词：
+                \(wordsList)
+
+                请为**每个**单词输出判断（fits=true/false + 简短理由）。
+                """
+        case .japanese:
+            return """
+                質問：「\(question)」
+
+                検証対象の候補単語：
+                \(wordsList)
+
+                **各**単語について判定（fits=true/false + 簡潔な理由）を出力してください。
+                """
+        case .korean:
+            return """
+                질문: "\(question)"
+
+                검증할 후보 단어:
+                \(wordsList)
+
+                **각** 단어에 대해 판정(fits=true/false + 간단한 이유)을 출력하세요.
+                """
+        case .french:
+            return """
+                Question : "\(question)"
+
+                Mots candidats à vérifier :
+                \(wordsList)
+
+                Pour CHAQUE mot, produisez un verdict (fits=true/false + raison).
+                """
+        case .german:
+            return """
+                Frage: „\(question)"
+
+                Zu prüfende Kandidatenwörter:
+                \(wordsList)
+
+                Für JEDES Wort ein Urteil ausgeben (fits=true/false + Begründung).
+                """
+        case .spanish:
+            return """
+                Pregunta: "\(question)"
+
+                Palabras candidatas a verificar:
+                \(wordsList)
+
+                Para CADA palabra, emite un veredicto (fits=true/false + razón).
+                """
+        case .portuguese:
+            return """
+                Pergunta: "\(question)"
+
+                Palavras candidatas para verificar:
+                \(wordsList)
+
+                Para CADA palavra, produza um veredicto (fits=true/false + razão).
+                """
+        }
+    }
+
     private static func phrasyFeudCritiquePrompt(
         question: String, category: String, answers: [String], native: NativeLanguage
     ) -> String {
@@ -2439,5 +2593,231 @@ final class AICoachService {
 
         Sempre forneça `reason` como uma frase em inglês (≤ 60 \
         caracteres), apenas para logs de debug.
+        """
+
+    // ---- Phrasy Feud FITNESS INSTRUCTIONS (8 languages) --------------
+    //
+    // Third validation layer (after pool-membership + question critique):
+    // ask the model to judge whether EACH candidate answer actually
+    // satisfies the question. Catches the generator's recurring "right
+    // question, wrong answers" failure mode where it puts 'quetch' under
+    // "ends in -tion" or 'adduction' under "means to lead".
+    //
+    // Strict checking: etymology / shared root / "kind of related" all
+    // count as REJECT. Modern English meaning must match the constraint
+    // exactly. Examples in each language spell this out.
+
+    private static let phrasyFeudFitnessInstructionsEN: String = """
+        You verify candidate answers for a Family Feud quiz question.
+        Given a question and a list of candidate words, decide for EACH
+        word whether it STRICTLY satisfies the question's constraint.
+        Output a verdict for every input word (same character-for-
+        character spelling), in the same order.
+
+        Be strict — reject unless the modern English meaning UNAMBIGUOUSLY
+        matches. Etymology or shared root is NOT enough.
+
+        Examples:
+        ❌ Q "Name a word ending in -tion." Word: "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ Q "Name a word meaning 'to lead'." Word: "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ Q "Name a kitchen utensil." Word: "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ Q "Name a word meaning happy." Word: "joyful" →
+           fits=true, reason=""
+        ✅ Q "Name a word ending in -tion." Word: "abduction" →
+           fits=true, reason=""
+
+        For words where fits=true, leave reason empty (or one neutral
+        phrase). For fits=false, give a brief (≤60 char) English reason.
+        """
+
+    private static let phrasyFeudFitnessInstructionsZH: String = """
+        你为 Family Feud 题目核验候选答案。给定一个问题和候选单词列表，
+        判断**每个**单词是否**严格**满足问题约束。每个输入单词都要输出
+        一条判断（拼写与输入逐字符一致），顺序保持。
+
+        严格判断 —— 必须现代英文含义**完全匹配**才接受。词源、共同
+        词根、"沾边"都不算。
+
+        示例：
+        ❌ 问："Name a word ending in -tion." 词："quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ 问："Name a word meaning 'to lead'." 词："adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ 问："Name a kitchen utensil." 词："umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ 问："Name a word meaning happy." 词："joyful" →
+           fits=true, reason=""
+        ✅ 问："Name a word ending in -tion." 词："abduction" →
+           fits=true, reason=""
+
+        fits=true 时 reason 留空（或中性短语）；fits=false 时给一句
+        英文简短理由（不超过 60 字符）。
+        """
+
+    private static let phrasyFeudFitnessInstructionsJA: String = """
+        Family Feud の質問に対する候補回答を検証します。質問と候補単語
+        のリストが与えられたとき、**各**単語が質問の制約を**厳密に**
+        満たすか判断してください。すべての入力単語について判定を
+        出力すること（綴り完全一致、順序維持）。
+
+        厳格に判定 — 現代英語の意味が**明確に一致**する場合のみ承認。
+        語源・共通語根・「関連あり」は不可。
+
+        例：
+        ❌ Q「Name a word ending in -tion.」word "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ Q「Name a word meaning 'to lead'.」word "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ Q「Name a kitchen utensil.」word "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ Q「Name a word meaning happy.」word "joyful" →
+           fits=true, reason=""
+        ✅ Q「Name a word ending in -tion.」word "abduction" →
+           fits=true, reason=""
+
+        fits=true の場合は reason 空（または中立的な短文）。
+        fits=false の場合は英語で短い理由（60 字以内）。
+        """
+
+    private static let phrasyFeudFitnessInstructionsKO: String = """
+        Family Feud 질문에 대한 후보 답안을 검증합니다. 질문과 후보
+        단어 목록이 주어지면, **각** 단어가 질문의 제약을 **엄격히**
+        만족하는지 판단하세요. 모든 입력 단어에 대해 판정을 출력
+        (철자 완전 일치, 순서 유지).
+
+        엄격히 판단 — 현대 영어 의미가 **명확히 일치**할 때만 승인.
+        어원, 공유 어근, "관련 있음"은 불충분.
+
+        예시:
+        ❌ Q "Name a word ending in -tion." word "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ Q "Name a word meaning 'to lead'." word "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ Q "Name a kitchen utensil." word "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ Q "Name a word meaning happy." word "joyful" →
+           fits=true, reason=""
+        ✅ Q "Name a word ending in -tion." word "abduction" →
+           fits=true, reason=""
+
+        fits=true일 때 reason 비움(또는 중립적 짧은 문구). fits=false
+        일 때 영어로 짧은 이유(60자 이내).
+        """
+
+    private static let phrasyFeudFitnessInstructionsFR: String = """
+        Vous vérifiez les réponses candidates pour une question Family \
+        Feud. Étant donné une question et une liste de mots candidats, \
+        décidez pour CHAQUE mot s'il satisfait STRICTEMENT la \
+        contrainte de la question. Émettez un verdict pour chaque mot \
+        d'entrée (orthographe identique, ordre préservé).
+
+        Soyez strict — n'acceptez que si le sens anglais moderne \
+        correspond SANS AMBIGUÏTÉ. Étymologie ou racine partagée NE \
+        suffit PAS.
+
+        Exemples :
+        ❌ Q "Name a word ending in -tion." Mot "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ Q "Name a word meaning 'to lead'." Mot "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ Q "Name a kitchen utensil." Mot "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ Q "Name a word meaning happy." Mot "joyful" →
+           fits=true, reason=""
+        ✅ Q "Name a word ending in -tion." Mot "abduction" →
+           fits=true, reason=""
+
+        Quand fits=true, laissez reason vide (ou une formule neutre). \
+        Quand fits=false, donnez une raison brève en anglais (≤60 car.).
+        """
+
+    private static let phrasyFeudFitnessInstructionsDE: String = """
+        Du prüfst Kandidaten-Antworten zu einer Family-Feud-Frage. \
+        Gegeben eine Frage und eine Liste von Kandidatenwörtern, \
+        entscheide für JEDES Wort, ob es die Bedingung der Frage \
+        STRENG erfüllt. Gib für jedes Eingabewort ein Urteil aus \
+        (Schreibweise zeichengenau, Reihenfolge erhalten).
+
+        Streng prüfen — nur zustimmen, wenn die moderne englische \
+        Bedeutung EINDEUTIG passt. Etymologie / gemeinsame Wurzel \
+        reicht NICHT.
+
+        Beispiele:
+        ❌ F "Name a word ending in -tion." Wort "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ F "Name a word meaning 'to lead'." Wort "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ F "Name a kitchen utensil." Wort "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ F "Name a word meaning happy." Wort "joyful" →
+           fits=true, reason=""
+        ✅ F "Name a word ending in -tion." Wort "abduction" →
+           fits=true, reason=""
+
+        Bei fits=true reason leer lassen (oder neutrale Floskel). Bei \
+        fits=false einen kurzen englischen Grund (≤60 Zeichen) angeben.
+        """
+
+    private static let phrasyFeudFitnessInstructionsES: String = """
+        Verificas respuestas candidatas para una pregunta Family Feud. \
+        Dada una pregunta y una lista de palabras candidatas, decide \
+        para CADA palabra si satisface ESTRICTAMENTE la restricción \
+        de la pregunta. Emite un veredicto para cada palabra de \
+        entrada (ortografía carácter por carácter, mismo orden).
+
+        Sé estricto — solo acepta si el significado inglés moderno \
+        coincide SIN AMBIGÜEDAD. Etimología o raíz compartida NO basta.
+
+        Ejemplos:
+        ❌ P "Name a word ending in -tion." Palabra "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ P "Name a word meaning 'to lead'." Palabra "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ P "Name a kitchen utensil." Palabra "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ P "Name a word meaning happy." Palabra "joyful" →
+           fits=true, reason=""
+        ✅ P "Name a word ending in -tion." Palabra "abduction" →
+           fits=true, reason=""
+
+        Cuando fits=true, deja reason vacío (o frase neutra). Cuando \
+        fits=false, da una razón breve en inglés (≤60 caracteres).
+        """
+
+    private static let phrasyFeudFitnessInstructionsPT: String = """
+        Você verifica respostas candidatas para uma pergunta Family \
+        Feud. Dada uma pergunta e uma lista de palavras candidatas, \
+        decida para CADA palavra se satisfaz ESTRITAMENTE a restrição \
+        da pergunta. Emita um veredicto para cada palavra de entrada \
+        (ortografia caractere por caractere, mesma ordem).
+
+        Seja estrito — só aceite se o significado inglês moderno \
+        corresponde SEM AMBIGUIDADE. Etimologia ou raiz comum NÃO basta.
+
+        Exemplos:
+        ❌ P "Name a word ending in -tion." Palavra "quetch" →
+           fits=false, reason="does not end in -tion"
+        ❌ P "Name a word meaning 'to lead'." Palavra "adduction" →
+           fits=false, reason="modern meaning is anatomical movement,\
+           not 'to lead'"
+        ❌ P "Name a kitchen utensil." Palavra "umbrella" →
+           fits=false, reason="not a kitchen item"
+        ✅ P "Name a word meaning happy." Palavra "joyful" →
+           fits=true, reason=""
+        ✅ P "Name a word ending in -tion." Palavra "abduction" →
+           fits=true, reason=""
+
+        Quando fits=true, deixe reason vazio (ou frase neutra). Quando \
+        fits=false, dê uma razão breve em inglês (≤60 caracteres).
         """
 }

@@ -2029,6 +2029,18 @@
         }
       }
     },
+    "aiCoach.openSettings" : {
+      "comment" : "AI Coach: button to open app settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open OpenMDict Settings"
+          }
+        }
+      }
+    },
     "aiCoach.phrasyFeud" : {
       "comment" : "AI Coach: chooser option — Family Feud-style collocation quiz",
       "extractionState" : "extracted_with_value",
@@ -2037,78 +2049,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Phrasy Feud"
-          }
-        }
-      }
-    },
-    "aiCoach.phrasyFeudDesc" : {
-      "comment" : "AI Coach: Phrasy Feud mode description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Game-show survey: name the words sharing a category"
-          }
-        }
-      }
-    },
-    "aiCoach.phrasyFeud.loadingTitle" : {
-      "comment" : "Phrasy Feud: loading state title (game-show-host voice)",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Tonight on Phrasy Feud…"
-          }
-        }
-      }
-    },
-    "aiCoach.phrasyFeud.loadingMessage" : {
-      "comment" : "Phrasy Feud: loading state subtitle",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Surveying the audience…"
-          }
-        }
-      }
-    },
-    "aiCoach.phrasyFeud.notEnoughBookmarksTitle" : {
-      "comment" : "Phrasy Feud: gate-failure placeholder title",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Not Ready for Showtime"
-          }
-        }
-      }
-    },
-    "aiCoach.phrasyFeud.notEnoughBookmarksMessage" : {
-      "comment" : "Phrasy Feud: gate-failure placeholder body — intentionally does NOT name the threshold (24) so the user can't try to game it; copy stays vague on purpose",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Bookmark more English words and come back to play."
-          }
-        }
-      }
-    },
-    "aiCoach.phrasyFeud.engineErrorTitle" : {
-      "comment" : "Phrasy Feud: engine-failure placeholder title",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Couldn't Dream Up a Round"
           }
         }
       }
@@ -2125,6 +2065,186 @@
         }
       }
     },
+    "aiCoach.phrasyFeud.engineErrorTitle" : {
+      "comment" : "Phrasy Feud: engine-failure placeholder title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't Dream Up a Round"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.finaleScore" : {
+      "comment" : "Phrasy Feud: finale subtitle line under the points; %1$d correct, %2$d total",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$d of %2$d answers found"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.finaleTitle" : {
+      "comment" : "Phrasy Feud: end-of-round headline — the points scored, formatted as the large hero text",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%d POINTS"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.leaveMessage" : {
+      "comment" : "Phrasy Feud: back-nav double-check alert body",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your current round will end. Sure you want to leave?"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.leaveShow" : {
+      "comment" : "Phrasy Feud: confirm leaving mid-round",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Leave"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.leaveTitle" : {
+      "comment" : "Phrasy Feud: back-nav double-check alert title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Leaving the show?"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.loadingMessage" : {
+      "comment" : "Phrasy Feud: loading state subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Surveying the audience…"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.loadingTitle" : {
+      "comment" : "Phrasy Feud: loading state title (game-show-host voice)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tonight on Phrasy Feud…"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.nextRound" : {
+      "comment" : "Phrasy Feud: button to start the next round from the finale screen",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Next Round"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.timerLabel" : {
+      "comment" : "Phrasy Feud: small label above the countdown timer LCD (left of buzzer)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "TIME"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.scoreLabel" : {
+      "comment" : "Phrasy Feud: small label above the running-score LCD (right of buzzer)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "TOTAL"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.tapToStart" : {
+      "comment" : "Phrasy Feud: banner CTA shown before the user taps to flip the banner and start the timer",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tap to Start"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.notEnoughBookmarksMessage" : {
+      "comment" : "Phrasy Feud: gate-failure placeholder body — intentionally does NOT name the threshold (24) so the user can't try to game it; copy stays vague on purpose",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark more English words and come back to play."
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.notEnoughBookmarksTitle" : {
+      "comment" : "Phrasy Feud: gate-failure placeholder title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not Ready for Showtime"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.stayOnShow" : {
+      "comment" : "Phrasy Feud: cancel leaving mid-round",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Stay"
+          }
+        }
+      }
+    },
     "aiCoach.phrasyFeud.tryAgain" : {
       "comment" : "Phrasy Feud: retry button after engine error",
       "extractionState" : "extracted_with_value",
@@ -2137,14 +2257,14 @@
         }
       }
     },
-    "aiCoach.openSettings" : {
-      "comment" : "AI Coach: button to open app settings",
+    "aiCoach.phrasyFeudDesc" : {
+      "comment" : "AI Coach: Phrasy Feud mode description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Open OpenMDict Settings"
+            "value" : "Game-show survey: name the words sharing a category"
           }
         }
       }

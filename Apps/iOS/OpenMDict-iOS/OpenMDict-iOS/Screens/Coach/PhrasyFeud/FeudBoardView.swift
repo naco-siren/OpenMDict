@@ -129,6 +129,26 @@ final class FeudBoardView: UIView {
         ])
     }
 
+    // MARK: - Public chrome access
+
+    /// Read-only handle to the board's black interior — the area
+    /// inside the brown + gold double border, where cards live. The
+    /// VC parents the loading/error placeholder stack into this so
+    /// the placeholder text reads against the board's black surface
+    /// instead of the arch backdrop's yellow-dotted black (gold text
+    /// on yellow dots is unreadable). Pair with `setCardsHidden(_:)`
+    /// to swap between cards and placeholder content occupying the
+    /// same area.
+    var contentArea: UIView { interior }
+
+    /// Toggle the card scroll view's visibility without removing it
+    /// from the view hierarchy. Used during loading/placeholder
+    /// states: cards hidden, placeholder visible in the same black
+    /// interior. Per-slot states survive across hide/show cycles.
+    func setCardsHidden(_ hidden: Bool) {
+        scrollView.isHidden = hidden
+    }
+
     // MARK: - Slot management
 
     func setSlotCount(_ count: Int) {
@@ -148,12 +168,45 @@ final class FeudBoardView: UIView {
         rebuildLayout()
     }
 
-    func setCardState(at index: Int, _ state: FeudCardView.CardState) {
+    func setCardState(at index: Int, _ state: FeudCardView.CardState, animated: Bool = false) {
         guard slotStates.indices.contains(index) else { return }
         slotStates[index] = state
-        if cards.indices.contains(index) {
-            cards[index].apply(state)
+        guard cards.indices.contains(index) else { return }
+        let card = cards[index]
+        if animated {
+            // Broadcast contract: cards flip around the horizontal
+            // center axis (front face spinning bottom-up to reveal the
+            // back). `.transitionFlipFromBottom` does exactly that —
+            // snapshots the view before + after the closure, then
+            // animates the 3D rotation between them.
+            UIView.transition(
+                with: card,
+                duration: 0.45,
+                options: [.transitionFlipFromBottom, .curveEaseOut]
+            ) {
+                card.apply(state)
+            }
+        } else {
+            card.apply(state)
         }
+    }
+
+    /// Brief scale pulse on a single card — used when the user submits
+    /// an answer that matches an ALREADY revealed slot (so the dup is
+    /// visibly acknowledged without a full re-flip animation).
+    /// Different feedback channel from the wrong-answer board shake
+    /// (whole-board kinetic-bad) and the per-card celebration burst
+    /// (particle festive); this is a brief "yes, that one" pulse.
+    func pulseCard(at index: Int) {
+        guard cards.indices.contains(index) else { return }
+        let card = cards[index]
+        let pulse = CABasicAnimation(keyPath: "transform.scale")
+        pulse.fromValue = 1.0
+        pulse.toValue = 1.08
+        pulse.duration = 0.14
+        pulse.autoreverses = true
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        card.layer.add(pulse, forKey: "pulse")
     }
 
     // MARK: - Layout
