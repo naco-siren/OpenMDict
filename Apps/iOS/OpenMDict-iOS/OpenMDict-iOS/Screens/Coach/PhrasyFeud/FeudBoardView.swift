@@ -132,7 +132,11 @@ final class FeudBoardView: UIView {
     // MARK: - Slot management
 
     func setSlotCount(_ count: Int) {
-        precondition((2...6).contains(count), "FeudBoardView supports 2-6 slots, got \(count)")
+        // Lower bound is 1 (NOT 2) because PhrasyFeudEngine's single-word
+        // fallback path returns a Round with exactly one ScoredAnswer.
+        // The rebuildLayout math (rowCount = ceil(count/columns)) handles
+        // count=1 the same as count=2..6 — one card in one row.
+        precondition((1...6).contains(count), "FeudBoardView supports 1-6 slots, got \(count)")
         slotStates = Array(repeating: .blank, count: count)
         // Rebuild eagerly with the current column count (default 1) so the
         // card stack has arranged subviews — and therefore intrinsic content

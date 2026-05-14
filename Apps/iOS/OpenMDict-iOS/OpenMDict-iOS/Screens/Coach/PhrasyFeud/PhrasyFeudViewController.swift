@@ -6,12 +6,17 @@
 //  hidden answers on a board; AI generates a "Name a word that …"
 //  question that ties 2-6 of them together; user guesses by typing.
 //
-//  This file is the FOUNDATION (step 1 of the 4-commit rollout):
-//    - Phase machine scaffold (loading / questionReveal / playing /
-//      endRound / finale) — only `playing` populated for visual review.
-//    - Hardcoded sample question + 4 sample answers; no AI engine yet.
-//    - Static board + banner; no flip animation, no input field, no
-//      strike X overlay. Those land in step 3.
+//  As of step 2:
+//    - `viewDidLoad` calls `startEngine()` instead of the demo. The
+//      engine fetches bookmarks via `BookmarkService`, gates on ≥ 24
+//      `looksEnglish` words, and asks `AICoachService` for a Family-
+//      Feud-style question + 2-6 answers from the user's own pool.
+//    - Three placeholders (loading / not-enough-bookmarks / engine
+//      error) cover the failure modes; loading borrows MorphemeMaury's
+//      icon-+-spinner stack pattern.
+//    - For step-2 verification ALL answer cards render REVEALED so the
+//      validated AI output is visible end-to-end. Step 3 will flip
+//      them to start blank and reveal on match (input + strike logic).
 //
 //  Layout (z-stacked under nav bar):
 //    1. `FeudArchBackground` (full-screen) — proscenium-arch silhouette
@@ -45,6 +50,35 @@ final class PhrasyFeudViewController: UIViewController {
     private let board = FeudBoardView()
     private let buzzer = FeudBuzzerView()
 
+    // Loading + placeholder overlay (mirrors MorphemeMaury's pattern:
+    // a single centered vertical stack of icon + title + spinner +
+    // subtitle, swapped between loading / placeholder by reconfiguring
+    // the same subviews — no separate placeholder view).
+    private let placeholderStack = UIStackView()
+    private let placeholderIcon = UIImageView()
+    private let placeholderTitle = UILabel()
+    private let placeholderSubtitle = UILabel()
+    private let placeholderSpinner = UIActivityIndicatorView(style: .large)
+    private let placeholderRetryButton = UIButton(type: .system)
+
+    /// Latest validated round, kept around so the match logic can
+    /// look up the answer + score for a slot when it's revealed. The
+    /// board itself only ever stores `.blank` / `.revealed` per card —
+    /// the answer text isn't in the view layer at startup.
+    private var currentRound: PhrasyFeudEngine.Round?
+
+    /// Slots already revealed (so we don't waste a guess re-matching an
+    /// already-flipped card). Reset whenever a new round is applied.
+    /// Step 3 will consume this to drive strike-X overlay + game-over
+    /// trigger; for now the only effect is "no double-credit".
+    private var revealedSlots: Set<Int> = []
+
+    /// Saved at viewWillAppear, restored at viewWillDisappear. tintColor
+    /// isn't part of UINavigationBarAppearance, so we have to save +
+    /// restore manually to avoid bleeding our gold tint into the AICoach
+    /// facade once the user pops back.
+    private var savedNavTintColor: UIColor?
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -60,23 +94,40 @@ final class PhrasyFeudViewController: UIViewController {
         overrideUserInterfaceStyle = .dark
 
         setupLayout()
-
-        // Step 1 placeholder: jump straight into a hardcoded "playing"
-        // state with sample data so we can visually verify the layout.
-        showHardcodedDemo()
+        setupPlaceholderUI()
+        startEngine()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Nav title + back chevron use the dimmer banner-text yellow, not
-        // the bright bulb yellow of the dots/bands — text reads better in
-        // a slightly more muted gold.
-        navigationController?.navigationBar.tintColor = FeudPalette.goldText
-        let titleAttrs: [NSAttributedString.Key: Any] = [
+        // Per-VC nav appearance — confined to this VC, no bleed into the
+        // AICoach facade or any other parent in the stack. We use the
+        // dimmer banner-text yellow (NOT the brighter bulb yellow of the
+        // dots/bands) because text reads better in a slightly more muted
+        // gold against the transparent bar.
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.titleTextAttributes = [
             .foregroundColor: FeudPalette.goldText,
             .font: FeudPalette.bannerFont(size: 17),
         ]
-        navigationController?.navigationBar.titleTextAttributes = titleAttrs
+        navigationItem.standardAppearance = appearance
+        navigationItem.scrollEdgeAppearance = appearance
+        navigationItem.compactAppearance = appearance
+
+        // tintColor (back chevron) isn't covered by `UINavigationBarAppearance`
+        // — it's a UINavigationBar property, not an item one. Save + restore
+        // around our window of override.
+        savedNavTintColor = navigationController?.navigationBar.tintColor
+        navigationController?.navigationBar.tintColor = FeudPalette.goldText
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // Restore the parent's nav-bar tint so popping back to the AICoach
+        // facade doesn't leave its back chevron painted gold. The standard
+        // appearance auto-reverts because it's per-VC.
+        navigationController?.navigationBar.tintColor = savedNavTintColor
     }
 
     // MARK: - Layout
@@ -167,9 +218,6 @@ final class PhrasyFeudViewController: UIViewController {
     // MARK: - Input
 
     private func presentAnswerInput() {
-        // Step 3 wires the submitted text to the match logic. The
-        // foundation just round-trips through an alert so the buzzer
-        // tap → input → dismiss flow is verifiable end-to-end.
         let alert = UIAlertController(
             title: nil,
             message: "Submit your answer",
@@ -178,26 +226,310 @@ final class PhrasyFeudViewController: UIViewController {
         alert.addTextField { tf in
             tf.placeholder = "Your answer…"
             tf.autocorrectionType = .no
-            tf.autocapitalizationType = .allCharacters
+            // `.none` (NOT `.allCharacters`) because matching is
+            // case-insensitive anyway, and `.allCharacters` looked
+            // like the system was force-toggling caps-lock back on
+            // after every keystroke.
+            tf.autocapitalizationType = .none
             tf.font = FeudPalette.answerFont(size: 17)
         }
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Submit", style: .default) { [weak alert] _ in
-            _ = alert?.textFields?.first?.text
+        alert.addAction(UIAlertAction(title: "Submit", style: .default) { [weak self, weak alert] _ in
+            self?.handleSubmit(alert?.textFields?.first?.text ?? "")
         })
         present(alert, animated: true)
     }
 
-    // MARK: - Demo (replaced by AI engine in step 2)
+    /// Match a user-submitted guess against `currentRound.answers`.
+    /// Case-insensitive + lemma-aware (so "cats" matches an answer of
+    /// "cat", "running" matches "run", etc. — same `EnglishInflectionRules`
+    /// used by Among wUrdS, Word Tinder, and QuizEngine).
+    ///
+    /// Step 3 will add: strike-X overlay on miss, end-of-round when
+    /// all slots revealed OR 3 strikes accumulated, flip animation on
+    /// reveal. For now this is the bare minimum to make data flow
+    /// visible end-to-end.
+    private func handleSubmit(_ rawInput: String) {
+        let trimmed = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let round = currentRound else {
+            debugLog("🎯 PhrasyFeud submit ignored: no current round")
+            return
+        }
 
-    private func showHardcodedDemo() {
-        banner.setQuestion("Name a word that means \u{201C}happy\u{201D}")
+        let userLemmas = lemmaSet(for: trimmed)
+        debugLog("🎯 PhrasyFeud submit: \"\(trimmed)\" lemmas=\(userLemmas)")
 
-        board.setSlotCount(4)
-        // Two revealed + two blank — covers both states in one screen.
-        board.setCardState(at: 0, .revealed(answer: "joyful", score: 38))
-        board.setCardState(at: 1, .blank)
-        board.setCardState(at: 2, .revealed(answer: "cheerful", score: 24))
-        board.setCardState(at: 3, .blank)
+        for (i, answer) in round.answers.enumerated() {
+            let answerLemmas = lemmaSet(for: answer.word)
+            if !userLemmas.isDisjoint(with: answerLemmas) {
+                if revealedSlots.contains(i) {
+                    debugLog("🎯   matched slot \(i) (\(answer.word)) — but ALREADY revealed")
+                    return
+                }
+                revealedSlots.insert(i)
+                debugLog("✅ PhrasyFeud reveal slot \(i): \(answer.word) (\(answer.score))")
+                board.setCardState(at: i, .revealed(answer: answer.word, score: answer.score))
+                celebrateReveal(slot: i)
+                return
+            }
+        }
+
+        debugLog("❌ PhrasyFeud no match for \"\(trimmed)\"")
+    }
+
+    /// Lemma + lowercased original, all in one set, suitable for
+    /// `Set.isDisjoint(with:)` comparison against another lemma set.
+    private func lemmaSet(for word: String) -> Set<String> {
+        var set: Set<String> = [word.lowercased()]
+        for lemma in EnglishInflectionRules.resolve(word) {
+            set.insert(lemma.lowercased())
+        }
+        return set
+    }
+
+    // MARK: - Celebration
+
+    /// Fire a star/coin particle burst FROM the just-revealed card's
+    /// center. Modeled on MorphemeMaury's `burstParticles` but
+    /// intentionally distinct:
+    ///   - Maury rains confetti DOWN from the screen top in a wide line;
+    ///     this bursts UP from a single card-center point in a 180° fan.
+    ///   - Maury uses generic celebration emojis (🎉🎊✨🌟); this is
+    ///     star + coin themed (⭐💫✨💰💎) to evoke "you just won
+    ///     points on the game show!"
+    ///   - Maury's burst lingers ~6s for a round-end finale;
+    ///     this is a snappier ~2.5s per-card-match celebration.
+    ///
+    /// Each burst gets a FRESH `CAEmitterLayer` (Maury learned the hard
+    /// way that reusing one emitter across bursts is racy — birthRate,
+    /// begin-time, cell lifecycle state all drift across plays).
+    private func celebrateReveal(slot: Int) {
+        guard board.cards.indices.contains(slot) else { return }
+        let card = board.cards[slot]
+        let cardCenter = view.convert(card.center, from: card.superview)
+
+        let freshCells = Self.celebrationCells.compactMap { $0.copy() as? CAEmitterCell }
+        let emitter = CAEmitterLayer()
+        emitter.emitterShape = .point
+        emitter.emitterMode = .points
+        emitter.renderMode = .unordered
+        emitter.emitterCells = freshCells
+        emitter.frame = view.bounds
+        emitter.emitterPosition = cardCenter
+        emitter.emitterSize = CGSize(width: 4, height: 4)
+        emitter.zPosition = 200
+        emitter.masksToBounds = false
+        emitter.birthRate = 1
+        view.layer.addSublayer(emitter)
+
+        // Stop emitting after the initial burst; existing particles
+        // keep animating via their `lifetime` until they fade.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak emitter] in
+            emitter?.birthRate = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak emitter] in
+            emitter?.removeFromSuperlayer()
+        }
+    }
+
+    /// Cached celebration cells — star + coin theme, upward burst.
+    /// `private static` because CAEmitterCell rasterizes the emoji
+    /// content into an image at first access; doing it per-burst was
+    /// wasteful (Maury learned this too).
+    private static let celebrationCells: [CAEmitterCell] = {
+        let emojis = ["\u{2B50}", "\u{1F4AB}", "\u{2728}", "\u{1F4B0}", "\u{1F48E}"]  // ⭐💫✨💰💎
+        return emojis.map { emoji in
+            let cell = CAEmitterCell()
+            cell.contents = emojiImage(emoji, size: 28)?.cgImage
+            cell.birthRate = 18
+            cell.lifetime = 1.4
+            cell.velocity = 420
+            cell.velocityRange = 150
+            // Slight upward drift (NEGATIVE y in CG coords) so particles
+            // float a bit before gravity wins. Maury's confetti uses
+            // POSITIVE yAcceleration (gravity); we invert the sign for
+            // the "score popped up off the card" feel.
+            cell.yAcceleration = -60
+            cell.xAcceleration = 0
+            cell.emissionLongitude = -.pi / 2  // UPWARD (negative y in CG)
+            cell.emissionRange = .pi           // 180° fan, upward semicircle
+            cell.spin = 3.0
+            cell.spinRange = 6
+            cell.scale = 0.85
+            cell.scaleRange = 0.3
+            cell.alphaSpeed = -0.55            // fade out in ~1.8s
+            return cell
+        }
+    }()
+
+    /// Render an emoji to a UIImage for `CAEmitterCell.contents`.
+    /// Mirror of MorphemeMaury's helper (project convention: each VC
+    /// owns its own copy; a shared util can come in a later cleanup if
+    /// a third feature needs the same).
+    private static func emojiImage(_ emoji: String, size: CGFloat) -> UIImage? {
+        let font = UIFont.systemFont(ofSize: size)
+        let attr: [NSAttributedString.Key: Any] = [.font: font]
+        let textSize = (emoji as NSString).size(withAttributes: attr)
+        let renderer = UIGraphicsImageRenderer(
+            size: CGSize(width: ceil(textSize.width), height: ceil(textSize.height)))
+        return renderer.image { _ in
+            (emoji as NSString).draw(at: .zero, withAttributes: attr)
+        }
+    }
+
+    // MARK: - Engine pipeline
+
+    private func startEngine() {
+        showLoadingState()
+        Task { @MainActor in
+            do {
+                let round = try await PhrasyFeudEngine.buildRound()
+                apply(round: round)
+            } catch PhrasyFeudEngine.Failure.notEnoughBookmarks {
+                showPlaceholder(
+                    iconSymbol: "info.bubble",
+                    iconPalette: [FeudPalette.goldText, .systemGray3],
+                    title: L10n.AICoach.PhrasyFeud.notEnoughBookmarksTitle,
+                    subtitle: L10n.AICoach.PhrasyFeud.notEnoughBookmarksMessage,
+                    showRetry: false
+                )
+            } catch {
+                debugLog("⚠️ PhrasyFeudVC: engine failed — \(error)")
+                showPlaceholder(
+                    iconSymbol: "exclamationmark.triangle.fill",
+                    iconPalette: [.systemOrange, FeudPalette.goldText],
+                    title: L10n.AICoach.PhrasyFeud.engineErrorTitle,
+                    subtitle: L10n.AICoach.PhrasyFeud.engineErrorMessage,
+                    showRetry: true
+                )
+            }
+        }
+    }
+
+    private func apply(round: PhrasyFeudEngine.Round) {
+        currentRound = round
+        revealedSlots.removeAll()
+        currentPhase = .playing
+        hidePlaceholder()
+        banner.setQuestion(round.question)
+        // Broadcast contract: every card starts FACE-DOWN (blank). Step 3's
+        // input-matching logic will look up the answer + score in
+        // `currentRound.answers` and call `board.setCardState(at:.revealed)`
+        // when the user nails one. The answer text is held only in
+        // `currentRound`, never written to the view layer at startup —
+        // otherwise the user (or anyone glancing at the screen) would see
+        // every answer immediately, defeating the game.
+        board.setSlotCount(round.answers.count)
+        for i in round.answers.indices {
+            board.setCardState(at: i, .blank)
+        }
+    }
+
+    // MARK: - Loading / placeholder UI
+
+    private func setupPlaceholderUI() {
+        // Icon — palette-tinted SF Symbol; resized when content swaps.
+        placeholderIcon.translatesAutoresizingMaskIntoConstraints = false
+        placeholderIcon.contentMode = .scaleAspectFit
+
+        // Title — gold, heavy, centered.
+        placeholderTitle.translatesAutoresizingMaskIntoConstraints = false
+        placeholderTitle.font = .systemFont(ofSize: 22, weight: .heavy)
+        placeholderTitle.textColor = FeudPalette.goldText
+        placeholderTitle.textAlignment = .center
+        placeholderTitle.numberOfLines = 0
+
+        placeholderSubtitle.translatesAutoresizingMaskIntoConstraints = false
+        placeholderSubtitle.font = .systemFont(ofSize: 15, weight: .regular)
+        placeholderSubtitle.textColor = UIColor.white.withAlphaComponent(0.75)
+        placeholderSubtitle.textAlignment = .center
+        placeholderSubtitle.numberOfLines = 0
+
+        placeholderSpinner.color = FeudPalette.goldText
+
+        placeholderRetryButton.translatesAutoresizingMaskIntoConstraints = false
+        placeholderRetryButton.setTitle(L10n.AICoach.PhrasyFeud.tryAgain, for: .normal)
+        placeholderRetryButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        placeholderRetryButton.setTitleColor(FeudPalette.goldText, for: .normal)
+        placeholderRetryButton.addAction(UIAction { [weak self] _ in
+            self?.startEngine()
+        }, for: .touchUpInside)
+
+        placeholderStack.axis = .vertical
+        placeholderStack.alignment = .center
+        placeholderStack.spacing = 14
+        placeholderStack.translatesAutoresizingMaskIntoConstraints = false
+        placeholderStack.addArrangedSubview(placeholderIcon)
+        placeholderStack.addArrangedSubview(placeholderTitle)
+        placeholderStack.addArrangedSubview(placeholderSpinner)
+        placeholderStack.addArrangedSubview(placeholderSubtitle)
+        placeholderStack.addArrangedSubview(placeholderRetryButton)
+        placeholderStack.setCustomSpacing(18, after: placeholderIcon)
+        placeholderStack.setCustomSpacing(18, after: placeholderTitle)
+        placeholderStack.setCustomSpacing(18, after: placeholderSubtitle)
+        placeholderStack.isHidden = true
+        view.addSubview(placeholderStack)
+
+        NSLayoutConstraint.activate([
+            placeholderStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            placeholderStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            placeholderStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 40),
+            placeholderStack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -40),
+            placeholderIcon.widthAnchor.constraint(equalToConstant: 76),
+            placeholderIcon.heightAnchor.constraint(equalToConstant: 64),
+        ])
+    }
+
+    private func showLoadingState() {
+        currentPhase = .loading
+        banner.isHidden = true
+        board.isHidden = true
+        buzzer.isHidden = true
+
+        applyPlaceholderIcon(symbol: "tv.fill", palette: [FeudPalette.goldText, .systemRed])
+        placeholderTitle.text = L10n.AICoach.PhrasyFeud.loadingTitle
+        placeholderTitle.textColor = FeudPalette.goldText
+        placeholderSubtitle.text = L10n.AICoach.PhrasyFeud.loadingMessage
+        placeholderSpinner.isHidden = false
+        placeholderSpinner.startAnimating()
+        placeholderRetryButton.isHidden = true
+        placeholderStack.isHidden = false
+    }
+
+    private func showPlaceholder(
+        iconSymbol: String,
+        iconPalette: [UIColor],
+        title: String,
+        subtitle: String,
+        showRetry: Bool
+    ) {
+        banner.isHidden = true
+        board.isHidden = true
+        buzzer.isHidden = true
+
+        applyPlaceholderIcon(symbol: iconSymbol, palette: iconPalette)
+        placeholderTitle.text = title
+        placeholderTitle.textColor = FeudPalette.goldText
+        placeholderSubtitle.text = subtitle
+        placeholderSpinner.stopAnimating()
+        placeholderSpinner.isHidden = true
+        placeholderRetryButton.isHidden = !showRetry
+        placeholderStack.isHidden = false
+    }
+
+    private func hidePlaceholder() {
+        placeholderSpinner.stopAnimating()
+        placeholderStack.isHidden = true
+        banner.isHidden = false
+        board.isHidden = false
+        buzzer.isHidden = false
+    }
+
+    private func applyPlaceholderIcon(symbol: String, palette: [UIColor]) {
+        let config = UIImage.SymbolConfiguration(pointSize: 56, weight: .regular)
+            .applying(UIImage.SymbolConfiguration(paletteColors: palette))
+        placeholderIcon.image = UIImage(systemName: symbol, withConfiguration: config)?
+            .withRenderingMode(.alwaysOriginal)
     }
 }

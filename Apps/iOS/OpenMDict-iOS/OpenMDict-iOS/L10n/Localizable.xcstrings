@@ -2053,6 +2053,90 @@
         }
       }
     },
+    "aiCoach.phrasyFeud.loadingTitle" : {
+      "comment" : "Phrasy Feud: loading state title (game-show-host voice)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tonight on Phrasy Feud…"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.loadingMessage" : {
+      "comment" : "Phrasy Feud: loading state subtitle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Surveying the audience…"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.notEnoughBookmarksTitle" : {
+      "comment" : "Phrasy Feud: gate-failure placeholder title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not Ready for Showtime"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.notEnoughBookmarksMessage" : {
+      "comment" : "Phrasy Feud: gate-failure placeholder body — intentionally does NOT name the threshold (24) so the user can't try to game it; copy stays vague on purpose",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bookmark more English words and come back to play."
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.engineErrorTitle" : {
+      "comment" : "Phrasy Feud: engine-failure placeholder title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't Dream Up a Round"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.engineErrorMessage" : {
+      "comment" : "Phrasy Feud: engine-failure placeholder body",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The on-device model didn't cooperate this time. Want to try again?"
+          }
+        }
+      }
+    },
+    "aiCoach.phrasyFeud.tryAgain" : {
+      "comment" : "Phrasy Feud: retry button after engine error",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
     "aiCoach.openSettings" : {
       "comment" : "AI Coach: button to open app settings",
       "extractionState" : "extracted_with_value",

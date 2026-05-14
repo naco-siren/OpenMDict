@@ -776,6 +776,32 @@ nonisolated enum L10n {
                 NSLocalizedString("aiCoach.maury.episodeBusted", value: "We couldn't book an episode with any of your bookmarks. Try adding more English words with Latin or Greek roots.", comment: "Maury: all quizzes failed")
             }
         }
+
+        // MARK: Phrasy Feud
+
+        enum PhrasyFeud {
+            static var loadingTitle: String {
+                NSLocalizedString("aiCoach.phrasyFeud.loadingTitle", value: "Tonight on Phrasy Feud\u{2026}", comment: "Phrasy Feud: loading state title (game-show-host voice)")
+            }
+            static var loadingMessage: String {
+                NSLocalizedString("aiCoach.phrasyFeud.loadingMessage", value: "Surveying the audience\u{2026}", comment: "Phrasy Feud: loading state subtitle")
+            }
+            static var notEnoughBookmarksTitle: String {
+                NSLocalizedString("aiCoach.phrasyFeud.notEnoughBookmarksTitle", value: "Not Ready for Showtime", comment: "Phrasy Feud: gate-failure placeholder title")
+            }
+            static var notEnoughBookmarksMessage: String {
+                NSLocalizedString("aiCoach.phrasyFeud.notEnoughBookmarksMessage", value: "Bookmark more English words and come back to play.", comment: "Phrasy Feud: gate-failure placeholder body — intentionally does NOT name the threshold (24) so the user can't try to game it; copy stays vague on purpose")
+            }
+            static var engineErrorTitle: String {
+                NSLocalizedString("aiCoach.phrasyFeud.engineErrorTitle", value: "Couldn't Dream Up a Round", comment: "Phrasy Feud: engine-failure placeholder title")
+            }
+            static var engineErrorMessage: String {
+                NSLocalizedString("aiCoach.phrasyFeud.engineErrorMessage", value: "The on-device model didn't cooperate this time. Want to try again?", comment: "Phrasy Feud: engine-failure placeholder body")
+            }
+            static var tryAgain: String {
+                NSLocalizedString("aiCoach.phrasyFeud.tryAgain", value: "Try Again", comment: "Phrasy Feud: retry button after engine error")
+            }
+        }
     }
 
     // MARK: - Word List & Search
