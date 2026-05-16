@@ -446,6 +446,11 @@ nonisolated enum L10n {
             static var notReady: String {
                 NSLocalizedString("aiCoach.flashcard.notReady", value: "Not ready", comment: "Flashcard: header when AI not available")
             }
+            /// Header label shown in the empty-state slot when the user has
+            /// no bookmarks yet. The longer `noCards` message renders below.
+            static var noCardsHeader: String {
+                NSLocalizedString("aiCoach.flashcard.noCardsHeader", value: "No cards", comment: "Flashcard: short header above the empty-state message — the longer noCards copy appears below this")
+            }
         }
 
         // MARK: Word Quiz
@@ -705,6 +710,23 @@ nonisolated enum L10n {
             static func ejectLimitAlert(_ max: Int) -> String {
                 String(format: NSLocalizedString("aiCoach.amongWurds.ejectLimitAlert", value: "You can only eject up to %d crew members at a time.", comment: "Among wUrdS: eject limit warning"), max)
             }
+            /// All-caps variant for the in-game CTA button. Distinct from
+            /// `eject` (Title Case "Eject" used in menus) because the CTA
+            /// follows broadcast-style ALL CAPS — translators may choose
+            /// whether casing applies in their script (CJK has no casing).
+            static var ejectCTA: String {
+                NSLocalizedString("aiCoach.amongWurds.ejectCTA", value: "EJECT", comment: "Among wUrdS: in-game eject CTA — broadcast-style ALL CAPS; non-Latin scripts can ignore casing")
+            }
+            /// Eject-result overlay text when the chosen crew member WAS an
+            /// imposter. `%@` is the word. `\n` for a two-line layout.
+            static func ejectedImposter(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.amongWurds.ejectedImposter", value: "\"%@\"\nwas An Imposter!", comment: "Among wUrdS: eject overlay text when the player correctly ejected an imposter; %@ is the word"), word)
+            }
+            /// Eject-result overlay text when the chosen crew member was NOT
+            /// an imposter (i.e. the player ejected a crewmate by mistake).
+            static func ejectedCrewmate(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.amongWurds.ejectedCrewmate", value: "\"%@\"\nwas not An Imposter\u{2026}", comment: "Among wUrdS: eject overlay text when the player ejected an innocent crewmate; %@ is the word"), word)
+            }
         }
 
         // MARK: Morpheme Maury
@@ -775,6 +797,30 @@ nonisolated enum L10n {
             static var episodeBusted: String {
                 NSLocalizedString("aiCoach.maury.episodeBusted", value: "We couldn't book an episode with any of your bookmarks. Try adding more English words with Latin or Greek roots.", comment: "Maury: all quizzes failed")
             }
+            /// Build-up text shown briefly before the verdict reveal, in the
+            /// daytime-TV-host "drumroll" cadence ("You... ARE the morpheme!").
+            static var buildupPrompt: String {
+                NSLocalizedString("aiCoach.maury.buildupPrompt", value: "You\u{2026}", comment: "Maury: drumroll lead-in text before the verdict reveal — Maury Show signature phrase 'You ARE / You are NOT'")
+            }
+            /// Hint shown at the bottom of the reveal overlay telling the user
+            /// to tap anywhere to proceed to the next case.
+            static var continueHint: String {
+                NSLocalizedString("aiCoach.maury.continueHint", value: "Tap to continue", comment: "Maury: hint at the bottom of the reveal overlay — user taps anywhere to proceed")
+            }
+            /// Loading-state title when the engine has exhausted retries and
+            /// can't produce a quiz at all (different from per-episode failure).
+            static var failedTitle: String {
+                NSLocalizedString("aiCoach.maury.failedTitle", value: "The show can't go on", comment: "Maury: error-state title shown when the engine fails to produce ANY quiz")
+            }
+            /// Title shown when the user has played through every guest in
+            /// their bookmark library and no more episodes are bookable.
+            static var allDoneTitle: String {
+                NSLocalizedString("aiCoach.maury.allDoneTitle", value: "That's a wrap!", comment: "Maury: title when the user has played through all bookmarked words — distinct from per-episode 'Case Closed.'")
+            }
+            /// Subtitle for `allDoneTitle` — every guest has been on the show.
+            static var allDoneMessage: String {
+                NSLocalizedString("aiCoach.maury.allDoneMessage", value: "All bookmarked guests have been on the show.", comment: "Maury: subtitle when the user has played through all bookmarked words")
+            }
         }
 
         // MARK: Phrasy Feud
@@ -830,6 +876,15 @@ nonisolated enum L10n {
             }
             static var tapToStart: String {
                 NSLocalizedString("aiCoach.phrasyFeud.tapToStart", value: "Tap to Start", comment: "Phrasy Feud: banner CTA shown before the user taps to flip the banner and start the timer")
+            }
+            static var submitAnswerMessage: String {
+                NSLocalizedString("aiCoach.phrasyFeud.submitAnswerMessage", value: "Submit your answer", comment: "Phrasy Feud: alert message when the buzzer is tapped — prompts the user to type their guess")
+            }
+            static var answerPlaceholder: String {
+                NSLocalizedString("aiCoach.phrasyFeud.answerPlaceholder", value: "Your answer\u{2026}", comment: "Phrasy Feud: alert text-field placeholder for the user's typed guess")
+            }
+            static var submit: String {
+                NSLocalizedString("aiCoach.phrasyFeud.submit", value: "Submit", comment: "Phrasy Feud: alert action — submit the typed guess for matching")
             }
         }
     }

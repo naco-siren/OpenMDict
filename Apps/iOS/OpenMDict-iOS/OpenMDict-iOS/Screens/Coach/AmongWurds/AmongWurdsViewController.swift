@@ -463,7 +463,7 @@ final class AmongWurdsViewController: UIViewController {
             ctaContainer.isHidden = true
         case .playing:
             ctaContainer.isHidden = false
-            ctaButton.setTitle("EJECT", for: .normal)
+            ctaButton.setTitle(L10n.AICoach.AmongWurds.ejectCTA, for: .normal)
             ctaButton.backgroundColor = selectedWord == nil
                 ? UIColor(white: 0.25, alpha: 1) : .systemRed
             ctaButton.isEnabled = selectedWord != nil
@@ -601,10 +601,10 @@ final class AmongWurdsViewController: UIViewController {
         killTimer?.invalidate()
 
         if wasImposter {
-            ejectLabel.text = "\"\(word)\"\nwas An Imposter!"
+            ejectLabel.text = L10n.AICoach.AmongWurds.ejectedImposter(word)
             ejectLabel.textColor = .systemRed
         } else {
-            ejectLabel.text = "\"\(word)\"\nwas not An Imposter..."
+            ejectLabel.text = L10n.AICoach.AmongWurds.ejectedCrewmate(word)
             ejectLabel.textColor = UIColor(white: 0.7, alpha: 1)
         }
 

@@ -504,7 +504,7 @@ final class FlashcardPOCViewController: UIViewController {
     }
 
     private func showEmptyState() {
-        headerLabel.text = "No cards"
+        headerLabel.text = L10n.AICoach.Flashcard.noCardsHeader
         wordLabel.text = "🎴"
         dictFootnote.text = ""
         setStatusText(L10n.AICoach.Flashcard.noCards)
@@ -517,7 +517,7 @@ final class FlashcardPOCViewController: UIViewController {
     }
 
     private func showAllDoneState() {
-        headerLabel.text = "Done"
+        headerLabel.text = L10n.done
         wordLabel.text = "✓"
         dictFootnote.text = ""
         setStatusText(L10n.AICoach.Flashcard.allDone(sources.count))

@@ -696,7 +696,8 @@ final class AICoachService {
     /// (which the user supplies via MDX) differs by region.
     private enum NativeLanguage {
         case english
-        case chinese
+        case chinese            // Simplified Chinese (zh-Hans, zh-CN, etc.)
+        case chineseTraditional // Traditional Chinese (zh-Hant, zh-TW, zh-HK, zh-MO)
         case japanese
         case korean
         case french
@@ -706,14 +707,15 @@ final class AICoachService {
 
         var debugName: String {
             switch self {
-            case .english:    return "English"
-            case .chinese:    return "Chinese (bilingual output)"
-            case .japanese:   return "Japanese (bilingual output)"
-            case .korean:     return "Korean (bilingual output)"
-            case .french:     return "French (bilingual output)"
-            case .german:     return "German (bilingual output)"
-            case .spanish:    return "Spanish (bilingual output)"
-            case .portuguese: return "Portuguese (bilingual output)"
+            case .english:            return "English"
+            case .chinese:            return "Chinese Simplified (bilingual output)"
+            case .chineseTraditional: return "Chinese Traditional (bilingual output)"
+            case .japanese:           return "Japanese (bilingual output)"
+            case .korean:             return "Korean (bilingual output)"
+            case .french:             return "French (bilingual output)"
+            case .german:             return "German (bilingual output)"
+            case .spanish:            return "Spanish (bilingual output)"
+            case .portuguese:         return "Portuguese (bilingual output)"
             }
         }
     }
@@ -744,9 +746,21 @@ final class AICoachService {
         guard let deviceLang = readDeviceLanguage() else {
             return templateFamily(for: .current)
         }
-        let prefix = String(deviceLang.prefix(2)).lowercased()
+        // Traditional-vs-Simplified Chinese disambiguation BEFORE the
+        // generic 2-letter prefix switch — BCP-47 tags like "zh-Hant-TW",
+        // "zh-Hant-HK", "zh-Hant" all start with "zh" but the user wants
+        // Traditional script output. We detect "hant" anywhere in the
+        // (lowercased) tag; the explicit "zh-TW"/"zh-HK"/"zh-MO" region-
+        // only tags also imply Traditional script and are caught here.
+        let lower = deviceLang.lowercased()
+        if lower.hasPrefix("zh") {
+            if lower.contains("hant") || lower.contains("-tw") || lower.contains("-hk") || lower.contains("-mo") {
+                return .chineseTraditional
+            }
+            return .chinese
+        }
+        let prefix = String(lower.prefix(2))
         switch prefix {
-        case "zh": return .chinese
         case "ja": return .japanese
         case "ko": return .korean
         case "fr": return .french
@@ -763,8 +777,18 @@ final class AICoachService {
     /// `detectModelLanguage()` instead.
     private static func templateFamily(for locale: Locale) -> NativeLanguage {
         let code = locale.language.languageCode?.identifier ?? "en"
+        if code == "zh" {
+            // `Locale.Language.script` returns the explicit BCP-47
+            // script tag if present. iOS sets `Hant` for any zh-Hant /
+            // zh-TW / zh-HK / zh-MO derived locale, and `Hans` (or
+            // nothing) otherwise. We default-to-Simplified if no script
+            // tag is present, matching what the Apple model expects.
+            if locale.language.script?.identifier == "Hant" {
+                return .chineseTraditional
+            }
+            return .chinese
+        }
         switch code {
-        case "zh": return .chinese
         case "ja": return .japanese
         case "ko": return .korean
         case "fr": return .french
@@ -775,10 +799,35 @@ final class AICoachService {
         }
     }
 
+    /// Suffix appended to every Chinese instruction template when the
+    /// user is `.chineseTraditional`. The base templates are written in
+    /// Simplified — the model can read either script — but without this
+    /// hint it defaults to outputting Simplified characters. Phrased
+    /// emphatically in Traditional Chinese itself so the model picks up
+    /// the cue from both content and form.
+    ///
+    /// (Why not maintain parallel `*ZH_Hant` templates? Authoring 32+
+    /// Traditional copies of every instruction template would be a major
+    /// task — duplicate translation pass × 7 feature methods × handful
+    /// of variants. The "script-hint suffix" pattern reuses every ZH
+    /// template losslessly: model fluency in both scripts means the
+    /// suffix-only fix produces correct Traditional output. If quality
+    /// issues surface, escalating to dedicated templates is mechanical.)
+    private static let traditionalChineseSuffix: String =
+        "\n\n注意：請以繁體中文（正體字）輸出所有內容，不要使用簡體字。"
+
+    /// Wrap a Simplified-Chinese instruction template so it works for
+    /// both `.chinese` and `.chineseTraditional` users — appends the
+    /// script-hint suffix only when the user is on Traditional.
+    private static func adaptChineseInstructions(_ base: String, for language: NativeLanguage) -> String {
+        language == .chineseTraditional ? base + traditionalChineseSuffix : base
+    }
+
     private static func systemInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return systemInstructionsEN
-        case .chinese:    return systemInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(systemInstructionsZH, for: native)
         case .japanese:   return systemInstructionsJA
         case .korean:     return systemInstructionsKO
         case .french:     return systemInstructionsFR
@@ -804,7 +853,11 @@ final class AICoachService {
                 Produce a learning flashcard for this word based on the \
                 definition above.
                 """
-        case .chinese:
+        case .chinese, .chineseTraditional:
+            // Prompt body stays Simplified; the per-language instruction
+            // template (adapted via `adaptChineseInstructions`) carries
+            // the Traditional-output script hint, so the model reads
+            // Simplified comfortably and writes Traditional on request.
             return """
                 单词：\(word)
 
@@ -879,7 +932,8 @@ final class AICoachService {
     private static func morphologyInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return morphologyInstructionsEN
-        case .chinese:    return morphologyInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(morphologyInstructionsZH, for: native)
         case .japanese:   return morphologyInstructionsJA
         case .korean:     return morphologyInstructionsKO
         case .french:     return morphologyInstructionsFR
@@ -900,7 +954,7 @@ final class AICoachService {
                 Generate exactly \(crewmateCount) same-root words and \
                 exactly \(imposterCount) false relatives.
                 """
-        case .chinese:
+        case .chinese, .chineseTraditional:
             return """
                 目标单词：\(targetWord)
                 请生成恰好 \(crewmateCount) 个同根词和 \
@@ -1313,7 +1367,8 @@ final class AICoachService {
     private static func candidateInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return candidateInstructionsEN
-        case .chinese:    return candidateInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(candidateInstructionsZH, for: native)
         case .japanese:   return candidateInstructionsJA
         case .korean:     return candidateInstructionsKO
         case .french:     return candidateInstructionsFR
@@ -1326,7 +1381,7 @@ final class AICoachService {
     private static func candidatePrompt(targetWord: String, native: NativeLanguage) -> String {
         switch native {
         case .english:    return "Target word: \(targetWord)"
-        case .chinese:    return "目标单词：\(targetWord)"
+        case .chinese, .chineseTraditional: return "目标单词：\(targetWord)"
         case .japanese:   return "目標単語：\(targetWord)"
         case .korean:     return "목표 단어: \(targetWord)"
         case .french:     return "Mot cible : \(targetWord)"
@@ -1751,7 +1806,8 @@ final class AICoachService {
     private static func phrasyFeudInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return phrasyFeudInstructionsEN
-        case .chinese:    return phrasyFeudInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(phrasyFeudInstructionsZH, for: native)
         case .japanese:   return phrasyFeudInstructionsJA
         case .korean:     return phrasyFeudInstructionsKO
         case .french:     return phrasyFeudInstructionsFR
@@ -1764,7 +1820,8 @@ final class AICoachService {
     private static func phrasyFeudFallbackInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return phrasyFeudFallbackInstructionsEN
-        case .chinese:    return phrasyFeudFallbackInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(phrasyFeudFallbackInstructionsZH, for: native)
         case .japanese:   return phrasyFeudFallbackInstructionsJA
         case .korean:     return phrasyFeudFallbackInstructionsKO
         case .french:     return phrasyFeudFallbackInstructionsFR
@@ -1777,7 +1834,8 @@ final class AICoachService {
     private static func phrasyFeudCritiqueInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return phrasyFeudCritiqueInstructionsEN
-        case .chinese:    return phrasyFeudCritiqueInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(phrasyFeudCritiqueInstructionsZH, for: native)
         case .japanese:   return phrasyFeudCritiqueInstructionsJA
         case .korean:     return phrasyFeudCritiqueInstructionsKO
         case .french:     return phrasyFeudCritiqueInstructionsFR
@@ -1790,7 +1848,8 @@ final class AICoachService {
     private static func phrasyFeudFitnessInstructions(for native: NativeLanguage) -> String {
         switch native {
         case .english:    return phrasyFeudFitnessInstructionsEN
-        case .chinese:    return phrasyFeudFitnessInstructionsZH
+        case .chinese, .chineseTraditional:
+            return adaptChineseInstructions(phrasyFeudFitnessInstructionsZH, for: native)
         case .japanese:   return phrasyFeudFitnessInstructionsJA
         case .korean:     return phrasyFeudFitnessInstructionsKO
         case .french:     return phrasyFeudFitnessInstructionsFR
@@ -1814,7 +1873,7 @@ final class AICoachService {
 
                 For EACH word, output a verdict (fits=true/false + reason).
                 """
-        case .chinese:
+        case .chinese, .chineseTraditional:
             return """
                 问题："\(question)"
 
@@ -1893,7 +1952,7 @@ final class AICoachService {
 
                 Verdict?
                 """
-        case .chinese:
+        case .chinese, .chineseTraditional:
             return """
                 待评审的问题："\(question)"
                 Category 标签："\(category)"
@@ -1962,7 +2021,7 @@ final class AICoachService {
 
                 Pick 2-6 words that share a property and write a Family Feud question for them.
                 """
-        case .chinese:
+        case .chinese, .chineseTraditional:
             return """
                 输入英文单词池：
                 \(pool)
@@ -2022,7 +2081,7 @@ final class AICoachService {
 
                 Write a single Family Feud question (in English) whose only valid answer is exactly this word.
                 """
-        case .chinese:
+        case .chinese, .chineseTraditional:
             return """
                 目标单词：\(word)
 

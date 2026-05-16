@@ -434,7 +434,7 @@ final class MorphemeMauryViewController: UIViewController {
         revealBuildupLabel.font = .systemFont(ofSize: 54, weight: .black)
         revealBuildupLabel.textColor = UIColor.white.withAlphaComponent(0.95)
         revealBuildupLabel.textAlignment = .center
-        revealBuildupLabel.text = "You\u{2026}"
+        revealBuildupLabel.text = L10n.AICoach.Maury.buildupPrompt
         revealOverlay.addSubview(revealBuildupLabel)
 
         revealVerdictLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -452,7 +452,7 @@ final class MorphemeMauryViewController: UIViewController {
         revealNextHint.font = .systemFont(ofSize: 13, weight: .medium)
         revealNextHint.textColor = UIColor.white.withAlphaComponent(0.6)
         revealNextHint.textAlignment = .center
-        revealNextHint.text = "Tap to continue"
+        revealNextHint.text = L10n.AICoach.Maury.continueHint
         revealOverlay.addSubview(revealNextHint)
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(revealTapped))
@@ -1078,7 +1078,7 @@ final class MorphemeMauryViewController: UIViewController {
         applyLoadingIcon(symbol: "theatermasks.fill",
                          palette: [UIColor.systemRed.withAlphaComponent(0.85),
                                    UIColor(white: 0.55, alpha: 1)])
-        loadingLabel.text = "The show can't go on"
+        loadingLabel.text = L10n.AICoach.Maury.failedTitle
         loadingLabel.textColor = UIColor.systemRed.withAlphaComponent(0.9)
         loadingSubLabel.text = message
         loadingSpinner.stopAnimating()
@@ -1093,9 +1093,9 @@ final class MorphemeMauryViewController: UIViewController {
         applyLoadingIcon(symbol: "theatermasks.fill",
                          palette: [.systemGreen,
                                    UIColor(red: 1.0, green: 0.80, blue: 0.20, alpha: 1)])
-        loadingLabel.text = "That's a wrap!"
+        loadingLabel.text = L10n.AICoach.Maury.allDoneTitle
         loadingLabel.textColor = UIColor.systemYellow
-        loadingSubLabel.text = "All bookmarked guests have been on the show."
+        loadingSubLabel.text = L10n.AICoach.Maury.allDoneMessage
         loadingSpinner.stopAnimating()
         loadingSpinner.isHidden = true
         loadingStack.isHidden = false

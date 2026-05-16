@@ -531,11 +531,11 @@ final class PhrasyFeudViewController: UIViewController {
     private func presentAnswerInput() {
         let alert = UIAlertController(
             title: nil,
-            message: "Submit your answer",
+            message: L10n.AICoach.PhrasyFeud.submitAnswerMessage,
             preferredStyle: .alert
         )
         alert.addTextField { tf in
-            tf.placeholder = "Your answer…"
+            tf.placeholder = L10n.AICoach.PhrasyFeud.answerPlaceholder
             tf.autocorrectionType = .no
             // `.none` (NOT `.allCharacters`) because matching is
             // case-insensitive anyway, and `.allCharacters` looked
@@ -544,8 +544,8 @@ final class PhrasyFeudViewController: UIViewController {
             tf.autocapitalizationType = .none
             tf.font = FeudPalette.answerFont(size: 17)
         }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Submit", style: .default) { [weak self, weak alert] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.AICoach.PhrasyFeud.submit, style: .default) { [weak self, weak alert] _ in
             self?.handleSubmit(alert?.textFields?.first?.text ?? "")
         })
         present(alert, animated: true)
