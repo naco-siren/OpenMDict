@@ -322,13 +322,13 @@ class MainSplitViewController: UISplitViewController {
             self?.wordListSearchDidActivate()
         }
         wordListVC.onSearchDeactivated = { [weak self] in
-            self?.searchBarDidDeactivate()
+            self?.wordListSearchDidDeactivate()
         }
         detailContainer.onSearchActivated = { [weak self] in
             self?.detailSearchDidActivate()
         }
         detailContainer.onSearchDeactivated = { [weak self] in
-            self?.searchBarDidDeactivate()
+            self?.detailSearchDidDeactivate()
         }
         // Same wiring for compact layout's VCs — without this, compact's
         // search bars never update `keyboardTarget`, leaving auto-focus and
@@ -337,13 +337,13 @@ class MainSplitViewController: UISplitViewController {
             self?.wordListSearchDidActivate()
         }
         compactTabBarController.lookupWordListVC.onSearchDeactivated = { [weak self] in
-            self?.searchBarDidDeactivate()
+            self?.wordListSearchDidDeactivate()
         }
         compactTabBarController.lookupDetailContainer.onSearchActivated = { [weak self] in
             self?.detailSearchDidActivate()
         }
         compactTabBarController.lookupDetailContainer.onSearchDeactivated = { [weak self] in
-            self?.searchBarDidDeactivate()
+            self?.detailSearchDidDeactivate()
         }
     }
     
@@ -1338,18 +1338,60 @@ class MainSplitViewController: UISplitViewController {
         }
     }
 
-    /// Any search bar dismissed — recalculate keyboardTarget from remaining state.
-    func searchBarDidDeactivate() {
-        if activeDetailContainer.isSearchActive {
-            keyboardTarget = .detailSearch
-        } else if activeWordListVC.isSearchBarActive {
+    /// WordList search bar dismissed.
+    ///
+    /// Intent-driven: we know it's wordList that just deactivated, so we don't
+    /// have to poll `UISearchController.isActive` (which flips asynchronously
+    /// and can't be trusted from this callback).  Only act if wordList was the
+    /// current target; otherwise the dismiss was a cascade triggered by detail
+    /// activating and the user is now intent on detail — don't disturb it.
+    func wordListSearchDidDeactivate() {
+        guard keyboardTarget == .wordList else { return }
+        // wordList WAS the target.  User dismissed it (Esc / Cancel button / tap
+        // outside).  Fall back to detail if it's active, otherwise to .none.
+        keyboardTarget = activeDetailContainer.isSearchActive ? .detailSearch : .none
+    }
+
+    /// Detail search bar dismissed.
+    ///
+    /// Two paths land here:
+    /// 1. **Cascade dismiss** triggered by `wordListSearchDidActivate` (user
+    ///    just pressed Cmd+L while detail was active).  `keyboardTarget` is
+    ///    already `.wordList`.  We must NOT change it — but the wordList
+    ///    search bar may not yet be first responder (becomeFirstResponder in
+    ///    `focusSearchBar` can no-op during in-flight present-modal), so
+    ///    schedule a refocus once the dismiss/present settle.
+    /// 2. **User dismiss** of detail (Esc / Cancel button).  `keyboardTarget`
+    ///    is still `.detailSearch`.  Recompute.
+    func detailSearchDidDeactivate() {
+        if keyboardTarget == .wordList {
+            // Cascade.  Ensure wordList ends up first responder so subsequent
+            // letters land in its search bar instead of bubbling to
+            // pressesBegan auto-focus (which would reset the text each time).
+            scheduleWordListRefocusIfNeeded()
+            return
+        }
+        guard keyboardTarget == .detailSearch else { return }
+        if activeWordListVC.isSearchBarActive {
             keyboardTarget = .wordList
-            // Re-focus if search bar lost first responder to the other search bar
-            if !activeWordListVC.isSearchBarFirstResponder {
-                activeWordListVC.refocusSearchBar()
-            }
+            scheduleWordListRefocusIfNeeded()
         } else {
             keyboardTarget = .none
+        }
+    }
+
+    /// Defer the focus check by a runloop tick so it runs after the in-flight
+    /// UISearchController present-modal animation has settled.  Calling
+    /// `becomeFirstResponder` synchronously during the animation can race with
+    /// UIKit's presentation pipeline and trigger "tried to present a view
+    /// controller that is already being presented" on iPadOS 17.
+    private func scheduleWordListRefocusIfNeeded() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.keyboardTarget == .wordList,
+                  self.activeWordListVC.isSearchBarActive,
+                  !self.activeWordListVC.isSearchBarFirstResponder else { return }
+            self.activeWordListVC.refocusSearchBar()
         }
     }
 
