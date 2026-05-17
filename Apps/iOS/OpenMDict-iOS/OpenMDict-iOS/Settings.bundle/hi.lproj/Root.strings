@@ -6,6 +6,7 @@
 "APPEARANCE_SYSTEM" = "सिस्टम";
 "APPEARANCE_DARK" = "डार्क";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "डार्क मोड में सुधार प्रदान करें";
+"APPEARANCE_REMEMBER_ZOOM_LEVEL" = "ज़ूम स्तर याद रखें";
 
 "LOOKUP_GROUP" = "शब्द खोज";
 "LOOKUP_DICTIONARY_LOAD_ORDER" = "शब्दकोश लोडिंग क्रम";

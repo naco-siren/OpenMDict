@@ -101,8 +101,13 @@ class ActionViewController: UIViewController {
     /// Suggestions table view (shown when no articles found but suggestions exist).
     private var suggestionsTableView: UITableView?
 
-    /// Zoom level for article text.
-    private var zoom = ZoomLevel()
+    /// Zoom level for article text.  Seeded from the persisted level when the
+    /// user has the Remember Zoom Level toggle on; otherwise starts at default.
+    ///
+    /// The Action Extension is a narrow single-pane sheet, so it shares the
+    /// `compact` persisted key with `CompactTabBarController.lookupDetailContainer`
+    /// — both contexts feel the same to the user.
+    private var zoom = ZoomLevel(UserDefaults.shared.initialZoomLevel(compact: true))
 
     /// Appearance mode (light/dark/auto) — reads from App Group shared defaults.
     private var appearanceMode: AppearanceMode = UserDefaults.shared.appearanceMode
@@ -484,22 +489,29 @@ class ActionViewController: UIViewController {
     private func zoomIn() {
         guard !pages.isEmpty else { return }
         zoom.zoomIn()
-        applyZoomToAllPages()
-        refreshZoomUI()
+        didChangeZoom()
     }
 
     private func zoomOut() {
         guard !pages.isEmpty else { return }
         zoom.zoomOut()
-        applyZoomToAllPages()
-        refreshZoomUI()
+        didChangeZoom()
     }
 
     private func resetZoom() {
         guard !pages.isEmpty else { return }
         zoom.reset()
+        didChangeZoom()
+    }
+
+    /// Shared post-change pipeline: apply to web views, refresh UI, and
+    /// persist for next session (last step no-ops when the user has the
+    /// Remember Zoom Level toggle off).  Uses the `compact` key to match
+    /// the seed in the instance initializer.
+    private func didChangeZoom() {
         applyZoomToAllPages()
         refreshZoomUI()
+        UserDefaults.shared.persistZoomLevelIfEnabled(zoom.current, compact: true)
     }
 
     private func refreshZoomUI() {
@@ -576,8 +588,7 @@ class ActionViewController: UIViewController {
         let newLevel = ZoomLevel.levels[index]
         guard newLevel != zoom.current else { return }
         zoom = ZoomLevel(newLevel)
-        applyZoomToAllPages()
-        refreshZoomUI()
+        didChangeZoom()
     }
 
     // MARK: - Loading UI

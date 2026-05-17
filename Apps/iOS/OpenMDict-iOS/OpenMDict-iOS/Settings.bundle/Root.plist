@@ -46,6 +46,16 @@
 		</dict>
 		<dict>
 			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>APPEARANCE_REMEMBER_ZOOM_LEVEL</string>
+			<key>Key</key>
+			<string>rememberZoomLevel</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
 			<string>LOOKUP_GROUP</string>

@@ -6,6 +6,7 @@
 "APPEARANCE_SYSTEM" = "System";
 "APPEARANCE_DARK" = "Dunkel";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Verbesserungen im dunklen Modus";
+"APPEARANCE_REMEMBER_ZOOM_LEVEL" = "Zoomstufe merken";
 
 "LOOKUP_GROUP" = "Nachschlagen";
 "LOOKUP_DICTIONARY_LOAD_ORDER" = "Ladereihenfolge der Wörterbücher";

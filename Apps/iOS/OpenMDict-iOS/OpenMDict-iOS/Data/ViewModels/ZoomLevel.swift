@@ -63,6 +63,71 @@ struct ZoomLevel {
     }
 }
 
+// MARK: - UserDefaults Extension
+
+extension UserDefaults {
+    private static let rememberZoomLevelKey = "rememberZoomLevel"
+    private static let persistedZoomLevelRegularKey = "persistedZoomLevelRegular"
+    private static let persistedZoomLevelCompactKey = "persistedZoomLevelCompact"
+
+    /// User preference: restore the last-used zoom level on app launch.
+    /// Persisted via Settings.bundle.  Defaults to `true` when absent (fresh
+    /// install before AppDelegate registers defaults).
+    var rememberZoomLevel: Bool {
+        get {
+            if object(forKey: Self.rememberZoomLevelKey) == nil { return true }
+            return bool(forKey: Self.rememberZoomLevelKey)
+        }
+        set { set(newValue, forKey: Self.rememberZoomLevelKey) }
+    }
+
+    /// Last zoom level set in the regular (multi-column) layout.
+    /// Two independent keys (regular + compact) preserve the existing runtime
+    /// invariant that the two DetailContainerVC instances have separate zoom
+    /// state — a single shared key would have one trait clobber the other on
+    /// every layout transition.
+    var persistedZoomLevelRegular: Int {
+        get {
+            let stored = integer(forKey: Self.persistedZoomLevelRegularKey)
+            return stored == 0 ? ZoomLevel.defaultLevel : stored
+        }
+        set { set(newValue, forKey: Self.persistedZoomLevelRegularKey) }
+    }
+
+    /// Last zoom level set in the compact (single-pane) layout — covers
+    /// `CompactTabBarController.lookupDetailContainer` and the Action
+    /// Extension, both of which present a narrow article view.
+    var persistedZoomLevelCompact: Int {
+        get {
+            let stored = integer(forKey: Self.persistedZoomLevelCompactKey)
+            return stored == 0 ? ZoomLevel.defaultLevel : stored
+        }
+        set { set(newValue, forKey: Self.persistedZoomLevelCompactKey) }
+    }
+
+    /// Zoom level to start a session with.  Returns the persisted value for
+    /// the matching trait when remember is on; otherwise the default.  Snaps
+    /// invalid stored values (e.g. removed from the discrete
+    /// `ZoomLevel.levels` ladder) back to the default.
+    func initialZoomLevel(compact: Bool) -> Int {
+        guard rememberZoomLevel else { return ZoomLevel.defaultLevel }
+        let stored = compact ? persistedZoomLevelCompact : persistedZoomLevelRegular
+        return ZoomLevel.levels.contains(stored) ? stored : ZoomLevel.defaultLevel
+    }
+
+    /// Write the current zoom level iff the user has the remember toggle on.
+    /// Callers can invoke this unconditionally after every zoom change; the
+    /// guard lives here so the call sites stay one-liner.
+    func persistZoomLevelIfEnabled(_ level: Int, compact: Bool) {
+        guard rememberZoomLevel else { return }
+        if compact {
+            persistedZoomLevelCompact = level
+        } else {
+            persistedZoomLevelRegular = level
+        }
+    }
+}
+
 // MARK: - UI Factory
 
 extension ZoomLevel {

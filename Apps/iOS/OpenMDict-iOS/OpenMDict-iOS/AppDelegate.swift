@@ -23,6 +23,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "dictionaryLoadOrder": 1,  // .auto (tiered lexicographic)
             "showLookupCount": true,
             "showEnhanceDarkMode": true,
+            "rememberZoomLevel": true,
             // M14 POC: off by default. User opts in via Settings.app; the
             // in-app entry point additionally checks iOS 26 + hardware support.
             "aiCoachEnabled": false,
@@ -34,6 +35,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         UserDefaults.shared.articlesCapacity = UserDefaults.standard.articlesCapacity
         UserDefaults.shared.showLookupCount = UserDefaults.standard.showLookupCount
         UserDefaults.shared.showEnhanceDarkMode = UserDefaults.standard.showEnhanceDarkMode
+        UserDefaults.shared.rememberZoomLevel = UserDefaults.standard.rememberZoomLevel
 
         // Merge appearance mode between standard (Settings.bundle) and shared (Extension).
         // Both may have changed while the app was killed:

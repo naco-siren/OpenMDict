@@ -6,6 +6,7 @@
 "APPEARANCE_SYSTEM" = "النظام";
 "APPEARANCE_DARK" = "داكن";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "تحسينات في المظهر الداكن";
+"APPEARANCE_REMEMBER_ZOOM_LEVEL" = "تذكر مستوى التكبير";
 
 "LOOKUP_GROUP" = "البحث عن الكلمات";
 "LOOKUP_DICTIONARY_LOAD_ORDER" = "ترتيب تحميل القواميس";

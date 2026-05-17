@@ -6,6 +6,7 @@
 "APPEARANCE_SYSTEM" = "Системна";
 "APPEARANCE_DARK" = "Темна";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Покращення у темному режимі";
+"APPEARANCE_REMEMBER_ZOOM_LEVEL" = "Запам'ятовувати масштаб";
 
 "LOOKUP_GROUP" = "Пошук слів";
 "LOOKUP_DICTIONARY_LOAD_ORDER" = "Порядок завантаження словників";

@@ -20,7 +20,17 @@ class DetailContainerViewController: UIViewController {
     private var currentCompactIndex: Int = 0
     private var layoutMode: ArticleLayoutMode = .columns
     private var appearanceMode: AppearanceMode = UserDefaults.standard.appearanceMode
-    private var zoom = ZoomLevel()
+    /// Seeded from the persisted level when the user has the Remember Zoom Level
+    /// toggle on (Settings.app → Appearance); otherwise starts at the default.
+    ///
+    /// Lazy because `isCompactLayoutInstance` is assigned by the owning
+    /// controller *after* `init()` returns (e.g. CompactTabBarController sets
+    /// it on its `lookupDetailContainer` immediately after construction).
+    /// Inline initialization would always read `false` and pull the regular
+    /// trait's persisted value into the compact instance.
+    private lazy var zoom = ZoomLevel(
+        UserDefaults.shared.initialZoomLevel(compact: isCompactLayoutInstance)
+    )
     /// Stored references for in-place zoom/slider updates (avoids rebuilding entire nav bar)
     private weak var zoomSlider: UISlider?
     private weak var zoomRepresentativeItem: UIBarButtonItem?
@@ -881,6 +891,13 @@ class DetailContainerViewController: UIViewController {
         if traitCollection.horizontalSizeClass != .regular {
             zoomRepresentativeItem?.title = L10n.Detail.currentLevel(zoom.displayString)
         }
+
+        // Persist for next session (no-op when the toggle is off).
+        // Regular and compact instances persist to separate keys so the
+        // runtime independence between them survives across launches.
+        UserDefaults.shared.persistZoomLevelIfEnabled(
+            zoom.current, compact: isCompactLayoutInstance
+        )
     }
 
     // MARK: - Zoom Slider

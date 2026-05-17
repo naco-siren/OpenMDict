@@ -6,6 +6,7 @@
 "APPEARANCE_SYSTEM" = "Sistema";
 "APPEARANCE_DARK" = "Escuro";
 "APPEARANCE_SHOW_ENHANCE_DARK_MODE" = "Aprimoramentos no modo escuro";
+"APPEARANCE_REMEMBER_ZOOM_LEVEL" = "Lembrar nível de zoom";
 
 "LOOKUP_GROUP" = "Consulta";
 "LOOKUP_DICTIONARY_LOAD_ORDER" = "Ordem de carregamento dos dicionários";
