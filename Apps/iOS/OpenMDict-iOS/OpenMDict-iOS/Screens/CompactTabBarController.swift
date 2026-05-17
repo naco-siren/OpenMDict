@@ -33,7 +33,13 @@ class CompactTabBarController: UITabBarController {
 
     /// Tab 0: Lookup — word search + article display
     let lookupWordListVC = WordListViewController()
-    let lookupDetailContainer = DetailContainerViewController()
+    let lookupDetailContainer: DetailContainerViewController = {
+        let vc = DetailContainerViewController()
+        // Tag so keyboard-shortcut canPerformAction can distinguish this
+        // instance from the regular split view's off-screen one.
+        vc.isCompactLayoutInstance = true
+        return vc
+    }()
     private(set) lazy var lookupNav: UINavigationController = {
         let nav = UINavigationController(rootViewController: lookupWordListVC)
         nav.tabBarItem = UITabBarItem(

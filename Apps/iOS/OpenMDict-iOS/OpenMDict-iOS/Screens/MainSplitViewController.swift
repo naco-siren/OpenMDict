@@ -62,6 +62,21 @@ class MainSplitViewController: UISplitViewController {
     private enum KeyboardTarget { case none, wordList, detailSearch }
     private var keyboardTarget: KeyboardTarget = .none
 
+    /// Detail container currently visible to the user.
+    /// In compact mode the regular `detailContainer` is off-screen — the visible
+    /// instance lives inside `compactTabBarController.lookupDetailContainer`.
+    /// Keyboard-shortcut handlers must operate on the visible one, otherwise
+    /// they fire on an off-screen VC (logs but no UI response).
+    private var activeDetailContainer: DetailContainerViewController {
+        isCollapsed ? compactTabBarController.lookupDetailContainer : detailContainer
+    }
+
+    /// Word list currently visible to the user (same compact/regular split as
+    /// `activeDetailContainer`).
+    private var activeWordListVC: WordListViewController {
+        isCollapsed ? compactTabBarController.lookupWordListVC : wordListVC
+    }
+
     /// Loading modal for long-running operations
     private weak var loadingVC: LoadingViewController?
 
@@ -168,6 +183,7 @@ class MainSplitViewController: UISplitViewController {
         let willBeCompact = newCollection.horizontalSizeClass == .compact
 
         if wasRegular && willBeCompact && activeLayout == .regular {
+            resetKeyboardStateForLayoutTransition()
             transferStateToCompact()
             activeLayout = .compact
             // Keep articles visible — the user was viewing them in regular mode
@@ -179,10 +195,24 @@ class MainSplitViewController: UISplitViewController {
         let willBeRegular = newCollection.horizontalSizeClass == .regular
 
         if wasCompact && willBeRegular && activeLayout == .compact {
+            resetKeyboardStateForLayoutTransition()
             transferStateFromCompact()
             activeLayout = .regular
             debugLog("📱 willTransition: compact → regular, transferred state from compact tab bar")
         }
+    }
+
+    /// Reset keyboard/responder state on layout transition.
+    ///
+    /// Without this, a search bar that was active in the outgoing layout leaves
+    /// `keyboardTarget` stuck on `.wordList` / `.detailSearch` (the dismiss
+    /// callback doesn't always fire when UIKit yanks the view away), and the
+    /// stale first responder can also break UIPress dispatch — both of which
+    /// kill the pressesBegan auto-focus until the user manually re-focuses
+    /// (e.g. Cmd+L).
+    private func resetKeyboardStateForLayoutTransition() {
+        view.window?.endEditing(true)
+        keyboardTarget = .none
     }
     
     // MARK: - Setup
@@ -287,7 +317,7 @@ class MainSplitViewController: UISplitViewController {
             self?.focusSearchAndLookup(word: word)
         }
 
-        // Keyboard target routing callbacks
+        // Keyboard target routing callbacks (regular layout's VCs)
         wordListVC.onSearchActivated = { [weak self] in
             self?.wordListSearchDidActivate()
         }
@@ -298,6 +328,21 @@ class MainSplitViewController: UISplitViewController {
             self?.detailSearchDidActivate()
         }
         detailContainer.onSearchDeactivated = { [weak self] in
+            self?.searchBarDidDeactivate()
+        }
+        // Same wiring for compact layout's VCs — without this, compact's
+        // search bars never update `keyboardTarget`, leaving auto-focus and
+        // dismiss shortcuts stuck on a stale state.
+        compactTabBarController.lookupWordListVC.onSearchActivated = { [weak self] in
+            self?.wordListSearchDidActivate()
+        }
+        compactTabBarController.lookupWordListVC.onSearchDeactivated = { [weak self] in
+            self?.searchBarDidDeactivate()
+        }
+        compactTabBarController.lookupDetailContainer.onSearchActivated = { [weak self] in
+            self?.detailSearchDidActivate()
+        }
+        compactTabBarController.lookupDetailContainer.onSearchDeactivated = { [weak self] in
             self?.searchBarDidDeactivate()
         }
     }
@@ -1042,6 +1087,13 @@ class MainSplitViewController: UISplitViewController {
 
     @objc func focusLookupShortcut() {
         exitToLookupModeIfNeeded()
+        if isCollapsed {
+            // Compact mode: switch to Lookup tab and pop to word list.
+            compactTabBarController.selectedIndex = 0
+            compactTabBarController.lookupNav.popToRootViewController(animated: false)
+            compactTabBarController.lookupWordListVC.focusSearchBar()
+            return
+        }
         if currentColumnTarget != .lookup {
             configureColumns(for: .lookup)
         }
@@ -1086,30 +1138,52 @@ class MainSplitViewController: UISplitViewController {
 
     // MARK: View Category
 
-    @objc func switchToColumnsLayout() { detailContainer.switchLayout(to: .columns) }
-    @objc func switchToGridLayout() { detailContainer.switchLayout(to: .grid) }
-    @objc func switchToListLayout() { detailContainer.switchLayout(to: .list) }
+    // Layout switching (Columns/Grid/List) only applies in regular mode — compact
+    // always shows a single-article pager.  canPerformAction disables these in
+    // compact, but guard the handlers too in case they're invoked directly.
+    @objc func switchToColumnsLayout() {
+        guard !isCollapsed else { return }
+        detailContainer.switchLayout(to: .columns)
+    }
+    @objc func switchToGridLayout() {
+        guard !isCollapsed else { return }
+        detailContainer.switchLayout(to: .grid)
+    }
+    @objc func switchToListLayout() {
+        guard !isCollapsed else { return }
+        detailContainer.switchLayout(to: .list)
+    }
 
-    @objc func zoomInShortcut() { detailContainer.zoomIn() }
-    @objc func zoomOutShortcut() { detailContainer.zoomOut() }
-    @objc func actualSizeShortcut() { detailContainer.resetZoom() }
+    @objc func zoomInShortcut() { activeDetailContainer.zoomIn() }
+    @objc func zoomOutShortcut() { activeDetailContainer.zoomOut() }
+    @objc func actualSizeShortcut() { activeDetailContainer.resetZoom() }
 
-    @objc func toggleAppearanceShortcut() { detailContainer.toggleAppearance() }
+    @objc func toggleAppearanceShortcut() { activeDetailContainer.toggleAppearance() }
 
     // MARK: Bookmarks & History Category
 
     @objc func showBookmarksShortcut() {
-        showBookmarksList()
+        if isCollapsed {
+            compactTabBarController.selectedIndex = 1
+            compactTabBarController.bookmarkListVC.reload()
+        } else {
+            showBookmarksList()
+        }
     }
 
     @objc func showHistoryShortcut() {
-        showLookupHistoryList()
+        if isCollapsed {
+            compactTabBarController.selectedIndex = 2
+            compactTabBarController.historyListVC.reload()
+        } else {
+            showLookupHistoryList()
+        }
     }
 
     // MARK: Window Category
 
     @objc func closeArticleShortcut() {
-        let articles = detailContainer.allArticles
+        let articles = activeDetailContainer.allArticles
         guard !articles.isEmpty else {
             // No articles — in multi-window scenario, close the window
             if UIApplication.shared.openSessions.count > 1,
@@ -1120,7 +1194,7 @@ class MainSplitViewController: UISplitViewController {
             }
             return
         }
-        detailContainer.closeArticle(articles[0])  // Close most recent (index 0)
+        activeDetailContainer.closeArticle(articles[0])  // Close most recent (index 0)
     }
 
     @objc func newWindowShortcut() {
@@ -1133,10 +1207,10 @@ class MainSplitViewController: UISplitViewController {
         // Dismiss whichever search bar is the current keyboard target
         switch keyboardTarget {
         case .wordList:
-            wordListVC.dismissSearchBar()
+            activeWordListVC.dismissSearchBar()
             return
         case .detailSearch:
-            detailContainer.dismissSearch()
+            activeDetailContainer.dismissSearch()
             return
         case .none:
             break
@@ -1198,6 +1272,23 @@ class MainSplitViewController: UISplitViewController {
     // MARK: canPerformAction
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // Suppress all of our shortcuts while a modal owns the screen (AI coach,
+        // settings sheet, etc.) so background actions don't fire and steal focus
+        // from the modal's text input.
+        if presentedViewController != nil {
+            return false
+        }
+
+        // Layout switching only applies in regular mode — compact uses a pager.
+        let layoutSelectors: [Selector] = [
+            #selector(switchToColumnsLayout),
+            #selector(switchToGridLayout),
+            #selector(switchToListLayout),
+        ]
+        if layoutSelectors.contains(action) {
+            return !isCollapsed
+        }
+
         // ⌥⌘`: Select "All Dictionaries" — always available
         if action == #selector(selectAllDictionaries) {
             return true
@@ -1232,8 +1323,8 @@ class MainSplitViewController: UISplitViewController {
     /// Rule 2.1: lookup > find-in-page — always dismiss Detail search.
     func wordListSearchDidActivate() {
         keyboardTarget = .wordList
-        if detailContainer.isSearchActive {
-            detailContainer.dismissSearch()
+        if activeDetailContainer.isSearchActive {
+            activeDetailContainer.dismissSearch()
         }
     }
 
@@ -1242,20 +1333,20 @@ class MainSplitViewController: UISplitViewController {
     /// if it has text, keep it (user may return to modify query).
     func detailSearchDidActivate() {
         keyboardTarget = .detailSearch
-        if wordListVC.isSearchBarActive && !wordListVC.hasSearchText {
-            wordListVC.dismissSearchBar()
+        if activeWordListVC.isSearchBarActive && !activeWordListVC.hasSearchText {
+            activeWordListVC.dismissSearchBar()
         }
     }
 
     /// Any search bar dismissed — recalculate keyboardTarget from remaining state.
     func searchBarDidDeactivate() {
-        if detailContainer.isSearchActive {
+        if activeDetailContainer.isSearchActive {
             keyboardTarget = .detailSearch
-        } else if wordListVC.isSearchBarActive {
+        } else if activeWordListVC.isSearchBarActive {
             keyboardTarget = .wordList
             // Re-focus if search bar lost first responder to the other search bar
-            if !wordListVC.isSearchBarFirstResponder {
-                wordListVC.refocusSearchBar()
+            if !activeWordListVC.isSearchBarFirstResponder {
+                activeWordListVC.refocusSearchBar()
             }
         } else {
             keyboardTarget = .none
@@ -1265,12 +1356,34 @@ class MainSplitViewController: UISplitViewController {
     // MARK: Auto-focus Search on Typing
 
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        // Suppress auto-focus while a modal owns the screen — otherwise a letter
+        // typed into the AI coach (or any presented sheet) gets stolen by the
+        // background word list search bar.
+        guard presentedViewController == nil else {
+            super.pressesBegan(presses, with: event)
+            return
+        }
         guard currentMode == .lookup,
-              currentColumnTarget == .lookup,
               keyboardTarget == .none,
               let key = presses.first?.key else {
             super.pressesBegan(presses, with: event)
             return
+        }
+        // Context guard — different in compact vs regular layout.
+        if isCollapsed {
+            // Compact: only intercept when Lookup tab is selected AND word list
+            // is the top VC on its nav stack.  Otherwise letters could land while
+            // the user is on Bookmarks/History/Management or inside an article.
+            guard compactTabBarController.selectedIndex == 0,
+                  compactTabBarController.lookupNav.topViewController === compactTabBarController.lookupWordListVC else {
+                super.pressesBegan(presses, with: event)
+                return
+            }
+        } else {
+            guard currentColumnTarget == .lookup else {
+                super.pressesBegan(presses, with: event)
+                return
+            }
         }
         // Only intercept letter keys without command/control/option modifiers
         let forbidden: UIKeyModifierFlags = [.command, .control, .alternate]
@@ -1281,12 +1394,16 @@ class MainSplitViewController: UISplitViewController {
             return
         }
         // Focus search bar and forward the first typed character
-        exitToLookupModeIfNeeded()
-        if currentColumnTarget != .lookup {
-            configureColumns(for: .lookup)
+        if isCollapsed {
+            compactTabBarController.lookupWordListVC.focusSearchBar(withInitialText: String(char))
+        } else {
+            exitToLookupModeIfNeeded()
+            if currentColumnTarget != .lookup {
+                configureColumns(for: .lookup)
+            }
+            show(.supplementary)
+            wordListVC.focusSearchBar(withInitialText: String(char))
         }
-        show(.supplementary)
-        wordListVC.focusSearchBar(withInitialText: String(char))
     }
 
     // MARK: - State Restoration

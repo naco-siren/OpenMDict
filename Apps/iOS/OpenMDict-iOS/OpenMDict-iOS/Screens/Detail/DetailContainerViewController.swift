@@ -47,6 +47,13 @@ class DetailContainerViewController: UIViewController {
     var onSearchActivated: (() -> Void)?
     var onSearchDeactivated: (() -> Void)?
 
+    /// True if this instance belongs to the compact (tab bar) layout path.
+    /// Set by `CompactTabBarController` on its `lookupDetailContainer`.
+    /// The regular split view's secondary column keeps the default (`false`).
+    /// Used to gate `canPerformAction` so only the instance matching the current
+    /// layout (regular ↔ compact) claims keyboard shortcuts.
+    var isCompactLayoutInstance: Bool = false
+
     /// True while a `willTransition(to:with:)` animation is in-flight.
     /// Prevents `ensureCorrectChild()` in `viewDidLayoutSubviews` from
     /// fighting with the transition (self.traitCollection is still the OLD
@@ -1022,6 +1029,15 @@ class DetailContainerViewController: UIViewController {
     // MARK: - canPerformAction
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // Two DetailContainerVC instances exist per scene — the regular split
+        // view's secondary column AND CompactTabBarController's
+        // `lookupDetailContainer`.  Only the one matching the current layout
+        // should claim shortcuts; otherwise the off-screen sibling intercepts
+        // (Xcode logs show the handler fired but the user sees no UI response).
+        let collapsed = splitViewController?.isCollapsed ?? false
+        if isCompactLayoutInstance != collapsed {
+            return false
+        }
         // ⌘F: Find — iOS 16+, both regular and compact
         if action == #selector(handleFindShortcut) {
             if #available(iOS 16.0, *) {
