@@ -111,10 +111,21 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
             }
         }
 
-        guard let data = resourceData else {
+        guard var data = resourceData else {
             print("🌐 scheme[\(dictId)] MISS all tiers: '\(filename)'")
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
             return
+        }
+
+        // For CSS, rewrite any `url(file://...)` font / image references
+        // inside the file (e.g. `@font-face` directives) so they
+        // route through this same mdict:// scheme handler.  See the main
+        // app's MDictSchemeHandler for the matching write of this rewrite.
+        if fileExtension == "css", let cssText = String(data: data, encoding: .utf8) {
+            let rewritten = HTMLResourceRewriter.rewriteResourcePathsInCSS(cssText, dictId: dictId)
+            if let rewrittenData = rewritten.data(using: .utf8) {
+                data = rewrittenData
+            }
         }
 
         // Determine MIME type

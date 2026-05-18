@@ -118,15 +118,27 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
             }
         }
         
-        guard let data = resourceData else {
+        guard var data = resourceData else {
             print("⚠️ MDictSchemeHandler: Resource not found: \(resourcePath) in \(dictId)")
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
-        
+
+        // For CSS, rewrite any `url(file://...)` font / image references inside
+        // the file so they go through the same mdict:// scheme handler.  HTML
+        // rewriting at load time only fixes `<link href="file://...">`; the
+        // font URLs nested inside an MDX dict's CSS (e.g. `@font-face`)
+        // need this second pass or they silently 404 against the mdict origin.
+        if fileExtension == "css", let cssText = String(data: data, encoding: .utf8) {
+            let rewritten = HTMLResourceRewriter.rewriteResourcePathsInCSS(cssText, dictId: dictId)
+            if let rewrittenData = rewritten.data(using: .utf8) {
+                data = rewrittenData
+            }
+        }
+
         // Determine MIME type
         let mimeType = Self.mimeType(for: resourcePath)
-        
+
         // Create response
         let response = URLResponse(
             url: url,
@@ -134,7 +146,7 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
             expectedContentLength: data.count,
             textEncodingName: mimeType.hasPrefix("text/") ? "utf-8" : nil
         )
-        
+
         urlSchemeTask.didReceive(response)
         urlSchemeTask.didReceive(data)
         urlSchemeTask.didFinish()

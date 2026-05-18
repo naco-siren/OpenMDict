@@ -53,8 +53,18 @@ nonisolated enum HTMLResourceRewriter {
                     continue
                 }
 
+                // Some MDX dicts write resource refs as
+                // `file://\filename.css` — Windows-style absolute path with
+                // the `file://` scheme.  WKWebView refuses to load `file://`
+                // from an `mdict://` origin, AND treating it as a literal
+                // relative path produces gibberish like `mdict://<id>/file://...`.
+                // Normalize to a forward-slash relative path so the rewrite
+                // below produces a real mdict:// URL the scheme handler can
+                // resolve.
+                let normalizedPath = normalizeResourcePath(path)
+
                 // Construct mdict:// URL (percent-encode path for valid URL)
-                let cleanPath = path.hasPrefix("/") ? path : "/\(path)"
+                let cleanPath = normalizedPath.hasPrefix("/") ? normalizedPath : "/\(normalizedPath)"
                 let encodedPath = cleanPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleanPath
                 let mdictURL = "mdict://\(dictId)\(encodedPath)"
 
@@ -70,6 +80,48 @@ nonisolated enum HTMLResourceRewriter {
         return result
     }
 
+    /// Rewrite resource paths inside a CSS file's text content to use the
+    /// mdict:// scheme.  Only matches the `url(...)` pattern — `src=` and
+    /// `<a>/<link>` are HTML-specific and don't appear in CSS.
+    ///
+    /// Needed because some dicts ship `@font-face { src: url("file://\X.ttf") }`
+    /// inside their CSS.  Without this rewrite, even though the CSS itself
+    /// loads via mdict://, the fonts referenced from it still fail with the
+    /// same `file://`-vs-`mdict://` origin mismatch as the HTML stylesheet
+    /// links did before HTML rewriting was added.
+    static func rewriteResourcePathsInCSS(_ css: String, dictId: String) -> String {
+        var result = css
+        let pattern = #"(url\s*\(\s*'?)([^')]+)('?\s*\))"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return result
+        }
+
+        let range = NSRange(result.startIndex..., in: result)
+        let matches = regex.matches(in: result, range: range).reversed()
+
+        for match in matches {
+            guard let fullRange = Range(match.range, in: result),
+                  let pathRange = Range(match.range(at: 2), in: result) else {
+                continue
+            }
+            let path = String(result[pathRange])
+            if skippedPrefixes.contains(where: { path.hasPrefix($0) }) {
+                continue
+            }
+
+            let normalizedPath = normalizeResourcePath(path)
+            let cleanPath = normalizedPath.hasPrefix("/") ? normalizedPath : "/\(normalizedPath)"
+            let encodedPath = cleanPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleanPath
+            let mdictURL = "mdict://\(dictId)\(encodedPath)"
+
+            let prefix = String(result[Range(match.range(at: 1), in: result)!])
+            let suffix = String(result[Range(match.range(at: 3), in: result)!])
+            result.replaceSubrange(fullRange, with: "\(prefix)\(mdictURL)\(suffix)")
+        }
+
+        return result
+    }
+
     // MARK: - Resource Path Extraction
 
     /// Schemes and prefixes to skip (same list as rewriteResourcePaths)
@@ -77,6 +129,16 @@ nonisolated enum HTMLResourceRewriter {
         "http://", "https://", "mdict://", "data:",
         "#", "entry://", "sound://", "javascript:"
     ]
+
+    /// MDX-specific path normalization.  Strips `file://` (used by some dicts
+    /// with Windows backslashes as if it were a relative path) and
+    /// flips backslashes to forward slashes so downstream callers get a
+    /// uniform forward-slash relative path.  Other inputs are returned as-is.
+    private static func normalizeResourcePath(_ path: String) -> String {
+        guard path.lowercased().hasPrefix("file://") else { return path }
+        let stripped = String(path.dropFirst("file://".count))
+        return stripped.replacingOccurrences(of: "\\", with: "/")
+    }
 
     /// Extract all relative resource paths referenced in HTML.
     /// Inverse of `rewriteResourcePaths`: uses the same regex patterns and skip list,
@@ -112,7 +174,11 @@ nonisolated enum HTMLResourceRewriter {
                     continue
                 }
 
-                paths.insert(path)
+                // Normalize file://-prefixed Windows-style paths so callers
+                // (e.g. Action Extension MDD preloader) match the same key
+                // the rewriter produces.  See `rewriteResourcePaths` for the
+                // `file://` example.
+                paths.insert(normalizeResourcePath(path))
             }
         }
 
