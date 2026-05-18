@@ -296,6 +296,30 @@ swift run openmdict dict.mdx header
 swift run openmdict dict.mdx debug hello
 ```
 
+#### Output formats (`--format` / `-f`)
+
+The default `pretty` output is colored, truncated, and decorated for human
+reading — fine to skim, awful to script against.  Two pipe-friendly modes
+suppress the banner / dictionary-info block so stdout contains only the
+requested payload:
+
+```bash
+# Plain untruncated HTML straight to stdout — pipe to grep, save to file.
+# Not-found → stderr "Not found: <word>" + exit 1.
+swift run openmdict dict.mdx lookup hello --format=raw > hello.html
+
+# Single JSON document — includes parsed cross-references (#fragment broken
+# out as a separate field), audio / image / weblink classifications, the
+# dict's header SHA256 (same identifier the iOS app uses as dictId),
+# and prev / next navigation.  Not-found → exit 0 with `{"found": false,
+# "suggestions": [...]}` so consumers can branch on the JSON shape.
+swift run openmdict dict.mdx lookup hello --format=json | jq '.links[]'
+
+# Example: surface every cross-reference that uses an in-page anchor
+swift run openmdict dict.mdx lookup hello --format=json \
+    | jq -r '.links[] | select(.type == "entry" and .fragment != null) | .raw'
+```
+
 Set `OPENMDICT_SIDECAR_DIR` to enable the sidecar fast-path for normal
 commands (useful for benchmarking warm vs cold init on the same dict):
 
