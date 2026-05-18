@@ -1128,9 +1128,13 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
             let article = articles.remove(at: existingIndex)
             articles.insert(article, at: 0)
         } else {
-            // Create new article - try to load content if dictionary is ready
+            // Create new article - try to load content if dictionary is ready.
+            // Use preferredTitle (userDisplayName → extractedTitle → metadata.title
+            // → originalFileName → id) so dicts without an MDX header title
+            // (e.g. some imported dictionaries) still get a human-readable name in the article header
+            // instead of the SHA256 dictId.
             let dict = DictionaryService.shared.dict(id: dictId)
-            let dictName = dict?.metadata?.title ?? dictId
+            let dictName = dict?.preferredTitle ?? dictId
 
             var article = ArticleDisplayItem.pending(word: word, dictId: dictId, dictName: dictName)
             if let dict = dict, let entry = dict.lookup(word) {

@@ -142,24 +142,28 @@ extension ArticleDisplayItem {
 
 extension ArticleDisplayItem {
     
-    /// Create from MDictLookupResult
+    /// Create from MDictLookupResult.
+    /// Uses `preferredTitle` (userDisplayName → extractedTitle → metadata.title
+    /// → originalFileName → id) so dicts without an MDX header title still
+    /// get a human-readable name in the article header.
     @MainActor
     init(from result: MDictLookupResult) {
         self.init(
             word: result.entry.key,
             dictId: result.dict.id,
-            dictName: result.dict.metadata?.title ?? result.dict.id,
+            dictName: result.dict.preferredTitle,
             contentState: .loaded(html: result.entry.article.html, css: nil)
         )
     }
-    
-    /// Create from MDict and entry
+
+    /// Create from MDict and entry.
+    /// Uses `preferredTitle` for the same reason as `init(from: MDictLookupResult)`.
     @MainActor
     init(from entry: MDictWordEntry, dict: MDict, css: String? = nil) {
         self.init(
             word: entry.key,
             dictId: dict.id,
-            dictName: dict.metadata?.title ?? dict.id,
+            dictName: dict.preferredTitle,
             contentState: .loaded(html: entry.article.html, css: css)
         )
     }
