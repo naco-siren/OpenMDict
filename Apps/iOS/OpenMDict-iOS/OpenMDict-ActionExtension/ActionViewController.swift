@@ -1125,8 +1125,14 @@ class ActionViewController: UIViewController {
             self.handleBookmarkTapped(isCurrentlyBookmarked: isCurrentlyBookmarked, pageView: pageView)
         }
 
-        pageView.onEntryLinkTapped = { [weak self, weak pageView] word in
+        pageView.onEntryLinkTapped = { [weak self, weak pageView] word, _ in
             guard let self, let pageView else { return }
+            // Fragment is dropped at this boundary — the Action Extension
+            // can't navigate articles in-place; tapping a cross-ref just
+            // prompts the user to open the main app, where in-app cross-ref
+            // navigation handles fragments end-to-end.  If we ever wire the
+            // extension to deep-link into the main app with the cross-ref
+            // target, we should preserve the fragment in that URL.
             self.confirmOpenInApp(word: word, from: pageView)
         }
 

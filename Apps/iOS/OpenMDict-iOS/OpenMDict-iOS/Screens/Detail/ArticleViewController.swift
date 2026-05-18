@@ -15,7 +15,10 @@ import WebKit
 // MARK: - Delegate
 
 protocol ArticleViewControllerDelegate: AnyObject {
-    func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String)
+    /// `fragment` is the `#anchor` part of an `entry://word#anchor` cross-reference
+    /// (nil when the URL had no fragment).  The handler is expected to scroll the
+    /// target article to that DOM id after it loads.
+    func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, fragment: String?, inDict dictId: String)
     func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String)
     func articleViewController(_ vc: ArticleViewController, didChangePage index: Int)
     func articleViewController(_ vc: ArticleViewController, didCloseArticle article: ArticleDisplayItem)
@@ -270,6 +273,15 @@ class ArticleViewController: UIViewController {
         delegate?.articleViewController(self, didChangePage: page)
     }
 
+    /// Scroll the page at index 0 (the most recently navigated-to article) to
+    /// an in-page anchor.  Used by cross-reference click handling so the user
+    /// lands at the matching `id` inside the target article.  No-op when
+    /// `anchor` is nil or the page isn't built yet.
+    func scrollFirstPage(toAnchor anchor: String?) {
+        guard let anchor, !anchor.isEmpty, let first = pages.first else { return }
+        first.scrollToAnchor(anchor)
+    }
+
     // MARK: - Page Management
 
     private func rebuildPages() {
@@ -339,13 +351,13 @@ class ArticleViewController: UIViewController {
         pageView.onBookmarkTapped = { [weak self] isCurrentlyBookmarked in
             self?.handleBookmarkTapped(isCurrentlyBookmarked: isCurrentlyBookmarked)
         }
-        pageView.onEntryLinkTapped = { [weak self] word in
+        pageView.onEntryLinkTapped = { [weak self] word, fragment in
             guard let self else { return }
             // Determine which page this belongs to
             if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
                pageIndex < self.articles.count {
                 let dictId = self.articles[pageIndex].dictId
-                self.delegate?.articleViewController(self, didTapEntryLink: word, inDict: dictId)
+                self.delegate?.articleViewController(self, didTapEntryLink: word, fragment: fragment, inDict: dictId)
             }
         }
         pageView.onSoundLinkTapped = { [weak self] url in

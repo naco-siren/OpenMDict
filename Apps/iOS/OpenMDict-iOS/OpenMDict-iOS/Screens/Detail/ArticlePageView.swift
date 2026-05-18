@@ -69,7 +69,10 @@ class ArticlePageView: UIView {
     // MARK: - Callbacks
 
     /// Always available — dispatched from WKNavigationDelegate.
-    var onEntryLinkTapped: ((_ word: String) -> Void)?
+    /// `fragment` carries the `#anchor` part of `entry://word#anchor` so the
+    /// caller can scroll the target article into view at that DOM id after it
+    /// loads.  nil when the URL has no fragment.
+    var onEntryLinkTapped: ((_ word: String, _ fragment: String?) -> Void)?
     var onSoundLinkTapped: ((_ url: URL) -> Void)?
 
     /// Feature-gated callbacks (only meaningful when the corresponding feature is enabled).
@@ -89,6 +92,23 @@ class ArticlePageView: UIView {
     /// Keyword to highlight after WebView finishes loading.
     /// Set by highlightKeyword(); applied in webView(_:didFinish:).
     private var pendingHighlightKeyword: String?
+
+    /// In-page anchor id (from `entry://word#anchor` cross-references) to
+    /// scroll into view after the WebView finishes loading.  Set by
+    /// `scrollToAnchor(_:)` when the page is mid-load; consumed in
+    /// `webView(_:didFinish:)`.
+    private var pendingScrollAnchorId: String?
+
+    /// Most recently applied anchor id.  Dedupes repeat `scrollToAnchor`
+    /// calls (cell recycling, configure() churn) so the user doesn't see
+    /// the page jump-scroll on every re-render.
+    private var lastAppliedAnchorId: String?
+
+    /// True once `webView(_:didFinish:)` has fired for the current load.
+    /// Reset to `false` in `loadHTMLContent(_:baseURL:)` and `prepareForReuse()`.
+    /// Drives whether `scrollToAnchor(_:)` can apply immediately vs. has to
+    /// stash a pending value for didFinish to consume.
+    private var didFinishLoading = false
 
     // MARK: - Find Highlight (pure DOM, outside CSS filter)
     //
@@ -358,6 +378,9 @@ class ArticlePageView: UIView {
         isGridLayout = false
         currentDictId = ""
         pendingHighlightKeyword = nil
+        pendingScrollAnchorId = nil
+        lastAppliedAnchorId = nil
+        didFinishLoading = false
         clearFindHighlights()
         updateBookmarkAppearance()
         updateEnhanceDarkModeButtonAppearance()
@@ -524,7 +547,45 @@ class ArticlePageView: UIView {
     // MARK: - Public: Content
 
     func loadHTMLContent(_ html: String, baseURL: URL? = nil) {
+        didFinishLoading = false  // didFinish will set true after this load completes
         webView.loadHTMLString(html, baseURL: baseURL)
+    }
+
+    /// Scroll to an in-page anchor id (set from an `entry://word#anchor`
+    /// cross-reference).  Handles both navigation phases transparently:
+    ///   - WebView already finished loading → applies JS immediately.
+    ///   - WebView still loading → stashes; `didFinish` consumes.
+    /// Passing nil clears any pending scroll without affecting the current
+    /// scroll position.  Idempotent: re-calling with the same id is a no-op
+    /// (avoids re-scroll on cell recycle).
+    func scrollToAnchor(_ anchorId: String?) {
+        guard let anchorId, !anchorId.isEmpty else {
+            pendingScrollAnchorId = nil
+            return
+        }
+        guard anchorId != lastAppliedAnchorId else { return }
+
+        if didFinishLoading {
+            applyScrollAnchorJS(anchorId)
+            lastAppliedAnchorId = anchorId
+        } else {
+            pendingScrollAnchorId = anchorId
+        }
+    }
+
+    /// JSONEncoder gives us a safely-escaped JS string literal — anchor ids
+    /// from MDX articles can contain `#`, dots, quotes, slashes, etc., so
+    /// we never want to hand-roll string concatenation here.
+    private func applyScrollAnchorJS(_ anchorId: String) {
+        guard let data = try? JSONEncoder().encode(anchorId),
+              let jsArg = String(data: data, encoding: .utf8) else { return }
+        let js = """
+        (function(id) {
+          var el = document.getElementById(id);
+          if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+        })(\(jsArg));
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     func showPendingOverlay(word: String, dictName: String) {
@@ -751,8 +812,11 @@ extension ArticlePageView: WKNavigationDelegate {
         switch scheme {
         case "entry":
             let targetWord = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            // url.fragment is already percent-decoded.  Pass nil for empty
+            // strings so consumers can guard on a single `nil` check.
+            let fragment = url.fragment.flatMap { $0.isEmpty ? nil : $0 }
             if !targetWord.isEmpty {
-                onEntryLinkTapped?(targetWord)
+                onEntryLinkTapped?(targetWord, fragment)
             }
             decisionHandler(.cancel)
 
@@ -773,6 +837,8 @@ extension ArticlePageView: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        didFinishLoading = true
+
         // Apply zoom to this page if non-default
         if currentZoomLevel != ZoomLevel.defaultLevel {
             let js = "document.body.style.fontSize = '\(currentZoomLevel)%';"
@@ -790,6 +856,14 @@ extension ArticlePageView: WKNavigationDelegate {
         // Apply pending highlight keyword (set before WebView finished loading)
         if let keyword = pendingHighlightKeyword, !keyword.isEmpty {
             highlightKeyword(keyword)
+        }
+
+        // Apply pending anchor scroll (set by scrollToAnchor before this load
+        // completed — e.g. cross-reference click navigating to a fresh article).
+        if let anchorId = pendingScrollAnchorId {
+            pendingScrollAnchorId = nil
+            applyScrollAnchorJS(anchorId)
+            lastAppliedAnchorId = anchorId
         }
     }
 }

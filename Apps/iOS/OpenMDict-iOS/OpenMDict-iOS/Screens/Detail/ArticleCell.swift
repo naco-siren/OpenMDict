@@ -13,7 +13,10 @@ import WebKit
 // MARK: - Delegate
 
 protocol ArticleCellDelegate: AnyObject {
-    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String)
+    /// `fragment` is the `#anchor` part of an `entry://word#anchor` cross-reference
+    /// (nil when the URL had no fragment).  The handler is expected to scroll the
+    /// target article to that DOM id after it loads.
+    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, fragment: String?, inDict dictId: String)
 }
 
 class ArticleCell: UICollectionViewCell {
@@ -87,9 +90,9 @@ class ArticleCell: UICollectionViewCell {
         pageView.setWebViewInteractive(layoutMode != .grid)
 
         // Wire internal callbacks that depend on the current article
-        pageView.onEntryLinkTapped = { [weak self] word in
+        pageView.onEntryLinkTapped = { [weak self] word, fragment in
             guard let self else { return }
-            self.delegate?.articleCell(self, didTapEntryLink: word, inDict: article.dictId)
+            self.delegate?.articleCell(self, didTapEntryLink: word, fragment: fragment, inDict: article.dictId)
         }
         pageView.onSoundLinkTapped = { url in
             AudioService.shared.play(url: url, dictId: article.dictId)
@@ -168,6 +171,12 @@ class ArticleCell: UICollectionViewCell {
 
     func setZoomLevel(_ level: Int) {
         pageView.setZoomLevel(level)
+    }
+
+    /// Scroll the inner WebView to an in-page anchor.  Used after a
+    /// cross-reference click lands on this cell's article.
+    func scrollToAnchor(_ anchor: String?) {
+        pageView.scrollToAnchor(anchor)
     }
 
     func setDarkModeEnhance(strength: EnhanceDarkModeStrength?) {

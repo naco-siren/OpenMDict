@@ -1112,7 +1112,15 @@ extension DetailContainerViewController: ArticlesViewControllerDelegate {
 
 extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControllerDelegate {
 
-    private func handleEntryLink(word: String, dictId: String) {
+    /// Handle a tapped cross-reference link.
+    ///
+    /// `fragment` is the in-page anchor id from `entry://word#anchor` URLs
+    /// (nil for plain `entry://word`).  When set, after the target article
+    /// is loaded / brought to front, we tell the active child to scroll
+    /// its first page's WebView to that DOM id.  The page-view side handles
+    /// the load-state subtleties (apply immediately if already loaded, or
+    /// stash for didFinish if still loading).
+    private func handleEntryLink(word: String, fragment: String?, dictId: String) {
         // Check if we already have this article
         let articleId = "\(dictId):\(word)"
         if let existingIndex = articles.firstIndex(where: { $0.id == articleId }) {
@@ -1140,9 +1148,11 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
         if activeChild === articleVC {
             currentCompactIndex = 0
             articleVC.configure(articles: articles, currentIndex: 0)
+            articleVC.scrollFirstPage(toAnchor: fragment)
         } else {
             articlesVC.configure(articles: articles, animated: true)
             articlesVC.scrollToArticle(articles.first!, animated: true)
+            articlesVC.scrollFirstCell(toAnchor: fragment)
         }
 
         // Record lookup history using the current lookup context
@@ -1153,14 +1163,14 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
         )
     }
 
-    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, inDict dictId: String) {
-        print("📖 Entry link (cell): \(word) in \(dictId)")
-        handleEntryLink(word: word, dictId: dictId)
+    func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, fragment: String?, inDict dictId: String) {
+        print("📖 Entry link (cell): \(word)\(fragment.map { "#\($0)" } ?? "") in \(dictId)")
+        handleEntryLink(word: word, fragment: fragment, dictId: dictId)
     }
-    
-    func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, inDict dictId: String) {
-        print("📖 Entry link (vc): \(word) in \(dictId)")
-        handleEntryLink(word: word, dictId: dictId)
+
+    func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, fragment: String?, inDict dictId: String) {
+        print("📖 Entry link (vc): \(word)\(fragment.map { "#\($0)" } ?? "") in \(dictId)")
+        handleEntryLink(word: word, fragment: fragment, dictId: dictId)
     }
 
     func articleViewController(_ vc: ArticleViewController, didRequestJumpSearch word: String, inDict dictId: String) {

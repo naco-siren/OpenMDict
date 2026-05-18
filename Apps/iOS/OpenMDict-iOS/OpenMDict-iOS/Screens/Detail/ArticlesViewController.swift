@@ -386,6 +386,24 @@ class ArticlesViewController: UIViewController {
         collectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: animated)
     }
 
+    /// Scroll the cell at index 0 (the most recently navigated-to article) to
+    /// an in-page anchor.  Used by cross-reference click handling so the user
+    /// lands at the matching `id` inside the target article.  If the cell
+    /// isn't yet dequeued (collection view hasn't laid out post-configure),
+    /// retry on the next runloop tick.
+    func scrollFirstCell(toAnchor anchor: String?) {
+        guard let anchor, !anchor.isEmpty else { return }
+        let indexPath = IndexPath(item: 0, section: 0)
+        if let cell = collectionView.cellForItem(at: indexPath) as? ArticleCell {
+            cell.scrollToAnchor(anchor)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let cell = self?.collectionView.cellForItem(at: indexPath) as? ArticleCell else { return }
+                cell.scrollToAnchor(anchor)
+            }
+        }
+    }
+
     func setZoomLevel(_ level: Int) {
         zoomLevel = level
 
