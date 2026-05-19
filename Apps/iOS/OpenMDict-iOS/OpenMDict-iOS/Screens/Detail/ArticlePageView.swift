@@ -548,7 +548,20 @@ class ArticlePageView: UIView {
 
     func loadHTMLContent(_ html: String, baseURL: URL? = nil) {
         didFinishLoading = false  // didFinish will set true after this load completes
-        webView.loadHTMLString(html, baseURL: baseURL)
+        // Use `load(_:mimeType:characterEncodingName:baseURL:)` instead of
+        // `loadHTMLString` to force UTF-8 decoding.  On iOS, loadHTMLString
+        // does NOT reliably honor the `<meta charset>` declaration — it
+        // interprets the bytes as Latin-1, which mojibake's UTF-8 sequences
+        // (middle-dot keywords showed up in the DOM as `Â·` instead
+        // of `·`, breaking cross-ref lookup).  The explicit-encoding load
+        // API tells WebKit unambiguously to decode as UTF-8.
+        let data = html.data(using: .utf8) ?? Data()
+        webView.load(
+            data,
+            mimeType: "text/html",
+            characterEncodingName: "utf-8",
+            baseURL: baseURL ?? URL(string: "about:blank")!
+        )
     }
 
     /// Scroll to an in-page anchor id (set from an `entry://word#anchor`
@@ -811,10 +824,12 @@ extension ArticlePageView: WKNavigationDelegate {
 
         switch scheme {
         case "entry":
-            let targetWord = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            // url.fragment is already percent-decoded.  Pass nil for empty
-            // strings so consumers can guard on a single `nil` check.
-            let fragment = url.fragment.flatMap { $0.isEmpty ? nil : $0 }
+            // Always parse via absoluteString + UTF-8 percent-decode — see
+            // `parseEntryNavigation` for the iOS `URL.host` Latin-1 mojibake
+            // gotcha.  HTML-side UTF-8 enforcement happens in
+            // `loadHTMLContent` (explicit characterEncodingName:"utf-8");
+            // both fixes together fix the `entry://bank · n.` round-trip.
+            let (targetWord, fragment) = Self.parseEntryNavigation(url)
             if !targetWord.isEmpty {
                 onEntryLinkTapped?(targetWord, fragment)
             }
@@ -865,6 +880,39 @@ extension ArticlePageView: WKNavigationDelegate {
             applyScrollAnchorJS(anchorId)
             lastAppliedAnchorId = anchorId
         }
+    }
+
+    /// Extract (word, fragment) from an `entry://` URL.
+    ///
+    /// Parses via `absoluteString` + `removingPercentEncoding` instead of
+    /// `URL.host` for two reasons:
+    ///
+    /// 1. **Lenient grammar**: `URL(string:)` rejects unencoded spaces, so a
+    ///    raw `<a href="entry://bank · n.">` that slipped through unencoded
+    ///    would have `URL.host == nil`.  The absoluteString path doesn't
+    ///    care about URL grammar — it just works on whatever bytes WebKit
+    ///    handed us.
+    /// 2. **UTF-8 percent-decoding**: `removingPercentEncoding` is explicitly
+    ///    UTF-8, which is what we want for MDX keys that legitimately
+    ///    contain non-ASCII chars (a `·` middle-dot homograph
+    ///    disambiguator is the trigger case).
+    ///
+    /// Returns ("", nil) when there's nothing parseable after `entry://`.
+    static func parseEntryNavigation(_ url: URL) -> (word: String, fragment: String?) {
+        let raw = url.absoluteString
+        let stripped: String = {
+            if raw.lowercased().hasPrefix("entry://") {
+                return String(raw.dropFirst("entry://".count))
+            }
+            return raw
+        }()
+        let decoded = stripped.removingPercentEncoding ?? stripped
+        if let hashIdx = decoded.firstIndex(of: "#") {
+            let word = String(decoded[..<hashIdx])
+            let frag = String(decoded[decoded.index(after: hashIdx)...])
+            return (word, frag.isEmpty ? nil : frag)
+        }
+        return (decoded, nil)
     }
 }
 

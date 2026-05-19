@@ -19,7 +19,13 @@ enum ArticleHTMLRenderer {
         dictId: String,
         traitCollection: UITraitCollection
     ) -> String {
+        // Two-pass rewrite:
+        //   1. `rewriteResourcePaths` — relative URLs / `file://` → mdict://
+        //   2. `percentEncodeEntryLinks` — pre-encode non-ASCII inside
+        //      `entry://word#frag` so WebKit doesn't double-encode them
+        //      when constructing the URL request (middle-dot bug).
         let rewrittenHTML = HTMLResourceRewriter.rewriteResourcePaths(in: html, dictId: dictId)
+        let entryEncodedHTML = HTMLResourceRewriter.percentEncodeEntryLinks(in: rewrittenHTML)
         
         return """
         <!DOCTYPE html>
@@ -125,7 +131,7 @@ enum ArticleHTMLRenderer {
             }
             </script>
         </head>
-        <body><div id="_omdict_content">\(rewrittenHTML)</div></body>
+        <body><div id="_omdict_content">\(entryEncodedHTML)</div></body>
         </html>
         """
     }

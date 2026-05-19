@@ -1168,12 +1168,12 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
     }
 
     func articleCell(_ cell: ArticleCell, didTapEntryLink word: String, fragment: String?, inDict dictId: String) {
-        print("📖 Entry link (cell): \(word)\(fragment.map { "#\($0)" } ?? "") in \(dictId)")
+        debugLog("📖 Entry link (cell): \(word)\(fragment.map { "#\($0)" } ?? "") in \(dictId)")
         handleEntryLink(word: word, fragment: fragment, dictId: dictId)
     }
 
     func articleViewController(_ vc: ArticleViewController, didTapEntryLink word: String, fragment: String?, inDict dictId: String) {
-        print("📖 Entry link (vc): \(word)\(fragment.map { "#\($0)" } ?? "") in \(dictId)")
+        debugLog("📖 Entry link (vc): \(word)\(fragment.map { "#\($0)" } ?? "") in \(dictId)")
         handleEntryLink(word: word, fragment: fragment, dictId: dictId)
     }
 

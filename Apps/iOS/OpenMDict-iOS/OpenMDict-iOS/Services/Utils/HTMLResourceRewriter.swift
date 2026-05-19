@@ -80,6 +80,69 @@ nonisolated enum HTMLResourceRewriter {
         return result
     }
 
+    /// Pre-percent-encode non-ASCII chars inside `<a href="entry://...">`
+    /// cross-reference URLs.  Workaround for an iOS WKWebView bug: when
+    /// constructing a URL request from a `<a>` click for a **custom URL
+    /// scheme** (anything other than http/https/file), WebKit takes the
+    /// UTF-8 bytes of non-ASCII chars in the href and re-encodes them as
+    /// if they were Latin-1.  Middle-dot homograph disambiguators show this
+    /// dramatically: `entry://bank · n.` (DOM string with U+00B7 = UTF-8
+    /// `C2 B7`) becomes URL `entry://bank%20%C3%82%C2%B7%20n.` — those four
+    /// percent-bytes decode to `Â·`, not `·`.  Pre-encoding here gives
+    /// WebKit pure ASCII it doesn't need to touch, so the URL round-trips
+    /// cleanly through `request.url.absoluteString` →
+    /// `removingPercentEncoding` (UTF-8) on the receiving side.
+    ///
+    /// Idempotent: existing `%XX` sequences are preserved (the encoder's
+    /// allowed set includes `%`).  Fragment-aware: splits on the first
+    /// `#` so the anchor delimiter survives and is not itself encoded.
+    static func percentEncodeEntryLinks(in html: String) -> String {
+        let pattern = #"(<a\b[^>]*?href\s*=\s*"entry://)([^"]+)(")"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return html
+        }
+        var result = html
+        let matches = regex.matches(in: result, range: NSRange(result.startIndex..., in: result)).reversed()
+
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.insert("%")  // don't re-encode existing %XX sequences
+
+        for match in matches {
+            guard let fullRange = Range(match.range, in: result),
+                  let prefixRange = Range(match.range(at: 1), in: result),
+                  let pathRange = Range(match.range(at: 2), in: result),
+                  let suffixRange = Range(match.range(at: 3), in: result) else {
+                continue
+            }
+            let raw = String(result[pathRange])
+
+            // Skip pure ASCII (no spaces, no non-ASCII) — nothing for WebKit
+            // to mojibake, no encoding needed.
+            let needsEncoding = raw.unicodeScalars.contains { $0.value > 0x7F || $0.value == 0x20 }
+            guard needsEncoding else { continue }
+
+            // Split on first `#` to encode word and fragment separately,
+            // preserving the delimiter.
+            let encoded: String = {
+                if let hashIdx = raw.firstIndex(of: "#") {
+                    let word = String(raw[..<hashIdx])
+                    let frag = String(raw[raw.index(after: hashIdx)...])
+                    let encWord = word.addingPercentEncoding(withAllowedCharacters: allowed) ?? word
+                    let encFrag = frag.addingPercentEncoding(withAllowedCharacters: allowed) ?? frag
+                    return "\(encWord)#\(encFrag)"
+                }
+                return raw.addingPercentEncoding(withAllowedCharacters: allowed) ?? raw
+            }()
+
+            if encoded != raw {
+                let prefix = String(result[prefixRange])
+                let suffix = String(result[suffixRange])
+                result.replaceSubrange(fullRange, with: "\(prefix)\(encoded)\(suffix)")
+            }
+        }
+        return result
+    }
+
     /// Rewrite resource paths inside a CSS file's text content to use the
     /// mdict:// scheme.  Only matches the `url(...)` pattern — `src=` and
     /// `<a>/<link>` are HTML-specific and don't appear in CSS.
