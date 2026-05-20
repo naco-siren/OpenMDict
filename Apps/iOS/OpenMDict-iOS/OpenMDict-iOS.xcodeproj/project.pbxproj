@@ -36,6 +36,7 @@
 		538347E0F893C0FFA1AE8555 /* OpenMDict-West-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C6CDC6D92C25C9310DC7926B /* OpenMDict-West-Dark-iPadPro@2x.png */; };
 		5BEBE3AF922C29D9B9FE4D33 /* ClassicLiquidGlass-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E1FC00305C9A11EADF565BDD /* ClassicLiquidGlass-Dark-iPadPro@2x.png */; };
 		5D2AF4E7B2130C32BAD1736D /* OpenMDict-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */; };
+		F8B105191926F70AB0000002 /* OpenMDict-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B105191926F70AB0000001 /* OpenMDict-Preview.png */; };
 		632E33CFBD61A536298C5770 /* OpenMDict-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */; };
 		635D08838D31A1E26E1DCBDA /* OpenMDict-East114514-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6D6A5607DBD9E3D08479ACF2 /* OpenMDict-East114514-Dark-iPad@2x.png */; };
 		63E3F253EFC1ADE80DAFEEBC /* OpenMDict-East4-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 034C407D26BDAFE20C08438A /* OpenMDict-East4-Dark-iPhone@3x.png */; };
@@ -81,7 +82,6 @@
 		D001A9C6D50F5A8238DFBC0F /* ClassicMatte-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2D9B818315A7454C01F033A3 /* ClassicMatte-iPhone@2x.png */; };
 		D10C0813E681FBF611B6FBF0 /* OpenMDict-East114514-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7CF076FE64F50B40B7155C6B /* OpenMDict-East114514-iPadPro@2x.png */; };
 		DCC4629BB7ED18B34C40CECB /* OpenMDict-East2-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3788ED1C48052F633F8FE9A5 /* OpenMDict-East2-Dark-iPadPro@2x.png */; };
-		DE7F1B1BCEDB54A94F682B95 /* OpenMDict-Inverse-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = 7A045F26BC2087CE26B30CCB /* OpenMDict-Inverse-Preview.png */; };
 		E1263B43B130436A2F519079 /* ClassicLiquidGlass-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = ABF6F185CFE6EDB824E248A1 /* ClassicLiquidGlass-Dark-iPad@2x.png */; };
 		E134851CC16F1F6B2934960C /* ClassicLiquidGlass-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = EAAC7E7523E988CCE4EBD338 /* ClassicLiquidGlass-Dark-iPhone@3x.png */; };
 		E405E7E07D0E2462EBEBBE6B /* OpenMDict-East5-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2C6C2AB62C32067386E611F2 /* OpenMDict-East5-iPhone@3x.png */; };
@@ -165,30 +165,9 @@
 		F8B101052F70AB0000B10105 /* ClassicLiquidGlass.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */; };
 		F8B101062F70AB0000B10106 /* ClassicMatte.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100062F70AB0000B10006 /* ClassicMatte.icon */; };
 		F8B101072F70AB0000B10107 /* ClassicLiquidGlass-Inverse.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100072F70AB0000B10007 /* ClassicLiquidGlass-Inverse.icon */; };
-		F8B101112F70AB0000B10111 /* OpenMDict-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100112F70AB0000B10011 /* OpenMDict-Preview.png */; };
-		F8B101122F70AB0000B10112 /* OpenMDict-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100122F70AB0000B10012 /* OpenMDict-Preview-Dark.png */; };
-		F8B101132F70AB0000B10113 /* OpenMDict-West-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100132F70AB0000B10013 /* OpenMDict-West-Preview.png */; };
-		F8B101142F70AB0000B10114 /* OpenMDict-West-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100142F70AB0000B10014 /* OpenMDict-West-Preview-Dark.png */; };
-		F8B101152F70AB0000B10115 /* OpenMDict-East1-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100152F70AB0000B10015 /* OpenMDict-East1-Preview.png */; };
-		F8B101162F70AB0000B10116 /* OpenMDict-East1-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100162F70AB0000B10016 /* OpenMDict-East1-Preview-Dark.png */; };
-		F8B101172F70AB0000B10117 /* OpenMDict-East2-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100172F70AB0000B10017 /* OpenMDict-East2-Preview.png */; };
-		F8B101182F70AB0000B10118 /* OpenMDict-East2-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100182F70AB0000B10018 /* OpenMDict-East2-Preview-Dark.png */; };
-		F8B101192F70AB0000B10119 /* OpenMDict-East3-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100192F70AB0000B10019 /* OpenMDict-East3-Preview.png */; };
-		F8B1011A2F70AB0000B1011A /* OpenMDict-East3-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B1001A2F70AB0000B1001A /* OpenMDict-East3-Preview-Dark.png */; };
-		F8B1011B2F70AB0000B1001B /* ClassicLiquidGlass-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B1001B2F70AB0000B1001B /* ClassicLiquidGlass-Preview.png */; };
-		F8B1011C2F70AB0000B1001C /* ClassicLiquidGlass-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B1001C2F70AB0000B1001C /* ClassicLiquidGlass-Preview-Dark.png */; };
-		F8B1011D2F70AB0000B1001D /* ClassicMatte-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B1001D2F70AB0000B1001D /* ClassicMatte-Preview.png */; };
-		F8B1011E2F70AB0000B1001E /* ClassicMatte-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B1001E2F70AB0000B1001E /* ClassicMatte-Preview-Dark.png */; };
-		F8B1011F2F70AB0000B1001F /* ClassicLiquidGlass-Inverse-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B1001F2F70AB0000B1001F /* ClassicLiquidGlass-Inverse-Preview.png */; };
 		F8B102052F70AB0000B10205 /* OpenMDict-East4.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */; };
-		F8B102152F70AB0000B10215 /* OpenMDict-East4-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100352F70AB0000B10035 /* OpenMDict-East4-Preview.png */; };
-		F8B102162F70AB0000B10216 /* OpenMDict-East4-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100362F70AB0000B10036 /* OpenMDict-East4-Preview-Dark.png */; };
 		F8B103072F70AB0000B10307 /* OpenMDict-East5.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */; };
-		F8B103172F70AB0000B10317 /* OpenMDict-East5-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100372F70AB0000B10037 /* OpenMDict-East5-Preview.png */; };
-		F8B103182F70AB0000B10318 /* OpenMDict-East5-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100382F70AB0000B10038 /* OpenMDict-East5-Preview-Dark.png */; };
 		F8B104082F70AB0000B10408 /* OpenMDict-East114514.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */; };
-		F8B104182F70AB0000B10418 /* OpenMDict-East114514-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100392F70AB0000B10039 /* OpenMDict-East114514-Preview.png */; };
-		F8B104192F70AB0000B10419 /* OpenMDict-East114514-Preview-Dark.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B100402F70AB0000B10040 /* OpenMDict-East114514-Preview-Dark.png */; };
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
 		F8F795592F42C4D700D47B41 /* OpenMDict-ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -270,7 +249,6 @@
 		78B7C5E1239E6F803C244DD6 /* OpenMDict-East4-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-iPhone@2x.png"; sourceTree = "<absolute>"; };
 		7987B2362E84978900C02D5E /* OpenMDict-East114514-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPad@2x.png"; sourceTree = "<absolute>"; };
 		798AD3AE17C4C96EAAF5F9E9 /* OpenMDict-East1-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		7A045F26BC2087CE26B30CCB /* OpenMDict-Inverse-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Inverse-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Inverse-Preview.png"; sourceTree = "<absolute>"; };
 		7CF076FE64F50B40B7155C6B /* OpenMDict-East114514-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPadPro@2x.png"; sourceTree = "<absolute>"; };
 		8093109F3BEAAE0FB8B91145 /* ClassicLiquidGlass-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-iPad@2x.png"; sourceTree = "<absolute>"; };
 		818F96C0A203F27EB8996053 /* OpenMDict-East3-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
@@ -281,6 +259,7 @@
 		969DE0E7490ED1DE12A803E1 /* ClassicMatte-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
 		97A4A415FE4EE5A3DF4C10B1 /* OpenMDict-East1-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
 		9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
+		F8B105191926F70AB0000001 /* OpenMDict-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Preview.png"; sourceTree = "<absolute>"; };
 		9FBE0B64EDD9E3A5FD45F0DF /* OpenMDict-East1-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPad@2x.png"; sourceTree = "<absolute>"; };
 		A1B2C3D4E5F60011A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPhone@2x.png"; sourceTree = "<absolute>"; };
 		A1B2C3D4E5F60012A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPhone@3x.png"; sourceTree = "<absolute>"; };
@@ -391,30 +370,9 @@
 		F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = ClassicLiquidGlass.icon; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass.icon"; sourceTree = "<absolute>"; };
 		F8B100062F70AB0000B10006 /* ClassicMatte.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = ClassicMatte.icon; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte.icon"; sourceTree = "<absolute>"; };
 		F8B100072F70AB0000B10007 /* ClassicLiquidGlass-Inverse.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "ClassicLiquidGlass-Inverse.icon"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse.icon"; sourceTree = "<absolute>"; };
-		F8B100112F70AB0000B10011 /* OpenMDict-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100122F70AB0000B10012 /* OpenMDict-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B100132F70AB0000B10013 /* OpenMDict-West-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100142F70AB0000B10014 /* OpenMDict-West-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B100152F70AB0000B10015 /* OpenMDict-East1-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100162F70AB0000B10016 /* OpenMDict-East1-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B100172F70AB0000B10017 /* OpenMDict-East2-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100182F70AB0000B10018 /* OpenMDict-East2-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B100192F70AB0000B10019 /* OpenMDict-East3-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Preview.png"; sourceTree = "<absolute>"; };
-		F8B1001A2F70AB0000B1001A /* OpenMDict-East3-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B1001B2F70AB0000B1001B /* ClassicLiquidGlass-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Preview.png"; sourceTree = "<absolute>"; };
-		F8B1001C2F70AB0000B1001C /* ClassicLiquidGlass-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B1001D2F70AB0000B1001D /* ClassicMatte-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Preview.png"; sourceTree = "<absolute>"; };
-		F8B1001E2F70AB0000B1001E /* ClassicMatte-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B1001F2F70AB0000B1001F /* ClassicLiquidGlass-Inverse-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-Preview.png"; sourceTree = "<absolute>"; };
 		F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East4.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4.icon"; sourceTree = "<absolute>"; };
 		F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East5.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5.icon"; sourceTree = "<absolute>"; };
 		F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East114514.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514.icon"; sourceTree = "<absolute>"; };
-		F8B100352F70AB0000B10035 /* OpenMDict-East4-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100362F70AB0000B10036 /* OpenMDict-East4-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B100372F70AB0000B10037 /* OpenMDict-East5-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100382F70AB0000B10038 /* OpenMDict-East5-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-Preview-Dark.png"; sourceTree = "<absolute>"; };
-		F8B100392F70AB0000B10039 /* OpenMDict-East114514-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-Preview.png"; sourceTree = "<absolute>"; };
-		F8B100402F70AB0000B10040 /* OpenMDict-East114514-Preview-Dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-Preview-Dark.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-Preview-Dark.png"; sourceTree = "<absolute>"; };
 		F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ShareExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ActionExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8F797372F42EBB600D47B41 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
@@ -577,27 +535,6 @@
 				F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */,
 				F8B100072F70AB0000B10007 /* ClassicLiquidGlass-Inverse.icon */,
 				F8B100062F70AB0000B10006 /* ClassicMatte.icon */,
-				F8B100112F70AB0000B10011 /* OpenMDict-Preview.png */,
-				F8B100122F70AB0000B10012 /* OpenMDict-Preview-Dark.png */,
-				F8B100132F70AB0000B10013 /* OpenMDict-West-Preview.png */,
-				F8B100142F70AB0000B10014 /* OpenMDict-West-Preview-Dark.png */,
-				F8B100152F70AB0000B10015 /* OpenMDict-East1-Preview.png */,
-				F8B100162F70AB0000B10016 /* OpenMDict-East1-Preview-Dark.png */,
-				F8B100172F70AB0000B10017 /* OpenMDict-East2-Preview.png */,
-				F8B100182F70AB0000B10018 /* OpenMDict-East2-Preview-Dark.png */,
-				F8B100192F70AB0000B10019 /* OpenMDict-East3-Preview.png */,
-				F8B1001A2F70AB0000B1001A /* OpenMDict-East3-Preview-Dark.png */,
-				F8B100352F70AB0000B10035 /* OpenMDict-East4-Preview.png */,
-				F8B100362F70AB0000B10036 /* OpenMDict-East4-Preview-Dark.png */,
-				F8B100372F70AB0000B10037 /* OpenMDict-East5-Preview.png */,
-				F8B100382F70AB0000B10038 /* OpenMDict-East5-Preview-Dark.png */,
-				F8B100392F70AB0000B10039 /* OpenMDict-East114514-Preview.png */,
-				F8B100402F70AB0000B10040 /* OpenMDict-East114514-Preview-Dark.png */,
-				F8B1001B2F70AB0000B1001B /* ClassicLiquidGlass-Preview.png */,
-				F8B1001C2F70AB0000B1001C /* ClassicLiquidGlass-Preview-Dark.png */,
-				F8B1001F2F70AB0000B1001F /* ClassicLiquidGlass-Inverse-Preview.png */,
-				F8B1001D2F70AB0000B1001D /* ClassicMatte-Preview.png */,
-				F8B1001E2F70AB0000B1001E /* ClassicMatte-Preview-Dark.png */,
 				ABF6F185CFE6EDB824E248A1 /* ClassicLiquidGlass-Dark-iPad@2x.png */,
 				E1FC00305C9A11EADF565BDD /* ClassicLiquidGlass-Dark-iPadPro@2x.png */,
 				6FE298415A1EADB19F805F23 /* ClassicLiquidGlass-Dark-iPhone@2x.png */,
@@ -622,6 +559,7 @@
 				6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */,
 				A2992C75712964CAAACEADB2 /* OpenMDict-Dark-iPhone@2x.png */,
 				9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */,
+				F8B105191926F70AB0000001 /* OpenMDict-Preview.png */,
 				97A4A415FE4EE5A3DF4C10B1 /* OpenMDict-East1-Dark-iPad@2x.png */,
 				B36FAD4E6C4522083FF12D6A /* OpenMDict-East1-Dark-iPadPro@2x.png */,
 				138521AEF70DCF8435697B29 /* OpenMDict-East1-Dark-iPhone@2x.png */,
@@ -678,7 +616,6 @@
 				84DB8C05023B707931AAC338 /* OpenMDict-West-iPadPro@2x.png */,
 				F046768380B02202B9185771 /* OpenMDict-West-iPhone@2x.png */,
 				3DB193BABBF49E8D212F407F /* OpenMDict-West-iPhone@3x.png */,
-				7A045F26BC2087CE26B30CCB /* OpenMDict-Inverse-Preview.png */,
 				5237F230B86B63408C46A116 /* OpenMDict-Inverse-iPhone@2x.png */,
 				02EFCDE24998240871803560 /* OpenMDict-Inverse-iPhone@3x.png */,
 				B9D4F9D19C1B976F8625AED9 /* OpenMDict-Inverse-iPad@2x.png */,
@@ -976,32 +913,10 @@
 				F8B101052F70AB0000B10105 /* ClassicLiquidGlass.icon in Resources */,
 				F8B101072F70AB0000B10107 /* ClassicLiquidGlass-Inverse.icon in Resources */,
 				F8B101062F70AB0000B10106 /* ClassicMatte.icon in Resources */,
-				F8B101112F70AB0000B10111 /* OpenMDict-Preview.png in Resources */,
-				F8B101122F70AB0000B10112 /* OpenMDict-Preview-Dark.png in Resources */,
-				F8B101132F70AB0000B10113 /* OpenMDict-West-Preview.png in Resources */,
-				F8B101142F70AB0000B10114 /* OpenMDict-West-Preview-Dark.png in Resources */,
-				F8B101152F70AB0000B10115 /* OpenMDict-East1-Preview.png in Resources */,
-				F8B101162F70AB0000B10116 /* OpenMDict-East1-Preview-Dark.png in Resources */,
-				F8B101172F70AB0000B10117 /* OpenMDict-East2-Preview.png in Resources */,
-				F8B101182F70AB0000B10118 /* OpenMDict-East2-Preview-Dark.png in Resources */,
-				F8B101192F70AB0000B10119 /* OpenMDict-East3-Preview.png in Resources */,
-				F8B1011A2F70AB0000B1011A /* OpenMDict-East3-Preview-Dark.png in Resources */,
 				F8B102052F70AB0000B10205 /* OpenMDict-East4.icon in Resources */,
-				F8B102152F70AB0000B10215 /* OpenMDict-East4-Preview.png in Resources */,
-				F8B102162F70AB0000B10216 /* OpenMDict-East4-Preview-Dark.png in Resources */,
 				F8B103072F70AB0000B10307 /* OpenMDict-East5.icon in Resources */,
-				F8B103172F70AB0000B10317 /* OpenMDict-East5-Preview.png in Resources */,
-				F8B103182F70AB0000B10318 /* OpenMDict-East5-Preview-Dark.png in Resources */,
 				F8B104082F70AB0000B10408 /* OpenMDict-East114514.icon in Resources */,
-				F8B104182F70AB0000B10418 /* OpenMDict-East114514-Preview.png in Resources */,
-				F8B104192F70AB0000B10419 /* OpenMDict-East114514-Preview-Dark.png in Resources */,
-				F8B1011B2F70AB0000B1001B /* ClassicLiquidGlass-Preview.png in Resources */,
-				F8B1011C2F70AB0000B1001C /* ClassicLiquidGlass-Preview-Dark.png in Resources */,
-				F8B1011F2F70AB0000B1001F /* ClassicLiquidGlass-Inverse-Preview.png in Resources */,
-				F8B1011D2F70AB0000B1001D /* ClassicMatte-Preview.png in Resources */,
-				F8B1011E2F70AB0000B1001E /* ClassicMatte-Preview-Dark.png in Resources */,
 				878D4E420A81AA21879D4345 /* OpenMDict-Inverse.icon in Resources */,
-				DE7F1B1BCEDB54A94F682B95 /* OpenMDict-Inverse-Preview.png in Resources */,
 				86A4148E0803C5AB7366C6FD /* OpenMDict-Inverse-iPhone@2x.png in Resources */,
 				B1E6AE8CCCC565DAB1A44F28 /* OpenMDict-Inverse-iPhone@3x.png in Resources */,
 				751C33480D682A60B6247539 /* OpenMDict-Inverse-iPad@2x.png in Resources */,
@@ -1030,6 +945,7 @@
 				632E33CFBD61A536298C5770 /* OpenMDict-Dark-iPadPro@2x.png in Resources */,
 				2013DD0ED2EB5F8DA7616AFB /* OpenMDict-Dark-iPhone@2x.png in Resources */,
 				5D2AF4E7B2130C32BAD1736D /* OpenMDict-Dark-iPhone@3x.png in Resources */,
+				F8B105191926F70AB0000002 /* OpenMDict-Preview.png in Resources */,
 				BBAD59CCC1FED0A9B35FC343 /* OpenMDict-East1-Dark-iPad@2x.png in Resources */,
 				C8F6D06B3BBB22B70516B353 /* OpenMDict-East1-Dark-iPadPro@2x.png in Resources */,
 				370C764245FD77A385AB6A91 /* OpenMDict-East1-Dark-iPhone@2x.png in Resources */,

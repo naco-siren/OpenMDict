@@ -92,33 +92,28 @@ nonisolated enum AppIcon: String, CaseIterable, Sendable {
 
     // MARK: - Preview Image
 
-    /// Base filename (without extension) for the bundled preview PNG.
-    private var previewBaseName: String {
-        switch self {
-        case .default:            return "OpenMDict-Preview"
-        case .inverse:            return "OpenMDict-Inverse-Preview"
-        case .west:               return "OpenMDict-West-Preview"
-        case .east1:              return "OpenMDict-East1-Preview"
-        case .east2:              return "OpenMDict-East2-Preview"
-        case .east3:              return "OpenMDict-East3-Preview"
-        case .east4:              return "OpenMDict-East4-Preview"
-        case .east5:              return "OpenMDict-East5-Preview"
-        case .east114514:         return "OpenMDict-East114514-Preview"
-        case .classicLiquidGlass:        return "ClassicLiquidGlass-Preview"
-        case .classicLiquidGlassInverse: return "ClassicLiquidGlass-Inverse-Preview"
-        case .classicMatte:              return "ClassicMatte-Preview"
-        }
-    }
-
-    /// Light-mode preview image (1024×1024 PNG).
+    /// Light-mode preview image for the chooser UI.
+    ///
+    /// Reuses the @3x icon PNG already bundled for `setAlternateIconName(_:)` —
+    /// 180×180 px, displayed at 60×60 pt, downsampling is imperceptible.
+    /// Default icon's light variant uses a dedicated 180×180 PNG because Icon Composer
+    /// assets (.icon) can't be loaded as UIImage via the asset catalog.
     var previewImage: UIImage? {
-        guard let path = Bundle.main.path(forResource: previewBaseName, ofType: "png") else { return nil }
-        return UIImage(contentsOfFile: path)
+        if self == .default {
+            return Self.loadIconPNG("OpenMDict-Preview")
+        }
+        return Self.loadIconPNG("\(rawValue)-iPhone@3x")
     }
 
-    /// Dark-mode preview image (1024×1024 PNG).
+    /// Dark-mode preview image for the chooser UI.
+    /// Returns nil for icons without a dark variant (Inverse, ClassicLiquidGlass-Inverse).
     var darkPreviewImage: UIImage? {
-        guard let path = Bundle.main.path(forResource: previewBaseName + "-Dark", ofType: "png") else { return nil }
+        guard hasDarkVariant else { return nil }
+        return Self.loadIconPNG("\(rawValue)-Dark-iPhone@3x")
+    }
+
+    private static func loadIconPNG(_ name: String) -> UIImage? {
+        guard let path = Bundle.main.path(forResource: name, ofType: "png") else { return nil }
         return UIImage(contentsOfFile: path)
     }
 
