@@ -36,7 +36,6 @@
 		538347E0F893C0FFA1AE8555 /* OpenMDict-West-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C6CDC6D92C25C9310DC7926B /* OpenMDict-West-Dark-iPadPro@2x.png */; };
 		5BEBE3AF922C29D9B9FE4D33 /* ClassicLiquidGlass-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E1FC00305C9A11EADF565BDD /* ClassicLiquidGlass-Dark-iPadPro@2x.png */; };
 		5D2AF4E7B2130C32BAD1736D /* OpenMDict-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */; };
-		F8B105191926F70AB0000002 /* OpenMDict-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B105191926F70AB0000001 /* OpenMDict-Preview.png */; };
 		632E33CFBD61A536298C5770 /* OpenMDict-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */; };
 		635D08838D31A1E26E1DCBDA /* OpenMDict-East114514-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6D6A5607DBD9E3D08479ACF2 /* OpenMDict-East114514-Dark-iPad@2x.png */; };
 		63E3F253EFC1ADE80DAFEEBC /* OpenMDict-East4-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 034C407D26BDAFE20C08438A /* OpenMDict-East4-Dark-iPhone@3x.png */; };
@@ -168,6 +167,7 @@
 		F8B102052F70AB0000B10205 /* OpenMDict-East4.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */; };
 		F8B103072F70AB0000B10307 /* OpenMDict-East5.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */; };
 		F8B104082F70AB0000B10408 /* OpenMDict-East114514.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */; };
+		F8B105191926F70AB0000002 /* OpenMDict-Preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F8B105191926F70AB0000001 /* OpenMDict-Preview.png */; };
 		F8E12D992F1CA93800D8E524 /* OpenMDictKit in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D982F1CA93800D8E524 /* OpenMDictKit */; };
 		F8E12D9B2F1CA97800D8E524 /* OpenMDict in Frameworks */ = {isa = PBXBuildFile; productRef = F8E12D9A2F1CA97800D8E524 /* OpenMDict */; };
 		F8F795592F42C4D700D47B41 /* OpenMDict-ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -259,7 +259,6 @@
 		969DE0E7490ED1DE12A803E1 /* ClassicMatte-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
 		97A4A415FE4EE5A3DF4C10B1 /* OpenMDict-East1-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
 		9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		F8B105191926F70AB0000001 /* OpenMDict-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Preview.png"; sourceTree = "<absolute>"; };
 		9FBE0B64EDD9E3A5FD45F0DF /* OpenMDict-East1-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPad@2x.png"; sourceTree = "<absolute>"; };
 		A1B2C3D4E5F60011A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPhone@2x.png"; sourceTree = "<absolute>"; };
 		A1B2C3D4E5F60012A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPhone@3x.png"; sourceTree = "<absolute>"; };
@@ -373,6 +372,7 @@
 		F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East4.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4.icon"; sourceTree = "<absolute>"; };
 		F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East5.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5.icon"; sourceTree = "<absolute>"; };
 		F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East114514.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514.icon"; sourceTree = "<absolute>"; };
+		F8B105191926F70AB0000001 /* OpenMDict-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Preview.png"; sourceTree = "<absolute>"; };
 		F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ShareExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ActionExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8F797372F42EBB600D47B41 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
@@ -1133,7 +1133,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1170,7 +1170,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1386,7 +1386,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
@@ -1422,7 +1422,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1452,7 +1452,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1482,7 +1482,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1513,7 +1513,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1545,7 +1545,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1577,7 +1577,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8.1;
+				CURRENT_PROJECT_VERSION = 8.2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
