@@ -49,6 +49,13 @@ final class PhrasyFeudViewController: UIViewController {
     private let board = FeudBoardView()
     private let buzzer = FeudBuzzerView()
 
+    /// Custom nav-bar title — gold "Phrasy Feud" text + bespoke
+    /// `PhrasyFeud` PNG icon (matches the AI Coach chooser facade).
+    /// Replaces what the system title text rendered via
+    /// `navigationItem.standardAppearance.titleTextAttributes`; titleView
+    /// always wins over the appearance's title attributes.
+    private let navTitleLabel = UILabel()
+
     // Loading + placeholder overlay (mirrors MorphemeMaury's pattern:
     // a single centered vertical stack of icon + title + spinner +
     // subtitle, swapped between loading / placeholder by reconfiguring
@@ -138,7 +145,52 @@ final class PhrasyFeudViewController: UIViewController {
         setupFinaleOverlay()
         setupStartCurtain()
         setupBackButton()
+        setupTitleView()
         startEngine()
+    }
+
+    // MARK: - Title view
+
+    /// Build the custom nav title: bespoke `PhrasyFeud` PNG (template-
+    /// rendered, tinted `.systemYellow` to match the AI Coach chooser
+    /// facade's StudyMode.iconTint) + gold "Phrasy Feud" text in the
+    /// `bannerFont`. The system `title = …` was the OLD behavior;
+    /// `navigationItem.standardAppearance.titleTextAttributes` styled
+    /// that, but had no icon — chooser-facade-to-this-VC felt visually
+    /// disconnected. Now both surfaces share the same icon + tint
+    /// language.
+    ///
+    /// NOTE: `title` is intentionally KEPT (set in viewDidLoad as
+    /// `L10n.AICoach.phrasyFeud`) because it drives the back-button
+    /// label on any further pushed VC, plus VoiceOver fallback. titleView
+    /// just overrides the *visual* rendering of the title slot.
+    private func setupTitleView() {
+        // 18×18 with y=-3 baseline-aligns the PNG icon to the 17pt
+        // bannerFont's cap height. Same recipe the other 3 quiz VCs use,
+        // just with a Feud-themed font instead of system semibold.
+        //
+        // Icon AND text both tinted `.systemYellow` to match the AI Coach
+        // chooser facade's StudyMode.iconTint for this mode. Previously
+        // used `FeudPalette.goldText` (a dimmer custom gold) for the
+        // text — but per the "tint icon and text together" rule, both
+        // surfaces (chooser cell + nav bar title) should now share the
+        // same brand color. The brighter systemYellow also reads better
+        // on the transparent nav bar over the dark arch backdrop.
+        let attachment = NSTextAttachment()
+        attachment.image = UIImage(named: "PhrasyFeud")?
+            .withTintColor(.systemYellow, renderingMode: .alwaysOriginal)
+        attachment.bounds = CGRect(x: 0, y: -3, width: 18, height: 18)
+        let attrText = NSMutableAttributedString(attachment: attachment)
+        attrText.append(NSAttributedString(
+            string: " " + L10n.AICoach.phrasyFeud,
+            attributes: [
+                .foregroundColor: UIColor.systemYellow,
+                .font: FeudPalette.bannerFont(size: 17),
+            ]
+        ))
+        navTitleLabel.attributedText = attrText
+        navTitleLabel.sizeToFit()
+        navigationItem.titleView = navTitleLabel
     }
 
     // MARK: - Start curtain
@@ -347,22 +399,51 @@ final class PhrasyFeudViewController: UIViewController {
             ) { [weak self] _ in
                 self?.navigationController?.popViewController(animated: true)
             })
-            alert.addAction(UIAlertAction(
-                title: L10n.AICoach.PhrasyFeud.stayOnShow, style: .cancel))
+            // Stay action gets `.default` style + `preferredAction`
+            // marker — Apple HIG mechanism for highlighting the
+            // recommended choice. iOS renders this as the prominent
+            // tinted-background button on iOS 26 Liquid Glass; on
+            // older iOS it still bolds the title. The trade-off
+            // versus `.cancel`-style: outside-tap-to-dismiss on iPad
+            // doesn't fire automatically. Acceptable — alert is
+            // modal and the user has to make a deliberate choice
+            // anyway, which is the whole point of the confirm.
+            let stayAction = UIAlertAction(
+                title: L10n.AICoach.PhrasyFeud.stayOnShow, style: .default)
+            alert.addAction(stayAction)
+            alert.preferredAction = stayAction
             present(alert, animated: true)
         } else {
             navigationController?.popViewController(animated: true)
         }
     }
 
-    /// Confirm leaving only when the user has made PROGRESS on a round
-    /// that isn't finished yet. Loading / placeholder / finale / fresh-
-    /// playing (no answers revealed yet) all pop without a prompt —
-    /// nagging the user when there's nothing to lose is just friction.
+    /// Pure phase-driven gate, mapping directly to the 3-state rule:
+    ///
+    ///   1. While the engine is generating a round (first round on
+    ///      launch OR any subsequent regeneration after a finale tap)
+    ///      → silent pop. Nothing's been earned; nothing's wasted.
+    ///   2. Once a round is loaded — whether the user is still looking
+    ///      at "TAP TO START" (`.notStarted`) or actively answering
+    ///      (`.playing`) — the back-nav MUST confirm. The user could
+    ///      otherwise spend 5-10s waiting for generation and then
+    ///      lose the validated round to a stray finger.
+    ///   3. Once the finale screen is up, the round is done. Even if
+    ///      the next round is preloading in the background, silent
+    ///      pop is fine — the user already earned this round's points
+    ///      and any preload is for a round they haven't committed to.
+    ///
+    /// Two earlier versions of this got this wrong:
+    ///   - Original: only confirmed during `.playing` AND with progress.
+    ///     "Just-started, zero answers" silently popped — bug.
+    ///   - First fix: removed the `revealedSlots.isEmpty` check but kept
+    ///     `currentPhase == .playing`. Still missed `.notStarted` — the
+    ///     "TAP TO START" state. Same bug from a different angle.
     private func shouldConfirmLeave() -> Bool {
-        guard currentPhase == .playing else { return false }
-        guard let round = currentRound else { return false }
-        return !revealedSlots.isEmpty && revealedSlots.count < round.answers.count
+        switch currentPhase {
+        case .loading, .finale:     return false
+        case .notStarted, .playing: return true
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {

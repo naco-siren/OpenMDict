@@ -504,23 +504,29 @@ nonisolated enum L10n {
             static var generating: String {
                 NSLocalizedString("aiCoach.quiz.generating", value: "Generating quiz with on-device AI\u{2026}", comment: "Quiz: loading status")
             }
+            // Word Tinder = dating-app parody. The loading copy mirrors
+            // that frame: "matchmaker" for the AI, "dates" for the quiz,
+            // "match / candidate / sparks" for the candidates being
+            // evaluated. Replaces the previous generic "brewing your
+            // quiz" / "picking words for you" boilerplate, which broke
+            // the dating-app illusion the moment the loading state hit.
             static var generatingTitle: String {
-                NSLocalizedString("aiCoach.quiz.generatingTitle", value: "Brewing your quiz\u{2026}", comment: "Quiz: placeholder title during generation")
+                NSLocalizedString("aiCoach.quiz.generatingTitle", value: "Setting up your dates\u{2026}", comment: "Word Tinder: placeholder title during initial quiz generation — dating-set-up framing")
             }
             static var generatingMessage: String {
-                NSLocalizedString("aiCoach.quiz.generatingMessage", value: "On-device AI is picking words for you.", comment: "Quiz: placeholder message during generation")
+                NSLocalizedString("aiCoach.quiz.generatingMessage", value: "Our matchmaker is swiping through your bookmarks, looking for sparks.", comment: "Word Tinder: placeholder message during initial generation — matchmaker swipes through user's bookmarked words")
             }
             static var retryingTitle: String {
-                NSLocalizedString("aiCoach.quiz.retryingTitle", value: "Trying another word\u{2026}", comment: "Quiz: placeholder title during retry")
+                NSLocalizedString("aiCoach.quiz.retryingTitle", value: "Looking for another match\u{2026}", comment: "Word Tinder: placeholder title during retry — dating-app 'next candidate' framing")
             }
             static var errorTitle: String {
                 NSLocalizedString("aiCoach.quiz.errorTitle", value: "Something went wrong", comment: "Quiz: placeholder title on error")
             }
             static func retrying(_ attempt: Int, _ word: String) -> String {
-                String(format: NSLocalizedString("aiCoach.quiz.retrying", value: "Retrying with \"%@\"\u{2026} (attempt %d)", comment: "Quiz: retry status — Args: word, attempt number"), word, attempt + 1)
+                String(format: NSLocalizedString("aiCoach.quiz.retrying", value: "Vetting \"%@\" as your match\u{2026} (attempt %d)", comment: "Word Tinder: retry status mentioning the specific word — Args: word, attempt number. 'Vetting' carries the matchmaker-pre-screens-candidate vibe."), word, attempt + 1)
             }
             static func retryingGeneric(_ attempt: Int) -> String {
-                String(format: NSLocalizedString("aiCoach.quiz.retryingGeneric", value: "Retrying\u{2026} (attempt %d)", comment: "Quiz: retry status without word — Args: attempt number"), attempt + 1)
+                String(format: NSLocalizedString("aiCoach.quiz.retryingGeneric", value: "Trying another match\u{2026} (attempt %d)", comment: "Word Tinder: retry status without specific word — Args: attempt number"), attempt + 1)
             }
             static func allRetriesFailed(_ error: String) -> String {
                 String(format: NSLocalizedString("aiCoach.quiz.allRetriesFailed", value: "Could not generate a quiz after multiple attempts.\n%@", comment: "Quiz: all retries exhausted — Args: error description"), error)
@@ -565,6 +571,25 @@ nonisolated enum L10n {
             }
             static var unrelated: String {
                 NSLocalizedString("aiCoach.quiz.unrelated", value: "irrelevant", comment: "Quiz: relationship article form for subtitle")
+            }
+            /// Back-nav double-check alert — Word Tinder is a dating-app
+            /// parody, so the copy leans into ghosting / soulmate /
+            /// heartbreak metaphors instead of generic "leave quiz".
+            /// Avoids re-using the "swipe" verb (already in the chooser
+            /// description text) to keep variety; the romantic framing
+            /// also gives both buttons emotional weight so the user
+            /// actually pauses to consider.
+            static var leaveTitle: String {
+                NSLocalizedString("aiCoach.quiz.leaveTitle", value: "Heartbroken?", comment: "Word Tinder: back-nav alert title — dating-app heartbreak framing")
+            }
+            static var leaveMessage: String {
+                NSLocalizedString("aiCoach.quiz.leaveMessage", value: "Your match is still in your queue, smiling, hoping for a yes. Walk away and you'll ghost them forever.", comment: "Word Tinder: back-nav alert body — leans into ghosting + waiting-match dating-app tropes")
+            }
+            static var ghostThem: String {
+                NSLocalizedString("aiCoach.quiz.ghostThem", value: "Ghost Them", comment: "Word Tinder: confirm leaving mid-round — destructive action, plays on dating-app ghosting")
+            }
+            static var giveLoveChance: String {
+                NSLocalizedString("aiCoach.quiz.giveLoveChance", value: "Give Love a Chance", comment: "Word Tinder: cancel leaving mid-round — wraps 'stay' in a romantic appeal so the user pauses")
             }
         }
 
@@ -727,6 +752,21 @@ nonisolated enum L10n {
             static func ejectedCrewmate(_ word: String) -> String {
                 String(format: NSLocalizedString("aiCoach.amongWurds.ejectedCrewmate", value: "\"%@\"\nwas not An Imposter\u{2026}", comment: "Among wUrdS: eject overlay text when the player ejected an innocent crewmate; %@ is the word"), word)
             }
+            /// Back-nav double-check alert title — Among Us spaceship-eject
+            /// metaphor (player abandoning the crew). The destructive action
+            /// reuses the existing `eject` key.
+            static var leaveTitle: String {
+                NSLocalizedString("aiCoach.amongWurds.leaveTitle", value: "Eject from Ship?", comment: "Among wUrdS: back-nav alert title — Among Us spaceship metaphor")
+            }
+            static var leaveMessage: String {
+                NSLocalizedString("aiCoach.amongWurds.leaveMessage", value: "Your crew's lives are still in danger \u{2014} imposters on the loose!", comment: "Among wUrdS: back-nav alert body — appeals to player's responsibility to the surviving crew")
+            }
+            /// Cancel-button label for the back-nav alert. Stays in-theme
+            /// (player remains on the spaceship). Distinct from any
+            /// existing `eject*` keys.
+            static var stayAboard: String {
+                NSLocalizedString("aiCoach.amongWurds.stayAboard", value: "Stay Aboard", comment: "Among wUrdS: cancel leaving mid-round — keeps the spaceship-crew metaphor")
+            }
         }
 
         // MARK: Morpheme Maury
@@ -848,16 +888,16 @@ nonisolated enum L10n {
                 NSLocalizedString("aiCoach.phrasyFeud.tryAgain", value: "Try Again", comment: "Phrasy Feud: retry button after engine error")
             }
             static var leaveTitle: String {
-                NSLocalizedString("aiCoach.phrasyFeud.leaveTitle", value: "Leaving the show?", comment: "Phrasy Feud: back-nav double-check alert title")
+                NSLocalizedString("aiCoach.phrasyFeud.leaveTitle", value: "Walking off the show?", comment: "Phrasy Feud: back-nav double-check alert title — broadcast contestant-walks-off-stage framing")
             }
             static var leaveMessage: String {
-                NSLocalizedString("aiCoach.phrasyFeud.leaveMessage", value: "Your current round will end. Sure you want to leave?", comment: "Phrasy Feud: back-nav double-check alert body")
+                NSLocalizedString("aiCoach.phrasyFeud.leaveMessage", value: "You'll forfeit the prize money still on the table — don't walk away from the cash!", comment: "Phrasy Feud: back-nav alert body — appeals to contestants' core motivation (prize money) per Family Feud broadcast convention")
             }
             static var leaveShow: String {
-                NSLocalizedString("aiCoach.phrasyFeud.leaveShow", value: "Leave", comment: "Phrasy Feud: confirm leaving mid-round")
+                NSLocalizedString("aiCoach.phrasyFeud.leaveShow", value: "Walk Off", comment: "Phrasy Feud: confirm leaving mid-round — destructive action verb, stage exit metaphor")
             }
             static var stayOnShow: String {
-                NSLocalizedString("aiCoach.phrasyFeud.stayOnShow", value: "Stay", comment: "Phrasy Feud: cancel leaving mid-round")
+                NSLocalizedString("aiCoach.phrasyFeud.stayOnShow", value: "Stay on Stage", comment: "Phrasy Feud: cancel leaving mid-round — keeps the broadcast-stage metaphor")
             }
             static func finaleTitle(_ points: Int) -> String {
                 String(format: NSLocalizedString("aiCoach.phrasyFeud.finaleTitle", value: "%d POINTS", comment: "Phrasy Feud: end-of-round headline — the points scored, formatted as the large hero text"), points)

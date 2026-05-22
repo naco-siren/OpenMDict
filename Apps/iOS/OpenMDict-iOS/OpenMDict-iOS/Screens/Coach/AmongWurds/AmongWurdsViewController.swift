@@ -172,17 +172,35 @@ final class AmongWurdsViewController: UIViewController {
     }
 
     private func updateTitleProgress() {
+        // Nav icon + title both tinted `.systemOrange` to match the AI Coach
+        // chooser facade's StudyMode.image for this mode (bespoke
+        // `AmongWurds` PNG — Among Us crewmate silhouette).
+        //
+        // PNG attachment needs explicit `bounds` to scale down to text
+        // height — unlike SF symbols, PNGs use pixel-native size by
+        // default. 18×18 with y=-3 baseline-aligns to 16pt semibold text.
         let attachment = NSTextAttachment()
-        attachment.image = UIImage(systemName: "person.3.fill")?
-            .withTintColor(.secondaryLabel, renderingMode: .alwaysOriginal)
+        attachment.image = UIImage(named: "AmongWurds")?
+            .withTintColor(.systemOrange, renderingMode: .alwaysOriginal)
+        attachment.bounds = CGRect(x: 0, y: -3, width: 18, height: 18)
         let attrText = NSMutableAttributedString(attachment: attachment)
+        // Title text tinted the same `.systemOrange` as the icon — both
+        // surfaces (chooser cell + nav bar) now carry the same brand color
+        // for this mode.
+        let textAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor.systemOrange,
+            .font: UIFont.systemFont(ofSize: 16, weight: .semibold),
+        ]
         let total = queueWords.count
         if total > 0 {
             let current = min(queueCursor + 1, total)
             attrText.append(NSAttributedString(
-                string: " " + L10n.AICoach.AmongWurds.title + "  \(current)/\(total)"))
+                string: " " + L10n.AICoach.AmongWurds.title + "  \(current)/\(total)",
+                attributes: textAttrs))
         } else {
-            attrText.append(NSAttributedString(string: " " + L10n.AICoach.AmongWurds.title))
+            attrText.append(NSAttributedString(
+                string: " " + L10n.AICoach.AmongWurds.title,
+                attributes: textAttrs))
         }
         navTitleLabel.attributedText = attrText
         navTitleLabel.sizeToFit()
@@ -202,13 +220,28 @@ final class AmongWurdsViewController: UIViewController {
         case .revealing, .failed, .loading, .completed:
             navigationController?.popViewController(animated: true)
         case .playing:
+            // Themed Among-Us-spaceship copy: "Eject from Ship? / Your
+            // crew's lives are still in danger… / Eject / Stay Aboard".
+            // Destructive action reuses the existing `eject` key (same
+            // verb the game's in-round buzzer uses); cancel uses a new
+            // `stayAboard` key. Replaces the generic AICoach `leave*`
+            // keys which read as flat boilerplate.
             let alert = UIAlertController(
-                title: L10n.AICoach.leaveTitle, message: L10n.AICoach.leaveMessage, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: L10n.AICoach.leaveAction, style: .destructive) { [weak self] _ in
+                title: L10n.AICoach.AmongWurds.leaveTitle,
+                message: L10n.AICoach.AmongWurds.leaveMessage,
+                preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: L10n.AICoach.AmongWurds.eject, style: .destructive) { [weak self] _ in
                 self?.stopAllTimers()
                 self?.navigationController?.popViewController(animated: true)
             })
-            alert.addAction(UIAlertAction(title: L10n.AICoach.stayAction, style: .cancel))
+            // `.default` + `preferredAction` highlights "Stay Aboard"
+            // as the recommended choice per Apple HIG (tinted background
+            // button on iOS 26 Liquid Glass; bold title on older iOS).
+            // See PhrasyFeudViewController.backTapped for the rationale
+            // re: trade-off vs `.cancel` style.
+            let stayAction = UIAlertAction(title: L10n.AICoach.AmongWurds.stayAboard, style: .default)
+            alert.addAction(stayAction)
+            alert.preferredAction = stayAction
             present(alert, animated: true)
         }
     }

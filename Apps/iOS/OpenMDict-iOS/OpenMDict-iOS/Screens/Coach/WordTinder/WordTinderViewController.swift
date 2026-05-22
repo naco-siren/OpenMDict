@@ -126,18 +126,49 @@ final class WordTinderViewController: UIViewController {
     }
 
     private func updateTitleProgress() {
+        // Nav icon + title both tinted `.systemPink` to match the AI Coach
+        // chooser facade's StudyMode.image for this mode (`flame` symbol).
+        //
+        // History of this 2-line incantation:
+        //   1. Originally `.withTintColor(.systemPink, .alwaysOriginal)`
+        //      alone — the concern was that this wouldn't override flame's
+        //      multicolor variant. (Worry was wrong: flame's default
+        //      IS monochrome.)
+        //   2. Then swapped to `paletteColors:[.systemPink]` + plain
+        //      `.withRenderingMode(.alwaysOriginal)` — which **broke
+        //      tinting entirely**: NSTextAttachment treated the image
+        //      as template again and the nav bar's default `.systemBlue`
+        //      tint bled through. The flame rendered blue, not pink.
+        //   3. Back to `.withTintColor(...)`-based approach, but ALSO
+        //      pre-config with `.preferringMonochrome()` as a belt-and-
+        //      suspenders against future iOS releases promoting `flame`
+        //      to a multicolor default. PNG icons in the other 3 VCs
+        //      don't need either of these dances because PNG template
+        //      rendering is well-behaved out of the box.
         let attachment = NSTextAttachment()
-        attachment.image = UIImage(systemName: "plus.forwardslash.minus")?
-            .withTintColor(.secondaryLabel, renderingMode: .alwaysOriginal)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+            .applying(UIImage.SymbolConfiguration.preferringMonochrome())
+        attachment.image = UIImage(systemName: "flame", withConfiguration: cfg)?
+            .withTintColor(.systemPink, renderingMode: .alwaysOriginal)
         let attrText = NSMutableAttributedString(attachment: attachment)
 
+        // Title text tinted the same `.systemPink` as the icon — if the
+        // icon carries the mode's brand color, the text should too;
+        // otherwise the colored icon reads as a typo'd accent.
+        let textAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor.systemPink,
+            .font: UIFont.systemFont(ofSize: 16, weight: .semibold),
+        ]
         let total = queueWords.count
         if total > 0 {
             let current = min(queueCursor + 1, total)
             attrText.append(NSAttributedString(
-                string: " " + L10n.AICoach.Quiz.titleShort + "  \(current)/\(total)"))
+                string: " " + L10n.AICoach.Quiz.titleShort + "  \(current)/\(total)",
+                attributes: textAttrs))
         } else {
-            attrText.append(NSAttributedString(string: " " + L10n.AICoach.Quiz.titleShort))
+            attrText.append(NSAttributedString(
+                string: " " + L10n.AICoach.Quiz.titleShort,
+                attributes: textAttrs))
         }
         navTitleLabel.attributedText = attrText
         navTitleLabel.sizeToFit()
@@ -159,15 +190,24 @@ final class WordTinderViewController: UIViewController {
         case .graded, .failed, .loading, .completed:
             navigationController?.popViewController(animated: true)
         case .answering:
+            // Themed dating-app copy: "Heartbroken? / Your match is still
+            // in your queue… / Ghost Them / Give Love a Chance". Replaces
+            // the generic AICoach `leave*` keys, which read as flat
+            // boilerplate against the chooser facade's playful tone.
             let alert = UIAlertController(
-                title: L10n.AICoach.leaveTitle,
-                message: L10n.AICoach.leaveMessage,
+                title: L10n.AICoach.Quiz.leaveTitle,
+                message: L10n.AICoach.Quiz.leaveMessage,
                 preferredStyle: .alert
             )
-            alert.addAction(UIAlertAction(title: L10n.AICoach.leaveAction, style: .destructive) { [weak self] _ in
+            alert.addAction(UIAlertAction(title: L10n.AICoach.Quiz.ghostThem, style: .destructive) { [weak self] _ in
                 self?.navigationController?.popViewController(animated: true)
             })
-            alert.addAction(UIAlertAction(title: L10n.AICoach.stayAction, style: .cancel))
+            // `.default` + `preferredAction` — see PhrasyFeudViewController
+            // for the HIG rationale. "Give Love a Chance" gets the
+            // tinted-background highlighting that pulls the user's eye.
+            let stayAction = UIAlertAction(title: L10n.AICoach.Quiz.giveLoveChance, style: .default)
+            alert.addAction(stayAction)
+            alert.preferredAction = stayAction
             present(alert, animated: true)
         }
     }

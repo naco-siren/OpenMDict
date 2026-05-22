@@ -165,14 +165,18 @@ final class MorphemeMauryViewController: UIViewController {
     }
 
     private func updateTitleProgress() {
+        // Nav icon + title both tinted `.systemIndigo` to match the AI Coach
+        // chooser facade's StudyMode.image for this mode (bespoke
+        // `MorphemeMaury` "morph" wordmark PNG). Replaces the prior
+        // `.white` title text + theater-masks palette icon — neither
+        // matched the chooser's indigo identity.
+        //
+        // PNG attachment needs explicit `bounds` to scale down to text
+        // height — 18×18 with y=-3 baseline-aligns to 16pt semibold text.
         let attachment = NSTextAttachment()
-        // `theatermasks.fill` is a multi-part SF Symbol: comedy (happy) mask
-        // + tragedy (sad) mask. Palette rendering colors each part separately —
-        // happy = green (success), sad = red (failure). Nicely encapsulates
-        // the two outcomes of the show in the nav icon itself.
-        let config = UIImage.SymbolConfiguration(paletteColors: [.systemGreen, .systemRed])
-        attachment.image = UIImage(systemName: "theatermasks.fill", withConfiguration: config)?
-            .withRenderingMode(.alwaysOriginal)
+        attachment.image = UIImage(named: "MorphemeMaury")?
+            .withTintColor(.systemIndigo, renderingMode: .alwaysOriginal)
+        attachment.bounds = CGRect(x: 0, y: -3, width: 18, height: 18)
         let attrText = NSMutableAttributedString(attachment: attachment)
         let suffix: String
         let total = queueWords.count
@@ -184,7 +188,7 @@ final class MorphemeMauryViewController: UIViewController {
         }
         attrText.append(NSAttributedString(
             string: suffix,
-            attributes: [.foregroundColor: UIColor.white,
+            attributes: [.foregroundColor: UIColor.systemIndigo,
                          .font: UIFont.systemFont(ofSize: 16, weight: .semibold)]))
         navTitleLabel.attributedText = attrText
         navTitleLabel.sizeToFit()
@@ -209,8 +213,14 @@ final class MorphemeMauryViewController: UIViewController {
                 title: L10n.AICoach.Maury.leaveShow, style: .destructive) { [weak self] _ in
                     self?.navigationController?.popViewController(animated: true)
                 })
-            alert.addAction(UIAlertAction(
-                title: L10n.AICoach.Maury.stayOnStage, style: .cancel))
+            // `.default` + `preferredAction` highlights "Back to the
+            // Stage" as the recommended choice per Apple HIG. See
+            // PhrasyFeudViewController.backTapped for the rationale
+            // re: trade-off vs `.cancel` style.
+            let stayAction = UIAlertAction(
+                title: L10n.AICoach.Maury.stayOnStage, style: .default)
+            alert.addAction(stayAction)
+            alert.preferredAction = stayAction
             present(alert, animated: true)
         default:
             navigationController?.popViewController(animated: true)
