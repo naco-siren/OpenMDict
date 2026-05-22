@@ -34,7 +34,11 @@ class ArticleViewController: UIViewController {
 
     private var articles: [ArticleDisplayItem] = []
     private(set) var currentPageIndex: Int = 0
-    private var currentZoomLevel: Int = ZoomLevel.defaultLevel
+    /// Lazy-init from the persisted compact-trait zoom so a freshly-built
+    /// pager (cold start, or after navigating away + back) starts at the
+    /// user's last-used level instead of always 100%.  Subsequent updates
+    /// arrive via `setZoomLevel(_:)` from DetailContainerVC.applyZoom().
+    private lazy var currentZoomLevel: Int = UserDefaults.shared.initialZoomLevel(compact: true)
     private var lookupCountCancellable: AnyCancellable?
     private var bookmarkCancellable: AnyCancellable?
 
@@ -326,6 +330,13 @@ class ArticleViewController: UIViewController {
 
         // Apply per-dict dark mode enhancement strength.
         pageView.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: article.dictId))
+
+        // Propagate the pager's current zoom to the freshly-created page —
+        // otherwise it would render at default 100% even when the user has
+        // an active 50% / 150% session (currentZoomLevel is the source of
+        // truth, updated by DetailContainerVC.applyZoom on slider changes
+        // and seeded from UserDefaults on first access).
+        pageView.setZoomLevel(currentZoomLevel)
 
         loadContent(for: article, in: pageView)
 

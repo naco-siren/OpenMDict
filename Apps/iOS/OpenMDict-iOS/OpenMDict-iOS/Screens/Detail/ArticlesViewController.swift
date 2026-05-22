@@ -39,7 +39,14 @@ class ArticlesViewController: UIViewController {
     private var lookupHistoryCancellable: AnyCancellable?
     private var articles: [ArticleDisplayItem] = []
     private var layoutMode: ArticleLayoutMode = .columns
-    private var zoomLevel: Int = ZoomLevel.defaultLevel
+    /// Lazy-init from the persisted regular-trait zoom.  The cell
+    /// registration closure already calls `cell.setZoomLevel(self.zoomLevel)`
+    /// for every dequeued cell, so seeding the right initial value here
+    /// makes freshly-built cells (cold start, scroll-induced dequeue,
+    /// article-list rebuild) render at the user's last-used level.
+    /// Subsequent updates arrive via `setZoomLevel(_:)` from
+    /// DetailContainerVC.applyZoom().
+    private lazy var zoomLevel: Int = UserDefaults.shared.initialZoomLevel(compact: false)
 
     // Track cell that needs to present find after context menu dismisses
     private var pendingFindIndexPath: IndexPath?
