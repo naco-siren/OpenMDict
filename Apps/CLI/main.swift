@@ -100,6 +100,13 @@ func printUsage() {
         openmdict <mdx_file> describe               Parse description (test extraction)
         openmdict <mdx_file> debug <word>           Debug key lookup (hex bytes)
 
+    \(colored("Experimental (M15 — semantic search probe):", .yellow))
+        openmdict <mdx_file> semantic <word> [--lang en] [--limit 10] [--scope both]
+            Print top-K semantically similar words via NLEmbedding.
+            --scope all  = NLEmbedding vocab-wide top-K
+            --scope dict = top-K restricted to this MDX's keywords
+            --scope both = both (default)
+
     \(colored("Sidecar Index Commands:", .yellow))
         openmdict sidecar info <mdx_file>           Show sidecar status for a dictionary
         openmdict sidecar rebuild <mdx_file>        Force rebuild the sidecar (delete + reload)
@@ -277,6 +284,10 @@ func main() {
 
             case "describe":
                 debugDescribe(dict: dict)
+
+            case "semantic":
+                // Pass ["semantic", word, ...flags] so the handler can parse positionally.
+                handleSemanticSubcommand(dict: dict, args: Array(args.dropFirst(2)))
 
             default:
                 eprintln(colored("Unknown command: \(command)", .red))
