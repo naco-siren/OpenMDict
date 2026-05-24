@@ -48,7 +48,11 @@ private struct MDictMetadataResult: Sendable {
 ///
 /// Usage:
 /// ```swift
-/// let dict = MDict(path: "MyDict.mdx")
+/// // id is the SHA256 of the MDX header — content-derived, stable across
+/// // launches, devices, and renames. Compute it from MDictMetadata once
+/// // during import; thereafter MDict.id is the canonical identity used by
+/// // sidecar caches, CoreData metadata, CloudKit syncs, etc.
+/// let dict = MDict(path: "/.../foo.mdx", id: headerSHA256, mddPaths: [])
 /// try await dict.load()
 /// if let entry = dict.lookup("hello") {
 ///     print(entry.article.html)
@@ -143,27 +147,23 @@ public final class MDict: ObservableObject, Identifiable {
     public var isLoaded: Bool { _reader != nil }
     
     // MARK: - Initialization
-    
-    /// Create a dictionary ViewModel from MDX path
-    /// ID is derived from filename (e.g., "MyDict" from "MyDict.mdx")
-    public nonisolated init(path: String) {
-        self.path = path
-        self.id = Self.extractId(from: path)
-        self.originalFileName = Self.extractOriginalFileName(from: path)
-    }
-    
-    /// Create a dictionary ViewModel with explicit ID
-    /// Use this for imported dictionaries where ID should be the storage directory name (SHA256)
-    /// rather than the filename (which is always "0.mdx")
-    public nonisolated init(path: String, id: String) {
-        self.path = path
-        self.id = id
-        self.originalFileName = Self.extractOriginalFileName(from: path)
-        self.mddPaths = nil
-    }
-    
-    /// Create a dictionary ViewModel with explicit ID and MDD paths
-    /// Use this for imported dictionaries where MDDs are in a different directory
+
+    /// Create a dictionary ViewModel from an MDX path with an explicit content-
+    /// derived id and the list of paired MDD paths.
+    ///
+    /// `id` is expected to be the SHA256 hash of the MDX header bytes (the
+    /// canonical identity used by `DictMetadataService`, sidecar caches,
+    /// CloudKit syncs, and the storage directory layout). Callers should pull
+    /// it from `MDictMetadata.headerSHA256` after reading the header, or — if
+    /// they already have it from prior persistence — pass that value through.
+    ///
+    /// We intentionally do NOT provide a path-only initializer that would
+    /// derive id from the filename: many imported dicts live at paths like
+    /// `…/<sha256>/0.mdx` where the filename carries no useful identity, and
+    /// silently picking up a filename-based id would diverge from the SHA256
+    /// identity used everywhere downstream. Pre-this-cleanup, the unused
+    /// filename-based init existed as a footgun; deleted along with its
+    /// no-mdd-paths sibling.
     public nonisolated init(path: String, id: String, mddPaths: [String]) {
         self.path = path
         self.id = id
@@ -182,12 +182,7 @@ public final class MDict: ObservableObject, Identifiable {
         self.metadata = metadata
         self.state = .loaded
     }
-    
-    private nonisolated static func extractId(from path: String) -> String {
-        let filename = (path as NSString).lastPathComponent
-        return (filename as NSString).deletingPathExtension
-    }
-    
+
     private nonisolated static func extractOriginalFileName(from path: String) -> String {
         (path as NSString).lastPathComponent.replacingOccurrences(of: ".mdx", with: "", options: .caseInsensitive)
     }
