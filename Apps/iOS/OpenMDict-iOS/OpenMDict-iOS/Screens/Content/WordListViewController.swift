@@ -125,9 +125,9 @@ class WordListViewController: UIViewController {
     /// `lexicalSession` and `semanticSession` as the user toggles scope.
     private var activeSession: (any LookupSessionProtocol)?
 
-    /// Currently selected scope. Initialized from UserDefaults so the user's
-    /// last choice persists across launches.
-    private var currentScope: SearchScope = SearchScope.persisted
+    /// Currently selected scope. Always starts on `.spelling` per cold launch;
+    /// see `SearchScope` doc for the rationale.
+    private var currentScope: SearchScope = .spelling
 
     /// Swap the active session and rewire subscriptions. Idempotent if the
     /// session reference hasn't changed.
@@ -181,7 +181,7 @@ class WordListViewController: UIViewController {
             L10n.WordList.searchScopeSpelling,
             L10n.WordList.searchScopeSemantic,
         ]
-        sc.searchBar.selectedScopeButtonIndex = SearchScope.persisted.rawValue
+        sc.searchBar.selectedScopeButtonIndex = SearchScope.spelling.rawValue
         // Force scope bar visible at all times — on iOS 15 the default is
         // hidden (showsScopeBar = false); on iOS 16+ `automaticallyShowsScopeBar`
         // only reveals it once search is active. We want users to discover
@@ -195,21 +195,23 @@ class WordListViewController: UIViewController {
     }()
 
     /// Search-bar scope segmented control. Index 0 = spelling (default),
-    /// index 1 = semantic. Persisted to UserDefaults so the user's choice
-    /// survives app launches.
+    /// index 1 = semantic.
+    ///
+    /// **Not persisted across launches** — every cold start begins on `.spelling`
+    /// scope. This is the canonical "neutral" state the rest of the app's
+    /// initial-selection logic (default-group auto-pick, sidebar highlight,
+    /// title view) is wired up against. Persisting scope across launches
+    /// previously caused a subtle bug: on a launch where persisted scope was
+    /// `.semantic`, the parent VC's initial `setContext(group: defaultGroup)`
+    /// call would route through an `activeSession` that was nil until
+    /// viewDidLoad finished lazily materializing the semantic session,
+    /// silently dropping the context.
+    ///
+    /// Scope still survives within a session — toggling has effect — but the
+    /// next cold start always lands back on spelling.
     private enum SearchScope: Int {
         case spelling = 0
         case semantic = 1
-
-        static let userDefaultsKey = "searchScopeSelectedIndex"
-
-        static var persisted: SearchScope {
-            SearchScope(rawValue: UserDefaults.standard.integer(forKey: userDefaultsKey)) ?? .spelling
-        }
-
-        func persist() {
-            UserDefaults.standard.set(rawValue, forKey: Self.userDefaultsKey)
-        }
     }
 
     private lazy var tableView: UITableView = {
@@ -323,17 +325,10 @@ class WordListViewController: UIViewController {
             emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
-        // M15: if the user's persisted scope is `.semantic`, materialize the
-        // semantic session before initial subscriptions so the publishers wire
-        // to the right session. Parent injection only sets `lexicalSession`;
-        // `semanticSession` is owned here and is created lazily.
-        if currentScope == .semantic {
-            if semanticSession == nil { semanticSession = SemanticLookupSession() }
-            if let lexical = lexicalSession {
-                semanticSession?.setContext(lexical.currentContext)
-            }
-            activeSession = semanticSession   // direct assign — subscribe calls below pick it up
-        }
+        // Scope always starts on `.spelling` on cold launch (see SearchScope
+        // docs), so `lexicalSession` is the active session and the parent's
+        // `setContext(group:)` from `applyInitialSelection` has already
+        // landed on it. Subscribe straight to that.
 
         subscribeToSearchResults()
         subscribeToLemmaResults()
@@ -698,15 +693,21 @@ class WordListViewController: UIViewController {
     // MARK: - Context Setting (called by MainSplitVC)
 
     func loadWords(for group: MDicts) {
-        // Update search context - triggers reactive pipeline if query exists
-        searchSession?.setContext(group: group)
+        // Push to BOTH sessions, not just `searchSession` (= active session).
+        // If we only updated the active one, a later scope flip would surface
+        // the OTHER session with a stale context (e.g. user changes dict in
+        // sidebar while on the semantic scope, then flips back to spelling —
+        // spelling session would still be pointed at the previous dict).
+        // Keeping the two in lock-step is cheaper than chasing every edge.
+        lexicalSession?.setContext(group: group)
+        semanticSession?.setContext(group: group)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
     }
 
     func loadWords(for dict: MDict) {
-        // Update search context - triggers reactive pipeline if query exists
-        searchSession?.setContext(dict: dict)
+        lexicalSession?.setContext(dict: dict)
+        semanticSession?.setContext(dict: dict)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
     }
@@ -1185,7 +1186,7 @@ extension WordListViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
         guard let scope = SearchScope(rawValue: selectedScope), scope != currentScope else { return }
         currentScope = scope
-        scope.persist()
+        // Intentionally not persisted to UserDefaults — see SearchScope doc.
 
         switch scope {
         case .spelling:
