@@ -490,16 +490,33 @@ class WordListViewController: UIViewController {
 
     // MARK: - Reactive Binding
 
-    /// Cancel existing search subscriptions and re-subscribe to the new session.
-    /// Called from `searchSession.didSet` when the session object changes after
-    /// viewDidLoad (e.g. iPhone: CompactTabBarController's local session replaced
-    /// by MainSplitVC's shared session during state transfer).
+    /// Cancel existing search subscriptions and re-subscribe to the new active
+    /// session. Then synchronously pull the new session's current state into
+    /// the VC's local arrays — the publisher sinks above will deliver the
+    /// initial @Published values asynchronously (next runloop tick) and we
+    /// don't want a brief flicker of stale prior-session state in between.
     private func resubscribeToSearchSession() {
         searchCancellables.removeAll()
         subscribeToSearchResults()
         subscribeToLemmaResults()
         subscribeToSuggestions()
         subscribeToSearchSettled()
+        snapshotActiveSessionState()
+    }
+
+    /// Synchronously mirror the active session's published state into the
+    /// VC's local arrays. Used right after swapping `activeSession` to
+    /// avoid a one-runloop-tick gap during which the table would still
+    /// reflect the previous session's contents. Idempotent — the publisher
+    /// sinks will overwrite with the same values on the next tick.
+    private func snapshotActiveSessionState() {
+        guard let s = activeSession else { return }
+        displayedWords = s.results
+        lemmaWords     = s.lemmaResults
+        suggestedWords = s.suggestions
+        isSearchSettled = s.isSearchSettled
+        rebuildSections()
+        updateEmptyState()
     }
 
     /// Clear search bar and reset to idle state.  Called during compact ↔ regular
@@ -521,7 +538,11 @@ class WordListViewController: UIViewController {
 
     private func subscribeToSearchResults() {
         searchSession?.resultsPublisher
-            .dropFirst()
+            // .dropFirst() removed — experimentally, to see whether the
+            // initial @Published emission causes UI flicker / unwanted
+            // rebuilds. The original reason for the drop is not documented;
+            // we want the initial emit so that swapping sessions surfaces
+            // the new session's existing state. Re-evaluate after dogfood.
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
                 guard let self else { return }
@@ -533,7 +554,6 @@ class WordListViewController: UIViewController {
 
     private func subscribeToLemmaResults() {
         searchSession?.lemmaResultsPublisher
-            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] results in
                 guard let self else { return }
@@ -545,7 +565,6 @@ class WordListViewController: UIViewController {
 
     private func subscribeToSuggestions() {
         searchSession?.suggestionsPublisher
-            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] suggestions in
                 guard let self else { return }
@@ -557,7 +576,6 @@ class WordListViewController: UIViewController {
 
     private func subscribeToSearchSettled() {
         searchSession?.isSearchSettledPublisher
-            .dropFirst()
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] settled in
@@ -1177,11 +1195,12 @@ extension WordListViewController: UITableViewDelegate {
             //     The candidate isn't tied to a specific dict (the service
             //     produces a deduped word-only list), so we use the current
             //     context's dict for navigation.
-            //   - Group context → flip to spelling scope + inject the word as
-            //     the new query. The spelling pipeline then surfaces the
-            //     word's per-dict results just like a normal lookup. This
-            //     commits the user from "exploring semantic neighbors" to
-            //     "I want this specific word".
+            //   - Group context → atomically flip to spelling + seed the
+            //     spelling session with the chosen word. The semantic session
+            //     keeps its own (query, results) so flipping back to semantic
+            //     restores the exploration state without re-running the
+            //     compute. The spelling pipeline then surfaces the word's
+            //     per-dict results just like a normal lookup.
             switch searchSession?.currentContext ?? .none {
             case .dictionary(let dict):
                 onWordSelected?(WordDisplayItem(
@@ -1190,8 +1209,7 @@ extension WordListViewController: UITableViewDelegate {
                     dictName: dict.preferredTitle
                 ))
             case .group:
-                setScope(.spelling)
-                injectSearchText(word)
+                setScope(.spelling, query: word)
             case .none:
                 // No context to route against — best-effort fallback.
                 injectSearchText(word)
@@ -1287,11 +1305,24 @@ extension WordListViewController: UISearchBarDelegate {
 }
 
 extension WordListViewController {
-    /// Programmatic scope change. Also called by `selectedScopeButtonIndex
-    /// DidChange` on user toggle, and by the semantic candidate tap handler
-    /// in group context.
-    fileprivate func setScope(_ scope: SearchScope) {
-        guard scope != currentScope else { return }
+    /// Programmatic scope change. Called by `selectedScopeButtonIndexDidChange`
+    /// on user toggle, and by the semantic-candidate tap handler (with an
+    /// explicit `query` override).
+    ///
+    /// Data flow: **view follows model**. We never force the active session's
+    /// query to match the search bar on flip; instead we mirror the new active
+    /// session's `currentQuery` into the search bar. Each session keeps its
+    /// own `(query, results, …)` state independently, so flipping back and
+    /// forth surfaces each scope's last state without re-running the pipeline
+    /// (sessions' `updateQuery` is idempotent on same-value).
+    ///
+    /// `overrideQuery` is for the semantic-candidate tap path: it lets the
+    /// caller atomically (a) flip to the spelling scope and (b) seed it with
+    /// the chosen candidate, without going through the search-bar setter
+    /// twice.
+    fileprivate func setScope(_ scope: SearchScope, query overrideQuery: String? = nil) {
+        guard scope != currentScope || overrideQuery != nil else { return }
+        let prevActive = activeSession
         currentScope = scope
         // Keep the segmented control in sync — setting it programmatically
         // does NOT call the delegate, so no recursion risk.
@@ -1301,19 +1332,51 @@ extension WordListViewController {
         case .spelling:
             setActiveSession(spellingSession)
         case .semantic:
+            // First-ever flip into semantic: inherit BOTH context and query
+            // from the currently-active session (typically spelling). Done
+            // once at creation; after this each session owns its own query
+            // independently. `loadWords` keeps context in lock-step across
+            // both, so we don't need to re-sync context here.
             if semanticSession == nil {
-                semanticSession = SemanticLookupSession()
+                let new = SemanticLookupSession()
+                if let prev = prevActive {
+                    new.setContext(prev.currentContext)
+                    new.updateQuery(prev.currentQuery)
+                }
+                semanticSession = new
             }
-            // Context is kept in lockstep across both sessions by loadWords —
-            // no need to copy spelling.currentContext over here.
             setActiveSession(semanticSession)
         }
 
-        // Re-fire the current search-bar text against the newly-active session
-        // so results refresh under the new scope immediately.
-        activeSession?.updateQuery(searchController.searchBar.text ?? "")
+        // Explicit query injection — used by the candidate-tap path to seed
+        // the spelling session with the chosen candidate before surfacing it.
+        // Idempotent on same-value (see SpellingLookupSession.updateQuery).
+        if let overrideQuery {
+            activeSession?.updateQuery(overrideQuery)
+            // We just kicked off a re-search with the override. The snapshot
+            // inside resubscribeToSearchSession already populated displayed
+            // Words / lemmaWords / suggestedWords with the new active
+            // session's PRE-override results (or its cached results from a
+            // prior unrelated query). Clear them so the pipeline's incoming
+            // emissions for the override query land on a clean canvas
+            // instead of flickering through stale rows.
+            displayedWords = []
+            lemmaWords = []
+            suggestedWords = []
+            isSearchSettled = false   // pipeline is in flight
+        }
+
+        // View follows model: mirror the active session's current query into
+        // the search bar. Triggers UISearchResultsUpdating → updateQuery,
+        // which is a no-op when the value already matches (idempotent guard).
+        searchController.searchBar.text = activeSession?.currentQuery
+
         updateDisplayState()
-        rebuildSections()   // section layout differs by scope (.semantic vs .spelling)
+        // snapshotActiveSessionState already ran inside resubscribeToSearch
+        // Session via setActiveSession, so displayedWords / lemmaWords /
+        // suggestedWords already reflect the new active session. We still
+        // rebuild sections here for the scope-dependent section layout.
+        rebuildSections()
     }
 }
 
