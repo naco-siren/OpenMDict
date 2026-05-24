@@ -349,7 +349,7 @@ extension MDict: @MainActor Lookupable {
                 }
                 .eraseToAnyPublisher()
             }
-            // No .receive(on: .main) — let downstream (LookupSession) handle thread hop.
+            // No .receive(on: .main) — let downstream (SpellingLookupSession) handle thread hop.
             .eraseToAnyPublisher()
     }
 }

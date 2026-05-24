@@ -53,11 +53,11 @@ enum SearchContext: Equatable {
     }
 }
 
-// MARK: - LookupSession (defined in LookupSession.swift)
+// MARK: - SpellingLookupSession (defined in SpellingLookupSession.swift)
 
-// LookupSession is a per-scene search handler.
+// SpellingLookupSession is a per-scene search handler.
 // DictionaryService provides factory method to create them.
-// See LookupSession.swift for implementation.
+// See SpellingLookupSession.swift for implementation.
 
 // MARK: - DictionaryService
 
@@ -181,9 +181,9 @@ final class DictionaryService: ObservableObject {
     // MARK: - Search Session Factory
     
     /// Create a new search session for a scene
-    /// Each scene should hold its own LookupSession instance
-    func createLookupSession() -> LookupSession {
-        LookupSession()
+    /// Each scene should hold its own SpellingLookupSession instance
+    func createSpellingLookupSession() -> SpellingLookupSession {
+        SpellingLookupSession()
     }
     
     // MARK: - Sessions (App-wide)

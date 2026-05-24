@@ -274,7 +274,7 @@ extension MDicts: @MainActor Lookupable {
     /// inference that would otherwise cause a data-race warning when Combine
     /// calls the closure on background threads (where each MDict publisher emits).
     ///
-    /// Downstream (`LookupSession`) receives N emissions (one per dict) via
+    /// Downstream (`SpellingLookupSession`) receives N emissions (one per dict) via
     /// `switchToLatest`, updating the word list progressively.
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
         let enabledItems = items.filter { $0.isEnabled }

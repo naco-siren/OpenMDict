@@ -11,7 +11,7 @@
 
 import Foundation
 
-/// Pipeline configuration for LookupSession, scaled by device RAM tier.
+/// Pipeline configuration for SpellingLookupSession, scaled by device RAM tier.
 nonisolated enum LookupPipelineConfig {
 
     // MARK: - Debounce

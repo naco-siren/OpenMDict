@@ -47,7 +47,7 @@ class MainSplitViewController: UISplitViewController {
     // MARK: - State
 
     private(set) var currentMode: AppMode = .lookup
-    private let searchSession = DictionaryService.shared.createLookupSession()
+    private let searchSession = DictionaryService.shared.createSpellingLookupSession()
     private var initialGroupId: String = ""
     private var currentGroup: MDicts?
     private var currentDict: MDict?

@@ -2,7 +2,7 @@
 //  LookupSessionProtocol.swift
 //  OpenMDict-iOS
 //
-//  Abstracts the LookupSession interface so WordListViewController can be
+//  Abstracts the SpellingLookupSession interface so WordListViewController can be
 //  driven by a mock session in tutorial mode.
 //
 
@@ -12,7 +12,7 @@ import OpenMDictKit
 
 /// Protocol for the lookup session consumed by WordListViewController.
 ///
-/// The concrete `LookupSession` class conforms to this protocol. A mock
+/// The concrete `SpellingLookupSession` class conforms to this protocol. A mock
 /// implementation can be created for tutorials with pre-populated data.
 @MainActor
 protocol LookupSessionProtocol: AnyObject {

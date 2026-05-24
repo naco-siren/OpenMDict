@@ -1,5 +1,5 @@
 //
-//  LookupSession.swift
+//  SpellingLookupSession.swift
 //  OpenMDict-iOS
 //
 //  Per-scene lookup session with reactive pipeline
@@ -12,7 +12,7 @@ import OpenMDictKit
 /// Independent lookup session for each scene
 /// Manages its own query, context, and results
 @MainActor
-final class LookupSession: ObservableObject, LookupSessionProtocol {
+final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
     
     // MARK: - Inputs
 

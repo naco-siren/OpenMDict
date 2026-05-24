@@ -7,7 +7,7 @@
 //  - Active + empty query: search bar focused — shows clipboard + history
 //  - Active + query: search bar has text — shows search results (+ suggestions if few)
 //
-//  All search logic is handled by the reactive pipeline in LookupSession.
+//  All search logic is handled by the reactive pipeline in SpellingLookupSession.
 //  History data is fetched from LookupHistoryService.
 //
 
@@ -106,17 +106,18 @@ class WordListViewController: UIViewController {
     /// Per-scene active search session — the one currently driving table results.
     /// Externally (MainSplitVC / CompactTabBarController), this is the spelling
     /// session being injected. Internally, it's whichever scope is currently
-    /// selected (lexical for `.spelling`, lazy SemanticLookupSession for `.semantic`).
+    /// selected (SpellingLookupSession for `.spelling`, lazy SemanticLookupSession
+    /// for `.semantic`).
     ///
-    /// The setter treats external assignment as "this is the lexical session":
-    /// it always updates `lexicalSession`, and only re-routes the active session
+    /// The setter treats external assignment as "this is the spelling session":
+    /// it always updates `spellingSession`, and only re-routes the active session
     /// + subscriptions if the user is currently on the spelling scope. If they're
-    /// on semantic, the new lexical session sits in the wings and takes over
+    /// on semantic, the new spelling session sits in the wings and takes over
     /// the next time scope flips back to spelling.
     var searchSession: (any LookupSessionProtocol)? {
         get { activeSession }
         set {
-            lexicalSession = newValue
+            spellingSession = newValue
             if currentScope == .spelling {
                 setActiveSession(newValue)
             }
@@ -125,14 +126,14 @@ class WordListViewController: UIViewController {
 
     /// Parent-injected spelling-scope session. Held strongly so we can swap
     /// back to it when the user flips out of semantic scope.
-    private var lexicalSession: (any LookupSessionProtocol)?
+    private var spellingSession: (any LookupSessionProtocol)?
 
     /// Created lazily on first flip into `.semantic` scope. Reused across
     /// scope toggles so its query / context state survives.
     private var semanticSession: SemanticLookupSession?
 
     /// The session actually backing the publishers right now. Switches between
-    /// `lexicalSession` and `semanticSession` as the user toggles scope.
+    /// `spellingSession` and `semanticSession` as the user toggles scope.
     private var activeSession: (any LookupSessionProtocol)?
 
     /// Currently selected scope. Always starts on `.spelling` per cold launch;
@@ -156,13 +157,13 @@ class WordListViewController: UIViewController {
     private var displayState: DisplayState = .idle
     private var sections: [SectionData] = []
 
-    /// Current displayed words (bound to LookupSession.$results)
+    /// Current displayed words (bound to SpellingLookupSession.$results)
     private var displayedWords: [WordDisplayItem] = []
 
-    /// Lemma-resolved related forms (bound to LookupSession.$lemmaResults)
+    /// Lemma-resolved related forms (bound to SpellingLookupSession.$lemmaResults)
     private var lemmaWords: [WordDisplayItem] = []
 
-    /// Suggested words when search results are few (bound to LookupSession.$suggestions)
+    /// Suggested words when search results are few (bound to SpellingLookupSession.$suggestions)
     private var suggestedWords: [String] = []
 
     /// Whether the full search pipeline has settled for the current query.
@@ -183,7 +184,7 @@ class WordListViewController: UIViewController {
         sc.delegate = self
         sc.obscuresBackgroundDuringPresentation = false
         sc.searchBar.placeholder = L10n.WordList.searchPlaceholder
-        // M15: scope bar swaps between spelling (lexical) and semantic
+        // M15: scope bar swaps between spelling and semantic
         // (NLEmbedding) search. We own searchBar.delegate to receive scope
         // changes — UISearchController still handles text via searchResultsUpdater.
         sc.searchBar.delegate = self
@@ -348,7 +349,7 @@ class WordListViewController: UIViewController {
         ])
 
         // Scope always starts on `.spelling` on cold launch (see SearchScope
-        // docs), so `lexicalSession` is the active session and the parent's
+        // docs), so `spellingSession` is the active session and the parent's
         // `setContext(group:)` from `applyInitialSelection` has already
         // landed on it. Subscribe straight to that.
 
@@ -737,14 +738,14 @@ class WordListViewController: UIViewController {
         // sidebar while on the semantic scope, then flips back to spelling —
         // spelling session would still be pointed at the previous dict).
         // Keeping the two in lock-step is cheaper than chasing every edge.
-        lexicalSession?.setContext(group: group)
+        spellingSession?.setContext(group: group)
         semanticSession?.setContext(group: group)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
     }
 
     func loadWords(for dict: MDict) {
-        lexicalSession?.setContext(dict: dict)
+        spellingSession?.setContext(dict: dict)
         semanticSession?.setContext(dict: dict)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
@@ -1274,7 +1275,7 @@ extension WordListViewController: UISearchControllerDelegate {
 
 extension WordListViewController: UISearchBarDelegate {
     /// Called whenever the user taps a different scope button. We swap
-    /// between the parent-injected lexical session and our internally-owned
+    /// between the parent-injected spelling session and our internally-owned
     /// SemanticLookupSession; the publisher subscriptions rewire via
     /// `setActiveSession` → `resubscribeToSearchSession`, and we re-feed the
     /// current query into the new session so the user sees fresh results
@@ -1298,13 +1299,13 @@ extension WordListViewController {
 
         switch scope {
         case .spelling:
-            setActiveSession(lexicalSession)
+            setActiveSession(spellingSession)
         case .semantic:
             if semanticSession == nil {
                 semanticSession = SemanticLookupSession()
             }
             // Context is kept in lockstep across both sessions by loadWords —
-            // no need to copy lexical.currentContext over here.
+            // no need to copy spelling.currentContext over here.
             setActiveSession(semanticSession)
         }
 

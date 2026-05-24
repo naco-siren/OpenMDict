@@ -4,10 +4,10 @@
 //
 //  M15 Phase 1, Step 1.3 — drop-in alternate session driving the search
 //  bar's `语义` scope. Conforms to LookupSessionProtocol so
-//  WordListViewController can swap between this and the lexical
-//  LookupSession by switching `searchSession`.
+//  WordListViewController can swap between this and the spelling-scope
+//  SpellingLookupSession by switching `searchSession`.
 //
-//  Behavioral differences vs. LookupSession:
+//  Behavioral differences vs. SpellingLookupSession:
 //
 //    - `results` is populated by SemanticSearchService.relatedKeywords,
 //      not by MDict prefix lookup.
@@ -20,10 +20,10 @@
 //      to "semantic neighbors of a non-existent word" in any useful way).
 //    - The pipeline is naturally slower (~100–500ms per cross-group query
 //      depending on dict count + cache state). isSearchSettled handles the
-//      "Searching…" UI state the same way LookupSession does.
+//      "Searching…" UI state the same way SpellingLookupSession does.
 //
 //  For now this file duplicates a fair amount of
-//  LookupSession scaffolding (pipeline setup, context handling, settings
+//  SpellingLookupSession scaffolding (pipeline setup, context handling, settings
 //  subscription). The shared parts can be factored out once the feature
 //  validates end-to-end.
 //
@@ -34,7 +34,7 @@ import OpenMDict
 import OpenMDictKit
 
 /// Lookup session for the `语义` scope. Drives the same publisher surface as
-/// LookupSession but powered by NLEmbedding cosine similarity rather than
+/// SpellingLookupSession but powered by NLEmbedding cosine similarity rather than
 /// MDict prefix/lemma/fuzzy matching.
 @MainActor
 final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
@@ -76,7 +76,7 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
 
     // MARK: - Reactive Pipeline
 
-    /// Mirrors LookupSession's CombineLatest3 pattern:
+    /// Mirrors SpellingLookupSession's CombineLatest3 pattern:
     /// ```
     /// (query, context, tier) ──► map to async semantic compute ──► results
     /// ```
