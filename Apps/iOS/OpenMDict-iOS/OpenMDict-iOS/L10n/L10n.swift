@@ -951,6 +951,14 @@ nonisolated enum L10n {
             NSLocalizedString("wordList.backButtonTitle", value: "Word Lookup", comment: "Back button title")
         }
 
+        // Search bar scope segmented control (M15 — spelling vs semantic lookup)
+        static var searchScopeSpelling: String {
+            NSLocalizedString("wordList.searchScope.spelling", value: "Spelling", comment: "Search bar scope: literal/lemma-based lookup (default)")
+        }
+        static var searchScopeSemantic: String {
+            NSLocalizedString("wordList.searchScope.semantic", value: "Semantic", comment: "Search bar scope: NLEmbedding-based semantic neighbor lookup (slower)")
+        }
+
         // Section headers (enhanced search UX)
         static var clipboardHeader: String {
             NSLocalizedString("wordList.clipboardHeader", value: "Clipboard", comment: "Section header for clipboard paste section")

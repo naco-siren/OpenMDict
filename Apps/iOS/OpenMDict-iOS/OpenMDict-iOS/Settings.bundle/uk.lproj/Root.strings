@@ -33,3 +33,9 @@
 "AI_COACH_GROUP" = "AI-наставник";
 "AI_COACH_ENABLED" = "Увімкнути AI-наставника";
 "AI_COACH_FOOTER" = "Потрібна iOS 26 і пристрій з підтримкою Apple Intelligence. Після увімкнення дія «AI-наставник» з'явиться на бічній панелі та у вкладці керування. AI-наставник використовує вбудовані Foundation Models від Apple для створення словникових тестів із ваших закладок англійських слів. Усе обробляється локально — дані не залишають ваш пристрій.";
+
+/* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
+"LOOKUP_SEMANTIC_RESULTS" = "Пов’язані слова на словник";
+"LOOKUP_SEMANTIC_FEW" = "Менше";
+"LOOKUP_SEMANTIC_DEFAULT" = "За замовчуванням";
+"LOOKUP_SEMANTIC_MORE" = "Більше";

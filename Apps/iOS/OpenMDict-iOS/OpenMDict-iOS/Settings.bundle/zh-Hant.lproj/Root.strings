@@ -33,3 +33,9 @@
 "AI_COACH_GROUP" = "AI 教練";
 "AI_COACH_ENABLED" = "啟用 AI 教練";
 "AI_COACH_FOOTER" = "需要 iOS 26 與支援 Apple 智能的裝置。啟用後，「AI 教練」操作將出現在側邊欄和管理頁籤中。AI 教練使用 Apple 的裝置端 Foundation Models，從您收藏的英文單字產生詞彙測驗。所有運算皆在本地完成——資料不會離開您的裝置。";
+
+/* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
+"LOOKUP_SEMANTIC_RESULTS" = "每本詞典的相關詞數量";
+"LOOKUP_SEMANTIC_FEW" = "較少";
+"LOOKUP_SEMANTIC_DEFAULT" = "預設";
+"LOOKUP_SEMANTIC_MORE" = "較多";

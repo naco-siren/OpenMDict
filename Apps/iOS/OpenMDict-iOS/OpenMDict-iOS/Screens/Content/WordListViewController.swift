@@ -93,14 +93,49 @@ class WordListViewController: UIViewController {
     var onSearchActivated: (() -> Void)?
     var onSearchDeactivated: (() -> Void)?
 
-    /// Per-scene search session (injected by MainSplitVC or CompactTabBarController).
-    /// When replaced after viewDidLoad, subscriptions are re-established automatically
-    /// so the reactive pipeline stays connected to the correct session.
+    /// Per-scene active search session — the one currently driving table results.
+    /// Externally (MainSplitVC / CompactTabBarController), this is the spelling
+    /// session being injected. Internally, it's whichever scope is currently
+    /// selected (lexical for `.spelling`, lazy SemanticLookupSession for `.semantic`).
+    ///
+    /// The setter treats external assignment as "this is the lexical session":
+    /// it always updates `lexicalSession`, and only re-routes the active session
+    /// + subscriptions if the user is currently on the spelling scope. If they're
+    /// on semantic, the new lexical session sits in the wings and takes over
+    /// the next time scope flips back to spelling.
     var searchSession: (any LookupSessionProtocol)? {
-        didSet {
-            guard searchSession !== oldValue, isViewLoaded else { return }
-            resubscribeToSearchSession()
+        get { activeSession }
+        set {
+            lexicalSession = newValue
+            if currentScope == .spelling {
+                setActiveSession(newValue)
+            }
         }
+    }
+
+    /// Parent-injected spelling-scope session. Held strongly so we can swap
+    /// back to it when the user flips out of semantic scope.
+    private var lexicalSession: (any LookupSessionProtocol)?
+
+    /// Created lazily on first flip into `.semantic` scope. Reused across
+    /// scope toggles so its query / context state survives.
+    private var semanticSession: SemanticLookupSession?
+
+    /// The session actually backing the publishers right now. Switches between
+    /// `lexicalSession` and `semanticSession` as the user toggles scope.
+    private var activeSession: (any LookupSessionProtocol)?
+
+    /// Currently selected scope. Initialized from UserDefaults so the user's
+    /// last choice persists across launches.
+    private var currentScope: SearchScope = SearchScope.persisted
+
+    /// Swap the active session and rewire subscriptions. Idempotent if the
+    /// session reference hasn't changed.
+    private func setActiveSession(_ session: (any LookupSessionProtocol)?) {
+        let old = activeSession
+        activeSession = session
+        guard session !== old, isViewLoaded else { return }
+        resubscribeToSearchSession()
     }
 
     private var cancellables = Set<AnyCancellable>()
@@ -138,8 +173,44 @@ class WordListViewController: UIViewController {
         sc.delegate = self
         sc.obscuresBackgroundDuringPresentation = false
         sc.searchBar.placeholder = L10n.WordList.searchPlaceholder
+        // M15: scope bar swaps between spelling (lexical) and semantic
+        // (NLEmbedding) search. We own searchBar.delegate to receive scope
+        // changes — UISearchController still handles text via searchResultsUpdater.
+        sc.searchBar.delegate = self
+        sc.searchBar.scopeButtonTitles = [
+            L10n.WordList.searchScopeSpelling,
+            L10n.WordList.searchScopeSemantic,
+        ]
+        sc.searchBar.selectedScopeButtonIndex = SearchScope.persisted.rawValue
+        // Force scope bar visible at all times — on iOS 15 the default is
+        // hidden (showsScopeBar = false); on iOS 16+ `automaticallyShowsScopeBar`
+        // only reveals it once search is active. We want users to discover
+        // the spelling↔semantic toggle without having to focus the field first,
+        // so we set scopeBarActivation = .manual and pin showsScopeBar = true.
+        sc.searchBar.showsScopeBar = true
+        if #available(iOS 16.0, *) {
+            sc.scopeBarActivation = .manual
+        }
         return sc
     }()
+
+    /// Search-bar scope segmented control. Index 0 = spelling (default),
+    /// index 1 = semantic. Persisted to UserDefaults so the user's choice
+    /// survives app launches.
+    private enum SearchScope: Int {
+        case spelling = 0
+        case semantic = 1
+
+        static let userDefaultsKey = "searchScopeSelectedIndex"
+
+        static var persisted: SearchScope {
+            SearchScope(rawValue: UserDefaults.standard.integer(forKey: userDefaultsKey)) ?? .spelling
+        }
+
+        func persist() {
+            UserDefaults.standard.set(rawValue, forKey: Self.userDefaultsKey)
+        }
+    }
 
     private lazy var tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
@@ -251,6 +322,18 @@ class WordListViewController: UIViewController {
             emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+
+        // M15: if the user's persisted scope is `.semantic`, materialize the
+        // semantic session before initial subscriptions so the publishers wire
+        // to the right session. Parent injection only sets `lexicalSession`;
+        // `semanticSession` is owned here and is created lazily.
+        if currentScope == .semantic {
+            if semanticSession == nil { semanticSession = SemanticLookupSession() }
+            if let lexical = lexicalSession {
+                semanticSession?.setContext(lexical.currentContext)
+            }
+            activeSession = semanticSession   // direct assign — subscribe calls below pick it up
+        }
 
         subscribeToSearchResults()
         subscribeToLemmaResults()
@@ -1087,6 +1170,45 @@ extension WordListViewController: UISearchControllerDelegate {
         clipboardText = nil
         updateDisplayState()
         onSearchDeactivated?()
+    }
+}
+
+// MARK: - UISearchBarDelegate (scope segmented control)
+
+extension WordListViewController: UISearchBarDelegate {
+    /// Called whenever the user taps a different scope button. We swap
+    /// between the parent-injected lexical session and our internally-owned
+    /// SemanticLookupSession; the publisher subscriptions rewire via
+    /// `setActiveSession` → `resubscribeToSearchSession`, and we re-feed the
+    /// current query into the new session so the user sees fresh results
+    /// for the same text under the new scope.
+    func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
+        guard let scope = SearchScope(rawValue: selectedScope), scope != currentScope else { return }
+        currentScope = scope
+        scope.persist()
+
+        switch scope {
+        case .spelling:
+            setActiveSession(lexicalSession)
+        case .semantic:
+            // First flip to semantic in this session — create the session lazily.
+            if semanticSession == nil {
+                semanticSession = SemanticLookupSession()
+            }
+            // Snapshot context from lexical so the semantic session knows which
+            // dict/group to search. Mid-session context changes from the parent
+            // VC after this point would land on lexicalSession only; user can
+            // flip scope to re-sync if needed.
+            if let lexical = lexicalSession {
+                semanticSession?.setContext(lexical.currentContext)
+            }
+            setActiveSession(semanticSession)
+        }
+
+        // Re-fire the current search-bar text against the newly-active session
+        // so results refresh under the new scope immediately.
+        activeSession?.updateQuery(searchBar.text ?? "")
+        updateDisplayState()
     }
 }
 

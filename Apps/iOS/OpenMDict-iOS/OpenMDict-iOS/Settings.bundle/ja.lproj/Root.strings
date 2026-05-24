@@ -33,3 +33,9 @@
 "AI_COACH_GROUP" = "AI コーチ";
 "AI_COACH_ENABLED" = "AI コーチを有効にする";
 "AI_COACH_FOOTER" = "iOS 26 と Apple Intelligence 対応デバイスが必要です。有効にすると、「AI コーチ」操作がサイドバーと管理タブに表示されます。AI コーチは Apple のオンデバイス Foundation Models を使用して、ブックマークした英単語から語彙クイズを生成します。すべての処理はローカルで実行され、データはデバイスから送信されません。";
+
+/* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
+"LOOKUP_SEMANTIC_RESULTS" = "辞書ごとの関連語数";
+"LOOKUP_SEMANTIC_FEW" = "少なめ";
+"LOOKUP_SEMANTIC_DEFAULT" = "標準";
+"LOOKUP_SEMANTIC_MORE" = "多め";

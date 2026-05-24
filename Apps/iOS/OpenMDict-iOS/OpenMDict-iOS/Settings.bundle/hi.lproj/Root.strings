@@ -33,3 +33,9 @@
 "AI_COACH_GROUP" = "AI कोच";
 "AI_COACH_ENABLED" = "AI कोच सक्षम करें";
 "AI_COACH_FOOTER" = "iOS 26 और Apple Intelligence समर्थित डिवाइस आवश्यक है। सक्षम करने पर, साइडबार और प्रबंधन टैब में «AI कोच» क्रिया दिखाई देती है। AI कोच आपके बुकमार्क किए गए अंग्रेजी शब्दों से शब्दावली क्विज़ बनाने के लिए Apple के ऑन-डिवाइस Foundation Models का उपयोग करता है। सब कुछ स्थानीय रूप से चलता है — कोई डेटा आपके डिवाइस से बाहर नहीं जाता।";
+
+/* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
+"LOOKUP_SEMANTIC_RESULTS" = "प्रति शब्दकोश संबंधित शब्द";
+"LOOKUP_SEMANTIC_FEW" = "कम";
+"LOOKUP_SEMANTIC_DEFAULT" = "डिफ़ॉल्ट";
+"LOOKUP_SEMANTIC_MORE" = "अधिक";

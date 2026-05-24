@@ -33,3 +33,9 @@
 "AI_COACH_GROUP" = "AI Coach";
 "AI_COACH_ENABLED" = "Activar AI Coach";
 "AI_COACH_FOOTER" = "Requiere iOS 26 y un dispositivo compatible con Apple Intelligence. Una vez activado, aparecerá la acción «AI Coach» en la barra lateral y en la pestaña Administrar. AI Coach usa los Foundation Models en el dispositivo de Apple para generar cuestionarios de vocabulario a partir de tus palabras inglesas guardadas. Todo se ejecuta localmente: ningún dato sale de tu dispositivo.";
+
+/* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
+"LOOKUP_SEMANTIC_RESULTS" = "Palabras relacionadas por diccionario";
+"LOOKUP_SEMANTIC_FEW" = "Menos";
+"LOOKUP_SEMANTIC_DEFAULT" = "Predeterminado";
+"LOOKUP_SEMANTIC_MORE" = "Más";

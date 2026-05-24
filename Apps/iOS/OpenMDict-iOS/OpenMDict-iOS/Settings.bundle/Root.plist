@@ -122,6 +122,28 @@
 		</dict>
 		<dict>
 			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>LOOKUP_SEMANTIC_RESULTS</string>
+			<key>Key</key>
+			<string>semanticResultsCount</string>
+			<key>DefaultValue</key>
+			<integer>10</integer>
+			<key>Titles</key>
+			<array>
+				<string>LOOKUP_SEMANTIC_FEW</string>
+				<string>LOOKUP_SEMANTIC_DEFAULT</string>
+				<string>LOOKUP_SEMANTIC_MORE</string>
+			</array>
+			<key>Values</key>
+			<array>
+				<integer>5</integer>
+				<integer>10</integer>
+				<integer>20</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
 			<string>ARTICLES_GROUP</string>
