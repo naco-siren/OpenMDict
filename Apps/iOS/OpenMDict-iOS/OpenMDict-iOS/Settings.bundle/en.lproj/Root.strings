@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "Smallest First";
 "LOAD_ORDER_USAGE" = "By Usage Frequency";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Auto-Focus Lookup Search Bar";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "Search Results Volume per Dictionary";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Spelling Lookup Results per Dictionary";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "A Few";
 "LOOKUP_SEARCH_RESULT_LESS" = "Less";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "Default";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "Requires iOS 26 and a device with Apple Intelligence. When enabled, an “AI Coach” action appears in the sidebar and Management tab. AI Coach uses Apple’s on-device Foundation Models to generate vocabulary quizzes from your bookmarked English words. Everything runs locally — no data leaves your device.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "Related Words per Dictionary";
+"LOOKUP_SEMANTIC_RESULTS" = "Semantic Lookup Results per Dictionary";
 "LOOKUP_SEMANTIC_FEW" = "Less";
 "LOOKUP_SEMANTIC_DEFAULT" = "Default";
 "LOOKUP_SEMANTIC_MORE" = "More";

@@ -128,7 +128,7 @@
 			<key>Key</key>
 			<string>semanticResultsCount</string>
 			<key>DefaultValue</key>
-			<integer>10</integer>
+			<integer>24</integer>
 			<key>Titles</key>
 			<array>
 				<string>LOOKUP_SEMANTIC_FEW</string>
@@ -137,9 +137,9 @@
 			</array>
 			<key>Values</key>
 			<array>
-				<integer>5</integer>
-				<integer>10</integer>
-				<integer>20</integer>
+				<integer>12</integer>
+				<integer>24</integer>
+				<integer>48</integer>
 			</array>
 		</dict>
 		<dict>

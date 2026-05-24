@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "Menor primeiro";
 "LOAD_ORDER_USAGE" = "Por frequência de uso";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Foco automático na barra de pesquisa";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "Volume de resultados por dicionário";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Resultados de busca ortográfica por dicionário";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "Muito poucos";
 "LOOKUP_SEARCH_RESULT_LESS" = "Menos";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "Padrão";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "Requer iOS 26 e um dispositivo compatível com Apple Intelligence. Quando ativado, a ação «AI Coach» aparece na barra lateral e na aba Gerenciar. O AI Coach usa os Foundation Models no dispositivo da Apple para gerar quizzes de vocabulário a partir das suas palavras em inglês favoritadas. Tudo é processado localmente — nenhum dado sai do seu dispositivo.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "Palavras relacionadas por dicionário";
+"LOOKUP_SEMANTIC_RESULTS" = "Resultados de busca semântica por dicionário";
 "LOOKUP_SEMANTIC_FEW" = "Menos";
 "LOOKUP_SEMANTIC_DEFAULT" = "Padrão";
 "LOOKUP_SEMANTIC_MORE" = "Mais";

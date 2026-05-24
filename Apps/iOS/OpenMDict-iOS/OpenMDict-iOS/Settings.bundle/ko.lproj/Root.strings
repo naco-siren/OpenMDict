@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "작은 순서";
 "LOAD_ORDER_USAGE" = "사용 빈도순";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "검색 바 자동 포커스";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "사전별 검색 결과량";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "사전별 철자 검색 결과";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "매우 적게";
 "LOOKUP_SEARCH_RESULT_LESS" = "적게";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "기본값";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "iOS 26과 Apple Intelligence를 지원하는 기기가 필요합니다. 활성화하면 사이드바와 관리 탭에 「AI 코치」 작업이 표시됩니다. AI 코치는 Apple의 온디바이스 Foundation Models을 사용하여 북마크한 영어 단어에서 어휘 퀴즈를 생성합니다. 모든 처리는 로컬에서 이루어지며 데이터는 기기를 떠나지 않습니다.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "사전별 관련 단어 수";
+"LOOKUP_SEMANTIC_RESULTS" = "사전별 의미 검색 결과";
 "LOOKUP_SEMANTIC_FEW" = "적게";
 "LOOKUP_SEMANTIC_DEFAULT" = "기본값";
 "LOOKUP_SEMANTIC_MORE" = "많이";

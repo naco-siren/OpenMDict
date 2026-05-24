@@ -20,9 +20,9 @@ import Foundation
 /// "Semantic Search Results" setting. K = top-K cap on the returned
 /// related-words list. Floor is constant (0.45) across tiers.
 nonisolated enum RelatedWordsTier: Int, CaseIterable {
-    case few     = 5     // strict — show only the most confident neighbors
-    case `default` = 10  // balanced — fills K for ~82% of in-vocab queries
-    case more    = 20    // generous — gives every plausible neighbor up to 20
+    case few     = 12   // strict — modest list of high-confidence neighbors
+    case `default` = 24 // balanced — what most users see
+    case more    = 48   // generous — exhaustive set for power users
 
     /// Top-K cap. Equal to the raw value so Settings.bundle can store it directly.
     var k: Int { rawValue }

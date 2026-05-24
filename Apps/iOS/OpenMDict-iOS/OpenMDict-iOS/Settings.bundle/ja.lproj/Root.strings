@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "小さい順";
 "LOAD_ORDER_USAGE" = "使用頻度順";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "検索バーを自動フォーカス";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "辞書ごとの検索結果量";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "辞書ごとの綴り検索結果";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "最小";
 "LOOKUP_SEARCH_RESULT_LESS" = "少なめ";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "標準";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "iOS 26 と Apple Intelligence 対応デバイスが必要です。有効にすると、「AI コーチ」操作がサイドバーと管理タブに表示されます。AI コーチは Apple のオンデバイス Foundation Models を使用して、ブックマークした英単語から語彙クイズを生成します。すべての処理はローカルで実行され、データはデバイスから送信されません。";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "辞書ごとの関連語数";
+"LOOKUP_SEMANTIC_RESULTS" = "辞書ごとの意味検索結果";
 "LOOKUP_SEMANTIC_FEW" = "少なめ";
 "LOOKUP_SEMANTIC_DEFAULT" = "標準";
 "LOOKUP_SEMANTIC_MORE" = "多め";

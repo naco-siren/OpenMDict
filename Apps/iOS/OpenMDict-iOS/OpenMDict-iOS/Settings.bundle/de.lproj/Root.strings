@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "Kleinste zuerst";
 "LOAD_ORDER_USAGE" = "Nach Nutzungshäufigkeit";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Autofokus auf Suchleiste";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "Ergebnismenge pro Wörterbuch";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Schreibweisen-Suchergebnisse pro Wörterbuch";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "Sehr wenige";
 "LOOKUP_SEARCH_RESULT_LESS" = "Weniger";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "Standard";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "Erfordert iOS 26 und ein Apple-Intelligence-fähiges Gerät. Nach der Aktivierung erscheint die Aktion „AI Coach“ in der Seitenleiste und im Tab „Verwaltung“. AI Coach nutzt Apples On-Device Foundation Models, um aus deinen gespeicherten englischen Wörtern Vokabeltests zu erstellen. Alles läuft lokal — keine Daten verlassen dein Gerät.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "Verwandte Wörter pro Wörterbuch";
+"LOOKUP_SEMANTIC_RESULTS" = "Semantische Suchergebnisse pro Wörterbuch";
 "LOOKUP_SEMANTIC_FEW" = "Weniger";
 "LOOKUP_SEMANTIC_DEFAULT" = "Standard";
 "LOOKUP_SEMANTIC_MORE" = "Mehr";

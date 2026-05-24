@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "الأصغر أولاً";
 "LOAD_ORDER_USAGE" = "حسب تكرار الاستخدام";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "التركيز التلقائي على شريط البحث";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "حجم نتائج البحث لكل قاموس";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "نتائج البحث الإملائي لكل قاموس";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "قليل جدًا";
 "LOOKUP_SEARCH_RESULT_LESS" = "أقل";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "الافتراضي";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "يتطلب iOS 26 وجهازًا يدعم Apple Intelligence. عند التفعيل، يظهر إجراء «المدرب الذكي» في الشريط الجانبي وعلامة تبويب الإدارة. يستخدم المدرب الذكي نماذج Foundation Models على جهاز Apple لإنشاء اختبارات مفردات من الكلمات الإنجليزية المُفضّلة. تتم المعالجة محليًا، ولا تغادر أي بيانات جهازك.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "الكلمات المرتبطة لكل قاموس";
+"LOOKUP_SEMANTIC_RESULTS" = "نتائج البحث الدلالي لكل قاموس";
 "LOOKUP_SEMANTIC_FEW" = "أقل";
 "LOOKUP_SEMANTIC_DEFAULT" = "الافتراضي";
 "LOOKUP_SEMANTIC_MORE" = "أكثر";

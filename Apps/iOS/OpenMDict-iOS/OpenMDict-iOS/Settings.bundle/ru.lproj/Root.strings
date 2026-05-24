@@ -15,7 +15,7 @@
 "LOAD_ORDER_SMALLEST" = "Сначала маленькие";
 "LOAD_ORDER_USAGE" = "По частоте использования";
 "LOOKUP_SEARCH_AUTO_FOCUS" = "Автофокус строки поиска";
-"LOOKUP_SEARCH_RESULT_VOLUME" = "Объём результатов на словарь";
+"LOOKUP_SEARCH_RESULT_VOLUME" = "Результаты поиска по написанию на словарь";
 "LOOKUP_SEARCH_RESULT_A_FEW" = "Очень мало";
 "LOOKUP_SEARCH_RESULT_LESS" = "Меньше";
 "LOOKUP_SEARCH_RESULT_DEFAULT" = "По умолчанию";
@@ -35,7 +35,7 @@
 "AI_COACH_FOOTER" = "Требуется iOS 26 и устройство с поддержкой Apple Intelligence. После включения действие «ИИ-наставник» появится на боковой панели и во вкладке управления. ИИ-наставник использует встроенные Foundation Models от Apple для создания словарных тестов из ваших закладок английских слов. Всё обрабатывается локально — данные не покидают ваше устройство.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
-"LOOKUP_SEMANTIC_RESULTS" = "Связанные слова на словарь";
+"LOOKUP_SEMANTIC_RESULTS" = "Результаты семантического поиска на словарь";
 "LOOKUP_SEMANTIC_FEW" = "Меньше";
 "LOOKUP_SEMANTIC_DEFAULT" = "По умолчанию";
 "LOOKUP_SEMANTIC_MORE" = "Больше";
