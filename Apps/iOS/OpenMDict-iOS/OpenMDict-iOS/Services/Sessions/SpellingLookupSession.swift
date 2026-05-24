@@ -354,46 +354,6 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
     }
 }
 
-// MARK: - Background Suggestions Computation
-
-/// Compute distance-ranked suggestions on a background thread.
-/// `MDictReader` is `@unchecked Sendable` with thread safety guaranteed by
-/// internal NSLock guards (BinaryReader.atomicRead, ResourceProvider.cacheLock).
-/// `suggestions()` operates on immutable in-memory keyword data — no I/O, no locks needed.cc
-///
-/// Each reader returns `[ScoredSuggestion]` (word + distance). This function merges
-/// across readers, deduplicates (keeping min distance), and returns globally ranked results.
-@concurrent
-private nonisolated func computeSuggestionsInBackground(
-    readers: [MDictReader],
-    query: String,
-    existingWords: Set<String>
-) async -> [String] {
-    // Collect from all readers, dedup case-insensitively keeping best (min) distance.
-    var best: [String: ScoredSuggestion] = [:]  // lowercased key → best scored suggestion
-
-    for reader in readers {
-        guard !Task.isCancelled else { return [] }
-        for s in reader.suggestions(for: query, limit: LookupPipelineConfig.suggestionsPerReader) {
-            let key = s.word.lowercased()
-            guard !existingWords.contains(key) else { continue }
-            if let existing = best[key] {
-                if s.distance < existing.distance { best[key] = s }
-            } else {
-                best[key] = s
-            }
-        }
-    }
-
-    guard !Task.isCancelled, !best.isEmpty else { return [] }
-
-    // Global rank: distance ascending, alphabetical for ties.
-    return best.values
-        .sorted { $0.distance != $1.distance ? $0.distance < $1.distance : $0.word < $1.word }
-        .prefix(LookupPipelineConfig.maxSuggestions)
-        .map(\.word)
-}
-
 // MARK: - Lemma Reader Info
 
 /// Reader + dictionary metadata tuple for background lemma resolution.
