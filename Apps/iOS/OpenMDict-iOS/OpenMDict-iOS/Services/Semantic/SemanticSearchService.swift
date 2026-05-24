@@ -263,43 +263,52 @@ final class SemanticSearchService {
             queryLemmas.insert(Self.canonicalLemma(hit.hit, tagger: tagger))
         }
 
-        // PER-DICT K: each dict independently contributes up to `tier.k`
-        // matches, scored within its own NLEmbedding language space, with
-        // lemma dedup scoped to that dict. This mirrors the spelling-mode
-        // "Search Results Volume per Dictionary" UX where each dict
-        // contributes a small batch and the table view groups them.
-        // Note: total result count is K × (dicts that match query language),
-        // which can be large (e.g. K=10 × 13 dicts = up to 130 matches).
-        var picks: [SemanticMatch] = []
+        // GLOBAL TOP-K of unique words. The UI surfaces the candidate set as a
+        // single deduplicated "you might mean…" list (one row per word, no
+        // dictionary tag); tapping a candidate then routes to either article
+        // navigation (single-dict context) or a per-dict lookup of that word
+        // (group context). So per-dict contribution doesn't matter at this
+        // layer — we want the K best UNIQUE WORDS across the whole group.
+        //
+        // Algorithm: score every entry from every matching-language dict into
+        // one merged list, sort descending, walk top-down with three dedup
+        // gates (query lemma, case-folded word, NLTagger lemma) until we've
+        // collected `tier.k` candidates or run below the floor.
+        struct ScoredHit {
+            let key: String
+            let keyLower: String
+            let sim: Double
+        }
+        var scored: [ScoredHit] = []
+        scored.reserveCapacity(snapshots.reduce(0) { $0 + $1.entries.count })
+
         for snap in snapshots {
             guard let (qv, _) = queryVecByLang[snap.language] else { continue }
             let stopwords = Self.stopwordsFor(snap.language)
-
-            // Score this dict's entries
-            var scored: [(key: String, sim: Double)] = []
-            scored.reserveCapacity(snap.entries.count)
             for e in snap.entries {
                 if stopwords.contains(e.keyLower) { continue }
                 let sim = Self.cosineSimilarity(qv, e.vec)
-                scored.append((e.key, sim))
+                scored.append(ScoredHit(key: e.key, keyLower: e.keyLower, sim: sim))
             }
-            scored.sort { $0.1 > $1.1 }
+        }
+        scored.sort { $0.sim > $1.sim }
 
-            // Take top K from this dict, floor-gated + lemma-deduped.
-            // Lemmas computed lazily — only for candidates we're seriously
-            // considering, typically < 2× K per dict.
-            var seen: Set<String> = []
-            var dictPicks = 0
-            for hit in scored {
-                if hit.sim < tier.floor { break }
-                if dictPicks >= tier.k { break }
-                let lemma = Self.canonicalLemma(hit.key, tagger: tagger)
-                if queryLemmas.contains(lemma) { continue }
-                if seen.contains(lemma) { continue }
-                seen.insert(lemma)
-                dictPicks += 1
-                picks.append(SemanticMatch(key: hit.key, dictId: snap.dictId, similarity: hit.sim))
-            }
+        // Walk + dedup. `dictId` on SemanticMatch is now empty — the UI doesn't
+        // need it (candidates are displayed as bare words and tap routing uses
+        // the search context, not the source dict).
+        var seenWords: Set<String> = []
+        var seenLemmas: Set<String> = queryLemmas
+        var picks: [SemanticMatch] = []
+        picks.reserveCapacity(tier.k)
+        for hit in scored {
+            if hit.sim < tier.floor { break }
+            if picks.count >= tier.k { break }
+            if seenWords.contains(hit.keyLower) { continue }
+            let lemma = Self.canonicalLemma(hit.key, tagger: tagger)
+            if seenLemmas.contains(lemma) { continue }
+            seenWords.insert(hit.keyLower)
+            seenLemmas.insert(lemma)
+            picks.append(SemanticMatch(key: hit.key, dictId: "", similarity: hit.sim))
         }
         return picks
     }

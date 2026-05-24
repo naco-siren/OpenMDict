@@ -30,10 +30,16 @@ class WordListViewController: UIViewController {
 
     fileprivate enum SectionType {
         case clipboard
-        case history(String)      // title = date string ("Today", "Yesterday", …)
+        case history(String)         // title = date string ("Today", "Yesterday", …)
         case searchResults
-        case relatedForms         // lemma-resolved related forms (inflections, base forms)
-        case suggestions
+        case relatedForms            // lemma-resolved related forms (inflections, base forms)
+        // Two parallel "we couldn't return direct hits, here are some adjacent ideas"
+        // sections, surfaced visually identically (same header copy, same row icon)
+        // since they play the same role from the user's perspective — just sourced
+        // from different algorithms behind the scenes. SectionType names describe
+        // what the section IS; RowItem names describe what individual rows ARE.
+        case spellingSuggestions     // Levenshtein-distance fuzzy fallback
+        case semanticSuggestions     // NLEmbedding semantic neighbors (deduped to words; no dict tag)
     }
 
     private struct SectionData {
@@ -42,11 +48,12 @@ class WordListViewController: UIViewController {
     }
 
     private enum RowItem {
-        case clipboardContent(String?)   // nil = clipboard empty → placeholder
+        case clipboardContent(String?)     // nil = clipboard empty → placeholder
         case historyRecord(HistoryItem)
         case searchResult(WordDisplayItem)
-        case relatedForm(WordDisplayItem) // lemma-derived result (tap opens article)
+        case relatedForm(WordDisplayItem)  // lemma-derived result (tap opens article)
         case suggestion(String)
+        case semanticCandidate(String)     // semantic neighbor; tap behavior depends on context
     }
 
     // MARK: - State
@@ -82,7 +89,10 @@ class WordListViewController: UIViewController {
             case (.clipboard, .clipboard): return true
             case (.searchResults, .searchResults): return true
             case (.relatedForms, .relatedForms): return true
-            case (.suggestions, .suggestions): return true
+            // Tutorial currently only runs against spelling-scope UX, so the
+            // public `.suggestions` kind maps to the spelling variant.
+            // (`.semanticSuggestions` isn't a tutorial target yet.)
+            case (.suggestions, .spellingSuggestions): return true
             default: return false
             }
         }
@@ -209,7 +219,7 @@ class WordListViewController: UIViewController {
     ///
     /// Scope still survives within a session — toggling has effect — but the
     /// next cold start always lands back on spelling.
-    private enum SearchScope: Int {
+    fileprivate enum SearchScope: Int {
         case spelling = 0
         case semantic = 1
     }
@@ -242,9 +252,21 @@ class WordListViewController: UIViewController {
         return container
     }()
 
+    /// Spinner shown in place of the empty-state icon while the search pipeline
+    /// is in flight. `hidesWhenStopped = true` so it disappears entirely when
+    /// stopped, and `configureEmptyState` always stops it before resetting the
+    /// icon — no separate cleanup path needed.
+    private lazy var loadingSpinner: UIActivityIndicatorView = {
+        let s = UIActivityIndicatorView(style: .large)
+        s.translatesAutoresizingMaskIntoConstraints = false
+        s.hidesWhenStopped = true
+        s.color = .secondaryLabel
+        return s
+    }()
+
     private lazy var emptyStateStack: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [
-            emptyStateIcon, emptyStateTitle, emptyStateMessage, emptyStateButton
+            loadingSpinner, emptyStateIcon, emptyStateTitle, emptyStateMessage, emptyStateButton
         ])
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
@@ -421,26 +443,42 @@ class WordListViewController: UIViewController {
             }
 
         case .activeWithQuery:
-            // Search results
-            if !displayedWords.isEmpty {
-                newSections.append(SectionData(
-                    type: .searchResults,
-                    rows: displayedWords.map { .searchResult($0) }
-                ))
-            }
-            // Related forms (lemma-resolved)
-            if !lemmaWords.isEmpty {
-                newSections.append(SectionData(
-                    type: .relatedForms,
-                    rows: lemmaWords.map { .relatedForm($0) }
-                ))
-            }
-            // Suggestions (only when few results)
-            if !suggestedWords.isEmpty {
-                newSections.append(SectionData(
-                    type: .suggestions,
-                    rows: suggestedWords.map { .suggestion($0) }
-                ))
+            // Semantic scope: single section of candidate words (deduped, no
+            // per-dict rows). `displayedWords` here is the SemanticLookup
+            // Session's `results` — each entry's `.word` is the candidate;
+            // dictId/dictName are intentionally empty (the candidate isn't
+            // tied to one dict — tap routes via context, see didSelectRowAt).
+            //
+            // Spelling scope: the existing three-section layout (results +
+            // lemma-related forms + fuzzy suggestions). Each result row
+            // shows its source dict.
+            switch currentScope {
+            case .semantic:
+                if !displayedWords.isEmpty {
+                    newSections.append(SectionData(
+                        type: .semanticSuggestions,
+                        rows: displayedWords.map { .semanticCandidate($0.word) }
+                    ))
+                }
+            case .spelling:
+                if !displayedWords.isEmpty {
+                    newSections.append(SectionData(
+                        type: .searchResults,
+                        rows: displayedWords.map { .searchResult($0) }
+                    ))
+                }
+                if !lemmaWords.isEmpty {
+                    newSections.append(SectionData(
+                        type: .relatedForms,
+                        rows: lemmaWords.map { .relatedForm($0) }
+                    ))
+                }
+                if !suggestedWords.isEmpty {
+                    newSections.append(SectionData(
+                        type: .spellingSuggestions,
+                        rows: suggestedWords.map { .suggestion($0) }
+                    ))
+                }
             }
         }
 
@@ -822,13 +860,11 @@ class WordListViewController: UIViewController {
                 tableView.isHidden = true
             } else if displayedWords.isEmpty && lemmaWords.isEmpty && suggestedWords.isEmpty {
                 if !isSearchSettled {
-                    // Pipeline still running — show searching indicator
-                    configureEmptyState(
-                        icon: "text.magnifyingglass",
-                        title: L10n.WordList.searching,
-                        message: nil,
-                        buttonTitle: nil
-                    )
+                    // Pipeline still running — show searching indicator with
+                    // an animated spinner so the placeholder doesn't look frozen
+                    // during the multi-second first semantic preload (or any
+                    // slower spelling pipeline phase).
+                    configureSearchingState(title: L10n.WordList.searching)
                 } else {
                     // All pipelines settled with no results
                     let noResultsIcon: String
@@ -856,18 +892,37 @@ class WordListViewController: UIViewController {
 
     /// Configure the empty state view with the given content.
     /// Pass `nil` for `message` or `buttonTitle` to hide those elements.
+    /// Stops the loading spinner (if running) and restores the symbol icon —
+    /// the spinner-mode counterpart is `configureSearchingState()`.
     private func configureEmptyState(
         icon: String,
         title: String,
         message: String?,
         buttonTitle: String?
     ) {
+        loadingSpinner.stopAnimating()       // no-op if not running
+        emptyStateIcon.isHidden = false
         emptyStateIcon.image = UIImage(systemName: icon)
         emptyStateTitle.text = title
         emptyStateMessage.text = message
         emptyStateMessage.isHidden = (message == nil)
         emptyStateButton.setTitle(buttonTitle, for: .normal)
         emptyStateButton.isHidden = (buttonTitle == nil)
+    }
+
+    /// Configure the empty state view as a "searching" indicator: spinner in
+    /// place of the icon + searching title, no message or button. Used in
+    /// both spelling and semantic scopes whenever the pipeline isn't settled
+    /// — the rest of the empty-state cases route through `configureEmpty
+    /// State` which will stop the spinner and put the icon back.
+    private func configureSearchingState(title: String) {
+        loadingSpinner.startAnimating()
+        emptyStateIcon.isHidden = true
+        emptyStateTitle.text = title
+        emptyStateMessage.text = nil
+        emptyStateMessage.isHidden = true
+        emptyStateButton.setTitle(nil, for: .normal)
+        emptyStateButton.isHidden = true
     }
 
     /// Human-readable name for the current search context (group or dictionary).
@@ -940,9 +995,13 @@ extension WordListViewController: UITableViewDataSource {
         switch sections[section].type {
         case .clipboard:       return L10n.WordList.clipboardHeader
         case .history(let t):  return t
-        case .searchResults:   return L10n.WordList.searchResultsHeader
-        case .relatedForms:    return L10n.WordList.relatedFormsHeader
-        case .suggestions:     return L10n.WordList.suggestionsHeader
+        case .searchResults:        return L10n.WordList.searchResultsHeader
+        case .relatedForms:         return L10n.WordList.relatedFormsHeader
+        // Both suggestion-flavored sections share the same header copy —
+        // user-facing semantics ("we found these adjacent words you might
+        // want") is the same; the source algorithm difference is internal.
+        case .spellingSuggestions:  return L10n.WordList.suggestionsHeader
+        case .semanticSuggestions:  return L10n.WordList.suggestionsHeader
         }
     }
 
@@ -1030,6 +1089,17 @@ extension WordListViewController: UITableViewDataSource {
                 c.image = UIImage(systemName: "lightbulb")
             }
             c.imageProperties.tintColor = .secondaryLabel
+
+        case .semanticCandidate(let word):
+            c.text = word
+            // Mirror the `.suggestion` icon: visually unified with spelling
+            // suggestions since they're presented as parallel ideas to the user.
+            if #available(iOS 18.0, *) {
+                c.image = UIImage(systemName: "questionmark.text.page")
+            } else {
+                c.image = UIImage(systemName: "lightbulb")
+            }
+            c.imageProperties.tintColor = .secondaryLabel
         }
 
         cell.contentConfiguration = c
@@ -1099,6 +1169,32 @@ extension WordListViewController: UITableViewDelegate {
 
         case .suggestion(let word):
             injectSearchText(word)
+
+        case .semanticCandidate(let word):
+            // Tap behavior is context-aware:
+            //   - Single-dict context → open the article directly in that dict.
+            //     The candidate isn't tied to a specific dict (the service
+            //     produces a deduped word-only list), so we use the current
+            //     context's dict for navigation.
+            //   - Group context → flip to spelling scope + inject the word as
+            //     the new query. The spelling pipeline then surfaces the
+            //     word's per-dict results just like a normal lookup. This
+            //     commits the user from "exploring semantic neighbors" to
+            //     "I want this specific word".
+            switch searchSession?.currentContext ?? .none {
+            case .dictionary(let dict):
+                onWordSelected?(WordDisplayItem(
+                    word: word,
+                    dictId: dict.id,
+                    dictName: dict.preferredTitle
+                ))
+            case .group:
+                setScope(.spelling)
+                injectSearchText(word)
+            case .none:
+                // No context to route against — best-effort fallback.
+                injectSearchText(word)
+            }
         }
     }
 
@@ -1184,32 +1280,39 @@ extension WordListViewController: UISearchBarDelegate {
     /// current query into the new session so the user sees fresh results
     /// for the same text under the new scope.
     func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
-        guard let scope = SearchScope(rawValue: selectedScope), scope != currentScope else { return }
+        guard let scope = SearchScope(rawValue: selectedScope) else { return }
+        setScope(scope)
+    }
+}
+
+extension WordListViewController {
+    /// Programmatic scope change. Also called by `selectedScopeButtonIndex
+    /// DidChange` on user toggle, and by the semantic candidate tap handler
+    /// in group context.
+    fileprivate func setScope(_ scope: SearchScope) {
+        guard scope != currentScope else { return }
         currentScope = scope
-        // Intentionally not persisted to UserDefaults — see SearchScope doc.
+        // Keep the segmented control in sync — setting it programmatically
+        // does NOT call the delegate, so no recursion risk.
+        searchController.searchBar.selectedScopeButtonIndex = scope.rawValue
 
         switch scope {
         case .spelling:
             setActiveSession(lexicalSession)
         case .semantic:
-            // First flip to semantic in this session — create the session lazily.
             if semanticSession == nil {
                 semanticSession = SemanticLookupSession()
             }
-            // Snapshot context from lexical so the semantic session knows which
-            // dict/group to search. Mid-session context changes from the parent
-            // VC after this point would land on lexicalSession only; user can
-            // flip scope to re-sync if needed.
-            if let lexical = lexicalSession {
-                semanticSession?.setContext(lexical.currentContext)
-            }
+            // Context is kept in lockstep across both sessions by loadWords —
+            // no need to copy lexical.currentContext over here.
             setActiveSession(semanticSession)
         }
 
         // Re-fire the current search-bar text against the newly-active session
         // so results refresh under the new scope immediately.
-        activeSession?.updateQuery(searchBar.text ?? "")
+        activeSession?.updateQuery(searchController.searchBar.text ?? "")
         updateDisplayState()
+        rebuildSections()   // section layout differs by scope (.semantic vs .spelling)
     }
 }
 
