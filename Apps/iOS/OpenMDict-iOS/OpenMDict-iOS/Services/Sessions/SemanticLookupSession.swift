@@ -209,6 +209,10 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
     // MARK: - LookupSessionProtocol API
 
     func updateQuery(_ query: String) {
+        // See SpellingLookupSession.updateQuery — same idempotency contract:
+        // skipping no-op writes keeps isSearchSettled / spinner state from
+        // being toggled to false without a corresponding settle path.
+        guard query != querySubject.value else { return }
         if !query.isEmpty {
             isSearchSettled = false
         }

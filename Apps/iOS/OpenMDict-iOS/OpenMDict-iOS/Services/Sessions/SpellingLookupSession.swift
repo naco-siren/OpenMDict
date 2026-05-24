@@ -314,6 +314,14 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
     // MARK: - API
     
     func updateQuery(_ query: String) {
+        // Idempotent: a no-op if the query hasn't changed. Otherwise the
+        // `removeDuplicates()` downstream would still skip re-firing the
+        // pipeline, but we'd already have toggled isSearchSettled to false
+        // with no settled path to flip it back to true → spinner deadlock.
+        // This lets callers (e.g. WordListVC mirroring searchBar.text from
+        // the active session's currentQuery on scope flip) safely call
+        // updateQuery without worrying about double-fires.
+        guard query != querySubject.value else { return }
         if !query.isEmpty {
             isSearchSettled = false
         }
