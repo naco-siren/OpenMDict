@@ -106,12 +106,23 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
     }
 
     /// Trigger a single semantic search. Cancels any in-flight previous one.
+    ///
+    /// Important: this method is entered AFTER the debounce gate, so by the
+    /// time we're here the user has paused typing and a new query is about
+    /// to be submitted to the heavy semantic pipeline. We aggressively clear
+    /// prior `results` / `suggestions` right at the top so WordListVC's
+    /// empty-state logic flips to the loading spinner immediately, instead
+    /// of leaving the stale previous-query rows on screen for the multi-
+    /// hundred-millisecond (or multi-second on first preload) compute window.
+    /// The spelling pipeline is fast enough that this aggressive clear isn't
+    /// needed there — only semantic.
     private func runSearch(query: String, context: SearchContext, tier: RelatedWordsTier) {
         searchTask?.cancel()
 
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else {
             results = []
+            suggestions = []
             isSearchSettled = true
             return
         }
@@ -121,6 +132,7 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
         let dictInfos: [DictInfo] = Self.dictInfos(from: context)
         guard !dictInfos.isEmpty else {
             results = []
+            suggestions = []
             isSearchSettled = true
             return
         }
@@ -133,6 +145,12 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
         }
         print("🧠 Semantic '\(trimmed)' in \(contextLabel) (K=\(tier.k), floor=\(tier.floor))")
 
+        // Drop prior-query state on the floor before the heavy compute begins.
+        // updateEmptyState() will then see empty results + empty suggestions +
+        // isSearchSettled=false and render the spinner overlay until the task
+        // below assigns new values.
+        results = []
+        suggestions = []
         isSearchSettled = false
 
         searchTask = Task { [weak self, dictInfos] in
