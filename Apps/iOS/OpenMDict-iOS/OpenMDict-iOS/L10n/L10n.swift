@@ -959,6 +959,17 @@ nonisolated enum L10n {
             NSLocalizedString("wordList.searchScope.semantic", value: "Semantic", comment: "Search bar scope: NLEmbedding-based semantic neighbor lookup (slower)")
         }
 
+        // Two distinct headers: in semantic scope BOTH sections can appear at
+        // once (semantic candidates + Levenshtein-fuzzy fallback for suspected
+        // typos), so calling them both "Suggestions" leaves users wondering
+        // which is which.
+        static var spellingSuggestionsHeader: String {
+            NSLocalizedString("wordList.spellingSuggestionsHeader", value: "Spelling Suggestions", comment: "Section header for Levenshtein-distance fuzzy spelling fallback (was 'Suggestions' pre-M15)")
+        }
+        static var semanticSuggestionsHeader: String {
+            NSLocalizedString("wordList.semanticSuggestionsHeader", value: "Semantic Suggestions", comment: "Section header for NLEmbedding semantic neighbor candidates in semantic scope")
+        }
+
         // Section headers (enhanced search UX)
         static var clipboardHeader: String {
             NSLocalizedString("wordList.clipboardHeader", value: "Clipboard", comment: "Section header for clipboard paste section")

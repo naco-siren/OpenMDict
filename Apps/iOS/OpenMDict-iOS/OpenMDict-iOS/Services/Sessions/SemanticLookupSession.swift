@@ -14,10 +14,13 @@
 //    - `lemmaResults` is always empty — semantic neighbors already collapse
 //      morphological variants via the service's lemma dedup, no separate
 //      "related forms" section to surface.
-//    - `suggestions` is always empty — when a semantic query is OOV in
-//      every active dict's NLEmbedding space, we return nothing rather
-//      than offering a Levenshtein fuzzy fallback (which doesn't translate
-//      to "semantic neighbors of a non-existent word" in any useful way).
+//    - `suggestions` is populated only when the semantic compute returns
+//      weak results (few matches or low top similarity). The Levenshtein
+//      fuzzy logic from the spelling scope is invoked as a typo fallback —
+//      a query that doesn't land near anything semantically is more often
+//      a misspelling than an exotic word. WordListVC then renders these
+//      under the same `.spellingSuggestions` section the user already sees
+//      in the spelling scope.
 //    - The pipeline is naturally slower (~100–500ms per cross-group query
 //      depending on dict count + cache state). isSearchSettled handles the
 //      "Searching…" UI state the same way SpellingLookupSession does.
@@ -50,7 +53,11 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
     @Published private(set) var results: [WordDisplayItem] = []
     /// Always empty for semantic — included to satisfy LookupSessionProtocol.
     @Published private(set) var lemmaResults: [WordDisplayItem] = []
-    /// Always empty for semantic — included to satisfy LookupSessionProtocol.
+    /// Populated only when the semantic compute returns weak results
+    /// (see `spellingFallbackCountThreshold` / `spellingFallbackSimThreshold`
+    /// below) — typo-shaped queries get Levenshtein-distance fuzzy
+    /// suggestions surfaced alongside whatever weak semantic matches
+    /// we did find.
     @Published private(set) var suggestions: [String] = []
     @Published private(set) var isSearchSettled: Bool = true
 
@@ -155,18 +162,63 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
                 )
             }
 
+            // Spelling-fallback evaluation. When the semantic compute returns
+            // weak results — few matches or a mediocre top similarity — the
+            // query itself is probably misspelled (NLEmbedding doesn't have
+            // the exact form, so we pick up adjacent-but-not-quite words).
+            // Borrow the spelling scope's Levenshtein-distance suggestion
+            // logic and surface the typo fixes in the same `spellingSuggestions`
+            // section the user already understands. They retain the option of
+            // tapping a fuzzy suggestion to commit to that spelling.
+            let topSim = matches.first?.similarity ?? 0
+            let needsSpellingFallback =
+                matches.count < Self.spellingFallbackCountThreshold ||
+                topSim <= Self.spellingFallbackSimThreshold
+
+            var spellingSuggestions: [String] = []
+            if needsSpellingFallback {
+                let readers = dictInfos.map { $0.reader }
+                // Filter out the query itself + every word already shown as a
+                // semantic match — those would be confusing duplicates.
+                var existingWords = Set(items.map { $0.word.lowercased() })
+                existingWords.insert(trimmed.lowercased())
+                spellingSuggestions = await computeSuggestionsInBackground(
+                    readers: readers,
+                    query: trimmed,
+                    existingWords: existingWords
+                )
+            }
+
+            guard !Task.isCancelled else { return }
+
             await MainActor.run { [weak self] in
                 guard let self, !Task.isCancelled else { return }
                 self.results = items
+                self.suggestions = spellingSuggestions
                 self.isSearchSettled = true
+                let suggestionSuffix = spellingSuggestions.isEmpty
+                    ? ""
+                    : " + \(spellingSuggestions.count) spelling fallback"
                 if items.isEmpty {
-                    print("🧠 Semantic: no matches (OOV or all below floor) → settled")
+                    print("🧠 Semantic: no matches (OOV or all below floor)\(suggestionSuffix) → settled")
                 } else {
-                    print("🧠 Semantic: \(items.count) matches → settled")
+                    print("🧠 Semantic: \(items.count) matches (top sim \(String(format: "%.2f", topSim)))\(suggestionSuffix) → settled")
                 }
             }
         }
     }
+
+    /// Top cosine-similarity below which we suspect a typo and run the
+    /// spelling-style fuzzy fallback alongside the semantic matches.
+    /// 0.65 is "weak even for a common adjective" in our bench data — words
+    /// like "happy" / "melancholy" / "beautiful" all clear it comfortably,
+    /// while OOV / off-axis queries fall below.
+    private static let spellingFallbackSimThreshold: Double = 0.65
+
+    /// Result-count below which we also run the spelling fallback regardless
+    /// of similarity — empty / very-thin result sets are themselves a strong
+    /// typo signal.
+    private static let spellingFallbackCountThreshold: Int = 3
 
     /// Listen for Settings.bundle changes to `semanticResultsCount`.
     private func subscribeToSettingsChanges() {

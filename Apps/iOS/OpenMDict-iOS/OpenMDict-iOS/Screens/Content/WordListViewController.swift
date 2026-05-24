@@ -444,11 +444,14 @@ class WordListViewController: UIViewController {
             }
 
         case .activeWithQuery:
-            // Semantic scope: single section of candidate words (deduped, no
-            // per-dict rows). `displayedWords` here is the SemanticLookup
-            // Session's `results` — each entry's `.word` is the candidate;
-            // dictId/dictName are intentionally empty (the candidate isn't
-            // tied to one dict — tap routes via context, see didSelectRowAt).
+            // Semantic scope: candidate words (deduped, no per-dict rows) PLUS
+            // optionally a spelling-suggestions section if the SemanticLookup
+            // Session decided the query looked like a typo (few matches / low
+            // top similarity) and fired the Levenshtein fuzzy fallback.
+            // `displayedWords` here is the session's `results` — each entry's
+            // `.word` is the candidate; dictId/dictName are intentionally empty
+            // (the candidate isn't tied to one dict — tap routes via context,
+            // see didSelectRowAt).
             //
             // Spelling scope: the existing three-section layout (results +
             // lemma-related forms + fuzzy suggestions). Each result row
@@ -459,6 +462,15 @@ class WordListViewController: UIViewController {
                     newSections.append(SectionData(
                         type: .semanticSuggestions,
                         rows: displayedWords.map { .semanticCandidate($0.word) }
+                    ))
+                }
+                // Same `.spellingSuggestions` rendering as spelling scope —
+                // visually consistent, taps still go through the existing
+                // `.suggestion` handler (injectSearchText).
+                if !suggestedWords.isEmpty {
+                    newSections.append(SectionData(
+                        type: .spellingSuggestions,
+                        rows: suggestedWords.map { .suggestion($0) }
                     ))
                 }
             case .spelling:
@@ -1016,11 +1028,12 @@ extension WordListViewController: UITableViewDataSource {
         case .history(let t):  return t
         case .searchResults:        return L10n.WordList.searchResultsHeader
         case .relatedForms:         return L10n.WordList.relatedFormsHeader
-        // Both suggestion-flavored sections share the same header copy —
-        // user-facing semantics ("we found these adjacent words you might
-        // want") is the same; the source algorithm difference is internal.
-        case .spellingSuggestions:  return L10n.WordList.suggestionsHeader
-        case .semanticSuggestions:  return L10n.WordList.suggestionsHeader
+        // Distinct headers because in semantic scope BOTH sections may
+        // appear simultaneously (semantic candidates + Levenshtein-fuzzy
+        // fallback when the query looks like a typo). Sharing one
+        // "Suggestions" label was ambiguous to the user.
+        case .spellingSuggestions:  return L10n.WordList.spellingSuggestionsHeader
+        case .semanticSuggestions:  return L10n.WordList.semanticSuggestionsHeader
         }
     }
 
