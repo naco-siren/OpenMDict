@@ -58,6 +58,20 @@ struct SemanticMatch: Sendable, Hashable {
     let similarity: Double
 }
 
+/// Per-call progress phases reported by `SemanticSearchService.relatedKeywords`
+/// to its `progress:` callback. Used by the calling session to surface a
+/// human-readable status line under the loading spinner.
+///
+/// `dictTitle` carries the metadata title (or `"(no title)"` fallback) of
+/// the dict that just BEGAN preloading. With parallel preloads, the status
+/// line may flicker through multiple titles in rapid succession — that's
+/// intentional and informative; the user sees activity rather than a frozen
+/// generic "Loading…".
+enum SemanticSearchPhase: Sendable {
+    case preloading(dictTitle: String)
+    case computing
+}
+
 // MARK: - Service
 
 @MainActor
@@ -103,7 +117,8 @@ final class SemanticSearchService {
     /// queries hit cache.
     func relatedKeywords(query: String,
                          in dicts: [SemanticDictRef],
-                         tier: RelatedWordsTier) async -> [SemanticMatch] {
+                         tier: RelatedWordsTier,
+                         progress: (@MainActor (SemanticSearchPhase) -> Void)? = nil) async -> [SemanticMatch] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !dicts.isEmpty else { return [] }
 
@@ -116,11 +131,14 @@ final class SemanticSearchService {
 
         // Preload all dicts in parallel. Each preload de-dupes against any
         // already-in-flight scan, and noop's if the cache hit already exists.
+        // `progress` (if provided) gets a `.preloading(dictTitle:)` event each
+        // time a dict's scan kicks off, so the calling session can update its
+        // status line.
         let t0 = CFAbsoluteTimeGetCurrent()
         await withTaskGroup(of: Void.self) { group in
             for ref in dicts {
                 group.addTask { [weak self] in
-                    await self?.preload(ref: ref)
+                    await self?.preload(ref: ref, progress: progress)
                 }
             }
         }
@@ -135,6 +153,7 @@ final class SemanticSearchService {
 
         // Heavy compute (cosine + sort + dedup) detaches off main so a 5-dict
         // group query (~500ms) doesn't stall the search-bar typing pipeline.
+        progress?(.computing)
         return await Task.detached { [trimmed, tier] in
             Self.computeMatches(query: trimmed, snapshots: snapshots, tier: tier)
         }.value
@@ -143,14 +162,21 @@ final class SemanticSearchService {
     /// Single-dict convenience. Forwards to the cross-group variant.
     func relatedKeywords(query: String,
                          in dict: SemanticDictRef,
-                         tier: RelatedWordsTier) async -> [SemanticMatch] {
-        await relatedKeywords(query: query, in: [dict], tier: tier)
+                         tier: RelatedWordsTier,
+                         progress: (@MainActor (SemanticSearchPhase) -> Void)? = nil) async -> [SemanticMatch] {
+        await relatedKeywords(query: query, in: [dict], tier: tier, progress: progress)
     }
 
     /// Pre-warm the vector cache for `ref`. Called explicitly e.g. when the
     /// user is reading an article (we can anticipate they may flip to semantic
     /// scope). Concurrent calls for the same dict id share one underlying scan.
-    func preload(ref: SemanticDictRef) async {
+    ///
+    /// `progress` (if provided) fires a `.preloading(dictTitle:)` event right
+    /// before the scan kicks off — only when we're actually going to do work,
+    /// i.e. not when the cache already has this dict or another caller is
+    /// already scanning it.
+    func preload(ref: SemanticDictRef,
+                 progress: (@MainActor (SemanticSearchPhase) -> Void)? = nil) async {
         if cache[ref.id] != nil { return }
 
         if let existing = inFlight[ref.id] {
@@ -164,6 +190,7 @@ final class SemanticSearchService {
         let title = ref.reader.metadata.title ?? "(no title)"
         let keyCount = ref.reader.allKeys.count
         print("🧠 Preloading vectors: '\(title)' (\(keyCount) keys)")
+        progress?(.preloading(dictTitle: title))
         let t0 = CFAbsoluteTimeGetCurrent()
 
         let task = Task.detached { [ref] () -> DictVectors? in

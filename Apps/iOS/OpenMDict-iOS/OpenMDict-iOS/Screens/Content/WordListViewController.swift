@@ -170,6 +170,13 @@ class WordListViewController: UIViewController {
     /// When false + query non-empty + all results empty → show "Searching…" instead of "No results".
     private var isSearchSettled: Bool = true
 
+    /// Dynamic status line shown beneath the "查询中" title in the searching
+    /// empty state. Set by SemanticLookupSession's progress callback as it
+    /// transitions through preloading / computing / spelling-fallback phases.
+    /// Nil in spelling scope (its pipeline is fast enough that phase detail
+    /// isn't useful) and after the pipeline settles.
+    private var statusMessage: String?
+
     /// History records grouped by date
     private var historyGroups: [HistorySection] = []
 
@@ -253,21 +260,35 @@ class WordListViewController: UIViewController {
         return container
     }()
 
-    /// Spinner shown in place of the empty-state icon while the search pipeline
-    /// is in flight. `hidesWhenStopped = true` so it disappears entirely when
-    /// stopped, and `configureEmptyState` always stops it before resetting the
-    /// icon — no separate cleanup path needed.
+    /// Spinner shown next to the title while the search pipeline is in flight.
+    /// `hidesWhenStopped = true` makes the stack view collapse the spinner's
+    /// slot when not animating, so `configureEmptyState` only needs to call
+    /// `stopAnimating()` — no separate isHidden bookkeeping.
     private lazy var loadingSpinner: UIActivityIndicatorView = {
-        let s = UIActivityIndicatorView(style: .large)
+        let s = UIActivityIndicatorView(style: .medium)
         s.translatesAutoresizingMaskIntoConstraints = false
         s.hidesWhenStopped = true
         s.color = .secondaryLabel
         return s
     }()
 
+    /// Searching states show `[Spinner, Title]` side-by-side in a horizontal
+    /// row instead of a column. Putting the spinner on the title's line
+    /// keeps the loading affordance visually tied to the "Searching" copy.
+    /// When the spinner is stopped (= non-searching states), the stack view
+    /// hides its slot and the row degrades cleanly to just the title.
+    private lazy var emptyStateTitleRow: UIStackView = {
+        let row = UIStackView(arrangedSubviews: [loadingSpinner, emptyStateTitle])
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 8
+        return row
+    }()
+
     private lazy var emptyStateStack: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [
-            loadingSpinner, emptyStateIcon, emptyStateTitle, emptyStateMessage, emptyStateButton
+            emptyStateIcon, emptyStateTitleRow, emptyStateMessage, emptyStateButton
         ])
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.axis = .vertical
@@ -513,6 +534,7 @@ class WordListViewController: UIViewController {
         subscribeToLemmaResults()
         subscribeToSuggestions()
         subscribeToSearchSettled()
+        subscribeToStatusMessage()
         snapshotActiveSessionState()
     }
 
@@ -527,6 +549,7 @@ class WordListViewController: UIViewController {
         lemmaWords     = s.lemmaResults
         suggestedWords = s.suggestions
         isSearchSettled = s.isSearchSettled
+        statusMessage   = s.statusMessage
         rebuildSections()
         updateEmptyState()
     }
@@ -594,6 +617,25 @@ class WordListViewController: UIViewController {
                 guard let self else { return }
                 self.isSearchSettled = settled
                 // Only update overlay — no need to rebuild table data
+                self.updateEmptyState()
+            }
+            .store(in: &searchCancellables)
+    }
+
+    /// Subscribe to the active session's optional phase-status stream.
+    /// SpellingLookupSession returns nil (per the protocol's default impl)
+    /// so the search bar's empty state stays generic for it. SemanticLookup
+    /// Session emits per-dict "Loading X…" during preload, then "Computing
+    /// matches…", then "Checking spelling…" if the fuzzy fallback fires.
+    private func subscribeToStatusMessage() {
+        searchSession?.statusMessagePublisher
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] msg in
+                guard let self else { return }
+                self.statusMessage = msg
+                // Only the empty-state overlay reads statusMessage — no need
+                // to rebuild table sections.
                 self.updateEmptyState()
             }
             .store(in: &searchCancellables)
@@ -894,8 +936,13 @@ class WordListViewController: UIViewController {
                     // Pipeline still running — show searching indicator with
                     // an animated spinner so the placeholder doesn't look frozen
                     // during the multi-second first semantic preload (or any
-                    // slower spelling pipeline phase).
-                    configureSearchingState(title: L10n.WordList.searching)
+                    // slower spelling pipeline phase). `statusMessage` is
+                    // non-nil only for SemanticLookupSession's progress phases
+                    // (Loading X / Computing / Checking spelling).
+                    configureSearchingState(
+                        title: L10n.WordList.searching,
+                        message: statusMessage
+                    )
                 } else {
                     // All pipelines settled with no results
                     let noResultsIcon: String
@@ -941,17 +988,30 @@ class WordListViewController: UIViewController {
         emptyStateButton.isHidden = (buttonTitle == nil)
     }
 
-    /// Configure the empty state view as a "searching" indicator: spinner in
-    /// place of the icon + searching title, no message or button. Used in
-    /// both spelling and semantic scopes whenever the pipeline isn't settled
-    /// — the rest of the empty-state cases route through `configureEmpty
-    /// State` which will stop the spinner and put the icon back.
-    private func configureSearchingState(title: String) {
+    /// Configure the empty state view as a "searching" indicator:
+    ///
+    ///   Column {
+    ///       Icon("rectangle.and.text.magnifyingglass")
+    ///       Row { Spinner, Title }
+    ///       Message?
+    ///   }
+    ///
+    /// Used in both spelling and semantic scopes whenever the pipeline isn't
+    /// settled. The rest of the empty-state cases route through
+    /// `configureEmptyState`, which stops the spinner — the title row then
+    /// degrades to title-only since `hidesWhenStopped` collapses the spinner's
+    /// stack slot.
+    ///
+    /// `message` is the dynamic status line: semantic scope feeds it
+    /// "Loading X…", "Computing matches…", or "Checking spelling…" from
+    /// the session's progress reporter; spelling scope leaves it nil.
+    private func configureSearchingState(title: String, message: String? = nil) {
         loadingSpinner.startAnimating()
-        emptyStateIcon.isHidden = true
+        emptyStateIcon.isHidden = false
+        emptyStateIcon.image = UIImage(systemName: "rectangle.and.text.magnifyingglass")
         emptyStateTitle.text = title
-        emptyStateMessage.text = nil
-        emptyStateMessage.isHidden = true
+        emptyStateMessage.text = message
+        emptyStateMessage.isHidden = (message == nil)
         emptyStateButton.setTitle(nil, for: .normal)
         emptyStateButton.isHidden = true
     }

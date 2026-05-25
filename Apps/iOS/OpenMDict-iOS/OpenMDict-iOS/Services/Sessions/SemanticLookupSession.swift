@@ -61,12 +61,19 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
     @Published private(set) var suggestions: [String] = []
     @Published private(set) var isSearchSettled: Bool = true
 
+    /// Per-phase status copy ("Loading X…", "Computing matches…", "Checking
+    /// spelling…") surfaced by WordListVC in the searching empty state. Set
+    /// by the service's `progress` callback and the fuzzy-fallback branch
+    /// below; cleared to nil when the pipeline settles.
+    @Published private(set) var statusMessage: String? = nil
+
     // MARK: - Protocol Publisher Accessors
 
     var resultsPublisher: AnyPublisher<[WordDisplayItem], Never> { $results.eraseToAnyPublisher() }
     var lemmaResultsPublisher: AnyPublisher<[WordDisplayItem], Never> { $lemmaResults.eraseToAnyPublisher() }
     var suggestionsPublisher: AnyPublisher<[String], Never> { $suggestions.eraseToAnyPublisher() }
     var isSearchSettledPublisher: AnyPublisher<Bool, Never> { $isSearchSettled.eraseToAnyPublisher() }
+    var statusMessagePublisher: AnyPublisher<String?, Never> { $statusMessage.eraseToAnyPublisher() }
 
     // MARK: - State
 
@@ -152,6 +159,10 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
         results = []
         suggestions = []
         isSearchSettled = false
+        // statusMessage stays as-is until the progress callback fires its first
+        // .preloading event — if all dicts are already cached, no preload event
+        // fires and we fall through to .computing directly.
+        statusMessage = nil
 
         searchTask = Task { [weak self, dictInfos] in
             // Build a id→display-name lookup once so the background mapping
@@ -167,7 +178,22 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
             }
 
             let matches = await SemanticSearchService.shared.relatedKeywords(
-                query: trimmed, in: dictRefs, tier: tier
+                query: trimmed, in: dictRefs, tier: tier,
+                progress: { [weak self] phase in
+                    // @MainActor callback — safe to mutate `self.statusMessage`
+                    // directly. Fires from the service whenever it enters a
+                    // new phase (preloading a specific dict, or starting the
+                    // cosine sweep). With parallel preloads the title may
+                    // flicker through several dict names; that's expected
+                    // signal-of-activity.
+                    guard let self else { return }
+                    switch phase {
+                    case .preloading(let dictTitle):
+                        self.statusMessage = L10n.WordList.statusLoadingDict(dictTitle)
+                    case .computing:
+                        self.statusMessage = L10n.WordList.statusComputingSemantic
+                    }
+                }
             )
 
             guard !Task.isCancelled else { return }
@@ -181,20 +207,24 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
             }
 
             // Spelling-fallback evaluation. When the semantic compute returns
-            // weak results — few matches or a mediocre top similarity — the
-            // query itself is probably misspelled (NLEmbedding doesn't have
-            // the exact form, so we pick up adjacent-but-not-quite words).
-            // Borrow the spelling scope's Levenshtein-distance suggestion
-            // logic and surface the typo fixes in the same `spellingSuggestions`
-            // section the user already understands. They retain the option of
-            // tapping a fuzzy suggestion to commit to that spelling.
+            // fewer than `spellingFallbackThreshold` matches, the query is
+            // most likely a typo or extremely niche — NLEmbedding's neighborhood
+            // is thin. Borrow the spelling scope's Levenshtein-distance suggestion
+            // logic and surface typo fixes in the same `spellingSuggestions`
+            // section the user already understands.
+            //
+            // Top cosine similarity is logged for diagnostics but no longer
+            // gates the fallback — the per-match count is a cleaner signal
+            // and avoids triggering fuzzy fallback for legitimate "common
+            // word with sprawling-but-shallow neighborhood" queries.
             let topSim = matches.first?.similarity ?? 0
-            let needsSpellingFallback =
-                matches.count < Self.spellingFallbackCountThreshold ||
-                topSim <= Self.spellingFallbackSimThreshold
+            let needsSpellingFallback = matches.count < Self.spellingFallbackThreshold
 
             var spellingSuggestions: [String] = []
             if needsSpellingFallback {
+                await MainActor.run { [weak self] in
+                    self?.statusMessage = L10n.WordList.statusCheckingSpelling
+                }
                 let readers = dictInfos.map { $0.reader }
                 // Filter out the query itself + every word already shown as a
                 // semantic match — those would be confusing duplicates.
@@ -214,6 +244,7 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
                 self.results = items
                 self.suggestions = spellingSuggestions
                 self.isSearchSettled = true
+                self.statusMessage = nil   // clear phase line — spinner is going away
                 let suggestionSuffix = spellingSuggestions.isEmpty
                     ? ""
                     : " + \(spellingSuggestions.count) spelling fallback"
@@ -226,17 +257,12 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
         }
     }
 
-    /// Top cosine-similarity below which we suspect a typo and run the
-    /// spelling-style fuzzy fallback alongside the semantic matches.
-    /// 0.65 is "weak even for a common adjective" in our bench data — words
-    /// like "happy" / "melancholy" / "beautiful" all clear it comfortably,
-    /// while OOV / off-axis queries fall below.
-    private static let spellingFallbackSimThreshold: Double = 0.65
-
-    /// Result-count below which we also run the spelling fallback regardless
-    /// of similarity — empty / very-thin result sets are themselves a strong
-    /// typo signal.
-    private static let spellingFallbackCountThreshold: Int = 3
+    /// Semantic-match count below which we additionally run the spelling-style
+    /// fuzzy fallback. With the user-facing default tier at K=24, getting fewer
+    /// than 8 matches means the NLEmbedding neighborhood is thin (typo, OOV,
+    /// or extremely niche term) and the user is likely better helped by typo
+    /// fixes than by squeezing more borderline semantic matches out.
+    private static let spellingFallbackThreshold: Int = 8
 
     /// Listen for Settings.bundle changes to `semanticResultsCount`.
     private func subscribeToSettingsChanges() {

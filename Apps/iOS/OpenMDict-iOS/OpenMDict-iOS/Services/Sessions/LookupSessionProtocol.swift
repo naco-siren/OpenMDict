@@ -35,6 +35,14 @@ protocol LookupSessionProtocol: AnyObject {
     var isSearchSettled: Bool { get }
     var isSearchSettledPublisher: AnyPublisher<Bool, Never> { get }
 
+    /// Optional one-line "what phase is the pipeline in" message, shown by the
+    /// VC beneath the title in the searching empty state. Sessions that don't
+    /// have meaningful phase granularity (e.g. SpellingLookupSession, whose
+    /// pipeline is fast enough that phase detail isn't useful) leave it nil
+    /// via the default extension below.
+    var statusMessage: String? { get }
+    var statusMessagePublisher: AnyPublisher<String?, Never> { get }
+
     // MARK: - Inputs
 
     func updateQuery(_ query: String)
@@ -47,4 +55,14 @@ protocol LookupSessionProtocol: AnyObject {
 
     var currentQuery: String { get }
     var currentContext: SearchContext { get }
+}
+
+extension LookupSessionProtocol {
+    /// Default: sessions without phase-granular reporting (i.e. the existing
+    /// SpellingLookupSession and the tutorial mock) get a nil-only status
+    /// stream. Concrete sessions that DO have phases override both members.
+    var statusMessage: String? { nil }
+    var statusMessagePublisher: AnyPublisher<String?, Never> {
+        Just<String?>(nil).eraseToAnyPublisher()
+    }
 }

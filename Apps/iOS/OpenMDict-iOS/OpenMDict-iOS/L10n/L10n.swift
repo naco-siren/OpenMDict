@@ -995,6 +995,22 @@ nonisolated enum L10n {
         static var searching: String {
             NSLocalizedString("wordList.searching", value: "Searching\u{2026}", comment: "Empty state shown while search pipeline is still running")
         }
+        // Dynamic status-line strings shown beneath the searching title to
+        // surface what phase the semantic pipeline is in. Empty for the
+        // spelling scope (its pipeline is fast enough that progress detail
+        // isn't useful).
+        static func statusLoadingDict(_ dictName: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("wordList.statusLoadingDict", value: "Loading %@\u{2026}", comment: "Status line during semantic preload — %@ is the dictionary title being preloaded"),
+                dictName
+            )
+        }
+        static var statusComputingSemantic: String {
+            NSLocalizedString("wordList.statusComputingSemantic", value: "Computing matches\u{2026}", comment: "Status line after semantic preload completes, while cosine sweep + dedup runs")
+        }
+        static var statusCheckingSpelling: String {
+            NSLocalizedString("wordList.statusCheckingSpelling", value: "Checking spelling\u{2026}", comment: "Status line during the Levenshtein-distance fuzzy fallback (typo check) in semantic scope")
+        }
 
         // Empty state (context-filtered history)
         static func noHistoryInSource(_ name: String) -> String {
