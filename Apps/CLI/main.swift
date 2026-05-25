@@ -107,6 +107,11 @@ func printUsage() {
             --scope dict = top-K restricted to this MDX's keywords
             --scope both = both (default)
 
+        openmdict neighbors-bench [--words-file FILE] [--lang en] [--max-neighbors N]
+            Measure NLEmbedding.neighbors() latency over a representative
+            CEFR-stratified bench set. Phase 2 decision gate: p95 < 200 ms
+            → Option C (drop our vector cache) is viable.
+
     \(colored("Sidecar Index Commands:", .yellow))
         openmdict sidecar info <mdx_file>           Show sidecar status for a dictionary
         openmdict sidecar rebuild <mdx_file>        Force rebuild the sidecar (delete + reload)
@@ -161,6 +166,14 @@ func main() {
             exit(1)
         }
         handleSidecarSubcommand(subcommand: args[2], arg: args[3])
+        exit(0)
+    }
+
+    // M15 Phase 2 probe: measure NLEmbedding.neighbors() latency to decide
+    // whether we can drop the per-dict vector cache (Option C) or need to
+    // fall back to a folded per-language cache (Option A).
+    if args[1] == "neighbors-bench" {
+        handleNeighborsBench(args: Array(args.dropFirst(2)))
         exit(0)
     }
 

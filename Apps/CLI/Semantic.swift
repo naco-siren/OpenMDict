@@ -809,3 +809,196 @@ private func cosineSimilarity(_ a: [Double], _ b: [Double]) -> Double {
     let denom = sqrt(na) * sqrt(nb)
     return denom == 0 ? 0 : dot / denom
 }
+
+// MARK: - Phase 2 perf probe: NLEmbedding.neighbors() latency
+
+/// `openmdict neighbors-bench` — measure `NLEmbedding.wordEmbedding(for:).neighbors`
+/// latency across a representative CEFR-stratified set. Designed to settle the
+/// Phase 2 design question: can we drop our per-dict vector cache and call
+/// NLEmbedding at query time instead?
+///
+/// Output is per-query latency stats (min / p50 / mean / p95 / p99 / max).
+/// Decision gate is **p95 < 200 ms** for Option C (drop cache); above that we
+/// fall back to Option A (folded per-language cache).
+///
+/// Caveat: runs on the dev machine (Mac), which has more CPU than any iOS
+/// target. As a rule of thumb, expect iOS to be 2–4× slower depending on
+/// the device tier. The bench output annotates this so the reader can
+/// translate the number.
+func handleNeighborsBench(args: [String]) {
+    var wordsFile: String? = nil
+    var langArg = "en"
+    var maxNeighbors = 500
+    var passes = 3
+    var i = 0
+    while i < args.count {
+        switch args[i] {
+        case "--words-file":
+            guard i + 1 < args.count else { eprintln("--words-file needs a path"); exit(1) }
+            wordsFile = args[i + 1]; i += 2
+        case "--lang":
+            guard i + 1 < args.count else { eprintln("--lang needs a value"); exit(1) }
+            langArg = args[i + 1]; i += 2
+        case "--max-neighbors":
+            guard i + 1 < args.count, let n = Int(args[i + 1]) else {
+                eprintln("--max-neighbors needs an integer"); exit(1)
+            }
+            maxNeighbors = n; i += 2
+        case "--passes":
+            guard i + 1 < args.count, let n = Int(args[i + 1]) else {
+                eprintln("--passes needs an integer"); exit(1)
+            }
+            passes = n; i += 2
+        default:
+            eprintln("Unknown flag: \(args[i])"); exit(1)
+        }
+    }
+
+    let lang = NLLanguage(rawValue: langArg)
+    let words: [String]
+    if let path = wordsFile {
+        words = loadNeighborsBenchWords(from: path)
+    } else {
+        words = defaultNeighborsBenchWords
+    }
+
+    print()
+    print(colored("🧪 NLEmbedding.neighbors() latency probe", .bold))
+    print("  language:       \(lang.rawValue)")
+    print("  maxNeighbors:   \(maxNeighbors)")
+    print("  source set:     \(wordsFile ?? "(built-in 30-word CEFR-stratified set)")")
+    print("  N queries:      \(words.count)  × passes \(passes) = \(words.count * passes) samples")
+    print()
+
+    let t0 = CFAbsoluteTimeGetCurrent()
+    guard let embedding = NLEmbedding.wordEmbedding(for: lang) else {
+        eprintln(colored("Error: NLEmbedding has no word model for '\(langArg)'", .red))
+        eprintln("Built-in coverage: en, es, fr, de, it, pt, ru, ja, ko, zh-Hans, zh-Hant")
+        exit(1)
+    }
+    let embLoadMs = (CFAbsoluteTimeGetCurrent() - t0) * 1000
+    print("  embedding loaded in \(String(format: "%.1f", embLoadMs)) ms")
+    print("  vocab size:     \(embedding.vocabularySize)")
+    print("  dimension:      \(embedding.dimension)")
+    print()
+
+    // Warm-up pass — the very first .neighbors() call may pay one-time
+    // initialization costs that we don't want polluting our stats.
+    print(colored("Warming up …", .dim))
+    var oovCount = 0
+    var maxObservedNeighbors = 0
+    for w in words {
+        let result = embedding.neighbors(for: w.lowercased(), maximumCount: maxNeighbors)
+        if result.isEmpty { oovCount += 1 }
+        maxObservedNeighbors = max(maxObservedNeighbors, result.count)
+    }
+    // Sanity-check the cap: if asking for 500 but never got more than ~50
+    // neighbors back, NLEmbedding is filtering by an implicit max distance.
+    // The bound matters for Option C (do we have enough candidates to
+    // filter by dict membership and still hit tier.k=48?).
+    if maxObservedNeighbors < maxNeighbors {
+        print(colored("  Note: max observed neighbors per query = \(maxObservedNeighbors)", .yellow))
+        print(colored("  (asked for \(maxNeighbors); NLEmbedding applies an internal distance threshold ≈1.0)", .yellow))
+        print(colored("  This isn't a hard problem for Option C: 50 candidates per query is", .dim))
+        print(colored("  plenty after dict-membership filter to fill tier.k = 12 / 24 / 48.", .dim))
+    }
+    if oovCount > 0 {
+        print(colored("  (\(oovCount) of \(words.count) queries OOV — no neighbors returned)", .dim))
+    }
+
+    // Timed passes
+    print(colored("Benching …", .dim))
+    var latenciesMs: [Double] = []
+    latenciesMs.reserveCapacity(words.count * passes)
+    var sampleResults: [(word: String, ms: Double, count: Int)] = []
+    for pass in 0..<passes {
+        for w in words {
+            let lower = w.lowercased()
+            let t = CFAbsoluteTimeGetCurrent()
+            let neighbors = embedding.neighbors(for: lower, maximumCount: maxNeighbors)
+            let ms = (CFAbsoluteTimeGetCurrent() - t) * 1000
+            latenciesMs.append(ms)
+            if pass == 0, sampleResults.count < 5 {
+                sampleResults.append((w, ms, neighbors.count))
+            }
+        }
+    }
+
+    // Stats
+    let sorted = latenciesMs.sorted()
+    func pct(_ p: Double) -> Double {
+        let i = min(sorted.count - 1, max(0, Int((Double(sorted.count) * p).rounded(.up)) - 1))
+        return sorted[i]
+    }
+    let mean = latenciesMs.reduce(0, +) / Double(latenciesMs.count)
+    let minLat = sorted.first ?? 0
+    let maxLat = sorted.last ?? 0
+    let p50 = pct(0.50)
+    let p95 = pct(0.95)
+    let p99 = pct(0.99)
+
+    print()
+    print(colored("Sample queries (first 5 of pass 1):", .yellow))
+    for s in sampleResults {
+        print("    \(padded(s.word, 20)) → \(String(format: "%6.2f", s.ms)) ms (\(s.count) neighbors)")
+    }
+
+    print()
+    print(colored("Latency statistics  (\(latenciesMs.count) samples)", .bold))
+    print("  min:            \(String(format: "%6.2f", minLat)) ms")
+    print("  p50 (median):   \(String(format: "%6.2f", p50)) ms")
+    print("  mean:           \(String(format: "%6.2f", mean)) ms")
+    print("  p95:            \(String(format: "%6.2f", p95)) ms")
+    print("  p99:            \(String(format: "%6.2f", p99)) ms")
+    print("  max:            \(String(format: "%6.2f", maxLat)) ms")
+    print()
+
+    // Decision gate
+    let gateMs = 200.0
+    let macToIosFactor = 3.0   // rough rule of thumb; A15+ closer to 2×, A12 closer to 4×
+    let estimatedIosP95 = p95 * macToIosFactor
+    print(colored("Decision gate (Phase 2 plan):", .bold))
+    print("  Mac p95         = \(String(format: "%.1f", p95)) ms")
+    print("  Est. iOS p95    ≈ \(String(format: "%.1f", estimatedIosP95)) ms  (Mac × \(String(format: "%.0f", macToIosFactor)), rough)")
+    print()
+    if estimatedIosP95 < gateMs {
+        print(colored("  ✓ p95 estimate (\(String(format: "%.1f", estimatedIosP95)) ms) is well under \(Int(gateMs)) ms.", .green))
+        print(colored("    → Option C (no vector cache, call neighbors at query time) is viable.", .green))
+    } else if estimatedIosP95 < gateMs * 1.5 {
+        print(colored("  ⚠ p95 estimate (\(String(format: "%.1f", estimatedIosP95)) ms) is in the borderline zone.", .yellow))
+        print(colored("    → Recommend an on-device measurement before committing to Option C.", .yellow))
+    } else {
+        print(colored("  ✗ p95 estimate (\(String(format: "%.1f", estimatedIosP95)) ms) is well over \(Int(gateMs)) ms.", .red))
+        print(colored("    → Option A (folded per-language cache) is the safer bet.", .red))
+    }
+    print()
+}
+
+/// Built-in 30-word CEFR-stratified probe set. Mix of common (A1–A2),
+/// mid-range (B1–B2), academic / rare (C1–C2), and a handful of NLEmbedding
+/// OOV (callipygian, sesquipedalian) so the bench exercises both
+/// hot-path and edge-case paths.
+private let defaultNeighborsBenchWords: [String] = [
+    // A1 / A2 — common
+    "happy", "sad", "run", "walk", "eat", "sleep", "house", "car",
+    "weekend", "family", "kitchen", "garden",
+    // B1 / B2 — mid frequency
+    "contemplate", "persuade", "contain", "ambiguous",
+    "candid", "profound", "vigilant",
+    // C1 / C2 — academic
+    "cogent", "ostensible", "vehement", "succinct",
+    "lugubrious", "perspicacious", "perfidious",
+    // OOV / rare — exercise the "no neighbors" path
+    "sesquipedalian", "callipygian", "eldritch", "antediluvian",
+]
+
+private func loadNeighborsBenchWords(from path: String) -> [String] {
+    guard let content = try? String(contentsOfFile: path, encoding: .utf8) else {
+        eprintln("Cannot read words file: \(path)")
+        exit(1)
+    }
+    return content
+        .split(separator: "\n")
+        .map { String($0).trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+}
