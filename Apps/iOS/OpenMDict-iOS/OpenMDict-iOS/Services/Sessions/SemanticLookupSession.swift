@@ -15,15 +15,19 @@
 //      morphological variants via the service's lemma dedup, no separate
 //      "related forms" section to surface.
 //    - `suggestions` is populated only when the semantic compute returns
-//      weak results (few matches or low top similarity). The Levenshtein
-//      fuzzy logic from the spelling scope is invoked as a typo fallback —
-//      a query that doesn't land near anything semantically is more often
-//      a misspelling than an exotic word. WordListVC then renders these
-//      under the same `.spellingSuggestions` section the user already sees
-//      in the spelling scope.
-//    - The pipeline is naturally slower (~100–500ms per cross-group query
-//      depending on dict count + cache state). isSearchSettled handles the
-//      "Searching…" UI state the same way SpellingLookupSession does.
+//      weak results (few matches). The Levenshtein fuzzy logic from the
+//      spelling scope is invoked as a typo fallback — a query that doesn't
+//      land near anything semantically is more often a misspelling than an
+//      exotic word. WordListVC then renders these under the same
+//      `.spellingSuggestions` section the user already sees in the spelling
+//      scope.
+//    - Phase 2 (Option C, post-`neighbors-bench`) replaced the per-dict
+//      vector cache with on-demand `NLEmbedding.neighbors` + dict.lookup
+//      filter. Per-query cost is now ~10–50 ms (vs 100–500 ms in Phase 1)
+//      so the previous per-phase status copy ("Loading X…", "Computing
+//      matches…") was retired — the only step slow enough to still warrant
+//      a status line is the Levenshtein spelling fallback, which is set
+//      explicitly below.
 //
 //  For now this file duplicates a fair amount of
 //  SpellingLookupSession scaffolding (pipeline setup, context handling, settings
@@ -61,10 +65,11 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
     @Published private(set) var suggestions: [String] = []
     @Published private(set) var isSearchSettled: Bool = true
 
-    /// Per-phase status copy ("Loading X…", "Computing matches…", "Checking
-    /// spelling…") surfaced by WordListVC in the searching empty state. Set
-    /// by the service's `progress` callback and the fuzzy-fallback branch
-    /// below; cleared to nil when the pipeline settles.
+    /// Status copy ("Checking spelling…") surfaced by WordListVC in the
+    /// searching empty state. Only the spelling-fallback branch sets it now
+    /// — the main NLEmbedding compute is fast enough (sub-50ms typical) that
+    /// no per-phase narration is useful. Cleared to nil when the pipeline
+    /// settles.
     @Published private(set) var statusMessage: String? = nil
 
     // MARK: - Protocol Publisher Accessors
@@ -152,19 +157,18 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
         }
         print("🧠 Semantic '\(trimmed)' in \(contextLabel) (K=\(tier.k), floor=\(tier.floor))")
 
-        // Drop prior-query state on the floor before the heavy compute begins.
+        // Drop prior-query state on the floor before the compute begins.
         // updateEmptyState() will then see empty results + empty suggestions +
         // isSearchSettled=false and render the spinner overlay until the task
         // below assigns new values.
         results = []
         suggestions = []
         isSearchSettled = false
-        // statusMessage stays as-is until the progress callback fires its first
-        // .preloading event — if all dicts are already cached, no preload event
-        // fires and we fall through to .computing directly.
+        // No phase narration to start — the spelling-fallback branch is the
+        // only step that sets a non-nil status now.
         statusMessage = nil
 
-        searchTask = Task { [weak self, dictInfos] in
+        searchTask = Task { [dictInfos] in
             // Build a id→display-name lookup once so the background mapping
             // doesn't need to touch MainActor MDict objects.
             let nameById = Dictionary(uniqueKeysWithValues: dictInfos.map { ($0.dictId, $0.dictName) })
@@ -178,22 +182,7 @@ final class SemanticLookupSession: ObservableObject, LookupSessionProtocol {
             }
 
             let matches = await SemanticSearchService.shared.relatedKeywords(
-                query: trimmed, in: dictRefs, tier: tier,
-                progress: { [weak self] phase in
-                    // @MainActor callback — safe to mutate `self.statusMessage`
-                    // directly. Fires from the service whenever it enters a
-                    // new phase (preloading a specific dict, or starting the
-                    // cosine sweep). With parallel preloads the title may
-                    // flicker through several dict names; that's expected
-                    // signal-of-activity.
-                    guard let self else { return }
-                    switch phase {
-                    case .preloading(let dictTitle):
-                        self.statusMessage = L10n.WordList.statusLoadingDict(dictTitle)
-                    case .computing:
-                        self.statusMessage = L10n.WordList.statusComputingSemantic
-                    }
-                }
+                query: trimmed, in: dictRefs, tier: tier
             )
 
             guard !Task.isCancelled else { return }
