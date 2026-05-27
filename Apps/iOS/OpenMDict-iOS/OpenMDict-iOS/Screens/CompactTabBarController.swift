@@ -553,6 +553,16 @@ class CompactTabBarController: UITabBarController {
             hideSidebar()
             presentAICoachPOC()
         }
+
+        // M15 Phase 3.0.5 article-embedding POC. DEBUG-only entry — see
+        // CompactManagementViewController's `#if DEBUG` snapshot guard
+        // (and DictionaryListViewController for the regular-layout
+        // counterpart). Release builds never reach this closure.
+        sidebarVC.onArticleEmbedPOCSelected = { [weak self] in
+            guard let self else { return }
+            hideSidebar()
+            presentArticleEmbedPOC()
+        }
     }
 
     // MARK: - AI Coach POC (M14)
@@ -568,6 +578,26 @@ class CompactTabBarController: UITabBarController {
         if #available(iOS 26, *) {
             presentAICoach(from: self)
         }
+    }
+
+    // MARK: - M15 Phase 3.0.5 Body-Embed POC
+
+    /// Present the article-embedding throughput POC fullscreen modally.
+    /// Compact-layout counterpart to MainSplitViewController's version.
+    private func presentArticleEmbedPOC() {
+        let poc = ArticleEmbedPOCViewController()
+        let nav = UINavigationController(rootViewController: poc)
+        nav.modalPresentationStyle = .fullScreen
+        poc.navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
+            target: self,
+            action: #selector(dismissArticleEmbedPOC)
+        )
+        present(nav, animated: true)
+    }
+
+    @objc private func dismissArticleEmbedPOC() {
+        dismiss(animated: true)
     }
 
     // MARK: - Word Selection (Lookup tab)
@@ -723,6 +753,12 @@ class CompactTabBarController: UITabBarController {
 
         managementVC.onAICoachSelected = { [weak self] in
             self?.presentAICoachPOC()
+        }
+
+        // M15 Phase 3.0.5 article-embedding POC (mgmt-tab entry; mirror of
+        // the sidebar wiring earlier in this file).
+        managementVC.onArticleEmbedPOCSelected = { [weak self] in
+            self?.presentArticleEmbedPOC()
         }
 
         managementVC.onAppSettingsSelected = {

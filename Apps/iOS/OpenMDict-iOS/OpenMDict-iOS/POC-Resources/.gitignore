@@ -1,0 +1,8 @@
+# POC-Resources is an M15 Phase 3.0.5 tech-POC asset directory.
+# The model + vocab are reproducible from scripts/build-st-coreml.py
+# — don't commit them, regenerate locally per scripts/ instructions.
+# Phase 3.1 model survey concluded MiniLM-L6 is the production choice
+# (see docs/article-embeddings.md). ane-distilbert / bge-small / gte-small /
+# e5-small / MiniLM-L12 are negative results, intentionally NOT bundled.
+all-MiniLM-L6-v2.mlpackage/
+vocab.txt

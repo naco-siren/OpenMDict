@@ -720,6 +720,10 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .aiCoach:
             content.text = L10n.Sidebar.aiCoach
             content.image = UIImage(systemName: "apple.intelligence")
+        case .articleEmbedPOC:
+            // No L10n — DEBUG-only entry, English-only diagnostic label.
+            content.text = "Article Embed POC"
+            content.image = UIImage(systemName: "waveform.path.ecg")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

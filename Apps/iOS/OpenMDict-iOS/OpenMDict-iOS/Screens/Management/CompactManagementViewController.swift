@@ -29,6 +29,7 @@ private nonisolated enum MgmtItem: Hashable, Sendable {
     case changeAppIcon
     case iCloudTroubleshoot
     case aiCoach
+    case articleEmbedPOC   // M15 Phase 3.0.5: DEBUG-only entry to article-embed POC
     case appSettings
 }
 
@@ -58,6 +59,10 @@ class CompactManagementViewController: UIViewController {
 
     /// "AI Coach" tapped (iOS 26+, only visible when AICoach.isVisible)
     var onAICoachSelected: (() -> Void)?
+
+    /// "Article Embed POC" tapped — DEBUG-only sidebar/tab entry to the
+    /// M15 Phase 3.0.5 throughput POC. Wired in CompactTabBarController.
+    var onArticleEmbedPOCSelected: (() -> Void)?
 
     /// "App Settings" tapped
     var onAppSettingsSelected: (() -> Void)?
@@ -140,6 +145,9 @@ class CompactManagementViewController: UIViewController {
             case .aiCoach:
                 config.text = L10n.Sidebar.aiCoach
                 config.image = UIImage(systemName: "apple.intelligence")
+            case .articleEmbedPOC:
+                config.text = "Article Embed POC"  // no L10n, DEBUG only
+                config.image = UIImage(systemName: "waveform.path.ecg")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")
@@ -171,6 +179,12 @@ class CompactManagementViewController: UIViewController {
             .addGroup, .importDictionary, .downloadPresets,
             .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .appSettings,
         ])
+        // M15 Phase 3.0.5 article-embedding POC entry. DEBUG-only; never
+        // appears in Release builds. Same `#if DEBUG` gating as the
+        // regular-layout sidebar in DictionaryListViewController.
+        #if DEBUG
+        items.append(.articleEmbedPOC)
+        #endif
         snapshot.appendItems(items, toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -206,6 +220,8 @@ extension CompactManagementViewController: UICollectionViewDelegate {
             onTroubleshootSelected?()
         case .aiCoach:
             onAICoachSelected?()
+        case .articleEmbedPOC:
+            onArticleEmbedPOCSelected?()
         case .appSettings:
             onAppSettingsSelected?()
         }

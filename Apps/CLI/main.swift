@@ -112,6 +112,30 @@ func printUsage() {
             CEFR-stratified bench set. Phase 2 decision gate: p95 < 200 ms
             → Option C (drop our vector cache) is viable.
 
+        openmdict articleembed --model PATH --vocab PATH "text"
+            Encode arbitrary text via a CoreML sentence-transformer
+            (currently scaffolded for all-MiniLM-L6-v2). Phase 3.0
+            pipeline bring-up — validates tokenizer + ANE routing.
+            Also: --pair "a" "b" prints cosine similarity, --sanity
+            runs a known-good suite to confirm conversion isn't broken.
+            --bench N runs N encode iterations to measure throughput.
+
+        openmdict articleindex build <mdx> --model PATH --vocab PATH --out PATH
+            Build an article-embedding sidecar (.semantic.idx) for the
+            given MDX. Atomic write, header + Float16 vector pool.
+            M15 Phase 3.2 — offline pre-indexing tool.
+
+        openmdict articleindex info <sidecar> [--mdx PATH --model PATH]
+            Inspect a sidecar's header. Pass --mdx + --model to also
+            validate against current files (returns "stale" if hashes
+            mismatch).
+
+        openmdict articleindex query <sidecar> --model PATH --vocab PATH --mdx PATH <query> [-k N]
+            Top-K cosine similarity search against an article-embedding
+            sidecar. Encodes the query via the same model, scans the
+            mmap'd Float16 pool, returns the top K matching articles
+            with their headwords + scores.
+
     \(colored("Sidecar Index Commands:", .yellow))
         openmdict sidecar info <mdx_file>           Show sidecar status for a dictionary
         openmdict sidecar rebuild <mdx_file>        Force rebuild the sidecar (delete + reload)
@@ -174,6 +198,25 @@ func main() {
     // fall back to a folded per-language cache (Option A).
     if args[1] == "neighbors-bench" {
         handleNeighborsBench(args: Array(args.dropFirst(2)))
+        exit(0)
+    }
+
+    // M15 Phase 3.0 probe: CoreML sentence-transformer pipeline bring-up.
+    // Standalone subcommand (no MDX needed) — encodes arbitrary text via
+    // a bundled MiniLM-family model and confirms tokenizer + ANE routing
+    // produce sane embeddings before we wire indexing into the iOS app.
+    if args[1] == "articleembed" {
+        handleArticleEmbed(args: Array(args.dropFirst(2)))
+        exit(0)
+    }
+
+    // M15 Phase 3.2: article-embedding sidecar build + inspect. The build
+    // path produces a `.semantic.idx` file from (MDX, model, vocab);
+    // info inspects + optionally validates against the current MDX +
+    // model. The iOS app's Coordinator (Phase 3.3+) ports this writer
+    // to on-device incremental indexing.
+    if args[1] == "articleindex" {
+        handleArticleIndexSubcommand(args: Array(args.dropFirst(2)))
         exit(0)
     }
 

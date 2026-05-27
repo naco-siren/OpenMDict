@@ -34,6 +34,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onChangeAppIconSelected: (() -> Void)?
     var onTroubleshootSelected: (() -> Void)?
     var onAICoachSelected: (() -> Void)?
+    /// DEBUG-only: M15 Phase 3.0.5 article-embedding POC entry. Wired by
+    /// MainSplitViewController only under `#if DEBUG`; in release builds
+    /// the management section never includes the `.articleEmbedPOC` row,
+    /// so this callback is unreachable.
+    var onArticleEmbedPOCSelected: (() -> Void)?
 
     // MARK: - Data Providers
 
@@ -699,7 +704,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 
             case .importDictionary, .addGroup, .bookmarks, .lookupHistory,
                  .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                 .newUserGuide, .changeAppIcon, .iCloudTroubleshoot, .aiCoach, .settings:
+                 .newUserGuide, .changeAppIcon, .iCloudTroubleshoot, .aiCoach,
+                 .articleEmbedPOC, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -833,6 +839,11 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
                 .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .settings,
             ])
+            // M15 Phase 3.0.5 article-embedding POC entry. DEBUG-only; never
+            // appears in Release builds. Tap routes to ArticleEmbedPOCViewController.
+            #if DEBUG
+            mgmtChildren.append(.articleEmbedPOC)
+            #endif
             mgmtSnapshot.append(mgmtChildren, to: mgmtHeader)
             mgmtSnapshot.expand([mgmtHeader])
             dataSource.apply(mgmtSnapshot, to: .management, animatingDifferences: animated)
@@ -1058,6 +1069,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .aiCoach:
             return !isEditing
 
+        case .articleEmbedPOC:
+            return !isEditing
+
         case .settings:
             // Management actions are disabled in edit mode
             return !isEditing
@@ -1210,6 +1224,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .aiCoach:
             collectionView.deselectItem(at: indexPath, animated: true)
             onAICoachSelected?()
+
+        case .articleEmbedPOC:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onArticleEmbedPOCSelected?()
 
         case .settings:
             collectionView.deselectItem(at: indexPath, animated: true)

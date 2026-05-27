@@ -35,7 +35,15 @@ let package = Package(
             path: "Sources/OpenMDictKit"
         ),
         
-        // CLI tool
+        // CLI tool — depends on OpenMDict core only. Per the three-layer
+        // architecture (Core / Kit / App), the CLI is a test + dev tool
+        // for the core lib and must not pull in Kit's UI-focused
+        // ViewModels. M15 Phase 3's article-embedding code lives in
+        // `Sources/OpenMDict/Semantic/ArticleEmbed/` (alongside the
+        // MDX parser) precisely so the CLI can use it without crossing
+        // layers; CoreML / Accelerate are Apple-platform-wide
+        // frameworks (not GUI-only like UIKit), so they're acceptable
+        // in the core lib.
         .executableTarget(
             name: "OpenMDictCLI",
             dependencies: ["OpenMDict"],

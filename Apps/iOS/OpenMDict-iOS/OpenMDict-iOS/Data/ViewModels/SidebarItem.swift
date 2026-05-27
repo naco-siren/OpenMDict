@@ -25,6 +25,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
     case changeAppIcon         // Management section: change app icon
     case iCloudTroubleshoot    // Management section: iCloud troubleshooting (visible only when sync enabled)
     case aiCoach               // Management section: AI Coach POC (visible only when AICoach.isVisible)
+    case articleEmbedPOC          // Management section: M15 Phase 3.0.5 article-embedding POC (DEBUG-only entry)
     case settings
 
     var itemId: String {
@@ -43,6 +44,7 @@ nonisolated enum SidebarItem: Hashable, Sendable {
         case .changeAppIcon: return "action:changeAppIcon"
         case .iCloudTroubleshoot: return "action:iCloudTroubleshoot"
         case .aiCoach: return "action:aiCoach"
+        case .articleEmbedPOC: return "action:articleEmbedPOC"
         case .settings: return "action:settings"
         }
     }

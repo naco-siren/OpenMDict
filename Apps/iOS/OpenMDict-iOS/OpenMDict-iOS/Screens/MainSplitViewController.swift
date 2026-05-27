@@ -300,6 +300,15 @@ class MainSplitViewController: UISplitViewController {
             self?.showAICoachPOC()
         }
 
+        // M15 Phase 3.0.5 article-embedding POC. DEBUG-only — see the
+        // `#if DEBUG` block in DictionaryListViewController that appends
+        // `.articleEmbedPOC` to mgmtChildren; in release the row never
+        // appears so this handler is dead code, but registering it
+        // unconditionally avoids #if DEBUG'ing the callback wiring too.
+        dictionaryListVC.onArticleEmbedPOCSelected = { [weak self] in
+            self?.showArticleEmbedPOC()
+        }
+
         wordListVC.onWordSelected = { [weak self] word in
             self?.select(word: word)
         }
@@ -644,6 +653,27 @@ class MainSplitViewController: UISplitViewController {
         if #available(iOS 26, *) {
             presentAICoach(from: self)
         }
+    }
+
+    // MARK: - M15 Phase 3.0.5 Body-Embed POC
+
+    /// Present the article-embedding throughput POC fullscreen. Wired only
+    /// in DEBUG (the sidebar row that triggers this is gated by
+    /// `#if DEBUG` in DictionaryListViewController).
+    private func showArticleEmbedPOC() {
+        let poc = ArticleEmbedPOCViewController()
+        let nav = UINavigationController(rootViewController: poc)
+        nav.modalPresentationStyle = .fullScreen
+        poc.navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
+            target: self,
+            action: #selector(dismissArticleEmbedPOC)
+        )
+        present(nav, animated: true)
+    }
+
+    @objc private func dismissArticleEmbedPOC() {
+        dismiss(animated: true)
     }
 
     // MARK: - iCloud Troubleshooting
