@@ -62,7 +62,7 @@ public enum ArticleIndexFormat {
 /// Header view of an article-embedding sidecar. Constructed from a byte
 /// buffer via `ArticleIndexHeader.parse(_:)` or built fresh via
 /// `ArticleIndexHeader.init(...)` then serialized via `serialize()`.
-public struct ArticleIndexHeader: Equatable {
+public struct ArticleIndexHeader: Equatable, Sendable {
     public let formatVersion: UInt16
     public let modelSHA256: Data           // 32 bytes
     public let mdxHeaderSHA256: Data       // 32 bytes

@@ -36,7 +36,7 @@ import OpenMDict
 /// Progress callback fired periodically during sidecar build. Reports
 /// `(done, total, elapsed)` in articles + seconds. Caller uses this to
 /// drive a progress UI or just print to stderr.
-public typealias ArticleIndexProgress = (_ done: Int, _ total: Int, _ elapsedSec: Double) -> Void
+public typealias ArticleIndexProgress = @Sendable (_ done: Int, _ total: Int, _ elapsedSec: Double) -> Void
 
 public enum ArticleIndexWriterError: Error, CustomStringConvertible {
     case readerHasNoSHA256          // MDictReader couldn't compute headerSHA256

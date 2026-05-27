@@ -164,8 +164,11 @@ final class ArticleIndexCoordinator {
 
     /// User-action: toggle the per-dict exclusion flag (the "don't
     /// index this dict" preference). Surfaces as `.paused` state via
-    /// `state(for:)`.
+    /// `state(for:)`. Excluding while a job is running cancels it.
     func setUserExcluded(_ excluded: Bool, for dictId: String) {
+        if excluded {
+            ArticleIndexDispatcher.shared.cancel(dictId)
+        }
         ArticleIndexService.shared.setUserExcluded(excluded, for: dictId)
     }
 
@@ -174,6 +177,32 @@ final class ArticleIndexCoordinator {
     /// `userPriorityOrder` to 0..<N matching that order.
     func reorderUserPriority(_ dictIds: [String]) {
         ArticleIndexService.shared.reorderUserPriority(dictIds)
+    }
+
+    /// User-action: "Index this dict now". Enqueues at `.interactive`
+    /// priority so it preempts any running background job. Returns
+    /// `.failure` if the feature is unavailable (UI shows the
+    /// `ContentUnavailableView`); otherwise returns `.success(())`
+    /// and the indexing happens async — caller observes via
+    /// `ArticleIndexService.snapshotPublisher(for:)`.
+    func userRequestIndex(_ dictId: String)
+        -> Result<Void, ArticleIndexUnavailableReason>
+    {
+        if case .failure(let r) = availability { return .failure(r) }
+        // Clear any prior error state on user-initiated retry so the
+        // overview UI immediately reflects "we're trying again".
+        ArticleIndexService.shared.setState(
+            .notIndexed, for: dictId, indexedThrough: 0,
+            errorMessage: nil
+        )
+        ArticleIndexDispatcher.shared.enqueue(dictId, priority: .interactive)
+        return .success(())
+    }
+
+    /// Cancel a running or queued index job for a dict. Idempotent —
+    /// safe to call when nothing is in flight.
+    func cancelIndex(_ dictId: String) {
+        ArticleIndexDispatcher.shared.cancel(dictId)
     }
 
     // MARK: - Reader factory (query path)
@@ -227,7 +256,18 @@ final class ArticleIndexCoordinator {
             .notIndexed, for: dictId,
             indexedThrough: 0, modelHash: nil, mdxHash: nil
         )
-        log.info("handleDictImported(\(dictId)): registered .notIndexed in service")
+        // Enqueue a background-priority indexing job. Respects the
+        // user-excluded flag — if the user previously opted this dict
+        // out, the snapshot still has userExcluded=true (we preserved
+        // it via setState above), and the dispatcher's
+        // ArticleIndexCoordinator availability check skips. UI will
+        // show `.paused` state in that case.
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        if !snap.userExcluded {
+            ArticleIndexDispatcher.shared.enqueue(dictId, priority: .background)
+        }
+        let suffix = snap.userExcluded ? " (user-excluded, not enqueued)" : ""
+        log.info("handleDictImported(\(dictId)): registered .notIndexed in service\(suffix)")
     }
 
     /// Called from `DictionaryStorageService.deleteDictionary(id:)` and
