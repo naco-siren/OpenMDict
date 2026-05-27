@@ -180,51 +180,74 @@ final class CoreDataStack {
         debugLog("🔄 CoreDataStack: container reset and recreated (CloudKit=\(enableCloudKit))")
     }
 
-    /// The SQLite store URL inside the App Group shared container.
-    static func storeURL() -> URL {
+    /// The SQLite store URL for the CloudKit-synced (Default) configuration.
+    /// Holds the M11 entities: bookmarks, lookup history, dict metadata,
+    /// groups, lookup counts.
+    static func cloudStoreURL() -> URL {
+        appSupportDir().appendingPathComponent("OpenMDict_iOS.sqlite")
+    }
+
+    /// The SQLite store URL for the local-only (Local) configuration.
+    /// Holds M15 Phase 3's ArticleIndexRecord — never synced because
+    /// indexing state is per-device. See ArticleIndexRecord's XML
+    /// comment + this file's `createContainer(...)` for details.
+    static func localStoreURL() -> URL {
+        appSupportDir().appendingPathComponent("OpenMDict_iOS_Local.sqlite")
+    }
+
+    /// Backward-compat: callers prior to the two-store split used this
+    /// to get THE store URL. Now resolves to the CloudKit store.
+    static func storeURL() -> URL { cloudStoreURL() }
+
+    /// App Group Application Support directory. Both stores live here.
+    private static func appSupportDir() -> URL {
         guard let groupURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: AppIdentifiers.appGroupIdentifier
         ) else {
             fatalError("App Group container unavailable")
         }
-        return groupURL
-            .appendingPathComponent("Library/Application Support", isDirectory: true)
-            .appendingPathComponent("OpenMDict_iOS.sqlite")
+        let dir = groupURL.appendingPathComponent(
+            "Library/Application Support", isDirectory: true
+        )
+        try? FileManager.default.createDirectory(
+            at: dir, withIntermediateDirectories: true
+        )
+        return dir
     }
 
     // MARK: - Private
 
     /// Build and load a persistent container.
     ///
-    /// - Parameter enableCloudKit: Whether to attach CloudKit sync
-    ///   options to the store description.
+    /// Two physical SQLite files are loaded into the same container,
+    /// each bound to a CoreData Configuration:
+    ///
+    ///   "Default" → `OpenMDict_iOS.sqlite`
+    ///      Bookmarks, lookup history, dict metadata, groups, lookup
+    ///      counts. CloudKit-synced when `enableCloudKit == true`.
+    ///   "Local"   → `OpenMDict_iOS_Local.sqlite`
+    ///      M15 Phase 3 article-embedding state. NEVER synced — the
+    ///      state is per-device (each device builds its own sidecar
+    ///      from local files; cross-device sync would just create
+    ///      stale rows that the Coordinator immediately invalidates).
+    ///
+    /// Both stores share the same viewContext / background contexts.
+    /// Fetch / insert / save are transparent — the Configuration name
+    /// only affects which physical file the row lives in.
+    ///
+    /// - Parameter enableCloudKit: Applies to the Default store only.
+    ///   The Local store is always local-only.
     private func createContainer(enableCloudKit: Bool) -> NSPersistentContainer {
         let container = NSPersistentCloudKitContainer(name: "OpenMDict_iOS")
 
-        // Place the store in the App Group shared container so that
-        // extensions (Action Extension, etc.) can access the same data.
-        guard let groupURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppIdentifiers.appGroupIdentifier
-        ) else {
-            fatalError("App Group container unavailable — check Signing & Capabilities → App Groups")
-        }
-        let storeDir = groupURL.appendingPathComponent(
-            "Library/Application Support", isDirectory: true
-        )
-        try? FileManager.default.createDirectory(
-            at: storeDir, withIntermediateDirectories: true
-        )
-        let storeURL = storeDir.appendingPathComponent("OpenMDict_iOS.sqlite")
-
-        let description = NSPersistentStoreDescription(url: storeURL)
-
-        // CloudKit configuration — only when user opted in
+        // CloudKit (or local-when-disabled) store, holds M11 entities.
+        let cloudDesc = NSPersistentStoreDescription(url: Self.cloudStoreURL())
+        cloudDesc.configuration = "Default"
         if enableCloudKit {
-            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+            cloudDesc.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
                 containerIdentifier: AppIdentifiers.cloudKitContainerID
             )
         }
-
         // Persistent history tracking must be enabled in ALL processes that
         // write to this store — including the Action Extension, which opens
         // the same SQLite with enableCloudKit: false.
@@ -239,24 +262,37 @@ final class CoreDataStack {
         //
         // Remote change notifications are separate: the Action Extension does
         // not need to receive them, so keep that flag CloudKit-only.
-        description.setOption(true as NSNumber,
-                              forKey: NSPersistentHistoryTrackingKey)
+        cloudDesc.setOption(true as NSNumber,
+                            forKey: NSPersistentHistoryTrackingKey)
         if enableCloudKit {
-            description.setOption(true as NSNumber,
-                                  forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            cloudDesc.setOption(true as NSNumber,
+                                forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
 
-        container.persistentStoreDescriptions = [description]
+        // Local-only store, holds ArticleIndexRecord. Never CloudKit.
+        // History tracking still enabled for consistency with the cloud
+        // store (the Action Extension reads/writes both with the same
+        // setup() call, so they need symmetric requirements).
+        let localDesc = NSPersistentStoreDescription(url: Self.localStoreURL())
+        localDesc.configuration = "Local"
+        localDesc.setOption(true as NSNumber,
+                            forKey: NSPersistentHistoryTrackingKey)
 
+        container.persistentStoreDescriptions = [cloudDesc, localDesc]
+
+        // loadPersistentStores invokes the completion handler ONCE per
+        // store description. We track which configs succeeded vs failed
+        // and attempt store-by-store recovery for any that errored.
         container.loadPersistentStores { description, error in
             if let error = error as NSError? {
-                debugLog("❌ CoreData failed to load: \(error), \(error.userInfo)")
+                let configName = description.configuration ?? "?"
+                debugLog("❌ CoreData [\(configName)] failed to load: \(error), \(error.userInfo)")
 
-                // Recovery: delete the corrupt store and retry.
+                // Recovery: delete the corrupt store and retry just it.
                 // Common causes: lightweight migration failure after schema change,
                 // corrupt WAL journal from force-kill during write.
                 if let url = description.url {
-                    debugLog("⚠️ CoreData: attempting recovery — deleting store at \(url.lastPathComponent)")
+                    debugLog("⚠️ CoreData [\(configName)]: attempting recovery — deleting store at \(url.lastPathComponent)")
                     for suffix in ["", "-wal", "-shm"] {
                         let fileURL = URL(fileURLWithPath: url.path + suffix)
                         try? FileManager.default.removeItem(at: fileURL)
@@ -266,17 +302,22 @@ final class CoreDataStack {
                         .appendingPathComponent("ckAssetFiles")
                     try? FileManager.default.removeItem(at: ckDir)
 
-                    // Retry load
+                    // Retry load — invokes completion handler for ALL
+                    // already-loaded stores again too, so guard against
+                    // re-loading via the configuration check (an already-
+                    // loaded store will simply succeed).
                     container.loadPersistentStores { desc2, error2 in
+                        let cfg2 = desc2.configuration ?? "?"
                         if let error2 = error2 {
-                            debugLog("❌ CoreData recovery also failed: \(error2)")
+                            debugLog("❌ CoreData [\(cfg2)] recovery also failed: \(error2)")
                         } else {
-                            debugLog("✅ CoreData store recovered (CloudKit=\(enableCloudKit)): \(desc2.url?.path ?? "?")")
+                            debugLog("✅ CoreData [\(cfg2)] recovered (CloudKit=\(enableCloudKit)): \(desc2.url?.path ?? "?")")
                         }
                     }
                 }
             } else {
-                debugLog("✅ CoreData store loaded (CloudKit=\(enableCloudKit)): \(description.url?.path ?? "?")")
+                let configName = description.configuration ?? "?"
+                debugLog("✅ CoreData [\(configName)] loaded (CloudKit=\(enableCloudKit && description.cloudKitContainerOptions != nil)): \(description.url?.path ?? "?")")
             }
         }
 

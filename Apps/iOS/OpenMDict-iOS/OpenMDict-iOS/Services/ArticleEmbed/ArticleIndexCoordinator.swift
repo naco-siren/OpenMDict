@@ -15,19 +15,22 @@
 //  delete) are no-throw — they silently no-op when the feature isn't
 //  available, since callers don't need a UI error path there.
 //
-//  Phase 3.3 scope (this file):
+//  Scope (this file):
 //    - Availability gate (iOS 26+, language model coverage)
-//    - Per-dict state introspection (still a stub — no persistence
-//      yet; Phase 3.4 adds the CoreData record + checkpointing)
+//    - Per-dict state introspection — consults ArticleIndexService
+//      (CoreData-backed) first, then validates against the on-disk
+//      sidecar + model/MDX hashes
+//    - User-action APIs (index now / cancel / exclude / reorder) that
+//      forward to ArticleIndexService + ArticleIndexDispatcher
 //    - Lifecycle hooks called from DictionaryService /
-//      DictionaryStorageService (just sidecar cleanup for now)
+//      DictionaryStorageService (register on import, cleanup on delete)
 //    - Reader factory for the query path
 //
-//  NOT yet in 3.3 (lands in 3.4):
-//    - Priority queue + dispatcher
-//    - BGProcessingTask integration
-//    - CoreData persistence
-//    - Actual indexing execution
+//  Deferred to Phase 3.5:
+//    - BGProcessingTask scheduling (background indexing without the
+//      app foregrounded)
+//    - Resumable writer + checkpoint persistence
+//    - Thermal / battery / memory budget gates
 //
 
 import Foundation
@@ -88,21 +91,47 @@ final class ArticleIndexCoordinator {
     /// the feature itself is unavailable (so the UI can short-circuit
     /// without iterating dict-by-dict).
     ///
-    /// Per-dict introspection is still a stub in 3.3 — it derives state
-    /// purely from sidecar file presence + validity, no CoreData yet.
-    /// 3.4 adds: indexing-in-progress tracking, user-paused state,
-    /// per-dict error persistence.
+    /// Resolution order:
+    ///   1. Feature availability (iOS version)
+    ///   2. Service snapshot: `userExcluded` → `.paused`
+    ///   3. Service snapshot: `state == .indexing` → `.indexing(progress)`
+    ///      derived from `indexedThrough / mdx.entryCount`
+    ///   4. Service snapshot: `state == .error` → `.error(message)`
+    ///   5. Sidecar file presence + 3-field validation:
+    ///      - valid → `.indexed`
+    ///      - stale or missing → `.notIndexed` (will be re-indexed)
     func state(for dictId: String, mdx: MDictReader, modelHash: Data)
         -> Result<ArticleIndexState, ArticleIndexUnavailableReason>
     {
         if case .failure(let r) = availability { return .failure(r) }
 
+        // 2-4: service-side state.
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        if snap.userExcluded {
+            return .success(.paused)
+        }
+        switch snap.state {
+        case .indexing:
+            let total = max(1, mdx.entryCount)
+            let progress = min(1.0, Double(snap.indexedThrough) / Double(total))
+            return .success(.indexing(progress: progress))
+        case .error:
+            return .success(.error(message: snap.errorMessage ?? "Unknown error"))
+        case .paused:
+            return .success(.paused)
+        case .notIndexed, .indexed:
+            break   // fall through to filesystem check
+        }
+
+        // 5: filesystem source of truth for the "is the sidecar there +
+        // valid?" question. We don't trust `snap.state == .indexed`
+        // alone — the sidecar lives in Caches/ so it can be evicted out
+        // from under us, or invalidated by a model upgrade since the row
+        // was written. The hash check below catches both.
         let url = sidecarURL(for: dictId)
         guard FileManager.default.fileExists(atPath: url.path) else {
             return .success(.notIndexed)
         }
-
-        // Sidecar exists — verify it's valid + not stale.
         do {
             let reader = try ArticleIndexReader(sidecarURL: url)
             guard let mdxHashHex = mdx.metadata.headerSHA256,
@@ -118,9 +147,8 @@ final class ArticleIndexCoordinator {
             case .ok:
                 return .success(.indexed)
             case .modelMismatch, .mdxMismatch, .wrongVersion, .dimMismatch:
-                // Stale — needs rebuild. Surface as `notIndexed` since
-                // the old data is no longer trustable; the queue will
-                // re-index.
+                // Stale — needs rebuild. Surface as `notIndexed`; the
+                // dispatcher will pick it up.
                 return .success(.notIndexed)
             case .sizeMismatch:
                 return .success(.error(message: "Sidecar file size mismatch — corrupt"))
@@ -130,6 +158,22 @@ final class ArticleIndexCoordinator {
         } catch {
             return .success(.error(message: "Failed to open sidecar: \(error)"))
         }
+    }
+
+    // MARK: - User-action APIs
+
+    /// User-action: toggle the per-dict exclusion flag (the "don't
+    /// index this dict" preference). Surfaces as `.paused` state via
+    /// `state(for:)`.
+    func setUserExcluded(_ excluded: Bool, for dictId: String) {
+        ArticleIndexService.shared.setUserExcluded(excluded, for: dictId)
+    }
+
+    /// User-action: drag-to-reorder in the overview UI. Pass dictIds
+    /// in the desired display order; service rewrites
+    /// `userPriorityOrder` to 0..<N matching that order.
+    func reorderUserPriority(_ dictIds: [String]) {
+        ArticleIndexService.shared.reorderUserPriority(dictIds)
     }
 
     // MARK: - Reader factory (query path)
@@ -162,26 +206,36 @@ final class ArticleIndexCoordinator {
 
     /// Called from `DictionaryService.refreshAfterImport(dictId)` after
     /// the dict has loaded + the M13 keyword sidecar has been written.
-    /// In Phase 3.3 this is a no-op stub; Phase 3.4 enqueues the dict
-    /// for background indexing.
+    /// Records the dict in the service catalog with `.notIndexed`
+    /// state so it shows up in the overview UI and becomes eligible
+    /// for the dispatcher (Phase 3.5).
     ///
     /// Intentionally no-throw / no-Result — the import flow doesn't
     /// need a UI error path here. If the feature is unavailable
-    /// (iOS < 26), this method silently does nothing.
+    /// (iOS < 26) we don't register anything because there's no UI
+    /// to show it in on those builds.
     func handleDictImported(_ dictId: String) {
         guard isAvailable else {
             log.debug("handleDictImported(\(dictId)): feature unavailable, no-op")
             return
         }
-        // Phase 3.4: enqueue for background indexing.
-        log.info("handleDictImported(\(dictId)): would schedule indexing (stub)")
+        // Reset to `.notIndexed`. If a record already exists for this
+        // dictId (e.g. user re-imported the same MDX after a delete),
+        // setState preserves user prefs (priorityOrder + excluded) and
+        // wipes stale hashes/state.
+        ArticleIndexService.shared.setState(
+            .notIndexed, for: dictId,
+            indexedThrough: 0, modelHash: nil, mdxHash: nil
+        )
+        log.info("handleDictImported(\(dictId)): registered .notIndexed in service")
     }
 
     /// Called from `DictionaryStorageService.deleteDictionary(id:)` and
     /// `DictionaryService.handleRemoteChange(...)`'s remote-delete
-    /// branch. Removes the dict's article sidecar (if any) from disk.
-    /// Always runs, even when the feature is unavailable, since
-    /// dead-file cleanup should be unconditional.
+    /// branch. Removes the dict's article sidecar (if any) from disk
+    /// AND the catalog row from CoreData. Always runs, even when the
+    /// feature is unavailable, since dead-data cleanup should be
+    /// unconditional.
     func handleDictDeleted(_ dictId: String) {
         let url = sidecarURL(for: dictId)
         if FileManager.default.fileExists(atPath: url.path) {
@@ -193,18 +247,27 @@ final class ArticleIndexCoordinator {
                 log.warning("Failed to delete article sidecar for \(dictId): \(desc)")
             }
         }
+        // Drop the catalog row regardless of file presence — service
+        // tolerates "delete a missing record" silently.
+        ArticleIndexService.shared.delete(dictId: dictId)
     }
 
     /// Called from `LocalDataResetService` when the user invokes the
-    /// "nuclear reset" flow. Wipes the entire `SemanticIndex/` dir.
+    /// "nuclear reset" flow. Wipes both the on-disk sidecars AND the
+    /// in-memory cache (CoreData itself is wiped separately by the
+    /// reset orchestrator before this gets called).
     func deleteAllSidecars() {
         let dir = AppGroupPaths.articleSidecarCacheURL
         guard let entries = try? FileManager.default.contentsOfDirectory(
             at: dir, includingPropertiesForKeys: nil
-        ) else { return }
+        ) else {
+            ArticleIndexService.shared.resetCaches()
+            return
+        }
         for url in entries where url.pathExtension == "idx" {
             try? FileManager.default.removeItem(at: url)
         }
+        ArticleIndexService.shared.resetCaches()
         log.info("deleteAllSidecars: cleared \(entries.count) entries")
     }
 

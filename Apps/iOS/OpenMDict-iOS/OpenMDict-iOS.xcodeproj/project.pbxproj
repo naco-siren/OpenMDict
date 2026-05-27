@@ -425,6 +425,7 @@
 				Services/Lemma/LemmaResolver.swift,
 				Services/LookupCountService.swift,
 				Services/LookupHistoryService.swift,
+				"Services/Persistence/ArticleIndexRecord+CoreDataClass.swift",
 				"Services/Persistence/BookmarkRecord+CoreDataClass.swift",
 				Services/Persistence/CoreDataStack.swift,
 				"Services/Persistence/DictionaryGroupRecord+CoreDataClass.swift",

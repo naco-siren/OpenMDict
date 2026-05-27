@@ -86,4 +86,78 @@
             <fetchIndexElement property="lookupContextGroupId" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
+    <!-- ArticleIndexRecord is intentionally LAST: it's the newest entity
+         (M15 Phase 3) and the only local-only one. Keeping it after the
+         six CloudKit-synced entities keeps the file's "synced first,
+         local last" grouping readable. -->
+    <entity name="ArticleIndexRecord" representedClassName="ArticleIndexRecord" syncable="NO">
+        <!-- M15 Phase 3.3: per-dict article-embedding indexing state.
+             Independent of the M13 keyword sidecar.
+
+             LOCAL-ONLY entity. Lives in its own Configuration ("Local")
+             which is loaded by CoreDataStack as a second NSPersistent
+             StoreDescription WITHOUT `cloudKitContainerOptions`. None
+             of these fields sync to CloudKit:
+               - State + checkpoint fields (stateRaw, indexedThrough,
+                 modelHash, mdxHash, lastUpdated, errorMessage) are
+                 per-device because each device builds its own sidecar.
+               - User-pref fields (userPriorityOrder, userExcluded) are
+                 also per-device — the secondary-device first-time
+                 setup will redo a one-shot ordering / exclusion if
+                 the user cares, and the design upside of avoiding any
+                 CloudKit schema migration risk is worth the trivial
+                 manual cost.
+
+             `syncable="NO"` is set explicitly, unlike the six synced
+             entities above. This is a LEGACY attribute that the modern
+             NSPersistentCloudKitContainer does NOT actually consult —
+             sync scope is decided purely by Configuration membership +
+             whether the store's NSPersistentStoreDescription carries
+             `cloudKitContainerOptions`. We still write "NO" so the
+             model file reads unambiguously as local-only at a glance.
+
+             The two-store split is configured by:
+               • CoreDataStack.createContainer(...) — two
+                 NSPersistentStoreDescription entries, one per
+                 Configuration
+               • Configuration elements at the bottom of this file
+                 (Default + Local) — they're explicit so the entity
+                 is excluded from the CloudKit store. -->
+        <attribute name="dictId" attributeType="String" defaultValueString=""/>
+        <attribute name="stateRaw" attributeType="String" defaultValueString="notIndexed"/>
+        <attribute name="indexedThrough" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="modelHash" optional="YES" attributeType="String"/>
+        <attribute name="mdxHash" optional="YES" attributeType="String"/>
+        <attribute name="lastUpdated" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="userPriorityOrder" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="userExcluded" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
+        <fetchIndex name="byDictId">
+            <fetchIndexElement property="dictId" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byUserPriorityOrder">
+            <fetchIndexElement property="userPriorityOrder" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
+    <!-- M15 Phase 3.3: explicit Configurations to split CloudKit-synced
+         and local-only stores.
+
+         CoreDataStack.createContainer(...) loads two NSPersistentStore
+         Description entries, one bound to each Configuration. The
+         Default config keeps everything that's user-content-essential
+         (bookmarks, lookup history, dict metadata, groups, lookup
+         counts — all worth syncing across devices). The Local config
+         holds ArticleIndexRecord since its state (build progress,
+         per-device sidecar hashes) is fundamentally per-device. -->
+    <configuration name="Default">
+        <memberEntity name="BookmarkRecord"/>
+        <memberEntity name="DictionaryMetadataRecord"/>
+        <memberEntity name="DictionaryGroupRecord"/>
+        <memberEntity name="GroupEntryRecord"/>
+        <memberEntity name="LookupCountRecord"/>
+        <memberEntity name="LookupRecord"/>
+    </configuration>
+    <configuration name="Local">
+        <memberEntity name="ArticleIndexRecord"/>
+    </configuration>
 </model>
