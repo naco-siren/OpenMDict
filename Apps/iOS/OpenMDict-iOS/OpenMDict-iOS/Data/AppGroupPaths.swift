@@ -44,4 +44,19 @@ nonisolated enum AppGroupPaths {
     static var sidecarIndexCacheURL: URL {
         containerURL.appendingPathComponent("Library/Caches/MDXIndex", isDirectory: true)
     }
+
+    /// M15 Phase 3 article-embedding sidecar cache —
+    /// `AppGroup/Library/Caches/SemanticIndex/`.
+    ///
+    /// Parallel structure to `sidecarIndexCacheURL` but for the Float16
+    /// vector pools (Phase 3.2 format). One `<dictId>.semantic.idx` file
+    /// per indexed dict. Independent lifecycle from the M13 keyword
+    /// sidecar — see docs/article-embeddings.md ("Sidecar format").
+    ///
+    /// Same eviction posture: `Library/Caches`, OS-evictable, not
+    /// iCloud-backed up, not CloudKit-synced. Sidecars rebuild locally
+    /// from MDX + bundled model.
+    static var articleSidecarCacheURL: URL {
+        containerURL.appendingPathComponent("Library/Caches/SemanticIndex", isDirectory: true)
+    }
 }

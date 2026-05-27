@@ -723,6 +723,15 @@ final class DictionaryStorageService {
         // does not accumulate orphans. The dict id is the MDX header SHA256.
         MDictReader.removeSidecarCache(forHeaderSHA256: id)
 
+        // M15 Phase 3: also drop the article-embedding sidecar (independent
+        // file under `Library/Caches/SemanticIndex/<dictId>.semantic.idx`).
+        // The Coordinator's delete handler is unconditional — runs even
+        // on iOS < 26 — so old sidecars from a downgraded device get
+        // cleaned up correctly.
+        Task { @MainActor in
+            ArticleIndexCoordinator.shared.handleDictDeleted(id)
+        }
+
         print("🗑️ Deleted dictionary: \(id)")
     }
     

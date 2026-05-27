@@ -305,6 +305,9 @@ final class DictionaryService: ObservableObject {
                 // this for the user-initiated delete path — mirror it here
                 // for the iCloud remote-delete path.
                 MDictReader.removeSidecarCache(forHeaderSHA256: dictId)
+                // M15 Phase 3: same cleanup for the article-embedding sidecar.
+                // Unconditional (runs even on iOS < 26) — see Coordinator.
+                ArticleIndexCoordinator.shared.handleDictDeleted(dictId)
                 // Unload from memory + remove from groups
                 refreshAfterDelete(dictId)
                 // De-index from Spotlight
@@ -933,6 +936,13 @@ final class DictionaryService: ObservableObject {
                 }
             }
         }
+
+        // 7. M15 Phase 3: notify the article-embedding coordinator so it
+        //    can schedule semantic indexing. On iOS < 26 this is a
+        //    silent no-op (the coordinator's availability gate handles
+        //    it); on iOS 26+ Phase 3.4 will enqueue this dict for
+        //    background indexing.
+        ArticleIndexCoordinator.shared.handleDictImported(id)
     }
     
     /// Called after deleting a dictionary
