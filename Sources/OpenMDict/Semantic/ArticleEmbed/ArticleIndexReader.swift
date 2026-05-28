@@ -26,7 +26,6 @@
 import Foundation
 import CryptoKit
 import Accelerate
-import OpenMDict
 
 public enum ArticleIndexReaderError: Error, CustomStringConvertible {
     case openFailed(URL, Error)
@@ -117,11 +116,16 @@ public final class ArticleIndexReader {
         }
         self.header = parsed
 
-        // 4. Sanity: file size matches header's expectation.
-        if header.expectedFileSize != fileSize {
+        // 4. Sanity: file size must be at least the header's expected
+        // size. Trailing bytes beyond `expectedFileSize` are tolerated —
+        // they come from the streaming writer's crash window between
+        // body-append and the next checkpoint (the writer overwrites
+        // them on resume, and queries only scan `article_count` rows so
+        // trailing is invisible to callers).
+        if fileSize < header.expectedFileSize {
             munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
             throw ArticleIndexReaderError.headerInvalid(
-                "file size \(fileSize) != expected \(header.expectedFileSize) " +
+                "file size \(fileSize) < expected \(header.expectedFileSize) " +
                 "(article_count=\(header.articleCount), dim=\(header.embeddingDim))"
             )
         }

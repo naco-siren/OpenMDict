@@ -184,7 +184,7 @@ public struct ArticleIndexHeader: Equatable, Sendable {
 /// Validation outcome — distinguishes "this isn't a sidecar at all" from
 /// "it's a sidecar but stale" (rebuilding either way, but reported
 /// differently in `articleindex info`).
-public enum ArticleIndexValidationResult: Equatable {
+public enum ArticleIndexValidationResult: Equatable, Sendable {
     case ok
     case notASidecar              // magic mismatch
     case wrongVersion(UInt16)     // version != current
@@ -215,7 +215,12 @@ extension ArticleIndexHeader {
         if embeddingDim != expectedEmbeddingDim {
             return .dimMismatch(embeddingDim)
         }
-        if expectedFileSize != actualFileSize {
+        // File smaller than the header claims = truncated / corrupt.
+        // File larger (trailing bytes beyond the committed rows) is OK:
+        // it's the streaming writer's crash window between body-append
+        // and the next checkpoint; queries only scan `article_count`
+        // rows, so trailing is invisible.
+        if actualFileSize < expectedFileSize {
             return .sizeMismatch(expected: expectedFileSize, actual: actualFileSize)
         }
         return .ok

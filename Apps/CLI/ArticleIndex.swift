@@ -129,7 +129,16 @@ private func handleArticleIndexBuild(args: [String]) {
 
     let header: ArticleIndexHeader
     do {
-        header = try writer.build(reader: dict, encoder: encoder)
+        // build() auto-resumes from any valid partial already at --out,
+        // so re-running the same command continues / no-ops. The CLI
+        // passes no isCancelled, so .interrupted won't occur here.
+        switch try writer.build(reader: dict, encoder: encoder) {
+        case .completed(let h):
+            header = h
+        case .interrupted(let h, let through):
+            header = h
+            eprintln(colored("⚠️  interrupted at \(through)/\(h.articleCount)", .yellow))
+        }
     } catch {
         eprintln(colored("Build failed: \(error)", .red)); exit(1)
     }

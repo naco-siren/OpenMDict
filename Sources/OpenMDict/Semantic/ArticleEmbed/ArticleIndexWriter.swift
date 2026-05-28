@@ -1,37 +1,53 @@
 //
 //  ArticleIndexWriter.swift
-//  OpenMDictCLI  (M15 Phase 3.2)
+//  OpenMDict  (M15 Phase 3.2; streaming-write redesign in Phase 3.5)
 //
 //  One-shot writer that produces an article-embedding sidecar from a
 //  (MDictReader, ArticleEncoder) pair. Used by:
 //
-//    - the CLI `openmdict articleindex build` subcommand (this file's
-//      caller) — offline pre-indexing for dogfood corpora
-//    - the iOS app's ArticleIndexCoordinator (Phase 3.3+, to be ported)
-//      — on-device incremental indexing
+//    - the CLI `openmdict articleindex build` subcommand — offline
+//      pre-indexing for dogfood corpora
+//    - the iOS app's ArticleIndexDispatcher — on-device incremental
+//      indexing (foreground GPU + background CPU via BGProcessingTask)
 //
-//  Strategy: in-memory build. Iterate articles in MDictReader.allKeys
-//  order, encode each one's body text, append Float16 vectors to a
-//  growing buffer, then write the whole file atomically with a header
-//  prepended. Peak RAM = articleCount × dim × 2 bytes (~118 MB for
-//  WordNet's 154k articles × 384 dim) + scratch for the encoder.
+//  Strategy: streaming append to a single FileHandle. Iterate articles
+//  in MDictReader.allKeys order; for each, encode + append the FP16
+//  vector directly to the file. **Peak RAM = one row's worth of FP16
+//  (~768 B for MiniLM-L6's 384-dim)** plus encoder/model overhead.
 //
-//  Phase 3.2 deliberately does NOT support resumable / incremental
-//  indexing — that lands in Phase 3.3 via the Coordinator. On-device
-//  Phase 3.3 will either:
-//    (a) checkpoint per N articles to a partial file, OR
-//    (b) keep this in-memory writer + the Coordinator schedules
-//        smaller chunks (e.g. one dict per BGProcessingTask cycle)
+//  This is load-bearing for the BGProcessingTask path. The previous
+//  "build the whole pool in memory then atomic-write" design blew the
+//  ~50–100 MB per-task background memory budget after roughly 55k
+//  articles of WordNet (jetsam'd the app, see the original `Peak RAM`
+//  comment that confessed `~118 MB` peak). Streaming reduces peak by
+//  five orders of magnitude.
 //
-//  Atomic write mirrors M13 MDXIndex sidecar:
-//    1. Write to `<final>.tmp-<uuid>`
-//    2. `Data.write(.atomic)` on temp file
-//    3. `FileManager.replaceItemAt` to swap into final name
+//  Resumability lives in the on-disk format. The header's
+//  `article_count` field IS the truth: how many rows are committed.
+//
+//    Body-append             (file grows, header.count UNCHANGED)
+//        ↓
+//    Periodic checkpoint     (truncate to exact size + in-place update
+//                             of article_count at offset 76 + fsync)
+//        ↓
+//    Body-append             ... and so on
+//
+//  Crash window: between an `append` and the next checkpoint, the file
+//  may have trailing partial-row bytes that the header doesn't account
+//  for. The reader tolerates that — its size check is `>= expected`
+//  (was `==`) and queries only scan the first `article_count` rows.
+//  The writer overwrites trailing on the next resume by seeking to
+//  `headerSize + article_count × dim × 2` (the canonical write head).
+//
+//  No atomic file swap on each checkpoint — that would require holding
+//  a full second copy. Streaming trades atomicity for memory; the
+//  in-place header update is still atomic at the 4-byte word level
+//  (POSIX), so the file is never in an "advertises more rows than it
+//  has" state.
 //
 
 import Foundation
 import CryptoKit
-import OpenMDict
 
 /// Progress callback fired periodically during sidecar build. Reports
 /// `(done, total, elapsed)` in articles + seconds. Caller uses this to
@@ -58,7 +74,22 @@ public enum ArticleIndexWriterError: Error, CustomStringConvertible {
     }
 }
 
-/// Stateless one-shot writer. Construct + call `build()`.
+/// Outcome of a `build()` call.
+public enum ArticleIndexBuildOutcome: Sendable {
+    /// Every article was encoded; the sidecar at `outputURL` is complete
+    /// (its `article_count` equals the dict's article total, modulo any
+    /// `limit`). `header` is the final header.
+    case completed(ArticleIndexHeader)
+
+    /// `isCancelled` fired mid-build. A valid partial sidecar
+    /// (`article_count == indexedThrough`) was flushed to `outputURL`;
+    /// re-invoking `build()` resumes from there.
+    case interrupted(header: ArticleIndexHeader, indexedThrough: Int)
+}
+
+/// Resumable, checkpointing, cancellable sidecar writer. Construct +
+/// call `build()`. Safe to call repeatedly on the same `outputURL` —
+/// each call resumes from (or no-ops on) the existing partial.
 public struct ArticleIndexWriter {
 
     /// CoreML model file path — used to compute model_sha256 for the
@@ -66,12 +97,12 @@ public struct ArticleIndexWriter {
     /// inner model.mlmodel + weights for invalidation.
     public let modelURL: URL
 
-    /// Output .semantic.idx path. Parent directory must exist; the
-    /// writer creates a temp file alongside, then atomic-swaps.
+    /// Output .semantic.idx path. Parent directory must exist (the
+    /// writer creates it if missing).
     public let outputURL: URL
 
-    /// Optional progress callback. Fires roughly every 100 articles
-    /// plus at start + end.
+    /// Optional progress callback. Fires roughly once a second + at
+    /// start + end.
     public let progress: ArticleIndexProgress?
 
     /// Optional cap on the number of articles to index. nil = index all.
@@ -86,11 +117,29 @@ public struct ArticleIndexWriter {
         self.progress = progress
     }
 
-    /// Build the sidecar end-to-end. Returns the produced header on
-    /// success. `reader` and `encoder` must be from the same model
+    /// Build the sidecar, resuming from any valid partial already at
+    /// `outputURL`. `reader` and `encoder` must be from the same model
     /// configuration (the encoder's vocab + max_len determine the
     /// embedding output; the header records both).
-    public func build(reader: MDictReader, encoder: ArticleEncoder) throws -> ArticleIndexHeader {
+    ///
+    /// **Resumability** + **checkpointing**: see the file header.
+    ///
+    /// **Cancellation**: `isCancelled` is polled once per article; when
+    /// it flips true the writer flushes (truncate + update header +
+    /// fsync) and returns `.interrupted(indexedThrough:)`.
+    ///
+    /// - Parameters:
+    ///   - checkpointEvery: articles between checkpoints (default 2000).
+    ///     A larger value reduces fsync frequency but widens the
+    ///     crash-loss window. The final article always triggers a flush.
+    ///   - isCancelled: cooperative cancellation probe, polled per
+    ///     article. `@Sendable` so the writer can run in a detached task.
+    public func build(
+        reader: MDictReader,
+        encoder: ArticleEncoder,
+        checkpointEvery: Int = 2000,
+        isCancelled: (@Sendable () -> Bool)? = nil
+    ) throws -> ArticleIndexBuildOutcome {
         // 1. Compute the two hashes that gate sidecar validity.
         guard let mdxSHA = reader.metadata.headerSHA256,
               let mdxSHABytes = Self.hexToData(mdxSHA),
@@ -103,134 +152,268 @@ public struct ArticleIndexWriter {
         let allKeysFull = reader.allKeys
         let allKeys = limit.map { Array(allKeysFull.prefix($0)) } ?? allKeysFull
         let count = allKeys.count
-        let dim = encoder.dimension > 0 ? encoder.dimension : 384  // detected on first encode
 
-        // 2. Encode every article. We do a "warm-up" encode on key 0
-        // so encoder.dimension is populated for the header.
-        // (Then re-use that vector — saves one encode.)
+        // 2. Resume detection. If a valid partial for THIS (model, MDX)
+        // already sits at outputURL, pick up where it left off; else
+        // start fresh by writing an initial header (article_count = 0).
+        let fallbackDim = encoder.dimension > 0 ? encoder.dimension : 384
+        var poolPtr: Int
+        var detectedDim: Int
+        let createdAt: UInt64
+
+        if let resumed = Self.loadResumableState(
+            outputURL: outputURL, modelSHA: modelSHA,
+            mdxSHA: mdxSHABytes, maxCount: count
+        ) {
+            poolPtr = resumed.articleCount
+            detectedDim = resumed.dim
+            createdAt = resumed.createdAt
+        } else {
+            poolPtr = 0
+            detectedDim = fallbackDim
+            createdAt = UInt64(Date().timeIntervalSince1970)
+            try Self.initializeNewFile(
+                at: outputURL,
+                modelSHA: modelSHA, mdxSHA: mdxSHABytes,
+                embeddingDim: UInt32(detectedDim),
+                tokenizerMaxLen: UInt32(encoder.tokenizerMaxLength),
+                createdAt: createdAt
+            )
+        }
+
+        // Header factory — `createdAt` is preserved across resumes so the
+        // final file's timestamp reflects when indexing first began.
+        func makeHeader(_ articleCount: Int) -> ArticleIndexHeader {
+            ArticleIndexHeader(
+                modelSHA256: modelSHA,
+                mdxHeaderSHA256: mdxSHABytes,
+                embeddingDim: UInt32(detectedDim),
+                articleCount: UInt32(articleCount),
+                tokenizerMaxLen: UInt32(encoder.tokenizerMaxLength),
+                createdAt: createdAt
+            )
+        }
+
+        // Already complete (re-invoked on a finished sidecar, or a
+        // partial that exactly reaches `count`/limit). Idempotent no-op.
+        if poolPtr >= count {
+            return .completed(makeHeader(count))
+        }
+
+        // 3. Open the file for incremental append. Seek to the canonical
+        // write head (after the last committed row).
+        let handle: FileHandle
+        do {
+            handle = try FileHandle(forUpdating: outputURL)
+        } catch {
+            throw ArticleIndexWriterError.writeFailed(outputURL, error)
+        }
+        defer { try? handle.close() }
+        try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + poolPtr * detectedDim * 2))
+
         let buildStart = Date()
-        progress?(0, count, 0)
-
-        var pool = Data(capacity: count * dim * 2)  // worst case; resized below if dim differs
-        var poolPtr = 0
-        var detectedDim = dim
+        progress?(poolPtr, count, 0)
         var lastReport = buildStart
+        var sinceCheckpoint = 0
 
-        for (i, key) in allKeys.enumerated() {
-            guard let entry = reader.lookup(key) else {
-                // Missing article at this index — skip with a zero
-                // vector to keep positional alignment. Should never
-                // happen with a healthy MDX but be defensive.
-                let zeros = [UInt16](repeating: 0, count: detectedDim)
-                pool.append(zeros.withUnsafeBufferPointer { Data(buffer: $0) })
-                poolPtr += 1
-                continue
+        for i in poolPtr..<count {
+            // Cooperative cancellation: flush a valid partial + bail.
+            if isCancelled?() == true {
+                try Self.finalizeFile(handle: handle, articleCount: poolPtr, dim: detectedDim)
+                progress?(poolPtr, count, Date().timeIntervalSince(buildStart))
+                return .interrupted(header: makeHeader(poolPtr), indexedThrough: poolPtr)
             }
-            let plain = Self.stripHTML(entry.article.html)
 
-            // Wrap each prediction in an autoreleasepool. CoreML on
-            // macOS holds onto MTLBuffer + IOSurface for each
-            // prediction until ARC drains; without a per-iteration
-            // pool drain, a long inference loop accumulates Metal
-            // resources and eventually fails with "Failed to allocate
-            // memory IOSurface object". This is a well-known
-            // macOS-only CoreML quirk.
-            let vec: [Float]
-            do {
-                vec = try autoreleasepool {
-                    try encoder.encode(plain)
+            // Wrap the heavy ObjC-bridged work (reader.lookup → NSString-
+            // backed body text; stripHTML's four `replacingOccurrences`
+            // each round-trip through NSString; encoder.encode's
+            // MLMultiArray scratches) so its autoreleased temporaries
+            // drain every iteration. A detached Task on a long
+            // synchronous loop does NOT drain its parent autorelease
+            // pool until it returns — without this pool, WordNet on
+            // iPhone 11 leaked ~15 KB/article, peaked at 1.9 GB before
+            // the build finished, then snapped back to ~70 MB on
+            // return (the textbook autorelease-accumulation signature).
+            let writeDim: Int = try autoreleasepool { () throws -> Int in
+                let key = allKeys[i]
+                let bits: [UInt16]
+                let actualDim: Int
+                if let entry = reader.lookup(key) {
+                    let plain = Self.stripHTML(entry.article.html)
+                    let vec: [Float]
+                    do {
+                        vec = try encoder.encode(plain)
+                    } catch {
+                        throw ArticleIndexWriterError.encodeFailed(article: i, key: key, underlying: error)
+                    }
+                    actualDim = vec.count
+                    var b = [UInt16](repeating: 0, count: actualDim)
+                    for d in 0..<actualDim { b[d] = float16Bits(from: vec[d]) }
+                    bits = b
+                } else {
+                    // Missing article — zero row keeps positional alignment.
+                    actualDim = detectedDim
+                    bits = [UInt16](repeating: 0, count: detectedDim)
                 }
-            } catch {
-                throw ArticleIndexWriterError.encodeFailed(article: i, key: key, underlying: error)
+                try bits.withUnsafeBufferPointer { buf in
+                    try handle.write(contentsOf: Data(buffer: buf))
+                }
+                return actualDim
             }
 
-            // Detect dimension on first real encode + reserve buffer.
-            if poolPtr == 0 {
-                detectedDim = vec.count
-                pool.reserveCapacity(count * detectedDim * 2)
+            // Dim detection: patch the placeholder header on the first
+            // real encode of a fresh build if the encoder's actual dim
+            // differs from the writer's guess. The row we just wrote is
+            // already sized for `writeDim`, so the write head is at the
+            // right offset for the next row.
+            if poolPtr == 0, writeDim != detectedDim {
+                detectedDim = writeDim
+                try Self.updateHeaderEmbeddingDim(handle: handle, dim: UInt32(detectedDim))
             }
-            precondition(vec.count == detectedDim,
-                         "Encoder returned variable-dim output (\(vec.count) vs \(detectedDim))")
+            precondition(writeDim == detectedDim,
+                         "Encoder returned variable-dim output (\(writeDim) vs \(detectedDim))")
 
-            // Convert to FP16 bits + append. We store [UInt16] (the
-            // raw FP16 bit pattern, not Swift's Float16 type) to avoid
-            // platform-dependent Float16 init quirks on Intel mac.
-            // UInt16 has a guaranteed 2-byte contiguous layout matching
-            // IEEE 754 binary16, so the on-disk bytes are correct.
-            var halfBits = [UInt16](repeating: 0, count: detectedDim)
-            for d in 0..<detectedDim {
-                halfBits[d] = float16Bits(from: vec[d])
-            }
-            pool.append(halfBits.withUnsafeBufferPointer { Data(buffer: $0) })
             poolPtr += 1
+            sinceCheckpoint += 1
+
+            // Periodic checkpoint: truncate to exact size + update header
+            // article_count in place + fsync. After the header poke,
+            // re-seek to the new write head for the next batch.
+            if sinceCheckpoint >= checkpointEvery {
+                try Self.finalizeFile(handle: handle, articleCount: poolPtr, dim: detectedDim)
+                sinceCheckpoint = 0
+                try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + poolPtr * detectedDim * 2))
+            }
 
             // Periodic progress sample.
             let now = Date()
             if now.timeIntervalSince(lastReport) > 1.0 || i == count - 1 {
-                progress?(i + 1, count, now.timeIntervalSince(buildStart))
+                progress?(poolPtr, count, now.timeIntervalSince(buildStart))
                 lastReport = now
             }
         }
 
-        // 3. Build the header now that we know the final dimension.
-        let header = ArticleIndexHeader(
-            modelSHA256: modelSHA,
-            mdxHeaderSHA256: mdxSHABytes,
-            embeddingDim: UInt32(detectedDim),
-            articleCount: UInt32(count),
-            tokenizerMaxLen: UInt32(encoder.tokenizerMaxLength)
-        )
-
-        // 4. Atomic write.
-        try writeAtomic(header: header, body: pool)
-        return header
+        // Final flush — complete sidecar (article_count == count).
+        try Self.finalizeFile(handle: handle, articleCount: poolPtr, dim: detectedDim)
+        return .completed(makeHeader(poolPtr))
     }
 
-    /// Write `header.serialize() + body` to `outputURL`, going through
-    /// a temp file in the same directory so a kill mid-write leaves
-    /// only a `.tmp-<uuid>` orphan (never a half-written final file).
-    private func writeAtomic(header: ArticleIndexHeader, body: Data) throws {
+    // MARK: - File initialization + checkpoint primitives
+
+    /// Create a new sidecar with a placeholder header (article_count = 0).
+    private static func initializeNewFile(
+        at outputURL: URL,
+        modelSHA: Data, mdxSHA: Data,
+        embeddingDim: UInt32, tokenizerMaxLen: UInt32, createdAt: UInt64
+    ) throws {
         let parent = outputURL.deletingLastPathComponent()
-        let tmpName = outputURL.lastPathComponent + ".tmp-" + UUID().uuidString
-        let tmpURL = parent.appendingPathComponent(tmpName, isDirectory: false)
-
-        var combined = Data(capacity: ArticleIndexFormat.headerSize + body.count)
-        combined.append(header.serialize())
-        combined.append(body)
-
+        try? FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        let initial = ArticleIndexHeader(
+            modelSHA256: modelSHA, mdxHeaderSHA256: mdxSHA,
+            embeddingDim: embeddingDim, articleCount: 0,
+            tokenizerMaxLen: tokenizerMaxLen, createdAt: createdAt
+        )
         do {
-            try combined.write(to: tmpURL, options: .atomic)
+            try initial.serialize().write(to: outputURL)
         } catch {
-            throw ArticleIndexWriterError.writeFailed(tmpURL, error)
-        }
-        do {
-            if FileManager.default.fileExists(atPath: outputURL.path) {
-                _ = try FileManager.default.replaceItemAt(outputURL, withItemAt: tmpURL)
-            } else {
-                try FileManager.default.moveItem(at: tmpURL, to: outputURL)
-            }
-        } catch {
-            // Best-effort cleanup of the orphan temp.
-            try? FileManager.default.removeItem(at: tmpURL)
             throw ArticleIndexWriterError.writeFailed(outputURL, error)
         }
     }
 
+    /// Commit `articleCount` rows to disk: truncate the file to the
+    /// exact expected size (discarding any trailing partial-row bytes),
+    /// update the header's article_count field in place, fsync. The
+    /// file is in a consistent state when this returns.
+    private static func finalizeFile(handle: FileHandle, articleCount: Int, dim: Int) throws {
+        let expectedSize = UInt64(ArticleIndexFormat.headerSize + articleCount * dim * 2)
+        try handle.truncate(atOffset: expectedSize)
+        try Self.updateHeaderArticleCount(handle: handle, count: UInt32(articleCount))
+        try handle.synchronize()
+    }
+
+    /// In-place update of the header's `article_count` field
+    /// (offset 76, 4-byte little-endian u32). 4-byte aligned writes are
+    /// atomic on every POSIX filesystem we ship to, so the file never
+    /// observes a torn `article_count`.
+    private static func updateHeaderArticleCount(handle: FileHandle, count: UInt32) throws {
+        try handle.seek(toOffset: 76)
+        var le = count.littleEndian
+        try withUnsafeBytes(of: &le) { ptr in
+            try handle.write(contentsOf: Data(bytes: ptr.baseAddress!, count: ptr.count))
+        }
+    }
+
+    /// In-place update of the header's `embedding_dim` field
+    /// (offset 72, 4-byte little-endian u32). Only used when the first
+    /// real encode's vector length differs from the placeholder dim the
+    /// writer guessed at file-init time.
+    private static func updateHeaderEmbeddingDim(handle: FileHandle, dim: UInt32) throws {
+        try handle.seek(toOffset: 72)
+        var le = dim.littleEndian
+        try withUnsafeBytes(of: &le) { ptr in
+            try handle.write(contentsOf: Data(bytes: ptr.baseAddress!, count: ptr.count))
+        }
+    }
+
+    // MARK: - Resume
+
+    private struct ResumableState {
+        let articleCount: Int
+        let dim: Int
+        let createdAt: UInt64
+    }
+
+    /// If `outputURL` holds a sidecar valid for the CURRENT build
+    /// (matching model + MDX hashes + current format version + a file
+    /// size at least the expected committed size, with
+    /// `0 < article_count <= maxCount`), return its metadata so the
+    /// build can resume by seeking to the write head and appending.
+    ///
+    /// File size > expected (trailing partial bytes from a crash between
+    /// body-append and the next checkpoint) is tolerated — the writer
+    /// overwrites them on resume.
+    private static func loadResumableState(
+        outputURL: URL, modelSHA: Data, mdxSHA: Data, maxCount: Int
+    ) -> ResumableState? {
+        guard FileManager.default.fileExists(atPath: outputURL.path),
+              let handle = try? FileHandle(forReadingFrom: outputURL),
+              let headerData = try? handle.read(upToCount: ArticleIndexFormat.headerSize),
+              headerData.count == ArticleIndexFormat.headerSize,
+              let header = ArticleIndexHeader.parse(headerData),
+              header.formatVersion == ArticleIndexFormat.currentVersion,
+              header.modelSHA256 == modelSHA,
+              header.mdxHeaderSHA256 == mdxSHA,
+              header.embeddingDim > 0
+        else { return nil }
+        try? handle.close()
+
+        let attrs = try? FileManager.default.attributesOfItem(atPath: outputURL.path)
+        let fileSize = (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        let dim = Int(header.embeddingDim)
+        let existingCount = Int(header.articleCount)
+        let expectedSize = ArticleIndexFormat.headerSize + existingCount * dim * 2
+        guard fileSize >= expectedSize,
+              existingCount > 0, existingCount <= maxCount
+        else { return nil }
+
+        return ResumableState(
+            articleCount: existingCount, dim: dim, createdAt: header.createdAt
+        )
+    }
+
     // MARK: - Helpers
 
-    /// SHA256 of the entire .mlpackage's serialized model bytes. We
-    /// don't have a single canonical "model file" — .mlpackage is a
-    /// directory — so we hash the inner `Data/com.apple.CoreML/model.mlmodel`
-    /// which is the protobuf graph. Weight files are large + content-
-    /// identical across re-conversions of the same source so this
-    /// catches the architecture changes that matter for sidecar
-    /// invalidation.
+    /// SHA256 of the model's serialized graph for sidecar invalidation.
+    /// `.mlpackage` is a directory, so we hash the inner protobuf at
+    /// `Data/com.apple.CoreML/model.mlmodel`; for `.mlmodelc` we hash
+    /// `model.mil`. Weight files are large + content-identical across
+    /// re-conversions of the same source, so this digest catches the
+    /// architecture changes that matter.
     private static func computeModelSHA256(modelURL: URL) throws -> Data {
-        // Find model.mlmodel inside either .mlpackage or .mlmodelc.
         let candidates = [
             modelURL.appendingPathComponent("Data/com.apple.CoreML/model.mlmodel"),
             modelURL.appendingPathComponent("model.mil"),  // .mlmodelc form
-            modelURL,  // direct .mlmodel file
+            modelURL,                                       // direct .mlmodel file
         ]
         for c in candidates {
             if FileManager.default.fileExists(atPath: c.path),
@@ -242,8 +425,7 @@ public struct ArticleIndexWriter {
         throw ArticleIndexWriterError.modelHashFailed
     }
 
-    /// Hex string → 32-byte Data. Returns nil if input isn't valid hex
-    /// of the expected length.
+    /// Hex string → 32-byte Data. Returns nil if input isn't valid hex.
     private static func hexToData(_ hex: String) -> Data? {
         var data = Data(capacity: hex.count / 2)
         var idx = hex.startIndex
@@ -258,9 +440,9 @@ public struct ArticleIndexWriter {
         return data
     }
 
-    /// Same HTML→plaintext logic as the POC runner. Strips tags, decodes
-    /// common entities, collapses whitespace. Phase 3.x could replace
-    /// with a more thorough WebView-equivalent extractor if needed.
+    /// HTML → plaintext (strip tags, decode common entities, collapse
+    /// whitespace). Phase 3.x could replace with a more thorough
+    /// WebView-equivalent extractor if needed.
     public static func stripHTML(_ html: String) -> String {
         let scriptStripped = html.replacingOccurrences(
             of: "<(script|style)[^>]*>.*?</\\1>", with: " ",
@@ -293,8 +475,7 @@ extension ArticleEncoder {
     var tokenizerMaxLength: Int {
         // The tokenizer is private; we know we initialized it with
         // ArticleTokenizer's default 128 unless an override was passed.
-        // For Phase 3.2 we don't pipe the override through, so it's
-        // always 128. If that changes, plumb it.
+        // Phase 3.x doesn't plumb the override through, so it's always 128.
         128
     }
 }

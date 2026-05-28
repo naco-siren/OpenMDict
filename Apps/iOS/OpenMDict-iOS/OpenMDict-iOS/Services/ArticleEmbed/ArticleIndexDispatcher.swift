@@ -257,11 +257,11 @@ final class ArticleIndexDispatcher {
             withIntermediateDirectories: true
         )
 
-        // 6. Build. The writer is single-shot synchronous; we run it
-        // on a background queue so we can also detect cancellation
-        // mid-build (current writer doesn't, but the surrounding Task
-        // still gets cancelled — `result` just comes back after the
-        // writer finishes).
+        // 6. Build on a detached task. The writer is resumable +
+        // checkpointing + cancellable: it auto-resumes from any partial
+        // already at outURL, atomic-flushes a valid partial every N
+        // articles, and polls isCancelled per-article (flushing + bailing
+        // when the surrounding Task is cancelled).
         let writer = ArticleIndexWriter(
             modelURL: modelURL,
             outputURL: outURL,
@@ -274,23 +274,31 @@ final class ArticleIndexDispatcher {
             }
         )
 
-        let result: Result<ArticleIndexHeader, Error> = await Task.detached { [reader, encoder] in
+        let result: Result<ArticleIndexBuildOutcome, Error> = await Task.detached { [reader, encoder] in
             do {
-                let header = try writer.build(reader: reader, encoder: encoder)
-                return .success(header)
+                // Cooperative cancellation: the writer polls this per
+                // article, flushing a valid partial sidecar before
+                // returning .interrupted so the next run resumes.
+                let outcome = try writer.build(
+                    reader: reader, encoder: encoder,
+                    isCancelled: { Task.isCancelled }
+                )
+                return .success(outcome)
             } catch {
                 return .failure(error)
             }
         }.value
 
-        // 7. Handle result.
+        // 7. Handle result. A cancelled Task means cancel()/preempt
+        // fired — the writer already flushed a valid partial to disk and
+        // those paths own the service state, so don't fight them. The
+        // on-disk partial lets the next run resume.
         if Task.isCancelled {
-            log.info("executeJob(\(dictId)): cancelled, reverting state")
-            ArticleIndexService.shared.setState(.notIndexed, for: dictId, indexedThrough: 0)
+            log.info("executeJob(\(dictId)): cancelled; partial checkpoint left on disk for resume")
             return
         }
         switch result {
-        case .success(let header):
+        case .success(.completed(let header)):
             let modelHashHex = header.modelSHA256.map { String(format: "%02x", $0) }.joined()
             let mdxHashHex = header.mdxHeaderSHA256.map { String(format: "%02x", $0) }.joined()
             ArticleIndexService.shared.setState(
@@ -300,6 +308,15 @@ final class ArticleIndexDispatcher {
                 mdxHash: mdxHashHex
             )
             log.info("executeJob(\(dictId)): indexed \(header.articleCount) articles successfully")
+        case .success(.interrupted(_, let through)):
+            // Writer reported interruption without the Task being
+            // cancelled — not expected today (isCancelled only wraps
+            // Task.isCancelled), but persist progress as .indexing so a
+            // future run resumes from the checkpoint.
+            ArticleIndexService.shared.setState(
+                .indexing, for: dictId, indexedThrough: Int32(through)
+            )
+            log.info("executeJob(\(dictId)): interrupted at \(through), checkpoint saved")
         case .failure(let error):
             ArticleIndexService.shared.setState(
                 .error, for: dictId,
