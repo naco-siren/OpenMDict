@@ -61,6 +61,11 @@ final class ArticleEmbedPOCViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Surfaces this device's chip/GPU strings (drives the
+        // `DeviceChipInfo.prefersCPUForeground` tier rule that the
+        // dispatcher uses to pick `.cpuOnly` over `.cpuAndGPU` on A13 etc.).
+        // Gated behind VERBOSE_LOGGING — zero overhead in release.
+        debugLog("📱 DeviceChipInfo (POC): \(DeviceChipInfo.summary)")
         title = "Article Embed POC"
         view.backgroundColor = .systemBackground
 

@@ -35,7 +35,8 @@
 
 import Foundation
 import NaturalLanguage
-import OpenMDict   // ArticleIndexReader + format types live in core lib
+import OpenMDict     // ArticleIndexReader + format types live in core lib
+import OpenMDictKit  // MDict — for DictionaryService.allDictionaries[*].id
 import os.log
 
 @MainActor
@@ -205,6 +206,23 @@ final class ArticleIndexCoordinator {
         ArticleIndexDispatcher.shared.cancel(dictId)
     }
 
+    /// Enqueue every not-yet-indexed, non-excluded dict for background
+    /// indexing, gated on availability + the user's "Article Search"
+    /// toggle. Idempotent — the dispatcher dedups ids that are already
+    /// running/queued — so it's safe to call from every front-stage
+    /// trigger (scene foregrounding, overview viewDidLoad, switch flip).
+    /// That is in fact what makes a stale `.indexing` row continue after
+    /// an app relaunch: the writer resumes from the on-disk partial.
+    func backfillIfEnabled() {
+        guard isAvailable, UserDefaults.standard.articleSearchEnabled else { return }
+        for dict in DictionaryService.shared.allDictionaries {
+            let snap = ArticleIndexService.shared.snapshot(for: dict.id)
+            if snap.state != .indexed && !snap.userExcluded {
+                ArticleIndexDispatcher.shared.enqueue(dict.id, priority: .background)
+            }
+        }
+    }
+
     // MARK: - Reader factory (query path)
 
     /// Open the dict's sidecar for query. Returns `.success(nil)` if
@@ -251,17 +269,23 @@ final class ArticleIndexCoordinator {
         // Reset to `.notIndexed`. If a record already exists for this
         // dictId (e.g. user re-imported the same MDX after a delete),
         // setState preserves user prefs (priorityOrder + excluded) and
-        // wipes stale hashes/state.
+        // wipes stale hashes/state. We register the row regardless of
+        // the master toggle so the dict still appears in the overview
+        // list when the user opens the screen.
         ArticleIndexService.shared.setState(
             .notIndexed, for: dictId,
             indexedThrough: 0, modelHash: nil, mdxHash: nil
         )
-        // Enqueue a background-priority indexing job. Respects the
-        // user-excluded flag — if the user previously opted this dict
-        // out, the snapshot still has userExcluded=true (we preserved
-        // it via setState above), and the dispatcher's
-        // ArticleIndexCoordinator availability check skips. UI will
-        // show `.paused` state in that case.
+        // Auto-enqueue ONLY when the user has the master "Article Search"
+        // toggle on. If they enable later, backfillIfEnabled() (called
+        // from SceneDelegate.sceneWillEnterForeground + the overview's
+        // viewDidLoad + the toggle's own setEnabled(true)) will pick this
+        // dict up. Without this gate, a fresh install + import would
+        // start indexing immediately even with the master toggle off.
+        guard UserDefaults.standard.articleSearchEnabled else {
+            log.info("handleDictImported(\(dictId)): registered .notIndexed; master toggle OFF, not enqueuing")
+            return
+        }
         let snap = ArticleIndexService.shared.snapshot(for: dictId)
         if !snap.userExcluded {
             ArticleIndexDispatcher.shared.enqueue(dictId, priority: .background)

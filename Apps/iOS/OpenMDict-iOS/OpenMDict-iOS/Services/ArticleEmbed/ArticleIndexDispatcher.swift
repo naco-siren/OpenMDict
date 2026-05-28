@@ -15,29 +15,30 @@
 //      Interactive jobs preempt — if a background job is running and
 //      the user requests an interactive one, the bg job is cancelled
 //      and re-queued, the interactive job runs first.
-//    - Cancellation is cooperative via `Task.isCancelled`. The writer
-//      checks at each per-article iteration (Phase 3.5 task — current
-//      ArticleIndexWriter is single-shot, doesn't check).
+//    - Cancellation is cooperative. The writer polls a per-article
+//      `isCancelled`; we drive it by cancelling the detached build task
+//      (`runningBuildTask`) — NOT `runningTask` — because Task.detached
+//      doesn't inherit the parent's cancellation.
 //
 //  Encoder lifecycle:
 //    - Lazy-loaded on first job, kept alive across jobs (CoreML's first
 //      .mlpackage compile is multi-second; cold-loading per-dict would
 //      add a huge overhead).
-//    - Evicted on memory warning or after a quiet period (Phase 3.5).
+//    - Eviction on memory warning / quiet period is still TODO.
 //
-//  Asset acquisition (Phase 3.4 stopgap):
-//    - Model + vocab come from the bundled `POC-Resources/` per the
-//      POC pattern. Anyone building the iOS app must drop the files
-//      in via `scripts/build-st-coreml.py` first (same as the POC).
-//    - Phase 3.5 replaces this with ODR (on-demand-resources) so the
-//      shipped app doesn't include the 86 MB model in its base IPA.
+//  Asset acquisition (still a stopgap):
+//    - Model + vocab come from the bundle per the POC pattern. Anyone
+//      building the iOS app must drop the files in via
+//      `scripts/build-st-coreml.py` first. ODR (so the base IPA doesn't
+//      carry the ~86 MB model) is still TODO.
 //
-//  Resumability:
-//    - NOT in Phase 3.4. The writer is single-shot — kill it mid-run
-//      and progress is lost; next attempt restarts from 0. Phase 3.5
-//      refactors the writer for append + checkpoint, at which point
-//      the dispatcher persists `indexedThrough` via the service and
-//      next runs pick up where they left off.
+//  Resumability + background:
+//    - The writer is resumable: it auto-resumes from any partial at the
+//      output path and atomic-checkpoints every N articles, so cancel /
+//      preempt / BGTask-expiry interrupt cleanly (service keeps
+//      `.indexing` at the checkpoint) and the next run continues.
+//    - `runBackgroundPass(shouldStop:)` is the BGProcessingTask entry
+//      point; `ArticleIndexBackgroundScheduler` owns the BGTask plumbing.
 //
 
 import Foundation
@@ -67,12 +68,22 @@ final class ArticleIndexDispatcher {
         let priority: Priority
     }
 
-    /// Lazy-loaded encoder. Lives across jobs.
+    /// Lazy-loaded encoder. Lives across jobs; reloaded when the compute
+    /// profile changes (foreground GPU ↔ background CPU).
     private var encoder: ArticleEncoder?
+    private var encoderProfile: ArticleEncoder.ComputeProfile?
 
-    /// dictId currently running, plus its Task handle for cancellation.
+    /// dictId currently running, plus the queue-drain wrapper task.
     private var runningDictId: String?
     private var runningTask: Task<Void, Never>?
+
+    /// The detached task actually running the encode loop. Cancelling
+    /// THIS (not `runningTask`) is what stops the writer: `Task.detached`
+    /// does NOT inherit the parent's cancellation, so the writer's
+    /// per-article `Task.isCancelled` poll only flips when we cancel the
+    /// detached task directly. Held here so cancel() / preempt / the
+    /// BGTask expiration handler can reach it.
+    private var runningBuildTask: Task<ArticleIndexBuildOutcome, Error>?
 
     /// FIFO-within-priority pending queue.
     private var queue: [PendingJob] = []
@@ -109,11 +120,12 @@ final class ArticleIndexDispatcher {
             // is `.interactive`.
             if priority > .background {
                 log.info("enqueue(\(dictId)): preempting running .background job for .interactive")
-                runningTask?.cancel()
-                runningDictId = nil
-                runningTask = nil
+                // Cancel the in-flight build (flushes a valid partial) and
+                // re-enqueue at .interactive. The runningTask continuation
+                // nils runningDictId + drains the queue, resuming this dict
+                // from its checkpoint at the higher priority.
+                runningBuildTask?.cancel()
                 queue.insert(PendingJob(dictId: dictId, priority: priority), at: 0)
-                runNextIfIdle()
             }
             return
         }
@@ -132,25 +144,18 @@ final class ArticleIndexDispatcher {
         runNextIfIdle()
     }
 
-    /// Cancel a job. If it's currently running, the task is cancelled
-    /// (the current ArticleIndexWriter is single-shot — Phase 3.4 — so
-    /// cancellation only takes effect at the NEXT writer; in-flight
-    /// builds run to completion or until the iOS background-task
-    /// timer kills the process. Phase 3.5's resumable writer fixes
-    /// this).
+    /// Cancel a job. If queued, it's removed. If running, the in-flight
+    /// build is cancelled — the writer flushes a valid partial sidecar and
+    /// the service keeps `.indexing` at that checkpoint, so a later run
+    /// (re-enqueue or BGTask) resumes rather than restarting from 0. To
+    /// fully stop AND hide a dict, use `setUserExcluded(true)` instead.
     func cancel(_ dictId: String) {
         queue.removeAll(where: { $0.dictId == dictId })
         if runningDictId == dictId {
-            log.info("cancel(\(dictId)): cancelling running job")
-            runningTask?.cancel()
-            runningDictId = nil
-            runningTask = nil
-            // Re-mark service state — if writer was mid-progress we
-            // want to revert it from .indexing to .notIndexed.
-            ArticleIndexService.shared.setState(
-                .notIndexed, for: dictId, indexedThrough: 0
-            )
-            runNextIfIdle()
+            log.info("cancel(\(dictId)): cancelling in-flight build (partial kept for resume)")
+            runningBuildTask?.cancel()
+            // executeJob's .interrupted branch persists progress; the
+            // runningTask continuation nils runningDictId + drains the queue.
         }
     }
 
@@ -159,19 +164,68 @@ final class ArticleIndexDispatcher {
     func cancelAll() {
         log.info("cancelAll: clearing \(self.queue.count) queued + running=\(self.runningDictId ?? "nil")")
         queue.removeAll()
-        if let id = runningDictId {
-            runningTask?.cancel()
-            ArticleIndexService.shared.setState(
-                .notIndexed, for: id, indexedThrough: 0
-            )
-        }
-        runningDictId = nil
-        runningTask = nil
+        // Cancel the in-flight build; its .interrupted handling keeps the
+        // partial + checkpoint. Running continuations nil out runningDictId.
+        runningBuildTask?.cancel()
+    }
+
+    /// Cancel just the in-flight build, leaving the queue intact. The
+    /// writer flushes a valid partial (→ resumable). Used by the BGTask
+    /// expiration handler when the system reclaims background time.
+    func cancelCurrentBuild() {
+        runningBuildTask?.cancel()
     }
 
     /// Snapshot for the overview UI: what's running + what's queued.
     func currentlyRunning() -> String? { runningDictId }
     func pendingJobIds() -> [String] { queue.map(\.dictId) }
+
+    /// True if `dictId` is the running job OR sitting in the pending queue.
+    /// Lets callers tell "user-cancellable in-flight work" apart from a
+    /// stale `.indexing` row (where the row says indexing but no job
+    /// actually exists, e.g. after an app relaunch).
+    func isInFlight(_ dictId: String) -> Bool {
+        runningDictId == dictId || queue.contains { $0.dictId == dictId }
+    }
+
+    // MARK: - Background pass (BGProcessingTask)
+
+    /// Drive indexing for the BGProcessingTask handler: index every
+    /// eligible dict (not yet fully indexed, not user-excluded), in
+    /// user-priority order, serially. Returns when all are done or
+    /// `shouldStop()` goes true (the BGTask is about to expire).
+    ///
+    /// Cancellation has two layers: `shouldStop()` prevents starting the
+    /// NEXT dict, and the expiration handler also calls
+    /// `cancelCurrentBuild()` to interrupt the in-flight one (which
+    /// checkpoints a partial). Both are needed — an in-flight encode loop
+    /// won't notice `shouldStop` on its own.
+    func runBackgroundPass(shouldStop: @escaping @Sendable () -> Bool) async {
+        guard ArticleIndexCoordinator.shared.isAvailable else { return }
+        // Master "Article Search" toggle gate. The BGTask can be woken
+        // by the system even if the user has since flipped this off —
+        // honor that here so we don't sneak indexing past their opt-out.
+        guard UserDefaults.standard.articleSearchEnabled else {
+            log.info("runBackgroundPass: master toggle off, skipping")
+            return
+        }
+        let eligible = ArticleIndexService.shared.allSnapshots()
+            .filter { $0.state != .indexed && !$0.userExcluded }
+            .sorted { $0.userPriorityOrder < $1.userPriorityOrder }
+            .map(\.dictId)
+        log.info("runBackgroundPass: \(eligible.count) dict(s) eligible")
+        for dictId in eligible {
+            if shouldStop() {
+                log.info("runBackgroundPass: stopping before \(dictId) (deadline)")
+                break
+            }
+            runningDictId = dictId
+            // CPU profile — the GPU is forbidden while backgrounded.
+            await executeJob(dictId: dictId, profile: .background)
+            runningDictId = nil
+        }
+        log.info("runBackgroundPass: finished")
+    }
 
     // MARK: - Internal queue drain
 
@@ -190,7 +244,9 @@ final class ArticleIndexDispatcher {
         log.info("Starting job: dictId=\(job.dictId) priority=\(job.priority == .interactive ? "interactive" : "background")")
 
         runningTask = Task { [weak self] in
-            await self?.executeJob(dictId: job.dictId)
+            // Foreground queue → GPU profile (fast). App-backgrounding
+            // cancels the in-flight build; the BGTask path re-runs on CPU.
+            await self?.executeJob(dictId: job.dictId, profile: .foreground)
             self?.runningDictId = nil
             self?.runningTask = nil
             self?.runNextIfIdle()
@@ -203,7 +259,7 @@ final class ArticleIndexDispatcher {
     /// loads encoder (lazy), opens the MDictReader, runs the writer
     /// with progress callbacks → service. On error or cancellation,
     /// updates service state accordingly.
-    private func executeJob(dictId: String) async {
+    private func executeJob(dictId: String, profile: ArticleEncoder.ComputeProfile) async {
         // 1. Locate the MDictReader for this dict.
         guard let mdict = DictionaryService.shared.dict(id: dictId),
               let reader = mdict.reader
@@ -216,8 +272,8 @@ final class ArticleIndexDispatcher {
             return
         }
 
-        // 2. Locate the bundled model + vocab. Phase 3.5 swaps this
-        // for ODR; for now we use the POC bundle pattern.
+        // 2. Locate the bundled model + vocab. (ODR is a follow-up; for
+        // now we use the POC bundle pattern.)
         guard let (modelURL, vocabURL) = Self.resolveAssets() else {
             log.error("executeJob(\(dictId)): model/vocab missing from bundle")
             ArticleIndexService.shared.setState(
@@ -227,24 +283,19 @@ final class ArticleIndexDispatcher {
             return
         }
 
-        // 3. Load encoder if needed.
-        if encoder == nil {
-            do {
-                encoder = try ArticleEncoder(modelPath: modelURL.path, vocabPath: vocabURL.path)
-                log.info("Encoder loaded for dispatcher")
-            } catch {
-                log.error("Encoder load failed: \(String(describing: error))")
-                ArticleIndexService.shared.setState(
-                    .error, for: dictId,
-                    errorMessage: "Encoder load failed: \(error)"
-                )
-                return
-            }
+        // 3. Encoder for this profile (foreground GPU / background CPU),
+        // (re)loading if the profile changed since the last job.
+        guard let encoder = ensureEncoder(profile: profile, modelURL: modelURL, vocabURL: vocabURL) else {
+            ArticleIndexService.shared.setState(
+                .error, for: dictId,
+                errorMessage: "CoreML model not bundled or encoder load failed"
+            )
+            return
         }
-        guard let encoder = self.encoder else { return }
 
         // 4. Mark indexing started.
         let totalArticles = reader.entryCount
+        log.info("executeJob(\(dictId)): build starting, \(totalArticles) articles to encode")
         ArticleIndexService.shared.setState(
             .indexing, for: dictId, indexedThrough: 0
         )
@@ -265,38 +316,39 @@ final class ArticleIndexDispatcher {
         let writer = ArticleIndexWriter(
             modelURL: modelURL,
             outputURL: outURL,
-            progress: { [weak self] done, _, _ in
+            progress: { [weak self] done, total, elapsed in
                 guard let self else { return }
                 // Hop to MainActor to write service state.
                 Task { @MainActor in
+                    // NB: `done` is the absolute row count (includes any
+                    // articles already on disk from a resume), but
+                    // `elapsed` is from this run's start, so `done/elapsed`
+                    // reads artificially high for the first few seconds
+                    // after a resume (e.g. 287/s, 166/s ... before
+                    // settling). The number stabilizes after a minute.
+                    let ips = elapsed > 0 ? Double(done) / elapsed : 0
+                    self.log.info("indexing \(dictId): \(done)/\(total) (\(String(format: "%.1f", elapsed))s, \(String(format: "%.1f", ips))/s)")
                     self.recordProgress(dictId: dictId, indexedThrough: Int32(done))
                 }
             }
         )
 
-        let result: Result<ArticleIndexBuildOutcome, Error> = await Task.detached { [reader, encoder] in
-            do {
-                // Cooperative cancellation: the writer polls this per
-                // article, flushing a valid partial sidecar before
-                // returning .interrupted so the next run resumes.
-                let outcome = try writer.build(
-                    reader: reader, encoder: encoder,
-                    isCancelled: { Task.isCancelled }
-                )
-                return .success(outcome)
-            } catch {
-                return .failure(error)
-            }
-        }.value
-
-        // 7. Handle result. A cancelled Task means cancel()/preempt
-        // fired — the writer already flushed a valid partial to disk and
-        // those paths own the service state, so don't fight them. The
-        // on-disk partial lets the next run resume.
-        if Task.isCancelled {
-            log.info("executeJob(\(dictId)): cancelled; partial checkpoint left on disk for resume")
-            return
+        let buildTask = Task.detached { [reader, encoder] () -> ArticleIndexBuildOutcome in
+            // The writer polls isCancelled per article. Task.detached does
+            // NOT inherit the parent's cancellation, so we keep this task's
+            // handle (runningBuildTask) and cancel IT in cancel() / preempt
+            // / the BGTask expiration handler — that's what flips
+            // Task.isCancelled here and makes the writer checkpoint + bail.
+            try writer.build(
+                reader: reader, encoder: encoder,
+                isCancelled: { Task.isCancelled }
+            )
         }
+        runningBuildTask = buildTask
+        let result = await buildTask.result
+        runningBuildTask = nil
+
+        // 7. Handle the outcome.
         switch result {
         case .success(.completed(let header)):
             let modelHashHex = header.modelSHA256.map { String(format: "%02x", $0) }.joined()
@@ -309,30 +361,82 @@ final class ArticleIndexDispatcher {
             )
             log.info("executeJob(\(dictId)): indexed \(header.articleCount) articles successfully")
         case .success(.interrupted(_, let through)):
-            // Writer reported interruption without the Task being
-            // cancelled — not expected today (isCancelled only wraps
-            // Task.isCancelled), but persist progress as .indexing so a
-            // future run resumes from the checkpoint.
+            // cancel() / preempt / BGTask expiry fired: the writer flushed
+            // a valid partial. Keep .indexing at the checkpoint so the next
+            // run (re-enqueue or BGTask) resumes instead of restarting.
             ArticleIndexService.shared.setState(
                 .indexing, for: dictId, indexedThrough: Int32(through)
             )
-            log.info("executeJob(\(dictId)): interrupted at \(through), checkpoint saved")
+            log.info("executeJob(\(dictId)): interrupted at \(through); checkpoint saved for resume")
         case .failure(let error):
-            ArticleIndexService.shared.setState(
-                .error, for: dictId,
-                errorMessage: "\(error)"
-            )
-            log.error("executeJob(\(dictId)): build failed: \(String(describing: error))")
+            // If WE cancelled (app backgrounding mid-GPU-predict, preempt,
+            // user cancel), the on-disk partial is still valid — don't
+            // surface a scary error; the persisted progress lets the next
+            // run resume.
+            if buildTask.isCancelled {
+                log.info("executeJob(\(dictId)): build cancelled mid-flight; checkpoint kept (\(String(describing: error)))")
+            } else {
+                ArticleIndexService.shared.setState(
+                    .error, for: dictId,
+                    errorMessage: "\(error)"
+                )
+                log.error("executeJob(\(dictId)): build failed: \(String(describing: error))")
+            }
         }
     }
 
     private func recordProgress(dictId: String, indexedThrough: Int32) {
-        // Cheap write; only check thermal here too — Phase 3.5 will
-        // add proper thermal cancellation.
         ArticleIndexService.shared.setState(
             .indexing, for: dictId,
             indexedThrough: indexedThrough
         )
+    }
+
+    /// Return an encoder configured for `profile`, (re)loading if the
+    /// current one is nil or was built for a different profile. Foreground
+    /// uses GPU (fast); background uses CPU (the GPU is forbidden while the
+    /// app is backgrounded). Dropping the old instance first keeps peak
+    /// memory at a single model.
+    ///
+    /// **Chip-tier downgrade**: on chips where the small-model GPU path is
+    /// slower than CPU (A13 et al — see `DeviceChipInfo.prefersCPUForeground`),
+    /// a foreground request is transparently mapped to `.background`
+    /// (`.cpuOnly`). The caller still asks for `.foreground`; we just don't
+    /// dispatch through the GPU when we know it loses.
+    private func ensureEncoder(
+        profile requestedProfile: ArticleEncoder.ComputeProfile,
+        modelURL: URL, vocabURL: URL
+    ) -> ArticleEncoder? {
+        let profile = Self.effectiveProfile(requested: requestedProfile)
+        if requestedProfile != profile {
+            log.info("ComputeProfile: \(String(describing: requestedProfile)) → \(String(describing: profile)) on \(DeviceChipInfo.gpuName ?? "?") (GPU loses to CPU for this model)")
+        }
+        if let e = encoder, encoderProfile == profile { return e }
+        encoder = nil
+        do {
+            let e = try ArticleEncoder(
+                modelPath: modelURL.path, vocabPath: vocabURL.path, profile: profile
+            )
+            encoder = e
+            encoderProfile = profile
+            log.info("Encoder loaded (profile=\(profile == .foreground ? "foreground/GPU" : "background/CPU"))")
+            return e
+        } catch {
+            log.error("Encoder load failed: \(String(describing: error))")
+            return nil
+        }
+    }
+
+    /// Translate a requested compute profile into what we actually run.
+    /// `.background` is identity (the GPU-in-background ban is a kernel
+    /// rule, can't override). `.foreground` gets downgraded to `.background`
+    /// on chips where the GPU is slower than CPU for our small MiniLM-L6
+    /// model (see `DeviceChipInfo.prefersCPUForeground`).
+    private static func effectiveProfile(
+        requested: ArticleEncoder.ComputeProfile
+    ) -> ArticleEncoder.ComputeProfile {
+        guard requested == .foreground else { return requested }
+        return DeviceChipInfo.prefersCPUForeground ? .background : .foreground
     }
 
     /// Find the bundled model + vocab. Returns nil if either is

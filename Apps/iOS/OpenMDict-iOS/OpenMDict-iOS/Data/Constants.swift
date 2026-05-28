@@ -12,6 +12,12 @@ nonisolated enum AppIdentifiers {
     /// CloudKit container identifier for iCloud sync.
     static let cloudKitContainerID = "iCloud.io.github.naco-siren.OpenMDict-iOS"
 
+    /// BGTaskScheduler identifier for background article-embedding
+    /// indexing (M15). MUST match the Info.plist
+    /// `BGTaskSchedulerPermittedIdentifiers` entry exactly, or the system
+    /// rejects task registration / submission at runtime.
+    static let articleIndexBGTaskID = "io.github.naco-siren.openmdict.articleindex"
+
     enum UTTypeValue {
         /// ⚠️ Must match Info.plist UTImportedTypeDeclarations
         static let mdx = "io.github.naco-siren.openmdict.mdx"

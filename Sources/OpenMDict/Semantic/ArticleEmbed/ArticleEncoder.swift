@@ -45,6 +45,18 @@ import CoreML
 /// monotonically set on first call and not mutated thereafter.
 public final class ArticleEncoder: @unchecked Sendable {
 
+    /// Where the model runs. Environment-driven, not just a speed knob:
+    ///   - `.foreground` → `.cpuAndGPU`: fast (~45 art/s on A13). The GPU
+    ///     CANNOT be used while the app is backgrounded (the kernel blocks
+    ///     GPU command submission), and A13's ANE stalls — so this is
+    ///     foreground-only.
+    ///   - `.background` → `.cpuOnly`: slower, but the only compute the
+    ///     system permits in the background (BGProcessingTask).
+    public enum ComputeProfile: Sendable, Equatable {
+        case foreground
+        case background
+    }
+
     private let model: MLModel
     private let tokenizer: ArticleTokenizer
     private let inputIdsKey: String
@@ -69,7 +81,8 @@ public final class ArticleEncoder: @unchecked Sendable {
     /// Load a compiled `.mlmodelc` directory or an uncompiled `.mlpackage`
     /// (the framework compiles on-the-fly). Vocab is loaded eagerly so
     /// startup errors surface immediately.
-    public init(modelPath: String, vocabPath: String, maxLength: Int = 128) throws {
+    public init(modelPath: String, vocabPath: String, maxLength: Int = 128,
+                profile: ComputeProfile = .foreground) throws {
         let modelURL = URL(fileURLWithPath: modelPath)
 
         // .mlpackage / .mlmodel both need compilation; .mlmodelc is already compiled.
@@ -81,11 +94,17 @@ public final class ArticleEncoder: @unchecked Sendable {
         }
 
         let config = MLModelConfiguration()
-        // .all = framework picks ANE / GPU / CPU per op. For sentence
-        // transformers this almost always ends up on ANE on iPhone,
-        // GPU/CPU on Mac. .cpuAndGPU is a safer fallback if ANE
-        // compilation flakes out on a specific iOS version.
-        config.computeUnits = .all
+        // Compute routing by profile (see ComputeProfile):
+        //   .foreground → .cpuAndGPU  (fast; GPU allowed only while active)
+        //   .background → .cpuOnly    (GPU is kernel-blocked in the
+        //                              background; A13 ANE stalls — so the
+        //                              BGTask path must stay on CPU)
+        // We deliberately avoid `.all` (ANE): on A13 + iOS 26 the encoder
+        // hangs right after the first predict (WordNet froze at 1/153888).
+        switch profile {
+        case .foreground: config.computeUnits = .cpuAndGPU
+        case .background: config.computeUnits = .cpuOnly
+        }
         self.compiledURL = compiledURL
         self.config = config
         self.model = try MLModel(contentsOf: compiledURL, configuration: config)

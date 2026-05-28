@@ -422,6 +422,11 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>io.github.naco-siren.openmdict.articleindex</string>
 	</array>
 </dict>
 </plist>

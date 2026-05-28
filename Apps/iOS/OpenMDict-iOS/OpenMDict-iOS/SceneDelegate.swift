@@ -208,9 +208,38 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
            splitVC.isCollapsed {
             splitVC.compactTabBarController.focusLookupSearchBarIfVisible()
         }
+
+        // M15: re-arm article-embedding indexing on every foreground entry.
+        // Two steps that MUST be sequenced (async because step 1 has to
+        // settle before step 2 reads the dispatcher's runningDictId):
+        //   1. Cancel any in-flight BGTask pass and wait for it to actually
+        //      exit. Without this, a sync backfillIfEnabled below would see
+        //      the dict as still "running" (the BGTask's runBackgroundPass
+        //      hasn't released its runningDictId yet) and the enqueue
+        //      would no-op, leaving the build on the CPU encoder.
+        //   2. Backfill — re-enqueues every eligible dict; once the pass is
+        //      gone the dispatcher routes the new jobs through the
+        //      foreground queue (GPU profile). On iPhone 11 / A13 this is
+        //      counterproductive (CPU is faster than GPU for this small
+        //      model), so we'll likely want a device-tier gate later. On
+        //      newer ANE/M-series this is the speedup we want.
+        Task { @MainActor in
+            await ArticleIndexBackgroundScheduler.shared.cancelCurrentPassAndWait()
+            ArticleIndexCoordinator.shared.backfillIfEnabled()
+        }
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {
+        // M15: the foreground encoder runs on the GPU, which the kernel
+        // forbids once we're backgrounded — an in-flight build would abort
+        // with kIOGPUCommandBufferCallbackErrorBackgroundExecutionNotPermitted.
+        // Stop it now (it flushes a valid partial); the BGTask scheduled
+        // just below resumes it on the CPU.
+        ArticleIndexDispatcher.shared.cancelCurrentBuild()
+        // Ask the system to run article-embedding indexing in the
+        // background. No-op if nothing's pending or the feature is off.
+        ArticleIndexBackgroundScheduler.shared.scheduleIfNeeded()
+
         // Proactively save state when entering background.
         // This ensures state is captured even during rapid app switcher operations,
         // since stateRestorationActivity(for:) may not be called in time.

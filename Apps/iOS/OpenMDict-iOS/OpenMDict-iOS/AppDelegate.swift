@@ -120,6 +120,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             }
         }
 
+        // M15: register the background article-embedding indexing task.
+        // Must run during launch — Apple requires a handler for every
+        // BGTaskSchedulerPermittedIdentifiers entry before launch returns.
+        // register() / scheduleIfNeeded() self-gate on iOS 26 + feature
+        // availability, so this is safe on all deployment targets.
+        ArticleIndexBackgroundScheduler.shared.register()
+
         return true
     }
 
