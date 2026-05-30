@@ -72,6 +72,17 @@ extension UserDefaults {
         set { set(newValue, forKey: Self.showEnhanceDarkModeKey) }
     }
 
+    private static let articleSearchEnabledKey = "articleSearchEnabled"
+
+    /// M15: master switch for article-content ("full-text") search. When
+    /// off, no indexing is scheduled and the 全文 scope stays hidden in
+    /// search. Opt-in — defaults to false (absent key → false), since
+    /// indexing is heavy and the feature is iOS 26+ only.
+    var articleSearchEnabled: Bool {
+        get { bool(forKey: Self.articleSearchEnabledKey) }
+        set { set(newValue, forKey: Self.articleSearchEnabledKey) }
+    }
+
 }
 
 // MARK: - Enhance Dark Mode Strength

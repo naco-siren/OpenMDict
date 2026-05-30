@@ -292,6 +292,10 @@ class MainSplitViewController: UISplitViewController {
             self?.showAppIconChooser()
         }
 
+        dictionaryListVC.onArticleIndexSelected = { [weak self] in
+            self?.showArticleIndexOverview()
+        }
+
         dictionaryListVC.onTroubleshootSelected = { [weak self] in
             self?.showTroubleshootingScreen()
         }
@@ -634,6 +638,16 @@ class MainSplitViewController: UISplitViewController {
     private func showAppIconChooser() {
         let chooserVC = AppIconChooserViewController()
         let nav = UINavigationController(rootViewController: chooserVC)
+        nav.modalPresentationStyle = traitCollection.horizontalSizeClass == .regular
+            ? .formSheet : .pageSheet
+        present(nav, animated: true)
+    }
+
+    // MARK: - M15 Article Search Indexing
+
+    private func showArticleIndexOverview() {
+        let vc = ArticleIndexOverviewViewController()
+        let nav = UINavigationController(rootViewController: vc)
         nav.modalPresentationStyle = traitCollection.horizontalSizeClass == .regular
             ? .formSheet : .pageSheet
         present(nav, animated: true)

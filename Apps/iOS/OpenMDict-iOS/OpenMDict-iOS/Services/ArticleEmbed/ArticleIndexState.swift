@@ -17,6 +17,13 @@ import NaturalLanguage
 /// "happy path" progression: notSupported (terminal) → pendingDownload
 /// → notIndexed → indexing → indexed; with `paused` and `error` as
 /// branches off the indexing state.
+///
+/// Note: `userExcluded` (Enabled vs Disabled section in the overview UI)
+/// is ORTHOGONAL to this state. A disabled dict can still be `.indexed`
+/// (sidecar on disk) — it just isn't queried by article search until
+/// the user re-enables it. `setEnabled(false)` cancels an in-flight build
+/// and transitions to `.paused(progress, indexedThrough)` so progress is
+/// preserved across the section toggle.
 enum ArticleIndexState: Sendable, Equatable {
     /// Dict's detected language has no embedding model in the catalog
     /// — feature can't be turned on for this dict.
@@ -31,16 +38,24 @@ enum ArticleIndexState: Sendable, Equatable {
     case notIndexed
 
     /// Build in progress. `progress` ∈ [0, 1].
-    case indexing(progress: Double)
+    case indexing(progress: Double, indexedThrough: Int)
 
-    /// User-paused or system-paused (thermal / battery / memory).
-    case paused
+    /// USER-paused only. Scheduler EXCLUDES `.paused` from eligibility —
+    /// the user must explicitly resume (▶ button OR toggle off+on).
+    /// `progress` reflects the on-disk partial so the cell can show
+    /// "Paused at 23% · 12345/56789".
+    ///
+    /// Distinguished from gate-induced pauses (thermal / battery / memory)
+    /// which DON'T touch persisted state — those just cancel the in-flight
+    /// build; the dict reverts to `.indexing(progress)` (orphan, no live
+    /// job) and the scheduler picks it back up when the gate clears.
+    case paused(progress: Double, indexedThrough: Int)
 
     /// Sidecar present + valid against current MDX + model.
     case indexed
 
     /// Build attempted but failed. Human-readable error message for
-    /// the user; Phase 3.4 adds a Retry CTA.
+    /// the user. Excluded from auto-eligibility; user retries via tap.
     case error(message: String)
 }
 
@@ -71,10 +86,6 @@ enum ArticleIndexUnavailableReason: Sendable, Equatable, Error {
     /// instead of routing to the 全文 results view.
     case indexingInProgress(progress: Double)
 
-    /// User explicitly opted this dict out of indexing (per-dict pause
-    /// flag).
-    case userExcluded
-
     // MARK: - UI strings
 
     /// Localized title for `ContentUnavailableView`. Phase 3.4 swaps
@@ -89,8 +100,6 @@ enum ArticleIndexUnavailableReason: Sendable, Equatable, Error {
             return "Language model needed"
         case .indexingInProgress:
             return "Indexing in progress"
-        case .userExcluded:
-            return "Excluded from article search"
         }
     }
 
@@ -112,9 +121,6 @@ enum ArticleIndexUnavailableReason: Sendable, Equatable, Error {
         case .indexingInProgress(let progress):
             return "Indexing this dictionary's articles for search — " +
                    "\(Int(progress * 100))% complete."
-        case .userExcluded:
-            return "You opted this dictionary out of article-content search " +
-                   "in Settings."
         }
     }
 
@@ -125,7 +131,6 @@ enum ArticleIndexUnavailableReason: Sendable, Equatable, Error {
         case .languageNotSupported:   return "character.bubble"
         case .modelNotDownloaded:     return "icloud.and.arrow.down"
         case .indexingInProgress:     return "hourglass"
-        case .userExcluded:           return "nosign"
         }
     }
 }

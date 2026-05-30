@@ -542,6 +542,15 @@ class CompactTabBarController: UITabBarController {
             present(nav, animated: true)
         }
 
+        sidebarVC.onArticleIndexSelected = { [weak self] in
+            guard let self else { return }
+            hideSidebar()
+            let vc = ArticleIndexOverviewViewController()
+            let nav = UINavigationController(rootViewController: vc)
+            nav.modalPresentationStyle = .pageSheet
+            present(nav, animated: true)
+        }
+
         sidebarVC.onTroubleshootSelected = { [weak self] in
             guard let self else { return }
             hideSidebar()
@@ -742,6 +751,14 @@ class CompactTabBarController: UITabBarController {
         managementVC.onChangeAppIconSelected = { [weak self] in
             guard let self else { return }
             let vc = AppIconChooserViewController()
+            let nav = UINavigationController(rootViewController: vc)
+            nav.modalPresentationStyle = .pageSheet
+            present(nav, animated: true)
+        }
+
+        managementVC.onArticleIndexSelected = { [weak self] in
+            guard let self else { return }
+            let vc = ArticleIndexOverviewViewController()
             let nav = UINavigationController(rootViewController: vc)
             nav.modalPresentationStyle = .pageSheet
             present(nav, animated: true)

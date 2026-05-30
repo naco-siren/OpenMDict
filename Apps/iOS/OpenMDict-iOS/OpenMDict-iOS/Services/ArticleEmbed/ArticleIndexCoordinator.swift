@@ -59,6 +59,13 @@ final class ArticleIndexCoordinator {
             at: AppGroupPaths.articleSidecarCacheURL,
             withIntermediateDirectories: true
         )
+        // Launch-time orphan cleanup. Any record persisted as `.indexing`
+        // is stale — no live job exists yet (we're in init). Normalize to
+        // `.notIndexed` so the UI doesn't show phantom spinners after a
+        // force-kill / crash mid-encode. The on-disk partial sticks
+        // around, so the writer still resumes when the scheduler picks
+        // up the dict.
+        ArticleIndexService.shared.normalizeOrphanIndexing(liveJob: nil)
     }
 
     // MARK: - Top-level availability
@@ -94,32 +101,33 @@ final class ArticleIndexCoordinator {
     ///
     /// Resolution order:
     ///   1. Feature availability (iOS version)
-    ///   2. Service snapshot: `userExcluded` → `.paused`
-    ///   3. Service snapshot: `state == .indexing` → `.indexing(progress)`
-    ///      derived from `indexedThrough / mdx.entryCount`
-    ///   4. Service snapshot: `state == .error` → `.error(message)`
-    ///   5. Sidecar file presence + 3-field validation:
-    ///      - valid → `.indexed`
-    ///      - stale or missing → `.notIndexed` (will be re-indexed)
+    ///   2. Service snapshot's state, mapped through:
+    ///      - `.indexing` → `.indexing(progress, indexedThrough)`
+    ///      - `.paused`   → `.paused(progress, indexedThrough)`
+    ///      - `.error`    → `.error(message)`
+    ///      - `.notIndexed` / `.indexed` → fall through to filesystem
+    ///   3. Filesystem source of truth for `.indexed` validation.
+    ///
+    /// **`userExcluded` (Enabled vs Disabled section) is ORTHOGONAL** to
+    /// this state — it gates the QUERY path, not indexing state. A
+    /// disabled dict can still be `.indexed` and the cell shows that.
+    /// The UI separately consults `snap.userExcluded` to decide which
+    /// section to render the row in.
     func state(for dictId: String, mdx: MDictReader, modelHash: Data)
         -> Result<ArticleIndexState, ArticleIndexUnavailableReason>
     {
         if case .failure(let r) = availability { return .failure(r) }
 
-        // 2-4: service-side state.
         let snap = ArticleIndexService.shared.snapshot(for: dictId)
-        if snap.userExcluded {
-            return .success(.paused)
-        }
+        let total = max(1, mdx.entryCount)
+        let progress = min(1.0, Double(snap.indexedThrough) / Double(total))
         switch snap.state {
         case .indexing:
-            let total = max(1, mdx.entryCount)
-            let progress = min(1.0, Double(snap.indexedThrough) / Double(total))
-            return .success(.indexing(progress: progress))
+            return .success(.indexing(progress: progress, indexedThrough: Int(snap.indexedThrough)))
+        case .paused:
+            return .success(.paused(progress: progress, indexedThrough: Int(snap.indexedThrough)))
         case .error:
             return .success(.error(message: snap.errorMessage ?? "Unknown error"))
-        case .paused:
-            return .success(.paused)
         case .notIndexed, .indexed:
             break   // fall through to filesystem check
         }
@@ -163,14 +171,65 @@ final class ArticleIndexCoordinator {
 
     // MARK: - User-action APIs
 
-    /// User-action: toggle the per-dict exclusion flag (the "don't
-    /// index this dict" preference). Surfaces as `.paused` state via
-    /// `state(for:)`. Excluding while a job is running cancels it.
-    func setUserExcluded(_ excluded: Bool, for dictId: String) {
-        if excluded {
-            ArticleIndexDispatcher.shared.cancel(dictId)
+    /// User-action: toggle the Enabled/Disabled section membership.
+    ///
+    /// - `enabled = false` (Enabled → Disabled): if the dict is currently
+    ///   indexing, this is treated as an implicit pause — state becomes
+    ///   `.paused(progress)` and the in-flight build is cancelled
+    ///   (partial preserved on disk). Other states are untouched.
+    /// - `enabled = true` (Disabled → Enabled): if state was `.paused`,
+    ///   transition to `.notIndexed` so the scheduler picks it up
+    ///   (implicit resume — the toggle-off+toggle-on shorthand from the
+    ///   flow spec). Other states are untouched. Backfill
+    ///   re-evaluates eligibility and may enqueue.
+    ///
+    /// By design: enabled/disabled is ORTHOGONAL to index
+    /// state. The flag gates the QUERY path (forward-looking — query
+    /// consumer hasn't shipped yet); index state is preserved across
+    /// section moves so the UI shows e.g. "Indexed" in Disabled section.
+    func setEnabled(_ enabled: Bool, for dictId: String) {
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        if enabled {
+            // Disabled → Enabled. Clear exclusion flag.
+            ArticleIndexService.shared.setUserExcluded(false, for: dictId)
+            // Implicit resume of paused dicts: section transition acts as
+            // resume so the user doesn't have to tap ▶ AGAIN after
+            // re-enabling. (Tap ▶ within Enabled section is the other
+            // path; both end up at `.notIndexed` + eligible.)
+            if snap.state == .paused {
+                ArticleIndexService.shared.setState(
+                    .notIndexed, for: dictId, indexedThrough: snap.indexedThrough
+                )
+                log.info("setEnabled(\(dictId), true): implicit resume from .paused at \(snap.indexedThrough)")
+            }
+            backfillIfEnabled()
+        } else {
+            // Enabled → Disabled. If indexing, implicit pause (state
+            // → .paused). The userPause path handles cancel + state
+            // transition atomically.
+            if snap.state == .indexing {
+                ArticleIndexDispatcher.shared.userPause(dictId)
+            }
+            ArticleIndexService.shared.setUserExcluded(true, for: dictId)
+            log.info("setEnabled(\(dictId), false): moved to Disabled section (state=\(ArticleIndexService.shared.snapshot(for: dictId).state.rawValue))")
         }
-        ArticleIndexService.shared.setUserExcluded(excluded, for: dictId)
+    }
+
+    /// User-action: explicit pause via the ⏸ button on an indexing row.
+    /// Forwards to the dispatcher which cancels the build + persists
+    /// `.paused` at the checkpoint. Scheduler will NOT auto-resume —
+    /// the user has to tap ▶ or do the toggle-off + toggle-on dance.
+    func userPause(_ dictId: String) {
+        ArticleIndexDispatcher.shared.userPause(dictId)
+    }
+
+    /// User-action: explicit resume via the ▶ button on a paused row.
+    /// Forwards to the dispatcher which transitions `.paused` →
+    /// `.notIndexed` (preserving checkpoint) and enqueues at
+    /// `.interactive` priority so the scheduler picks it up immediately,
+    /// preempting any background job.
+    func userResume(_ dictId: String) {
+        ArticleIndexDispatcher.shared.userResume(dictId)
     }
 
     /// User-action: drag-to-reorder in the overview UI. Pass dictIds
@@ -206,18 +265,23 @@ final class ArticleIndexCoordinator {
         ArticleIndexDispatcher.shared.cancel(dictId)
     }
 
-    /// Enqueue every not-yet-indexed, non-excluded dict for background
-    /// indexing, gated on availability + the user's "Article Search"
-    /// toggle. Idempotent — the dispatcher dedups ids that are already
-    /// running/queued — so it's safe to call from every front-stage
-    /// trigger (scene foregrounding, overview viewDidLoad, switch flip).
-    /// That is in fact what makes a stale `.indexing` row continue after
-    /// an app relaunch: the writer resumes from the on-disk partial.
+    /// Enqueue every eligible dict for background indexing, gated on
+    /// availability + the user's "Article Search" toggle. Idempotent —
+    /// the dispatcher dedups ids that are already running/queued — so
+    /// it's safe to call from every front-stage trigger (scene
+    /// foregrounding, overview viewDidLoad, switch flip).
+    ///
+    /// Eligibility uses the centralized `Dispatcher.isSchedulerEligible`
+    /// predicate so the rule stays consistent across this method,
+    /// `runBackgroundPass`, and `scheduleIfNeeded`. `.paused` is
+    /// excluded — the user must resume explicitly.
     func backfillIfEnabled() {
         guard isAvailable, UserDefaults.standard.articleSearchEnabled else { return }
         for dict in DictionaryService.shared.allDictionaries {
             let snap = ArticleIndexService.shared.snapshot(for: dict.id)
-            if snap.state != .indexed && !snap.userExcluded {
+            if !snap.userExcluded
+                && ArticleIndexDispatcher.isSchedulerEligible(snap.state)
+            {
                 ArticleIndexDispatcher.shared.enqueue(dict.id, priority: .background)
             }
         }

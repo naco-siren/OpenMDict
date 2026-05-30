@@ -2426,4 +2426,130 @@ nonisolated enum L10n {
             NSLocalizedString("tutorial.exit.cancel", value: "Stay", comment: "Alert button: cancel leaving tutorial")
         }
     }
+
+    // MARK: - M15 Article-Content Search Indexing
+
+    enum ArticleIndex {
+        static var title: String {
+            NSLocalizedString("articleIndex.title", value: "Search by Article Contents", comment: "Title: article-content indexing overview screen / sidebar item — the feature name shown to users")
+        }
+        static var enableTitle: String {
+            NSLocalizedString("articleIndex.enable.title", value: "Enable Article Search", comment: "Switch label: master toggle for article-content (full-text) search")
+        }
+        /// "What" copy in the master-toggle section's footer — describes
+        /// what the feature DOES for the user. The master cell itself
+        /// is now just the toggle + title (kept compact);
+        /// the "what" copy fits naturally below as the section footer.
+        static var enableFooter: String {
+            NSLocalizedString("articleIndex.enable.footer", value: "Find words by the meaning of their definitions, not just by spelling.", comment: "Section footer below the master toggle — explains what article search does (the 'what')")
+        }
+        /// "How" copy in the Enabled-dictionaries section footer — explains
+        /// the resource cost / side effects of indexing. Lives on the
+        /// `Enabled` section because it describes what happens TO the
+        /// enabled dictionaries (they get indexed on-device while
+        /// charging).
+        static var enabledSectionFooter: String {
+            NSLocalizedString("articleIndex.enabledSection.footer", value: "Indexing runs entirely on-device and can take a while for large dictionaries; it continues in the background while your device is charging.", comment: "Section footer below Enabled dictionaries — explains how article-search indexing is built (the 'how')")
+        }
+        static var sectionDicts: String {
+            NSLocalizedString("articleIndex.section.dicts", value: "Dictionaries", comment: "Section header: per-dictionary indexing status list")
+        }
+        static var sectionEnabled: String {
+            NSLocalizedString("articleIndex.section.enabled", value: "Enabled dictionaries", comment: "Section header: dictionaries enabled for article search")
+        }
+        static var sectionDisabled: String {
+            NSLocalizedString("articleIndex.section.disabled", value: "Disabled dictionaries", comment: "Section header: dictionaries excluded from article search")
+        }
+        static var emptyEnabled: String {
+            NSLocalizedString("articleIndex.empty.enabled", value: "No dictionaries enabled.\nTap one below to enable.", comment: "Empty-section placeholder: shown when Enabled section has zero dictionaries. The \\n splits the two sentences onto separate lines (cell uses numberOfLines = 0).")
+        }
+        static var emptyDisabled: String {
+            NSLocalizedString("articleIndex.empty.disabled", value: "All dictionaries are enabled.", comment: "Empty-section placeholder: shown when Disabled section has zero dictionaries (every dict is enabled)")
+        }
+        /// Special-case placeholder for "user has zero dictionaries in the
+        /// whole library" — distinct from `emptyEnabled` / `emptyDisabled`
+        /// (which assume the other section has dicts). Surfaces "import
+        /// one first" rather than the inappropriate "tap one below" /
+        /// "all are enabled" copy. Shown in the Disabled section per
+        /// design.
+        static var emptyNoDicts: String {
+            NSLocalizedString("articleIndex.empty.noDicts", value: "No dictionaries imported yet.\nImport a dictionary first to use article search.", comment: "Empty-section placeholder: shown in the Disabled section when the user has zero dictionaries in the entire library")
+        }
+        static var statusIndexed: String {
+            NSLocalizedString("articleIndex.status.indexed", value: "Indexed", comment: "Status: dictionary fully indexed for article search")
+        }
+        static var statusNotIndexed: String {
+            NSLocalizedString("articleIndex.status.notIndexed", value: "Not indexed", comment: "Status: dictionary not yet indexed")
+        }
+        static var statusToBeIndexed: String {
+            NSLocalizedString("articleIndex.status.toBeIndexed", value: "To be indexed", comment: "Status: dictionary queued for indexing")
+        }
+        static func statusIndexing(_ percent: Int) -> String {
+            String(format: NSLocalizedString("articleIndex.status.indexing", value: "Indexing… %d%%", comment: "Status: indexing in progress; %d is percent complete"), percent)
+        }
+        static func statusPaused(_ percent: Int) -> String {
+            String(format: NSLocalizedString("articleIndex.status.paused", value: "Paused at %d%%", comment: "Status: indexing paused by user; %d is percent complete"), percent)
+        }
+        static var statusExcluded: String {
+            NSLocalizedString("articleIndex.status.excluded", value: "Excluded", comment: "Status: dictionary excluded from article search by the user")
+        }
+        static var statusError: String {
+            NSLocalizedString("articleIndex.status.error", value: "Failed — tap to retry", comment: "Status: indexing failed; tapping the row retries")
+        }
+        static var actionCancel: String {
+            NSLocalizedString("articleIndex.action.cancel", value: "Cancel", comment: "Swipe action: cancel an in-progress index")
+        }
+        static var actionPause: String {
+            NSLocalizedString("articleIndex.action.pause", value: "Pause", comment: "Button: pause an in-progress index for a dictionary")
+        }
+        static var actionResume: String {
+            NSLocalizedString("articleIndex.action.resume", value: "Resume", comment: "Button: resume a paused index for a dictionary")
+        }
+        static var actionRetry: String {
+            NSLocalizedString("articleIndex.action.retry", value: "Retry", comment: "Button: retry a failed indexing job")
+        }
+        static var actionExclude: String {
+            NSLocalizedString("articleIndex.action.exclude", value: "Exclude", comment: "Swipe action: exclude a dictionary from article search")
+        }
+        static var actionInclude: String {
+            NSLocalizedString("articleIndex.action.include", value: "Include", comment: "Swipe action: re-include a previously excluded dictionary")
+        }
+        /// Subtitle's secondary line on dict cells with non-zero progress —
+        /// e.g. "40023 / 153888 entries". Kept on its own line so the
+        /// long N/M numbers don't trigger awkward truncation/wrapping
+        /// on the primary status line.
+        static func entriesProgress(_ done: Int32, _ total: Int) -> String {
+            String(format: NSLocalizedString("articleIndex.status.entriesProgress", value: "%d / %d entries", comment: "Cell subtitle line: indexed-through count vs total article count"), done, total)
+        }
+        /// Per-reason full-sentence subtitles for gate-pauses. Each case
+        /// maps to a complete, human-readable phrase so the user
+        /// immediately understands WHY indexing stopped and what to
+        /// expect — short noun labels ("thermal", "low power") were
+        /// terse and ambiguous. Used directly as the cell subtitle when
+        /// the dispatcher is gate-paused (see Dispatcher.primaryReason
+        /// for which one wins when multiple gates fire concurrently).
+        enum PauseReason {
+            static var userInitiated: String {
+                NSLocalizedString("articleIndex.pauseReason.userInitiated", value: "Paused by you", comment: "Pause subtitle: user explicitly paused this dictionary (currently surfaced via persisted .paused state, not via the global gate set)")
+            }
+            static var insufficientStorage: String {
+                NSLocalizedString("articleIndex.pauseReason.insufficientStorage", value: "Paused — free up storage to continue", comment: "Pause subtitle: free disk space below the threshold needed to keep indexing safely")
+            }
+            static var thermal: String {
+                NSLocalizedString("articleIndex.pauseReason.thermal", value: "Paused until device cools down", comment: "Gate-pause subtitle: device thermal state is serious/critical — indexing waits for cooldown")
+            }
+            static var lowPower: String {
+                NSLocalizedString("articleIndex.pauseReason.lowPower", value: "Paused while Low Power Mode is on", comment: "Gate-pause subtitle: Low Power Mode active — indexing yields to battery preservation")
+            }
+            static var memory: String {
+                NSLocalizedString("articleIndex.pauseReason.memory", value: "Paused to free up memory", comment: "Gate-pause subtitle: recent memory warning, encoder evicted, brief cool-down before retry")
+            }
+        }
+        static var emptyTitle: String {
+            NSLocalizedString("articleIndex.empty.title", value: "No Dictionaries", comment: "Empty state: no dictionaries available to index")
+        }
+        static var emptyMessage: String {
+            NSLocalizedString("articleIndex.empty.message", value: "Import a dictionary first, then enable article search here.", comment: "Empty state message")
+        }
+    }
 }

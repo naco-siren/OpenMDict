@@ -724,6 +724,9 @@ final class ManagementActionCell: UICollectionViewListCell {
             // No L10n — DEBUG-only entry, English-only diagnostic label.
             content.text = "Article Embed POC"
             content.image = UIImage(systemName: "waveform.path.ecg")
+        case .articleIndex:
+            content.text = L10n.ArticleIndex.title
+            content.image = UIImage(systemName: "text.magnifyingglass")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

@@ -30,6 +30,7 @@ private nonisolated enum MgmtItem: Hashable, Sendable {
     case iCloudTroubleshoot
     case aiCoach
     case articleEmbedPOC   // M15 Phase 3.0.5: DEBUG-only entry to article-embed POC
+    case articleIndex      // M15: article-content search indexing (iOS 26+ only)
     case appSettings
 }
 
@@ -63,6 +64,9 @@ class CompactManagementViewController: UIViewController {
     /// "Article Embed POC" tapped — DEBUG-only sidebar/tab entry to the
     /// M15 Phase 3.0.5 throughput POC. Wired in CompactTabBarController.
     var onArticleEmbedPOCSelected: (() -> Void)?
+
+    /// "Article Search Indexing" tapped (iOS 26+ only)
+    var onArticleIndexSelected: (() -> Void)?
 
     /// "App Settings" tapped
     var onAppSettingsSelected: (() -> Void)?
@@ -148,6 +152,9 @@ class CompactManagementViewController: UIViewController {
             case .articleEmbedPOC:
                 config.text = "Article Embed POC"  // no L10n, DEBUG only
                 config.image = UIImage(systemName: "waveform.path.ecg")
+            case .articleIndex:
+                config.text = L10n.ArticleIndex.title
+                config.image = UIImage(systemName: "text.magnifyingglass")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")
@@ -177,8 +184,13 @@ class CompactManagementViewController: UIViewController {
         }
         items.append(contentsOf: [
             .addGroup, .importDictionary, .downloadPresets,
-            .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .appSettings,
+            .newUserGuide, .iCloudTroubleshoot, .changeAppIcon,
         ])
+        // M15: article-content search indexing (iOS 26+ + feature available).
+        if ArticleIndexCoordinator.shared.isAvailable {
+            items.append(.articleIndex)
+        }
+        items.append(.appSettings)
         // M15 Phase 3.0.5 article-embedding POC entry. DEBUG-only; never
         // appears in Release builds. Same `#if DEBUG` gating as the
         // regular-layout sidebar in DictionaryListViewController.
@@ -222,6 +234,8 @@ extension CompactManagementViewController: UICollectionViewDelegate {
             onAICoachSelected?()
         case .articleEmbedPOC:
             onArticleEmbedPOCSelected?()
+        case .articleIndex:
+            onArticleIndexSelected?()
         case .appSettings:
             onAppSettingsSelected?()
         }

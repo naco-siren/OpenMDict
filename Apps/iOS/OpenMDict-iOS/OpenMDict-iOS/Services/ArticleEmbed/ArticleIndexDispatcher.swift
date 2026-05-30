@@ -24,7 +24,29 @@
 //    - Lazy-loaded on first job, kept alive across jobs (CoreML's first
 //      .mlpackage compile is multi-second; cold-loading per-dict would
 //      add a huge overhead).
-//    - Eviction on memory warning / quiet period is still TODO.
+//    - Evicted on memory warning (cancel + drop, with a 30s cool-down
+//      before the next reload), and on a 60s idle timer when the queue
+//      drains. See "Resource gates" section.
+//
+//  Resource gates (Phase 3.5 ④):
+//    - Thermal: `.serious`/`.critical` adds `.thermal` to `pauseReasons`;
+//      transitions back to `.fair`/`.nominal` clear it. Pause is also
+//      automatic across BGTask wake-ups (`runBackgroundPass` checks
+//      `isPaused` in its loop) so the system doesn't sneak indexing
+//      past a hot device.
+//    - Low Power Mode: gates both background AND interactive — sustained
+//      ANE/GPU encoding is the opposite of "low power" and the user
+//      opted in.
+//    - Memory warning: one-shot cancel + evict + 30s cooldown so the
+//      kernel can reclaim before we'd want to reload an ~80 MB encoder.
+//    - Idle eviction: 60s after the last job (queue empty AND no running)
+//      the encoder is dropped. First post-eviction job pays ~1–2s reload,
+//      which is amortized over the multi-minute encode that follows.
+//
+//  Pause semantics: entering a pause cancels the in-flight build (the
+//  writer flushes a valid partial → resumable). The queue is intentionally
+//  preserved so `isInFlight(_:)` stays true and the UI keeps showing the
+//  rows. When pause lifts, `runNextIfIdle` drains.
 //
 //  Asset acquisition (still a stopgap):
 //    - Model + vocab come from the bundle per the POC pattern. Anyone
@@ -41,9 +63,11 @@
 //      point; `ArticleIndexBackgroundScheduler` owns the BGTask plumbing.
 //
 
+import Combine       // @Published pauseReasons for the overview UI
 import Foundation
 import OpenMDict     // ArticleEncoder + ArticleIndexWriter + ArticleIndexHeader
 import OpenMDictKit  // MDict / MDicts — needed for DictionaryService.dict(...).reader
+import UIKit         // UIApplication.didReceiveMemoryWarningNotification
 import os.log
 
 @MainActor
@@ -88,7 +112,127 @@ final class ArticleIndexDispatcher {
     /// FIFO-within-priority pending queue.
     private var queue: [PendingJob] = []
 
-    private init() {}
+    // MARK: - Resource gates (Phase 3.5 ④)
+
+    /// Reasons indexing is currently paused. Non-empty == paused.
+    /// - `.thermal` — `ProcessInfo.thermalState` is `.serious` or `.critical`.
+    /// - `.lowPower` — Low Power Mode on (gates background AND interactive: a
+    ///   long encode loop sustained at 100% CPU is the opposite of "low power",
+    ///   and the user opted in).
+    /// - `.memoryWarning` — short cool-down (30s) after a memory-warning so we
+    ///   don't immediately reload the ~80 MB encoder that just got evicted.
+    /// Why indexing is currently not advancing. Covers BOTH the global
+    /// gate set (system conditions: thermal / Low Power / memory /
+    /// storage) AND the per-dict user-initiated case.
+    ///
+    /// **Cases are declared in strength order — strongest (hardest to
+    /// overcome) first, weakest (easiest to bypass) last.** This is also
+    /// the display-priority order for `primaryReason(from:)` when
+    /// multiple reasons fire concurrently: it walks `allCases` (which
+    /// CaseIterable derives from declaration order) and picks the first
+    /// one present. Reordering this enum changes the UX surface — keep
+    /// "hard to overcome" on top.
+    ///
+    /// Architectural note: today the global `pauseReasons` set only ever
+    /// contains the SYSTEM cases (`.thermal`, `.lowPower`, `.memoryWarning`).
+    /// `.userInitiated` is "implicit" — it's represented by a dict's
+    /// PERSISTED `.paused` state, not by membership in the global set
+    /// (one user pause is per-dict, not a global condition). The case
+    /// lives here so the enum is conceptually complete and so a future
+    /// per-dict pause-reason field on `ArticleIndexRecordSnapshot` can
+    /// reuse the same vocabulary. `.insufficientStorage` is forward-
+    /// looking — when a storage-monitor lands, it'll join the global set
+    /// just like thermal does, and the cell will surface it
+    /// automatically via the gate-pause path.
+    enum PauseReason: String, Sendable, CaseIterable {
+        /// User tapped ⏸. The strongest reason — only the user's own
+        /// explicit action can clear it (▶ button OR toggle off + on).
+        /// Currently NOT emitted into the global set — represented per-
+        /// dict by persisted state `.paused`. Reserved here so the enum
+        /// is complete + future per-dict reason fields can reuse it.
+        case userInitiated
+        /// Free disk space below the safety threshold for resuming the
+        /// encode. Strong — the user has to actively free up storage
+        /// (delete files, offload apps). Forward-looking — storage-
+        /// monitor + threshold check still TODO. Would join the global
+        /// set like thermal does and auto-clear when space frees up.
+        case insufficientStorage
+        /// Recent memory warning — encoder evicted, brief cool-down
+        /// active. System-managed but takes a moment to recover; user
+        /// can speed it up by closing other apps.
+        case memoryWarning
+        /// Low Power Mode active. Weak — one toggle in Settings.app
+        /// brings indexing right back.
+        case lowPower
+        /// Device thermal state is serious/critical. Weakest — the user
+        /// just has to wait; iOS will clear the gate as soon as the
+        /// SoC cools, no action needed.
+        case thermal
+
+        /// Full-sentence subtitle for the cell — e.g.
+        /// "Paused until device cools down". Each case maps to its own
+        /// complete phrase (not a short noun label stuffed into a
+        /// "Paused (%@)" template) so the user immediately understands
+        /// what's happening and what to expect.
+        var localizedLabel: String {
+            switch self {
+            case .userInitiated:       return L10n.ArticleIndex.PauseReason.userInitiated
+            case .insufficientStorage: return L10n.ArticleIndex.PauseReason.insufficientStorage
+            case .memoryWarning:       return L10n.ArticleIndex.PauseReason.memory
+            case .lowPower:            return L10n.ArticleIndex.PauseReason.lowPower
+            case .thermal:             return L10n.ArticleIndex.PauseReason.thermal
+            }
+        }
+    }
+
+    /// Pick the user-facing primary reason when multiple gates fire
+    /// concurrently (e.g. thermal AND Low Power). Walks the enum's
+    /// declaration order (= strength order, see PauseReason doc) via
+    /// `allCases` and picks the strongest one present — keeps the
+    /// subtitle concise and surfaces the hardest blocker first so the
+    /// user doesn't try to resume only to be re-paused.
+    static func primaryReason(from reasons: Set<PauseReason>) -> PauseReason? {
+        PauseReason.allCases.first { reasons.contains($0) }
+    }
+
+    /// `@Published` so the overview UI can subscribe and reflect
+    /// gate-pause state in real time — e.g. "Paused (thermal)" subtitle
+    /// on the row that was running when thermal spiked. Persisted
+    /// `.paused` state is user-pause only (sticky); gate-pause is
+    /// transient and surfaced exclusively via this publisher.
+    @Published private(set) var pauseReasons: Set<PauseReason> = []
+
+    private var isPaused: Bool { !pauseReasons.isEmpty }
+
+    private var pauseReasonsDescription: String {
+        pauseReasons.map(\.rawValue).sorted().joined(separator: ",")
+    }
+
+    /// Pending idle-evict timer. Encoder is heavy (~80 MB CoreML model + buffers);
+    /// holding it when the queue's been empty for a while wastes resident memory
+    /// the kernel may dirty-page out under pressure anyway. The first job after
+    /// eviction pays a ~1–2s reload, which is fine.
+    private var idleEvictTask: Task<Void, Never>?
+
+    /// How long to keep the encoder loaded after the queue drains. Short enough
+    /// that successive small jobs don't churn (60 s ≫ one job's cold-load cost);
+    /// long enough that "open settings → see indexing list" doesn't pay reload.
+    /// `TimeInterval` (not `Duration`) — iOS 15 target.
+    private static let idleEvictionDelaySeconds: TimeInterval = 60
+
+    /// Memory-warning cool-down — how long we keep `.memoryWarning` in the
+    /// pause set after the warning fires. Lets the kernel reclaim, then we
+    /// resume. Shorter than idle eviction because we expect to come back.
+    private static let memoryWarningCooldownSeconds: TimeInterval = 30
+
+    /// `Task.sleep(nanoseconds:)` argument from a TimeInterval (seconds).
+    private static func nanos(_ seconds: TimeInterval) -> UInt64 {
+        UInt64(max(0, seconds * 1_000_000_000))
+    }
+
+    private init() {
+        registerResourceObservers()
+    }
 
     // MARK: - Public API
 
@@ -145,18 +289,59 @@ final class ArticleIndexDispatcher {
     }
 
     /// Cancel a job. If queued, it's removed. If running, the in-flight
-    /// build is cancelled — the writer flushes a valid partial sidecar and
-    /// the service keeps `.indexing` at that checkpoint, so a later run
-    /// (re-enqueue or BGTask) resumes rather than restarting from 0. To
-    /// fully stop AND hide a dict, use `setUserExcluded(true)` instead.
+    /// build is cancelled — the writer flushes a valid partial sidecar
+    /// (resumable from disk). State remains whatever the caller sets
+    /// independently. Callers that want explicit "user paused" semantics
+    /// MUST use `userPause(_:)` instead; this is the low-level "stop
+    /// what's running" used by section toggles, master-toggle-off, etc.
     func cancel(_ dictId: String) {
         queue.removeAll(where: { $0.dictId == dictId })
         if runningDictId == dictId {
-            log.info("cancel(\(dictId)): cancelling in-flight build (partial kept for resume)")
+            log.info("cancel(\(dictId)): cancelling in-flight build (partial kept on disk)")
             runningBuildTask?.cancel()
-            // executeJob's .interrupted branch persists progress; the
-            // runningTask continuation nils runningDictId + drains the queue.
+            // executeJob's .interrupted branch USED to persist `.indexing`
+            // at the checkpoint — Phase 3.5 rework: state changes are now
+            // the caller's responsibility (userPause / setEnabled). The
+            // dispatcher only manages "is a job running."
         }
+    }
+
+    /// User-action pause for `dictId`. Cancels the in-flight build (if
+    /// running) and transitions persisted state to `.paused` with the
+    /// current checkpoint preserved. Scheduler EXCLUDES `.paused` from
+    /// eligibility — the user must explicitly resume (▶ button OR toggle
+    /// off + toggle on).
+    ///
+    /// Distinct from `cancel(_:)`: cancel is the low-level "stop running"
+    /// used by section-toggle / master-toggle-off; userPause is the
+    /// high-level "user said pause this indexing run, remember that."
+    func userPause(_ dictId: String) {
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        log.info("userPause(\(dictId)): cancelling build + state → .paused at \(snap.indexedThrough)")
+        // Persist .paused BEFORE cancelling. executeJob's .interrupted
+        // branch no longer writes state, so ordering is fine either way,
+        // but writing first makes the UI's $revision tick observable as
+        // "now paused" before the spinner stops.
+        ArticleIndexService.shared.setState(
+            .paused, for: dictId, indexedThrough: snap.indexedThrough
+        )
+        queue.removeAll(where: { $0.dictId == dictId })
+        if runningDictId == dictId {
+            runningBuildTask?.cancel()
+        }
+    }
+
+    /// Inverse of `userPause`. Transitions `.paused` (or anything stuck)
+    /// back to `.notIndexed` with `indexedThrough` preserved (writer
+    /// resumes from disk partial), then enqueues at `.interactive`
+    /// priority so the scheduler picks it up immediately.
+    func userResume(_ dictId: String) {
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        log.info("userResume(\(dictId)): state → .notIndexed at \(snap.indexedThrough), enqueue .interactive")
+        ArticleIndexService.shared.setState(
+            .notIndexed, for: dictId, indexedThrough: snap.indexedThrough
+        )
+        enqueue(dictId, priority: .interactive)
     }
 
     /// Cancel all pending + running. Used by app-level shutdown,
@@ -188,6 +373,11 @@ final class ArticleIndexDispatcher {
         runningDictId == dictId || queue.contains { $0.dictId == dictId }
     }
 
+    /// Current pause set as a stable, sorted, comma-separated string. Empty
+    /// string when not paused. Public so the overview UI can show "paused
+    /// (thermal,lowPower)" beside the master toggle.
+    func pauseStateDescription() -> String { pauseReasonsDescription }
+
     // MARK: - Background pass (BGProcessingTask)
 
     /// Drive indexing for the BGProcessingTask handler: index every
@@ -209,14 +399,31 @@ final class ArticleIndexDispatcher {
             log.info("runBackgroundPass: master toggle off, skipping")
             return
         }
-        let eligible = ArticleIndexService.shared.allSnapshots()
-            .filter { $0.state != .indexed && !$0.userExcluded }
-            .sorted { $0.userPriorityOrder < $1.userPriorityOrder }
-            .map(\.dictId)
+        // Eligibility = Enabled (not userExcluded) AND state ∈ {.notIndexed,
+        // .indexing-orphan}. `.paused` is excluded — the user must
+        // explicitly resume. `.error` is excluded — user retries via tap.
+        // `.indexed` is excluded — already done.
+        //
+        // Sort: default-group `dictionaryIds` order (the canonical
+        // "all dictionaries" custom order shared with the sidebar /
+        // group editor). Falls back to `userPriorityOrder` only if the
+        // default group is absent (defensive — should never happen).
+        let snapshots = ArticleIndexService.shared.allSnapshots()
+            .filter { !$0.userExcluded && Self.isSchedulerEligible($0.state) }
+        let eligible = Self.sortByDefaultGroupOrder(snapshots).map(\.dictId)
         log.info("runBackgroundPass: \(eligible.count) dict(s) eligible")
         for dictId in eligible {
             if shouldStop() {
                 log.info("runBackgroundPass: stopping before \(dictId) (deadline)")
+                break
+            }
+            // Pause gates apply to BGTask passes too. If the system woke
+            // us up but conditions degraded (thermal hot, user enabled
+            // low-power mid-flight, jetsam-low), bail the pass — the
+            // next BGTask wake-up (chained by `scheduleIfNeeded()`) or
+            // foreground take-over will pick up from the checkpoint.
+            if isPaused {
+                log.info("runBackgroundPass: paused (\(self.pauseReasonsDescription)), bailing before \(dictId)")
                 break
             }
             runningDictId = dictId
@@ -225,13 +432,31 @@ final class ArticleIndexDispatcher {
             runningDictId = nil
         }
         log.info("runBackgroundPass: finished")
+        scheduleIdleEvictionIfDone()
     }
 
     // MARK: - Internal queue drain
 
     private func runNextIfIdle() {
         guard runningDictId == nil else { return }
-        guard !queue.isEmpty else { return }
+        // Don't start anything while paused — the queue holds (it's intentional
+        // to keep `isInFlight(_:)` true so the UI keeps showing the row), and
+        // we drain when pause lifts (`removePauseReason` → `runNextIfIdle`).
+        if isPaused {
+            log.info("runNextIfIdle: paused (\(self.pauseReasonsDescription)), holding \(self.queue.count) job(s)")
+            // Encoder is sitting idle — wind it down on the same grace timer.
+            // First job after pause lifts pays a one-time reload (~1–2 s),
+            // which is fine relative to a multi-minute encode.
+            scheduleIdleEvictionIfDone()
+            return
+        }
+        guard !queue.isEmpty else {
+            // No work in flight, no pending — wind down the encoder after a
+            // grace period so we don't sit on ~80 MB resident memory forever.
+            scheduleIdleEvictionIfDone()
+            return
+        }
+        cancelIdleEviction()  // we're about to use the encoder again
 
         // Pop highest-priority pending; ties broken by FIFO order.
         // Linear scan is fine — typical queue length < 20.
@@ -293,11 +518,17 @@ final class ArticleIndexDispatcher {
             return
         }
 
-        // 4. Mark indexing started.
+        // 4. Mark indexing started. Preserve `indexedThrough` from the
+        // current snapshot rather than resetting to 0 — `userResume` and
+        // section-toggle paths just put the dict here with a checkpoint
+        // (writer will resume from the on-disk partial), and clobbering
+        // to 0 would briefly flash the UI to "0/N" before the writer's
+        // first progress callback restores it.
+        let prevIndexed = ArticleIndexService.shared.snapshot(for: dictId).indexedThrough
         let totalArticles = reader.entryCount
-        log.info("executeJob(\(dictId)): build starting, \(totalArticles) articles to encode")
+        log.info("executeJob(\(dictId)): build starting from \(prevIndexed)/\(totalArticles)")
         ArticleIndexService.shared.setState(
-            .indexing, for: dictId, indexedThrough: 0
+            .indexing, for: dictId, indexedThrough: prevIndexed
         )
 
         // 5. Compute output sidecar path.
@@ -361,13 +592,19 @@ final class ArticleIndexDispatcher {
             )
             log.info("executeJob(\(dictId)): indexed \(header.articleCount) articles successfully")
         case .success(.interrupted(_, let through)):
-            // cancel() / preempt / BGTask expiry fired: the writer flushed
-            // a valid partial. Keep .indexing at the checkpoint so the next
-            // run (re-enqueue or BGTask) resumes instead of restarting.
+            // cancel() / preempt / BGTask expiry / gate fired: the writer
+            // flushed a valid partial. Phase 3.5 rework: state is the
+            // CALLER's responsibility (userPause sets .paused;
+            // section-toggle sets .paused; gate sets nothing — dict still
+            // .notIndexed and the scheduler retries when gate clears).
+            // We still need to record indexedThrough so the UI shows the
+            // checkpointed progress; the persisted `state` is whatever the
+            // caller left it.
+            let prev = ArticleIndexService.shared.snapshot(for: dictId)
             ArticleIndexService.shared.setState(
-                .indexing, for: dictId, indexedThrough: Int32(through)
+                prev.state, for: dictId, indexedThrough: Int32(through)
             )
-            log.info("executeJob(\(dictId)): interrupted at \(through); checkpoint saved for resume")
+            log.info("executeJob(\(dictId)): interrupted at \(through); state=\(prev.state.rawValue) (caller-owned)")
         case .failure(let error):
             // If WE cancelled (app backgrounding mid-GPU-predict, preempt,
             // user cancel), the on-disk partial is still valid — don't
@@ -385,11 +622,14 @@ final class ArticleIndexDispatcher {
         }
     }
 
+    /// Progress callback handler — ONLY updates the checkpoint counter,
+    /// never the state. The writer's progress callback hops to MainActor
+    /// via `Task { @MainActor in ... }`, so a callback enqueued just
+    /// before `userPause` ran can land AFTER `userPause`'s `setState(.paused)`.
+    /// If we used `setState(.indexing, ...)` here, we'd undo the userPause
+    /// (state flips back to .indexing) — see `Service.updateProgress`.
     private func recordProgress(dictId: String, indexedThrough: Int32) {
-        ArticleIndexService.shared.setState(
-            .indexing, for: dictId,
-            indexedThrough: indexedThrough
-        )
+        ArticleIndexService.shared.updateProgress(indexedThrough, for: dictId)
     }
 
     /// Return an encoder configured for `profile`, (re)loading if the
@@ -439,6 +679,55 @@ final class ArticleIndexDispatcher {
         return DeviceChipInfo.prefersCPUForeground ? .background : .foreground
     }
 
+    /// Scheduler eligibility predicate for a persisted state. Centralized
+    /// so `Coordinator.backfillIfEnabled` + `runBackgroundPass` + the
+    /// BG scheduler's `scheduleIfNeeded` all use the same rule.
+    ///
+    /// - `.notIndexed`: yes — never tried (or paused-then-resumed via the
+    ///   resume path that sets back to `.notIndexed`).
+    /// - `.indexing`: yes — orphan from a prior session (a crashed/killed
+    ///   build left this). The writer auto-resumes from the on-disk
+    ///   partial. (Live indexing is gated separately by `runningDictId`.)
+    /// - `.paused`: NO — user said stop. Resume is explicit.
+    /// - `.indexed`: NO — done.
+    /// - `.error`: NO — user retries via tap.
+    static func isSchedulerEligible(_ state: ArticleIndexRecordSnapshot.PersistedState) -> Bool {
+        switch state {
+        case .notIndexed, .indexing:
+            return true
+        case .paused, .indexed, .error:
+            return false
+        }
+    }
+
+    /// Sort snapshots by the default group's `dictionaryIds` order (the
+    /// canonical "all dictionaries" order shared with the sidebar / group
+    /// editor). Dicts not in the default group go LAST, in their original
+    /// `userPriorityOrder` (defensive fallback). The default group is
+    /// populated from `allDictionaries` at startup so this matches the
+    /// user's expectations from the rest of the app.
+    static func sortByDefaultGroupOrder(_ snaps: [ArticleIndexRecordSnapshot])
+        -> [ArticleIndexRecordSnapshot]
+    {
+        guard let group = DictionaryService.shared.defaultGroup else {
+            // No default group (shouldn't happen post-launch) — fall back
+            // to the old userPriorityOrder sort so behavior degrades
+            // gracefully rather than randomizing.
+            return snaps.sorted { $0.userPriorityOrder < $1.userPriorityOrder }
+        }
+        // Build lookup: dictId → position in the canonical order.
+        var orderIndex: [String: Int] = [:]
+        for (i, id) in group.dictionaryIds.enumerated() { orderIndex[id] = i }
+        let sentinel = Int.max
+        return snaps.sorted { a, b in
+            let ia = orderIndex[a.dictId] ?? sentinel
+            let ib = orderIndex[b.dictId] ?? sentinel
+            if ia != ib { return ia < ib }
+            // Same position (both not-in-group) — fall back to userPriorityOrder
+            return a.userPriorityOrder < b.userPriorityOrder
+        }
+    }
+
     /// Find the bundled model + vocab. Returns nil if either is
     /// missing. Same lookup logic as the POC.
     private static func resolveAssets() -> (model: URL, vocab: URL)? {
@@ -448,5 +737,148 @@ final class ArticleIndexDispatcher {
             forResource: "vocab", withExtension: "txt"
         ) else { return nil }
         return (model, vocab)
+    }
+
+    // MARK: - Resource-gate observers
+
+    /// Register thermal / Low Power Mode / memory-warning observers + sync
+    /// initial state. Called from `init`. Observers live for the lifetime of
+    /// the singleton; no removal because `static let shared` never deinits.
+    private func registerResourceObservers() {
+        let nc = NotificationCenter.default
+        // ProcessInfo.thermalStateDidChangeNotification fires on an
+        // arbitrary thread — hop to MainActor before touching `self`.
+        nc.addObserver(
+            forName: ProcessInfo.thermalStateDidChangeNotification,
+            object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleThermalChange() }
+        }
+        nc.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange,
+            object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handlePowerStateChange() }
+        }
+        // Memory warnings are delivered on the main thread already, but
+        // hop via Task anyway for closure-isolation correctness.
+        nc.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleMemoryWarning() }
+        }
+        // Sync initial state — we might launch into a hot device or
+        // low-power mode and need to start paused.
+        handleThermalChange()
+        handlePowerStateChange()
+    }
+
+    private func handleThermalChange() {
+        let state = ProcessInfo.processInfo.thermalState
+        let shouldPause = (state == .serious || state == .critical)
+        log.info("thermalState=\(Self.thermalStateName(state)) → paused=\(shouldPause)")
+        if shouldPause {
+            addPauseReason(.thermal)
+        } else {
+            removePauseReason(.thermal)
+        }
+    }
+
+    private func handlePowerStateChange() {
+        let on = ProcessInfo.processInfo.isLowPowerModeEnabled
+        log.info("lowPowerMode=\(on)")
+        if on {
+            addPauseReason(.lowPower)
+        } else {
+            removePauseReason(.lowPower)
+        }
+    }
+
+    /// Memory warning: cancel in-flight build (writer flushes a partial,
+    /// service keeps `.indexing` at the checkpoint, next run resumes),
+    /// evict the encoder (~80 MB of MLModel + buffers), and add a
+    /// short cool-down to the pause set so we don't immediately reload
+    /// the encoder the kernel just had to reclaim around. After the
+    /// cool-down expires, normal drain resumes.
+    private func handleMemoryWarning() {
+        log.info("Memory warning: cancelling current build + evicting encoder + cool-down")
+        cancelCurrentBuild()
+        evictEncoder(reason: "memory warning")
+        addPauseReason(.memoryWarning)
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.nanos(Self.memoryWarningCooldownSeconds))
+            self?.removePauseReason(.memoryWarning)
+        }
+    }
+
+    private func addPauseReason(_ reason: PauseReason) {
+        let wasNotPaused = !isPaused
+        let (inserted, _) = pauseReasons.insert(reason)
+        guard inserted else { return }
+        log.info("Pause +\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
+        if wasNotPaused {
+            // Just entered paused. Cancel the in-flight build so its
+            // checkpoint sticks; queue is intentionally preserved.
+            cancelCurrentBuild()
+        }
+    }
+
+    private func removePauseReason(_ reason: PauseReason) {
+        let wasPaused = isPaused
+        guard pauseReasons.remove(reason) != nil else { return }
+        log.info("Pause -\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
+        if wasPaused && !isPaused {
+            // Conditions back to normal — drain whatever's queued. If
+            // nothing is queued, this is a no-op except for scheduling
+            // the next idle eviction.
+            runNextIfIdle()
+        }
+    }
+
+    /// Evict the lazy-loaded encoder. Idempotent — no-op when nothing's loaded.
+    /// Caller is responsible for ensuring no in-flight build is using it
+    /// (which is why we always `cancelCurrentBuild` before evicting).
+    private func evictEncoder(reason: String) {
+        guard encoder != nil else { return }
+        log.info("Encoder eviction: \(reason) (was profile=\(self.encoderProfile == .foreground ? "foreground/GPU" : "background/CPU"))")
+        encoder = nil
+        encoderProfile = nil
+    }
+
+    /// Start the idle-eviction timer if (and only if) no job is in-flight
+    /// and we still hold an encoder. Called from the places where work just
+    /// drained: `runNextIfIdle` (queue-empty AND paused branches) and the
+    /// end of `runBackgroundPass`. `queue.isEmpty` is intentionally NOT
+    /// required — a paused dispatcher with queued work also benefits from
+    /// dropping the encoder (the first job after pause lift reloads it).
+    private func scheduleIdleEvictionIfDone() {
+        guard runningDictId == nil, encoder != nil else { return }
+        cancelIdleEviction()
+        idleEvictTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.nanos(Self.idleEvictionDelaySeconds))
+            guard let self, !Task.isCancelled else { return }
+            // Re-check on wake — a job could have started in the sleep
+            // window. (cancelIdleEviction handles the normal case but
+            // belt + suspenders for any path we missed.)
+            guard self.runningDictId == nil else { return }
+            self.evictEncoder(reason: "idle for \(Int(Self.idleEvictionDelaySeconds))s")
+        }
+    }
+
+    private func cancelIdleEviction() {
+        idleEvictTask?.cancel()
+        idleEvictTask = nil
+    }
+
+    /// Stable string for thermal state (rawValue is just an Int).
+    private static func thermalStateName(_ s: ProcessInfo.ThermalState) -> String {
+        switch s {
+        case .nominal:  return "nominal"
+        case .fair:     return "fair"
+        case .serious:  return "serious"
+        case .critical: return "critical"
+        @unknown default: return "unknown"
+        }
     }
 }

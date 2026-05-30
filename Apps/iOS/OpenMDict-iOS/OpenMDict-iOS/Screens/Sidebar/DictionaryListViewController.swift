@@ -32,6 +32,8 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
     var onManagePresetsSelected: (() -> Void)?
     var onNewUserGuideSelected: (() -> Void)?
     var onChangeAppIconSelected: (() -> Void)?
+    /// M15: "Article Search Indexing" tapped (row only shown on iOS 26+).
+    var onArticleIndexSelected: (() -> Void)?
     var onTroubleshootSelected: (() -> Void)?
     var onAICoachSelected: (() -> Void)?
     /// DEBUG-only: M15 Phase 3.0.5 article-embedding POC entry. Wired by
@@ -705,7 +707,7 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             case .importDictionary, .addGroup, .bookmarks, .lookupHistory,
                  .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
                  .newUserGuide, .changeAppIcon, .iCloudTroubleshoot, .aiCoach,
-                 .articleEmbedPOC, .settings:
+                 .articleEmbedPOC, .articleIndex, .settings:
                 return collectionView.dequeueConfiguredReusableCell(
                     using: actionReg, for: indexPath, item: item
                 )
@@ -766,8 +768,15 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             }
             actions.append(contentsOf: [
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .settings,
+                .newUserGuide, .iCloudTroubleshoot, .changeAppIcon,
             ])
+            // M15: article-content search indexing (iOS 26+ + feature available).
+            // MUST match applySnapshot()'s condition exactly, or the
+            // signature-diff skip-logic falsely no-ops and resets accessories.
+            if ArticleIndexCoordinator.shared.isAvailable {
+                actions.append(.articleIndex)
+            }
+            actions.append(.settings)
             mgmtItems = actions
         }
 
@@ -837,8 +846,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             }
             mgmtChildren.append(contentsOf: [
                 .bookmarks, .lookupHistory, .mgmtAddGroup, .mgmtImportDictionary, .managePresets,
-                .newUserGuide, .iCloudTroubleshoot, .changeAppIcon, .settings,
+                .newUserGuide, .iCloudTroubleshoot, .changeAppIcon,
             ])
+            // M15: article-content search indexing (iOS 26+ + feature available).
+            // MUST match buildSnapshotSignature()'s condition exactly.
+            if ArticleIndexCoordinator.shared.isAvailable {
+                mgmtChildren.append(.articleIndex)
+            }
+            mgmtChildren.append(.settings)
             // M15 Phase 3.0.5 article-embedding POC entry. DEBUG-only; never
             // appears in Release builds. Tap routes to ArticleEmbedPOCViewController.
             #if DEBUG
@@ -1072,6 +1087,9 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .articleEmbedPOC:
             return !isEditing
 
+        case .articleIndex:
+            return !isEditing
+
         case .settings:
             // Management actions are disabled in edit mode
             return !isEditing
@@ -1216,6 +1234,10 @@ extension DictionaryListViewController: UICollectionViewDelegate {
         case .changeAppIcon:
             collectionView.deselectItem(at: indexPath, animated: true)
             onChangeAppIconSelected?()
+
+        case .articleIndex:
+            collectionView.deselectItem(at: indexPath, animated: true)
+            onArticleIndexSelected?()
 
         case .iCloudTroubleshoot:
             collectionView.deselectItem(at: indexPath, animated: true)

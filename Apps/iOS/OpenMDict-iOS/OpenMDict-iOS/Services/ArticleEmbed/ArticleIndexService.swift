@@ -174,6 +174,30 @@ final class ArticleIndexService {
         upsert(next)
     }
 
+    /// Update only `indexedThrough` for a dict. Preserves state — fixes
+    /// the race where a progress callback hopping to MainActor via
+    /// `Task { @MainActor in ... }` runs AFTER a `userPause` already
+    /// transitioned state to `.paused`. If progress used `setState(.indexing)`
+    /// like before, it would clobber the .paused back to .indexing and the
+    /// `executeJob` `.interrupted` branch would persist .indexing (because
+    /// `prev.state` reads the just-clobbered value), causing the user's
+    /// "toggle-disabled while indexing → state shows as 'To be indexed'"
+    /// bug. Now the writer's progress only advances the checkpoint
+    /// counter; state transitions are exclusively the caller's job.
+    func updateProgress(_ indexedThrough: Int32, for dictId: String) {
+        var snap = snapshot(for: dictId)
+        snap = ArticleIndexRecordSnapshot(
+            dictId: snap.dictId, state: snap.state,
+            indexedThrough: indexedThrough,
+            modelHash: snap.modelHash, mdxHash: snap.mdxHash,
+            lastUpdated: Date(),
+            userPriorityOrder: snap.userPriorityOrder,
+            userExcluded: snap.userExcluded,
+            errorMessage: snap.errorMessage
+        )
+        upsert(snap)
+    }
+
     /// User-action: set the userExcluded flag (per-dict pause).
     /// Preserves other fields.
     func setUserExcluded(_ excluded: Bool, for dictId: String) {
@@ -210,6 +234,42 @@ final class ArticleIndexService {
             persist(snap)
         }
         revision &+= 1
+    }
+
+    /// Normalize orphan `.indexing` records on app launch / coordinator
+    /// init. Any record persisted as `.indexing` whose `dictId != liveJob`
+    /// is converted to `.notIndexed` (with `indexedThrough` preserved so
+    /// the writer's resume-from-disk-partial path still kicks in when the
+    /// scheduler picks it up).
+    ///
+    /// Without this, a force-kill / crash mid-encode leaves a phantom
+    /// `.indexing` row that the UI shows as a perpetually-spinning cell
+    /// (no live job → spinner never advances). The Coordinator's
+    /// `backfillIfEnabled` + new eligibility rule together would still
+    /// pick it up, but the UI would be wrong until the scheduler got to
+    /// it. Normalizing at launch makes the UI immediately correct.
+    func normalizeOrphanIndexing(liveJob: String?) {
+        ensureCachePopulated()
+        var changed = 0
+        for (dictId, snap) in cache where snap.state == .indexing && dictId != liveJob {
+            let next = ArticleIndexRecordSnapshot(
+                dictId: snap.dictId,
+                state: .notIndexed,
+                indexedThrough: snap.indexedThrough,
+                modelHash: snap.modelHash, mdxHash: snap.mdxHash,
+                lastUpdated: Date(),
+                userPriorityOrder: snap.userPriorityOrder,
+                userExcluded: snap.userExcluded,
+                errorMessage: nil
+            )
+            cache[dictId] = next
+            persist(next)
+            changed += 1
+        }
+        if changed > 0 {
+            debugLog("🧹 ArticleIndexService: normalized \(changed) orphan .indexing record(s) → .notIndexed")
+            revision &+= 1
+        }
     }
 
     /// Delete the record for a dict (called when the dict itself is

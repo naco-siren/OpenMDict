@@ -115,8 +115,11 @@ final class ArticleIndexBackgroundScheduler {
     func scheduleIfNeeded() {
         guard ArticleIndexCoordinator.shared.isAvailable,
               UserDefaults.standard.articleSearchEnabled else { return }
+        // Match `ArticleIndexDispatcher.isSchedulerEligible`: only enqueue
+        // a BGTask when there's actual work the scheduler will pick up.
+        // `.paused` no longer counts (user must explicitly resume).
         let hasPending = ArticleIndexService.shared.allSnapshots()
-            .contains { $0.state != .indexed && !$0.userExcluded }
+            .contains { !$0.userExcluded && ArticleIndexDispatcher.isSchedulerEligible($0.state) }
         guard hasPending else {
             Self.log.debug("scheduleIfNeeded: nothing pending, not submitting")
             return
