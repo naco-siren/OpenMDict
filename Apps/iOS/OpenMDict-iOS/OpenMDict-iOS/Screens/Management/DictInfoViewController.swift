@@ -198,45 +198,24 @@ class DictInfoViewController: UIViewController {
         return cv
     }()
     
-    private lazy var emptyStateView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 16
-        
-        let imageView = UIImageView(image: UIImage(systemName: "doc.badge.plus"))
-        imageView.tintColor = .tertiaryLabel
-        imageView.contentMode = .scaleAspectFit
-        imageView.preferredSymbolConfiguration = .init(pointSize: 60)
-        
-        let label = UILabel()
-        label.text = L10n.DictInfo.emptyState
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        
-        let button = UIButton(type: .system)
-        button.setTitle(L10n.DictInfo.selectMdxFile, for: .normal)
-        button.setImage(UIImage(systemName: "folder.circle"), for: .normal)
-        button.addTarget(self, action: #selector(selectFileTapped), for: .touchUpInside)
-        
-        stack.addArrangedSubview(imageView)
-        stack.addArrangedSubview(label)
-        stack.addArrangedSubview(button)
-        
-        view.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            stack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 32),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -32),
-        ])
-        
-        return view
+    private lazy var emptyStateView: EmptyStateView = {
+        let v = EmptyStateView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        var config = EmptyStateView.Configuration.placeholder(
+            icon: "doc.badge.plus",
+            title: L10n.DictInfo.emptyState,
+            actionTitle: L10n.DictInfo.selectMdxFile,
+            actionImage: "folder.circle",
+            actionHandler: { [weak self] in self?.selectFileTapped() }
+        )
+        // Preserve the original visual (regular icon weight + body title)
+        // — the placeholder preset defaults to .thin/title2 which is the
+        // GroupDictionaryEditor / DictResourceEditor look. DictInfo is a
+        // slightly lighter visual; keep it that way.
+        config.iconWeight = .regular
+        config.titleFont = .preferredFont(forTextStyle: .body)
+        v.configure(config)
+        return v
     }()
     
     // MARK: - Navigation Items

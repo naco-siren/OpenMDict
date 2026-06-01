@@ -90,38 +90,15 @@ class DictResourceEditorViewController: UIViewController {
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     
-    private lazy var emptyStateView: UIView = {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 16
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        
-        let config = UIImage.SymbolConfiguration(pointSize: 60, weight: .thin)
-        let image = UIImage(systemName: "doc.badge.gearshape", withConfiguration: config)
-        let iv = UIImageView(image: image)
-        iv.tintColor = .tertiaryLabel
-        iv.contentMode = .scaleAspectFit
-        stack.addArrangedSubview(iv)
-        
-        let titleLabel = UILabel()
-        titleLabel.font = .preferredFont(forTextStyle: .title2)
-        titleLabel.textColor = .secondaryLabel
-        titleLabel.textAlignment = .center
-        titleLabel.text = L10n.ResourceEditor.noSelection
-        stack.addArrangedSubview(titleLabel)
-        
-        let subtitleLabel = UILabel()
-        subtitleLabel.font = .preferredFont(forTextStyle: .subheadline)
-        subtitleLabel.textColor = .tertiaryLabel
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-        subtitleLabel.text = L10n.ResourceEditor.noSelectionSubtitle
-        stack.addArrangedSubview(subtitleLabel)
-        
-        stack.setCustomSpacing(24, after: iv)
-        
-        return stack
+    private lazy var emptyStateView: EmptyStateView = {
+        let v = EmptyStateView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.configure(.placeholder(
+            icon: "doc.badge.gearshape",
+            title: L10n.ResourceEditor.noSelection,
+            message: L10n.ResourceEditor.noSelectionSubtitle
+        ))
+        return v
     }()
     
     // MARK: - Lifecycle

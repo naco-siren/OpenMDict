@@ -242,101 +242,20 @@ class WordListViewController: UIViewController {
         return tv
     }()
 
-    // MARK: Empty State View (ContentUnavailableView-like, iOS 15+)
+    // MARK: Empty State View
 
-    private lazy var emptyStateView: UIView = {
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.isHidden = true
-
-        container.addSubview(emptyStateStack)
-        NSLayoutConstraint.activate([
-            emptyStateStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            emptyStateStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            emptyStateStack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 40),
-            emptyStateStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -40),
-        ])
-
-        return container
+    /// Single `EmptyStateView` for all states (no-selection, searching,
+    /// no-results, no-history-with-CTA). The `configureEmptyState(...)`
+    /// + `configureSearchingState(...)` helpers below build a fresh
+    /// Configuration each time and call `configure(_:)` — the view
+    /// itself handles spinner / message / button visibility based on
+    /// the configuration. Replaces the previous 7-property DIY stack.
+    private lazy var emptyStateView: EmptyStateView = {
+        let v = EmptyStateView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.isHidden = true
+        return v
     }()
-
-    /// Spinner shown next to the title while the search pipeline is in flight.
-    /// `hidesWhenStopped = true` makes the stack view collapse the spinner's
-    /// slot when not animating, so `configureEmptyState` only needs to call
-    /// `stopAnimating()` — no separate isHidden bookkeeping.
-    private lazy var loadingSpinner: UIActivityIndicatorView = {
-        let s = UIActivityIndicatorView(style: .medium)
-        s.translatesAutoresizingMaskIntoConstraints = false
-        s.hidesWhenStopped = true
-        s.color = .secondaryLabel
-        return s
-    }()
-
-    /// Searching states show `[Spinner, Title]` side-by-side in a horizontal
-    /// row instead of a column. Putting the spinner on the title's line
-    /// keeps the loading affordance visually tied to the "Searching" copy.
-    /// When the spinner is stopped (= non-searching states), the stack view
-    /// hides its slot and the row degrades cleanly to just the title.
-    private lazy var emptyStateTitleRow: UIStackView = {
-        let row = UIStackView(arrangedSubviews: [loadingSpinner, emptyStateTitle])
-        row.translatesAutoresizingMaskIntoConstraints = false
-        row.axis = .horizontal
-        row.alignment = .center
-        row.spacing = 8
-        return row
-    }()
-
-    private lazy var emptyStateStack: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [
-            emptyStateIcon, emptyStateTitleRow, emptyStateMessage, emptyStateButton
-        ])
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 8
-        stack.setCustomSpacing(12, after: emptyStateIcon)
-        return stack
-    }()
-
-    private lazy var emptyStateIcon: UIImageView = {
-        let iv = UIImageView()
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        iv.tintColor = .secondaryLabel
-        iv.contentMode = .scaleAspectFit
-        iv.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 40)
-        return iv
-    }()
-
-    private lazy var emptyStateTitle: UILabel = {
-        let l = UILabel()
-        l.translatesAutoresizingMaskIntoConstraints = false
-        l.font = .systemFont(ofSize: 17, weight: .semibold)
-        l.textAlignment = .center
-        l.numberOfLines = 0
-        return l
-    }()
-
-    private lazy var emptyStateMessage: UILabel = {
-        let l = UILabel()
-        l.translatesAutoresizingMaskIntoConstraints = false
-        l.font = .systemFont(ofSize: 15, weight: .regular)
-        l.textColor = .secondaryLabel
-        l.textAlignment = .center
-        l.numberOfLines = 0
-        return l
-    }()
-
-    private lazy var emptyStateButton: UIButton = {
-        let b = UIButton(type: .system)
-        b.translatesAutoresizingMaskIntoConstraints = false
-        b.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
-        b.addTarget(self, action: #selector(emptyStateButtonTapped), for: .touchUpInside)
-        return b
-    }()
-
-    @objc private func emptyStateButtonTapped() {
-        onViewAllHistory?()
-    }
 
     // MARK: - Lifecycle
 
@@ -978,14 +897,16 @@ class WordListViewController: UIViewController {
         message: String?,
         buttonTitle: String?
     ) {
-        loadingSpinner.stopAnimating()       // no-op if not running
-        emptyStateIcon.isHidden = false
-        emptyStateIcon.image = UIImage(systemName: icon)
-        emptyStateTitle.text = title
-        emptyStateMessage.text = message
-        emptyStateMessage.isHidden = (message == nil)
-        emptyStateButton.setTitle(buttonTitle, for: .normal)
-        emptyStateButton.isHidden = (buttonTitle == nil)
+        emptyStateView.configure(.compact(
+            icon: icon,
+            title: title,
+            message: message,
+            showsSpinner: false,
+            actionTitle: buttonTitle,
+            actionHandler: buttonTitle != nil
+                ? { [weak self] in self?.onViewAllHistory?() }
+                : nil
+        ))
     }
 
     /// Configure the empty state view as a "searching" indicator:
@@ -1006,14 +927,11 @@ class WordListViewController: UIViewController {
     /// "Loading X…", "Computing matches…", or "Checking spelling…" from
     /// the session's progress reporter; spelling scope leaves it nil.
     private func configureSearchingState(title: String, message: String? = nil) {
-        loadingSpinner.startAnimating()
-        emptyStateIcon.isHidden = false
-        emptyStateIcon.image = UIImage(systemName: "rectangle.and.text.magnifyingglass")
-        emptyStateTitle.text = title
-        emptyStateMessage.text = message
-        emptyStateMessage.isHidden = (message == nil)
-        emptyStateButton.setTitle(nil, for: .normal)
-        emptyStateButton.isHidden = true
+        emptyStateView.configure(.loading(
+            icon: "rectangle.and.text.magnifyingglass",
+            title: title,
+            message: message
+        ))
     }
 
     /// Human-readable name for the current search context (group or dictionary).
