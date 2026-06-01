@@ -57,15 +57,25 @@ final class ArticleIndexAssetProvider {
     }
 
     enum AssetError: Error, CustomStringConvertible {
+        /// `Bundle.main.url(forResource:withExtension:)` returned nil
+        /// AFTER the ODR request reported success. This is functionally
+        /// the same as `ODRError.fileNotFoundAfterDownload` but with the
+        /// model-specific path baked into the message; we keep both
+        /// representations because the model has a fixed tag/filename
+        /// pair known at compile time.
         case missingFromBundle(String)
-        case downloadFailed(Error)
+        /// Wraps any acquisition-time `Error` from
+        /// `NSBundleResourceRequest.beginAccessingResources` through the
+        /// shared `ODRError` classifier. UI binds to the inner `ODRError`
+        /// for the localized title / message / SF Symbol.
+        case downloadFailed(ODRError)
 
         var description: String {
             switch self {
             case .missingFromBundle(let what):
                 return "Bundle resource missing after acquire: \(what)"
             case .downloadFailed(let err):
-                return "Model download failed: \(err)"
+                return "Model download failed: \(err.errorDescription ?? String(describing: err))"
             }
         }
     }
@@ -156,8 +166,9 @@ final class ArticleIndexAssetProvider {
             try await request.beginAccessingResources()
         } catch {
             progressObservation = nil
-            log.error("Resource acquire failed: \(String(describing: error))")
-            throw AssetError.downloadFailed(error)
+            let classified = ODRError.classify(error)
+            log.error("Resource acquire failed: \(String(describing: error)) → classified=\(String(describing: classified))")
+            throw AssetError.downloadFailed(classified)
         }
         progressObservation = nil
         activeRequest = request

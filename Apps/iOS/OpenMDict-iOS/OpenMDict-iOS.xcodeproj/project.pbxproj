@@ -301,7 +301,7 @@
 		F809EFE12FC7ED7A00495787 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		F809EFE22FC7ED7A00495787 /* all-MiniLM-L6-v2.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = "all-MiniLM-L6-v2.mlpackage"; sourceTree = "<group>"; };
 		F809EFE32FC7ED7A00495787 /* vocab.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = vocab.txt; sourceTree = "<group>"; };
-		F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper.coreml-model-compiled; path = "all-MiniLM-L6-v2.mlmodelc"; sourceTree = "<group>"; };
+		F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.coreml-model-compiled"; path = "all-MiniLM-L6-v2.mlmodelc"; sourceTree = "<group>"; };
 		F80DBF272F4A7B7700ED2985 /* WikDict-ES-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-PT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-ES-PT/WikDict-ES-PT.mdx"; sourceTree = "<absolute>"; };
 		F80DBF282F4A7B7700ED2985 /* WikDict-FR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-EN/WikDict-FR-EN.mdx"; sourceTree = "<absolute>"; };
 		F80DBF292F4A7B7700ED2985 /* WikDict-FR-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-ES/WikDict-FR-ES.mdx"; sourceTree = "<absolute>"; };

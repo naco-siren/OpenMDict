@@ -2565,4 +2565,47 @@ nonisolated enum L10n {
             NSLocalizedString("articleIndex.empty.message", value: "Import a dictionary first, then enable article search here.", comment: "Empty state message")
         }
     }
+
+    // MARK: - On-Demand Resource error surfaces
+    //
+    // Bound to `ODRError` cases (Services/ODRError.swift). Each case has
+    // a title + a body. Used by `EmptyStateView.Configuration.error(...)`.
+    enum ODRError {
+        static var noNetworkTitle: String {
+            NSLocalizedString("odrError.noNetwork.title", value: "No Internet Connection", comment: "ODR download failed because the device has no usable network")
+        }
+        static var noNetworkMessage: String {
+            NSLocalizedString("odrError.noNetwork.message", value: "Please check your Wi-Fi or cellular connection and try again.", comment: "ODR no-network body copy")
+        }
+        static var dataNotAllowedTitle: String {
+            NSLocalizedString("odrError.dataNotAllowed.title", value: "Data Use Restricted", comment: "ODR download blocked because the app's data permission is off")
+        }
+        static var dataNotAllowedMessage: String {
+            NSLocalizedString("odrError.dataNotAllowed.message", value: "Allow OpenMDict to use cellular or Wi-Fi data in Settings, then try again.", comment: "ODR data-not-allowed body copy")
+        }
+        static var insufficientStorageTitle: String {
+            NSLocalizedString("odrError.insufficientStorage.title", value: "Not Enough Storage", comment: "ODR download failed because the device is out of free disk")
+        }
+        static var insufficientStorageMessage: String {
+            NSLocalizedString("odrError.insufficientStorage.message", value: "Free up some storage on this device and try again.", comment: "ODR insufficient-storage body copy")
+        }
+        static var temporarilyUnavailableTitle: String {
+            NSLocalizedString("odrError.temporarilyUnavailable.title", value: "Temporarily Unavailable", comment: "ODR download server unreachable or timed out")
+        }
+        static var temporarilyUnavailableMessage: String {
+            NSLocalizedString("odrError.temporarilyUnavailable.message", value: "The download couldn't reach Apple's servers. Please try again in a moment.", comment: "ODR temporarily-unavailable body copy")
+        }
+        static var fileNotFoundAfterDownloadTitle: String {
+            NSLocalizedString("odrError.fileNotFoundAfterDownload.title", value: "Download Incomplete", comment: "ODR succeeded but the expected file is missing from the bundle — likely an Xcode tag mis-configuration")
+        }
+        static func fileNotFoundAfterDownloadMessage(tag: String, filename: String) -> String {
+            String(format: NSLocalizedString("odrError.fileNotFoundAfterDownload.message", value: "Expected file %1$@ (tag “%2$@”) wasn't present after download. This is likely an app packaging issue — please report it.", comment: "ODR file-not-found body copy; %1$@ is filename, %2$@ is resource tag"), filename, tag)
+        }
+        static var unknownTitle: String {
+            NSLocalizedString("odrError.unknown.title", value: "Couldn't Download", comment: "ODR fallback when the error doesn't match any known category")
+        }
+        static func unknownMessage(description: String) -> String {
+            String(format: NSLocalizedString("odrError.unknown.message", value: "Something went wrong while downloading. Details: %@", comment: "ODR unknown body copy; %@ is the underlying error.localizedDescription"), description)
+        }
+    }
 }

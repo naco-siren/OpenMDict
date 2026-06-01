@@ -249,9 +249,17 @@ enum PresetImportError: LocalizedError {
     case catalogNotFound
     case catalogDecodingFailed(Error)
     case bundleFileNotFound(filename: String)
+    /// Catalog config bug — the preset entry in `preset-dictionaries.json`
+    /// lacks an `odrTag` field. NOT an ODR-domain error; can't fix at
+    /// runtime, ship-blocking only. Kept separate from `.odr` for clarity.
     case odrTagMissing(presetId: String)
-    case odrDownloadFailed(Error)
-    case odrFileNotFound(tag: String)
+    /// Any On-Demand Resource acquisition failure — download, post-download
+    /// file-missing, storage, network, etc. The detail lives in `ODRError`
+    /// (see `Services/ODRError.swift`) which carries user-facing strings +
+    /// classification logic. Previously two separate cases
+    /// (`odrDownloadFailed(Error)` + `odrFileNotFound(tag:)`); merged here
+    /// so all ODR-domain failures route through one place.
+    case odr(ODRError)
     case sha256CalculationFailed(Error)
     case directoryCreationFailed(Error)
     case fileCopyFailed(Error)
@@ -268,10 +276,8 @@ enum PresetImportError: LocalizedError {
             return "Bundle asset not found: \(filename)"
         case .odrTagMissing(let presetId):
             return "ODR tag missing for preset: \(presetId)"
-        case .odrDownloadFailed(let error):
-            return "ODR download failed: \(error.localizedDescription)"
-        case .odrFileNotFound(let tag):
-            return "ODR file not found after download (tag: \(tag))"
+        case .odr(let odrError):
+            return odrError.errorDescription
         case .sha256CalculationFailed(let error):
             return "SHA256 calculation failed: \(error.localizedDescription)"
         case .directoryCreationFailed(let error):
@@ -448,14 +454,16 @@ final class PresetDictionaryService {
         do {
             try await request.beginAccessingResources()
         } catch {
-            throw PresetImportError.odrDownloadFailed(error)
+            throw PresetImportError.odr(ODRError.classify(error))
         }
 
         // Find the downloaded file in bundle
         let baseName = (preset.filename as NSString).deletingPathExtension
         guard let sourceURL = Bundle.main.url(forResource: baseName, withExtension: "mdx") else {
             request.endAccessingResources()
-            throw PresetImportError.odrFileNotFound(tag: tag)
+            throw PresetImportError.odr(.fileNotFoundAfterDownload(
+                tag: tag, filename: "\(baseName).mdx"
+            ))
         }
 
         // Import the file (copy to Library)
