@@ -89,22 +89,24 @@ final class ArticleEmbedPOCViewController: UIViewController {
         appendLog("  - all-MiniLM-L6-v2.mlmodelc   (Xcode auto-compiles from .mlpackage)")
         appendLog("  - vocab.txt")
         appendLog("  - WordNet-EN.mdx")
-        if ArticleEmbedPOCAssets.resolveFromBundle() == nil {
+        // Model + vocab are tagged as On-Demand Resources
+        // (`article-embed-model`) so we can't synchronously tell if
+        // they're locally present — the answer is deferred to runTapped
+        // where we await the ODR acquire. Only the WordNet test fixture
+        // is a plain bundle resource and can be probed synchronously.
+        if !ArticleEmbedPOCAssets.wordnetMDXLocallyAvailable() {
             appendLog("")
-            appendLog("⚠️ Asset(s) MISSING from app bundle.")
+            appendLog("⚠️ WordNet-EN.mdx MISSING from app bundle.")
             appendLog("   Check POC-Resources/ in the iOS app dir.")
             runButton.isEnabled = false
         }
+        appendLog("(Model + vocab fetched on Run tap via On-Demand Resources.)")
     }
 
     // MARK: - Actions
 
     @objc private func runTapped() {
         guard !isRunning else { return }
-        guard let assets = ArticleEmbedPOCAssets.resolveFromBundle() else {
-            appendLog("❌ Assets not found in bundle — can't run")
-            return
-        }
 
         let sizes = [50, 100, 250, 500, 1000, 2000]
         let sampleCount = sizes[sampleCountControl.selectedSegmentIndex]
@@ -118,6 +120,36 @@ final class ArticleEmbedPOCViewController: UIViewController {
 
         Task { [weak self] in
             guard let self else { return }
+            // Acquire ODR assets first — may trigger ~80 MB download on
+            // first run. Surface progress to the log so the user can
+            // see why "Run" appears to hang while bytes come in.
+            let assets: ArticleEmbedPOCAssets?
+            self.appendLog("→ Acquiring model + vocab via On-Demand Resources…")
+            do {
+                assets = try await ArticleEmbedPOCAssets.resolveAsync { [weak self] frac in
+                    // KVO callback is non-isolated. Hop to MainActor for
+                    // the appendLog (UIView mutation).
+                    let pct = Int(frac * 100)
+                    Task { @MainActor [weak self] in
+                        self?.appendLog("  download: \(pct)%")
+                    }
+                }
+            } catch {
+                self.appendLog("❌ Asset acquire failed: \(error)")
+                self.isRunning = false
+                self.runButton.isEnabled = true
+                self.sampleCountControl.isEnabled = true
+                return
+            }
+            guard let assets else {
+                self.appendLog("❌ Assets resolved nil — WordNet-EN.mdx missing?")
+                self.isRunning = false
+                self.runButton.isEnabled = true
+                self.sampleCountControl.isEnabled = true
+                return
+            }
+            self.appendLog("→ Assets ready.")
+
             let runner = ArticleEmbedPOCRunner(logHandler: { [weak self] line in
                 Task { @MainActor [weak self] in
                     self?.appendLog(line)

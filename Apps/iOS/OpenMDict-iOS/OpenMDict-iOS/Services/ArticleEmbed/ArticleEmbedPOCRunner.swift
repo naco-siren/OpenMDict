@@ -49,20 +49,34 @@ struct ArticleEmbedPOCAssets {
     let vocabURL: URL
     let mdxURL: URL
 
-    /// Locate POC assets. The .mlmodelc form is what Xcode compiles to
-    /// and ships in the bundle — see ArticleEncoder for the
-    /// .mlmodelc-vs-.mlpackage detection.
-    static func resolveFromBundle() -> ArticleEmbedPOCAssets? {
-        guard let modelURL = Bundle.main.url(forResource: "all-MiniLM-L6-v2",
-                                              withExtension: "mlmodelc"),
-              let vocab = Bundle.main.url(forResource: "vocab",
-                                          withExtension: "txt"),
-              let mdx = Bundle.main.url(forResource: "WordNet-EN",
-                                        withExtension: "mdx")
+    /// Async resolve — routes the model + vocab through the ODR-aware
+    /// `ArticleIndexAssetProvider` (triggers the ~80 MB download on the
+    /// first run if not yet local). `WordNet-EN.mdx` is the POC's test
+    /// fixture and stays as a plain bundle resource (not part of the
+    /// `article-embed-model` ODR tag).
+    ///
+    /// `progress` is `@Sendable` because it forwards to the provider's
+    /// KVO-driven callback (which runs on an arbitrary queue).
+    static func resolveAsync(progress: (@Sendable (Double) -> Void)? = nil) async throws
+        -> ArticleEmbedPOCAssets?
+    {
+        let acquired = try await ArticleIndexAssetProvider.shared.acquire(progress: progress)
+        guard let mdx = Bundle.main.url(forResource: "WordNet-EN", withExtension: "mdx")
         else { return nil }
         return ArticleEmbedPOCAssets(
-            modelURL: modelURL, vocabURL: vocab, mdxURL: mdx
+            modelURL: acquired.modelURL,
+            vocabURL: acquired.vocabURL,
+            mdxURL: mdx
         )
+    }
+
+    /// Synchronous existence check for the bundled WordNet fixture only —
+    /// used by the POC VC's viewDidLoad to warn if the test MDX is
+    /// missing (which would happen if a dev forgot to add it). The
+    /// model + vocab presence isn't checked here because ODR makes the
+    /// answer async-only.
+    static func wordnetMDXLocallyAvailable() -> Bool {
+        Bundle.main.url(forResource: "WordNet-EN", withExtension: "mdx") != nil
     }
 }
 

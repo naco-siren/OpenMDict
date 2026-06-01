@@ -157,6 +157,15 @@ final class ArticleIndexDispatcher {
         /// monitor + threshold check still TODO. Would join the global
         /// set like thermal does and auto-clear when space frees up.
         case insufficientStorage
+        /// On-Demand Resource download in progress for the CoreML model +
+        /// vocab tag (`article-embed-model`, ~80 MB). The cell renders
+        /// the download percentage via `Dispatcher.downloadProgress`
+        /// instead of `localizedLabel` (which has no progress info).
+        /// Cleared as soon as `acquire` completes; the encoder loads,
+        /// the build starts. Slots here (between insufficientStorage
+        /// and memoryWarning) because the user CAN influence it (better
+        /// network → faster) but mostly has to wait.
+        case downloadingModel
         /// Recent memory warning — encoder evicted, brief cool-down
         /// active. System-managed but takes a moment to recover; user
         /// can speed it up by closing other apps.
@@ -178,6 +187,7 @@ final class ArticleIndexDispatcher {
             switch self {
             case .userInitiated:       return L10n.ArticleIndex.PauseReason.userInitiated
             case .insufficientStorage: return L10n.ArticleIndex.PauseReason.insufficientStorage
+            case .downloadingModel:    return L10n.ArticleIndex.PauseReason.downloadingModelIndeterminate
             case .memoryWarning:       return L10n.ArticleIndex.PauseReason.memory
             case .lowPower:            return L10n.ArticleIndex.PauseReason.lowPower
             case .thermal:             return L10n.ArticleIndex.PauseReason.thermal
@@ -201,6 +211,14 @@ final class ArticleIndexDispatcher {
     /// `.paused` state is user-pause only (sticky); gate-pause is
     /// transient and surfaced exclusively via this publisher.
     @Published private(set) var pauseReasons: Set<PauseReason> = []
+
+    /// ODR download progress in [0, 1]. Non-nil only while
+    /// `.downloadingModel` is in `pauseReasons` (i.e. the system is
+    /// fetching the `article-embed-model` tag). The overview UI uses
+    /// this to render "Downloading language model (38%)…" on the row
+    /// being acquired. Reset to nil when the download completes (success
+    /// or failure) and the `.downloadingModel` pause reason is removed.
+    @Published private(set) var downloadProgress: Double?
 
     private var isPaused: Bool { !pauseReasons.isEmpty }
 
@@ -497,23 +515,72 @@ final class ArticleIndexDispatcher {
             return
         }
 
-        // 2. Locate the bundled model + vocab. (ODR is a follow-up; for
-        // now we use the POC bundle pattern.)
-        guard let (modelURL, vocabURL) = Self.resolveAssets() else {
-            log.error("executeJob(\(dictId)): model/vocab missing from bundle")
+        // 2. Acquire model + vocab via On-Demand Resources. Fast path
+        //    when the tag is already local (instant resolve); slow path
+        //    when first job after install triggers an ~80 MB download.
+        //    Surfaces `.downloadingModel` in the gate-pause set + ticks
+        //    `downloadProgress` so the overview cell can render
+        //    "Downloading language model (38%)…" on this row.
+        let assets: ArticleIndexAssetProvider.Assets
+        addPauseReason(.downloadingModel)
+        do {
+            assets = try await ArticleIndexAssetProvider.shared.acquire { [weak self] frac in
+                // KVO callback is non-isolated — hop to MainActor to
+                // write the published property.
+                Task { @MainActor in
+                    self?.downloadProgress = frac
+                }
+            }
+        } catch {
+            // Failed download — clear gate, surface error on this dict,
+            // bail. User can tap retry once network/bandwidth recovers.
+            removePauseReason(.downloadingModel)
+            downloadProgress = nil
+            log.error("executeJob(\(dictId)): asset acquire failed: \(String(describing: error))")
             ArticleIndexService.shared.setState(
                 .error, for: dictId,
-                errorMessage: "CoreML model not bundled — see POC-Resources/"
+                errorMessage: "Couldn't download language model: \(error)"
             )
+            return
+        }
+        removePauseReason(.downloadingModel)
+        downloadProgress = nil
+
+        // Re-check post-acquire state — between starting the download and
+        // here, several things can change:
+        //   • user-pause via ⏸ (state → .paused)
+        //   • section toggle off (state → .paused, userExcluded → true)
+        //   • gate trigger (.thermal / .lowPower / .memoryWarning)
+        //   • master toggle off (cancelAll runs, but our runningTask
+        //     isn't cancelled today during acquire — defense in depth here)
+        // If anything blocks us, bail. The dispatcher will re-evaluate on
+        // the next eligibility tick.
+        let postAcquireSnap = ArticleIndexService.shared.snapshot(for: dictId)
+        if postAcquireSnap.state == .paused {
+            log.info("executeJob(\(dictId)): user paused during model download, bailing")
+            return
+        }
+        if postAcquireSnap.userExcluded {
+            log.info("executeJob(\(dictId)): toggled to Disabled during download, bailing")
+            return
+        }
+        if isPaused {
+            log.info("executeJob(\(dictId)): gate (\(self.pauseReasonsDescription)) fired during download, bailing")
+            return
+        }
+        guard UserDefaults.standard.articleSearchEnabled else {
+            log.info("executeJob(\(dictId)): master toggle off during download, bailing")
             return
         }
 
         // 3. Encoder for this profile (foreground GPU / background CPU),
         // (re)loading if the profile changed since the last job.
-        guard let encoder = ensureEncoder(profile: profile, modelURL: modelURL, vocabURL: vocabURL) else {
+        guard let encoder = ensureEncoder(
+            profile: profile, modelURL: assets.modelURL, vocabURL: assets.vocabURL
+        ) else {
             ArticleIndexService.shared.setState(
                 .error, for: dictId,
-                errorMessage: "CoreML model not bundled or encoder load failed"
+                errorMessage: "Encoder load failed"
             )
             return
         }
@@ -545,7 +612,7 @@ final class ArticleIndexDispatcher {
         // articles, and polls isCancelled per-article (flushing + bailing
         // when the surrounding Task is cancelled).
         let writer = ArticleIndexWriter(
-            modelURL: modelURL,
+            modelURL: assets.modelURL,
             outputURL: outURL,
             progress: { [weak self] done, total, elapsed in
                 guard let self else { return }
@@ -728,16 +795,8 @@ final class ArticleIndexDispatcher {
         }
     }
 
-    /// Find the bundled model + vocab. Returns nil if either is
-    /// missing. Same lookup logic as the POC.
-    private static func resolveAssets() -> (model: URL, vocab: URL)? {
-        guard let model = Bundle.main.url(
-            forResource: "all-MiniLM-L6-v2", withExtension: "mlmodelc"
-        ), let vocab = Bundle.main.url(
-            forResource: "vocab", withExtension: "txt"
-        ) else { return nil }
-        return (model, vocab)
-    }
+    // (Asset resolution moved to ArticleIndexAssetProvider for the ODR
+    // path. The dispatcher no longer touches Bundle.main directly.)
 
     // MARK: - Resource-gate observers
 
@@ -839,11 +898,17 @@ final class ArticleIndexDispatcher {
     /// Evict the lazy-loaded encoder. Idempotent — no-op when nothing's loaded.
     /// Caller is responsible for ensuring no in-flight build is using it
     /// (which is why we always `cancelCurrentBuild` before evicting).
+    ///
+    /// Also releases the ODR resource request — the encoder being gone
+    /// means we don't need the ~80 MB model file held locally. The OS
+    /// may purge it under storage pressure after this; the next acquire
+    /// pays a redownload (rare — covers low-storage devices).
     private func evictEncoder(reason: String) {
         guard encoder != nil else { return }
         log.info("Encoder eviction: \(reason) (was profile=\(self.encoderProfile == .foreground ? "foreground/GPU" : "background/CPU"))")
         encoder = nil
         encoderProfile = nil
+        ArticleIndexAssetProvider.shared.release()
     }
 
     /// Start the idle-eviction timer if (and only if) no job is in-flight

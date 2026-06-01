@@ -9691,6 +9691,18 @@
         }
       }
     },
+    "articleIndex.empty.noDicts" : {
+      "comment" : "Empty-section placeholder: shown in the Disabled section when the user has zero dictionaries in the entire library",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No dictionaries imported yet.\nImport a dictionary first to use article search."
+          }
+        }
+      }
+    },
     "articleIndex.empty.title" : {
       "comment" : "Empty state: no dictionaries available to index",
       "extractionState" : "extracted_with_value",
@@ -9735,6 +9747,30 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Indexing runs entirely on-device and can take a while for large dictionaries; it continues in the background while your device is charging."
+          }
+        }
+      }
+    },
+    "articleIndex.pauseReason.downloadingModel" : {
+      "comment" : "Pause subtitle: ODR download in progress; %d is integer percent complete",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Downloading language model (%d%%)…"
+          }
+        }
+      }
+    },
+    "articleIndex.pauseReason.downloadingModelIndeterminate" : {
+      "comment" : "Pause subtitle: ODR download started but progress fraction not yet reported",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Downloading language model…"
           }
         }
       }

@@ -90,6 +90,9 @@
 		F1D199F29C9E3A768150A436 /* OpenMDict-East1-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9FBE0B64EDD9E3A5FD45F0DF /* OpenMDict-East1-iPad@2x.png */; };
 		F71AFFE1DD9C90A04A29DC2D /* OpenMDict-East3-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 339200C5E2D1B8356E65ABAB /* OpenMDict-East3-iPad@2x.png */; };
 		F76A22F29E806420FAFCF2CD /* OpenMDict-West-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 944DCF33B27B3580B336D1E4 /* OpenMDict-West-Dark-iPad@2x.png */; };
+		F809F0842FC7ED7A00495787 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = F809EFE12FC7ED7A00495787 /* .gitignore */; };
+		F809F0852FC7ED7A00495787 /* vocab.txt in Resources */ = {isa = PBXBuildFile; fileRef = F809EFE32FC7ED7A00495787 /* vocab.txt */; settings = {ASSET_TAGS = ("article-embed-model", ); }; };
+		F809F09B2FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */; settings = {ASSET_TAGS = ("article-embed-model", ); }; };
 		F80DBF362F4A7B7700ED2985 /* WikDict-FR-RU.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF2A2F4A7B7700ED2985 /* WikDict-FR-RU.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-fr-ru", ); }; };
 		F80DBF372F4A7B7700ED2985 /* WikDict-PT-ES.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF2E2F4A7B7700ED2985 /* WikDict-PT-ES.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-pt-es", ); }; };
 		F80DBF382F4A7B7700ED2985 /* WikDict-ES-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF272F4A7B7700ED2985 /* WikDict-ES-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-es-pt", ); }; };
@@ -295,6 +298,10 @@
 		EE2929C23C7C85ABD3A98890 /* OpenMDict-East114514-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPhone@3x.png"; sourceTree = "<absolute>"; };
 		F046768380B02202B9185771 /* OpenMDict-West-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-iPhone@2x.png"; sourceTree = "<absolute>"; };
 		F6C10ACA7B204C6F16810B36 /* OpenMDict-West-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
+		F809EFE12FC7ED7A00495787 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		F809EFE22FC7ED7A00495787 /* all-MiniLM-L6-v2.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = "all-MiniLM-L6-v2.mlpackage"; sourceTree = "<group>"; };
+		F809EFE32FC7ED7A00495787 /* vocab.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = vocab.txt; sourceTree = "<group>"; };
+		F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper.coreml-model-compiled; path = "all-MiniLM-L6-v2.mlmodelc"; sourceTree = "<group>"; };
 		F80DBF272F4A7B7700ED2985 /* WikDict-ES-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-PT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-ES-PT/WikDict-ES-PT.mdx"; sourceTree = "<absolute>"; };
 		F80DBF282F4A7B7700ED2985 /* WikDict-FR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-EN/WikDict-FR-EN.mdx"; sourceTree = "<absolute>"; };
 		F80DBF292F4A7B7700ED2985 /* WikDict-FR-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-ES/WikDict-FR-ES.mdx"; sourceTree = "<absolute>"; };
@@ -501,6 +508,7 @@
 		A5AB7E2F2F0E15A000B554E0 = {
 			isa = PBXGroup;
 			children = (
+				F809F1542FCD251200495787 /* Article Embeddings */,
 				F8E12DAD2F1D73D100D8E524 /* Resources */,
 				F8B1FF002F70AB0000B1FF00 /* App Icons */,
 				A5AB7E3A2F0E15A000B554E0 /* OpenMDict-iOS */,
@@ -519,6 +527,17 @@
 				F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		F809F1542FCD251200495787 /* Article Embeddings */ = {
+			isa = PBXGroup;
+			children = (
+				F809EFE12FC7ED7A00495787 /* .gitignore */,
+				F809EFE22FC7ED7A00495787 /* all-MiniLM-L6-v2.mlpackage */,
+				F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */,
+				F809EFE32FC7ED7A00495787 /* vocab.txt */,
+			);
+			path = "Article Embeddings";
 			sourceTree = "<group>";
 		};
 		F8B1FF002F70AB0000B1FF00 /* App Icons */ = {
@@ -965,6 +984,9 @@
 				1DE946821826A5BDC4CD0CEB /* OpenMDict-East114514-iPhone@3x.png in Resources */,
 				6A39A8939C50E6EE833E6D77 /* OpenMDict-East2-Dark-iPad@2x.png in Resources */,
 				DCC4629BB7ED18B34C40CECB /* OpenMDict-East2-Dark-iPadPro@2x.png in Resources */,
+				F809F0842FC7ED7A00495787 /* .gitignore in Resources */,
+				F809F0852FC7ED7A00495787 /* vocab.txt in Resources */,
+				F809F09B2FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc in Resources */,
 				86DEE5C29CE073491BBE166D /* OpenMDict-East2-Dark-iPhone@2x.png in Resources */,
 				26FAF7DE23A07F60E051C1F8 /* OpenMDict-East2-Dark-iPhone@3x.png in Resources */,
 				6AF9A13B70455D4BFFD1245A /* OpenMDict-East2-iPad@2x.png in Resources */,

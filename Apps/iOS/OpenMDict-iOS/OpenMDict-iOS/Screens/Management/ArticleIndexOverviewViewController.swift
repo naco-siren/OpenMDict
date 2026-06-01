@@ -305,8 +305,18 @@ final class ArticleIndexOverviewViewController: UIViewController {
             && (snap.state == .indexing || snap.state == .notIndexed)
         if isEligibleForGateOverride,
            let primary = ArticleIndexDispatcher.primaryReason(from: currentGatePauseReasons) {
+            // For `.downloadingModel`, swap in the progress-aware variant
+            // when the fraction is known. The static label is a fallback
+            // for the brief window before NSBundleResourceRequest's KVO
+            // emits the first tick.
+            let subtitle: String
+            if primary == .downloadingModel, let progress = currentDownloadProgress {
+                subtitle = L10n.ArticleIndex.PauseReason.downloadingModel(Int(progress * 100))
+            } else {
+                subtitle = primary.localizedLabel
+            }
             return StatusPresentation(
-                subtitle: primary.localizedLabel,
+                subtitle: subtitle,
                 entriesLine: entriesLine,
                 subtitleColor: .secondaryLabel,
                 trailingAccessories: [stateIconAccessory("pause.circle.fill", color: .systemOrange)]
@@ -417,6 +427,13 @@ final class ArticleIndexOverviewViewController: UIViewController {
     /// Snapshot of `Dispatcher.pauseReasons` cached so cell renderer reads
     /// it synchronously. Updated by the subscribe() Combine pipeline.
     private var currentGatePauseReasons: Set<ArticleIndexDispatcher.PauseReason> = []
+
+    /// Snapshot of `Dispatcher.downloadProgress` — fraction in [0, 1]
+    /// while the ODR model download is in flight, nil otherwise.
+    /// Combined with `.downloadingModel` in `currentGatePauseReasons`
+    /// to render "Downloading language model (38%)…" on the row being
+    /// acquired.
+    private var currentDownloadProgress: Double?
 
     // MARK: - Cell helper widgets
 
@@ -553,6 +570,19 @@ final class ArticleIndexOverviewViewController: UIViewController {
                 guard let self else { return }
                 guard self.currentGatePauseReasons != reasons else { return }
                 self.currentGatePauseReasons = reasons
+                self.reconfigureDictRows()
+            }
+            .store(in: &cancellables)
+        // ODR download progress — only meaningful while
+        // `.downloadingModel` is in `pauseReasons`, but subscribing
+        // unconditionally is cheaper than gating on the union. Ticks
+        // many times during a download (KVO every few %).
+        ArticleIndexDispatcher.shared.$downloadProgress
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] progress in
+                guard let self else { return }
+                guard self.currentDownloadProgress != progress else { return }
+                self.currentDownloadProgress = progress
                 self.reconfigureDictRows()
             }
             .store(in: &cancellables)

@@ -2535,6 +2535,19 @@ nonisolated enum L10n {
             static var insufficientStorage: String {
                 NSLocalizedString("articleIndex.pauseReason.insufficientStorage", value: "Paused — free up storage to continue", comment: "Pause subtitle: free disk space below the threshold needed to keep indexing safely")
             }
+            /// Static placeholder shown when the dispatcher reports
+            /// `.downloadingModel` but no progress fraction is available
+            /// yet (the very first KVO tick from NSBundleResourceRequest
+            /// arrives within a few ms; this should rarely actually show).
+            static var downloadingModelIndeterminate: String {
+                NSLocalizedString("articleIndex.pauseReason.downloadingModelIndeterminate", value: "Downloading language model…", comment: "Pause subtitle: ODR download started but progress fraction not yet reported")
+            }
+            /// Progress-aware variant — `%d` is the integer percentage in
+            /// [0, 100]. The VC formats this in place of `localizedLabel`
+            /// when `Dispatcher.downloadProgress` is non-nil.
+            static func downloadingModel(_ percent: Int) -> String {
+                String(format: NSLocalizedString("articleIndex.pauseReason.downloadingModel", value: "Downloading language model (%d%%)…", comment: "Pause subtitle: ODR download in progress; %d is integer percent complete"), percent)
+            }
             static var thermal: String {
                 NSLocalizedString("articleIndex.pauseReason.thermal", value: "Paused until device cools down", comment: "Gate-pause subtitle: device thermal state is serious/critical — indexing waits for cooldown")
             }
