@@ -68,17 +68,18 @@ import Foundation
 import OpenMDict     // ArticleEncoder + ArticleIndexWriter + ArticleIndexHeader
 import OpenMDictKit  // MDict / MDicts — needed for DictionaryService.dict(...).reader
 import UIKit         // UIApplication.didReceiveMemoryWarningNotification
-import os.log
 
 @MainActor
 final class ArticleIndexDispatcher {
 
     static let shared = ArticleIndexDispatcher()
 
-    private let log = Logger(
-        subsystem: "io.github.naco-siren.openmdict",
-        category: "ArticleIndexDispatcher"
-    )
+    // Logging convention: `debugLog(...)` for info/diagnostic (gated
+    // by VERBOSE_LOGGING build flag, zero release-cost), `print("❌ …")`
+    // for errors that should surface in release builds too. Matches
+    // the rest of the codebase (PresetDictionaryService etc.). Earlier
+    // versions used os.Logger which doesn't show info-level logs in
+    // the Xcode console by default — that confused debugging.
 
     /// Job priority. Interactive preempts background.
     enum Priority: Int, Comparable {
@@ -212,13 +213,15 @@ final class ArticleIndexDispatcher {
     /// transient and surfaced exclusively via this publisher.
     @Published private(set) var pauseReasons: Set<PauseReason> = []
 
-    /// ODR download progress in [0, 1]. Non-nil only while
-    /// `.downloadingModel` is in `pauseReasons` (i.e. the system is
-    /// fetching the `article-embed-model` tag). The overview UI uses
-    /// this to render "Downloading language model (38%)…" on the row
-    /// being acquired. Reset to nil when the download completes (success
-    /// or failure) and the `.downloadingModel` pause reason is removed.
-    @Published private(set) var downloadProgress: Double?
+    // Note: `downloadProgress` + `modelAcquireError` used to live here
+    // as `@Published` properties for the overview VC to subscribe to.
+    // They were moved to `ArticleIndexAssetProvider.state` (a proper
+    // state machine — `.unknown`/`.acquiring(p)`/`.ready`/`.failed(odr)`)
+    // so VC + Dispatcher both observe the SAME source of truth. The
+    // previous design had three caches (VC's modelLocallyAvailable
+    // probe + dispatcher's downloadProgress + dispatcher's
+    // modelAcquireError) drifting independently, which is what caused
+    // the relaunch-race and missing-log bugs seen on device.
 
     private var isPaused: Bool { !pauseReasons.isEmpty }
 
@@ -271,7 +274,7 @@ final class ArticleIndexDispatcher {
         // have a UI to surface failures — the silent no-op matches
         // the Coordinator's lifecycle-hook contract.
         guard ArticleIndexCoordinator.shared.isAvailable else {
-            log.debug("enqueue(\(dictId)): feature unavailable, dropping")
+            debugLog("enqueue(\(dictId)): feature unavailable, dropping")
             return
         }
 
@@ -281,7 +284,7 @@ final class ArticleIndexDispatcher {
             // currently-running job is `.background` and the new one
             // is `.interactive`.
             if priority > .background {
-                log.info("enqueue(\(dictId)): preempting running .background job for .interactive")
+                debugLog("enqueue(\(dictId)): preempting running .background job for .interactive")
                 // Cancel the in-flight build (flushes a valid partial) and
                 // re-enqueue at .interactive. The runningTask continuation
                 // nils runningDictId + drains the queue, resuming this dict
@@ -315,7 +318,7 @@ final class ArticleIndexDispatcher {
     func cancel(_ dictId: String) {
         queue.removeAll(where: { $0.dictId == dictId })
         if runningDictId == dictId {
-            log.info("cancel(\(dictId)): cancelling in-flight build (partial kept on disk)")
+            debugLog("cancel(\(dictId)): cancelling in-flight build (partial kept on disk)")
             runningBuildTask?.cancel()
             // executeJob's .interrupted branch USED to persist `.indexing`
             // at the checkpoint — Phase 3.5 rework: state changes are now
@@ -335,7 +338,7 @@ final class ArticleIndexDispatcher {
     /// high-level "user said pause this indexing run, remember that."
     func userPause(_ dictId: String) {
         let snap = ArticleIndexService.shared.snapshot(for: dictId)
-        log.info("userPause(\(dictId)): cancelling build + state → .paused at \(snap.indexedThrough)")
+        debugLog("userPause(\(dictId)): cancelling build + state → .paused at \(snap.indexedThrough)")
         // Persist .paused BEFORE cancelling. executeJob's .interrupted
         // branch no longer writes state, so ordering is fine either way,
         // but writing first makes the UI's $revision tick observable as
@@ -355,17 +358,31 @@ final class ArticleIndexDispatcher {
     /// priority so the scheduler picks it up immediately.
     func userResume(_ dictId: String) {
         let snap = ArticleIndexService.shared.snapshot(for: dictId)
-        log.info("userResume(\(dictId)): state → .notIndexed at \(snap.indexedThrough), enqueue .interactive")
+        debugLog("userResume(\(dictId)): state → .notIndexed at \(snap.indexedThrough), enqueue .interactive")
         ArticleIndexService.shared.setState(
             .notIndexed, for: dictId, indexedThrough: snap.indexedThrough
         )
         enqueue(dictId, priority: .interactive)
     }
 
+    /// User tapped Retry on the EmptyStateView shown when the asset
+    /// provider's state is `.failed`. Delegates to
+    /// `AssetProvider.retry()` which clears the failure + re-enters
+    /// `ensureAcquired()`. After that re-acquire completes (regardless
+    /// of success/failure — observable via `provider.$state`), kicks
+    /// the backfill so per-dict jobs come back through the dispatcher.
+    func retryModelAcquire() {
+        debugLog("Dispatcher.retryModelAcquire: delegating to AssetProvider.retry")
+        Task {
+            await ArticleIndexAssetProvider.shared.retry()
+            ArticleIndexCoordinator.shared.backfillIfEnabled()
+        }
+    }
+
     /// Cancel all pending + running. Used by app-level shutdown,
     /// LocalDataResetService, "Pause all" toggles.
     func cancelAll() {
-        log.info("cancelAll: clearing \(self.queue.count) queued + running=\(self.runningDictId ?? "nil")")
+        debugLog("cancelAll: clearing \(self.queue.count) queued + running=\(self.runningDictId ?? "nil")")
         queue.removeAll()
         // Cancel the in-flight build; its .interrupted handling keeps the
         // partial + checkpoint. Running continuations nil out runningDictId.
@@ -414,7 +431,7 @@ final class ArticleIndexDispatcher {
         // by the system even if the user has since flipped this off —
         // honor that here so we don't sneak indexing past their opt-out.
         guard UserDefaults.standard.articleSearchEnabled else {
-            log.info("runBackgroundPass: master toggle off, skipping")
+            debugLog("runBackgroundPass: master toggle off, skipping")
             return
         }
         // Eligibility = Enabled (not userExcluded) AND state ∈ {.notIndexed,
@@ -429,10 +446,10 @@ final class ArticleIndexDispatcher {
         let snapshots = ArticleIndexService.shared.allSnapshots()
             .filter { !$0.userExcluded && Self.isSchedulerEligible($0.state) }
         let eligible = Self.sortByDefaultGroupOrder(snapshots).map(\.dictId)
-        log.info("runBackgroundPass: \(eligible.count) dict(s) eligible")
+        debugLog("runBackgroundPass: \(eligible.count) dict(s) eligible")
         for dictId in eligible {
             if shouldStop() {
-                log.info("runBackgroundPass: stopping before \(dictId) (deadline)")
+                debugLog("runBackgroundPass: stopping before \(dictId) (deadline)")
                 break
             }
             // Pause gates apply to BGTask passes too. If the system woke
@@ -441,7 +458,7 @@ final class ArticleIndexDispatcher {
             // next BGTask wake-up (chained by `scheduleIfNeeded()`) or
             // foreground take-over will pick up from the checkpoint.
             if isPaused {
-                log.info("runBackgroundPass: paused (\(self.pauseReasonsDescription)), bailing before \(dictId)")
+                debugLog("runBackgroundPass: paused (\(self.pauseReasonsDescription)), bailing before \(dictId)")
                 break
             }
             runningDictId = dictId
@@ -449,7 +466,7 @@ final class ArticleIndexDispatcher {
             await executeJob(dictId: dictId, profile: .background)
             runningDictId = nil
         }
-        log.info("runBackgroundPass: finished")
+        debugLog("runBackgroundPass: finished")
         scheduleIdleEvictionIfDone()
     }
 
@@ -461,7 +478,7 @@ final class ArticleIndexDispatcher {
         // to keep `isInFlight(_:)` true so the UI keeps showing the row), and
         // we drain when pause lifts (`removePauseReason` → `runNextIfIdle`).
         if isPaused {
-            log.info("runNextIfIdle: paused (\(self.pauseReasonsDescription)), holding \(self.queue.count) job(s)")
+            debugLog("runNextIfIdle: paused (\(self.pauseReasonsDescription)), holding \(self.queue.count) job(s)")
             // Encoder is sitting idle — wind it down on the same grace timer.
             // First job after pause lifts pays a one-time reload (~1–2 s),
             // which is fine relative to a multi-minute encode.
@@ -484,7 +501,7 @@ final class ArticleIndexDispatcher {
         }
         let job = queue.remove(at: bestIdx)
         runningDictId = job.dictId
-        log.info("Starting job: dictId=\(job.dictId) priority=\(job.priority == .interactive ? "interactive" : "background")")
+        debugLog("Starting job: dictId=\(job.dictId) priority=\(job.priority == .interactive ? "interactive" : "background")")
 
         runningTask = Task { [weak self] in
             // Foreground queue → GPU profile (fast). App-backgrounding
@@ -503,48 +520,56 @@ final class ArticleIndexDispatcher {
     /// with progress callbacks → service. On error or cancellation,
     /// updates service state accordingly.
     private func executeJob(dictId: String, profile: ArticleEncoder.ComputeProfile) async {
-        // 1. Locate the MDictReader for this dict.
+        // 1. Locate the MDictReader for this dict. `reader == nil` is a
+        // TRANSIENT condition — the dict is still being mmap'd by
+        // DictionaryService — NOT a persistent failure. Leave the
+        // service state untouched so the next backfill retries cleanly.
+        // (Earlier versions persisted `.error` here with errorMessage
+        // "Dictionary not loaded"; if we hit this branch during the
+        // dictionary-load window it would poison every dict's row in
+        // CoreData and the user would see "Dictionary not loaded" on
+        // every cell forever. `normalizeStaleNotLoadedErrors` in the
+        // coordinator scrubs that legacy poison on launch.)
         guard let mdict = DictionaryService.shared.dict(id: dictId),
               let reader = mdict.reader
         else {
-            log.error("executeJob(\(dictId)): dict not loaded or has no reader, skipping")
-            ArticleIndexService.shared.setState(
-                .error, for: dictId,
-                errorMessage: "Dictionary not loaded"
-            )
+            debugLog("executeJob(\(dictId)): reader not ready yet, will retry on next backfill")
             return
         }
 
-        // 2. Acquire model + vocab via On-Demand Resources. Fast path
-        //    when the tag is already local (instant resolve); slow path
-        //    when first job after install triggers an ~80 MB download.
-        //    Surfaces `.downloadingModel` in the gate-pause set + ticks
-        //    `downloadProgress` so the overview cell can render
-        //    "Downloading language model (38%)…" on this row.
-        let assets: ArticleIndexAssetProvider.Assets
+        // 2. Acquire model + vocab via On-Demand Resources. Go through
+        //    the provider's `ensureAcquired()` so the VC observes the
+        //    same state machine. `.downloadingModel` stays in the gate
+        //    set during the wait (still useful for ordering — keeps
+        //    `runNextIfIdle` from starting another job mid-download).
         addPauseReason(.downloadingModel)
-        do {
-            assets = try await ArticleIndexAssetProvider.shared.acquire { [weak self] frac in
-                // KVO callback is non-isolated — hop to MainActor to
-                // write the published property.
-                Task { @MainActor in
-                    self?.downloadProgress = frac
-                }
+        debugLog("executeJob(\(dictId)): awaiting AssetProvider.ensureAcquired")
+        await ArticleIndexAssetProvider.shared.ensureAcquired()
+        removePauseReason(.downloadingModel)
+
+        let providerState = ArticleIndexAssetProvider.shared.state
+        debugLog("executeJob(\(dictId)): provider state after ensureAcquired = \(providerState)")
+        let assets: ArticleIndexAssetProvider.Assets
+        switch providerState {
+        case .ready:
+            guard let acquired = ArticleIndexAssetProvider.shared.assets else {
+                print("❌ executeJob(\(dictId)): provider .ready but assets == nil; bailing")
+                return
             }
-        } catch {
-            // Failed download — clear gate, surface error on this dict,
-            // bail. User can tap retry once network/bandwidth recovers.
-            removePauseReason(.downloadingModel)
-            downloadProgress = nil
-            log.error("executeJob(\(dictId)): asset acquire failed: \(String(describing: error))")
-            ArticleIndexService.shared.setState(
-                .error, for: dictId,
-                errorMessage: "Couldn't download language model: \(error)"
-            )
+            assets = acquired
+        case .failed(let odrError):
+            // The provider already published `.failed(odrError)` to its
+            // observers (overview VC, etc.). Per-dict state stays
+            // untouched so the scheduler can re-pick this dict cleanly
+            // once the user retries the model fetch.
+            print("❌ executeJob(\(dictId)): acquire failed: \(odrError)")
+            return
+        case .unknown, .acquiring:
+            // ensureAcquired completed but state isn't terminal? That's
+            // a programming error in the provider — log and bail.
+            print("❌ executeJob(\(dictId)): provider state non-terminal after ensureAcquired: \(providerState)")
             return
         }
-        removePauseReason(.downloadingModel)
-        downloadProgress = nil
 
         // Re-check post-acquire state — between starting the download and
         // here, several things can change:
@@ -557,19 +582,19 @@ final class ArticleIndexDispatcher {
         // the next eligibility tick.
         let postAcquireSnap = ArticleIndexService.shared.snapshot(for: dictId)
         if postAcquireSnap.state == .paused {
-            log.info("executeJob(\(dictId)): user paused during model download, bailing")
+            debugLog("executeJob(\(dictId)): user paused during model download, bailing")
             return
         }
         if postAcquireSnap.userExcluded {
-            log.info("executeJob(\(dictId)): toggled to Disabled during download, bailing")
+            debugLog("executeJob(\(dictId)): toggled to Disabled during download, bailing")
             return
         }
         if isPaused {
-            log.info("executeJob(\(dictId)): gate (\(self.pauseReasonsDescription)) fired during download, bailing")
+            debugLog("executeJob(\(dictId)): gate (\(self.pauseReasonsDescription)) fired during download, bailing")
             return
         }
         guard UserDefaults.standard.articleSearchEnabled else {
-            log.info("executeJob(\(dictId)): master toggle off during download, bailing")
+            debugLog("executeJob(\(dictId)): master toggle off during download, bailing")
             return
         }
 
@@ -593,7 +618,7 @@ final class ArticleIndexDispatcher {
         // first progress callback restores it.
         let prevIndexed = ArticleIndexService.shared.snapshot(for: dictId).indexedThrough
         let totalArticles = reader.entryCount
-        log.info("executeJob(\(dictId)): build starting from \(prevIndexed)/\(totalArticles)")
+        debugLog("executeJob(\(dictId)): build starting from \(prevIndexed)/\(totalArticles)")
         ArticleIndexService.shared.setState(
             .indexing, for: dictId, indexedThrough: prevIndexed
         )
@@ -625,7 +650,7 @@ final class ArticleIndexDispatcher {
                     // after a resume (e.g. 287/s, 166/s ... before
                     // settling). The number stabilizes after a minute.
                     let ips = elapsed > 0 ? Double(done) / elapsed : 0
-                    self.log.info("indexing \(dictId): \(done)/\(total) (\(String(format: "%.1f", elapsed))s, \(String(format: "%.1f", ips))/s)")
+                    debugLog("indexing \(dictId): \(done)/\(total) (\(String(format: "%.1f", elapsed))s, \(String(format: "%.1f", ips))/s)")
                     self.recordProgress(dictId: dictId, indexedThrough: Int32(done))
                 }
             }
@@ -657,7 +682,7 @@ final class ArticleIndexDispatcher {
                 modelHash: modelHashHex,
                 mdxHash: mdxHashHex
             )
-            log.info("executeJob(\(dictId)): indexed \(header.articleCount) articles successfully")
+            debugLog("executeJob(\(dictId)): indexed \(header.articleCount) articles successfully")
         case .success(.interrupted(_, let through)):
             // cancel() / preempt / BGTask expiry / gate fired: the writer
             // flushed a valid partial. Phase 3.5 rework: state is the
@@ -671,20 +696,20 @@ final class ArticleIndexDispatcher {
             ArticleIndexService.shared.setState(
                 prev.state, for: dictId, indexedThrough: Int32(through)
             )
-            log.info("executeJob(\(dictId)): interrupted at \(through); state=\(prev.state.rawValue) (caller-owned)")
+            debugLog("executeJob(\(dictId)): interrupted at \(through); state=\(prev.state.rawValue) (caller-owned)")
         case .failure(let error):
             // If WE cancelled (app backgrounding mid-GPU-predict, preempt,
             // user cancel), the on-disk partial is still valid — don't
             // surface a scary error; the persisted progress lets the next
             // run resume.
             if buildTask.isCancelled {
-                log.info("executeJob(\(dictId)): build cancelled mid-flight; checkpoint kept (\(String(describing: error)))")
+                debugLog("executeJob(\(dictId)): build cancelled mid-flight; checkpoint kept (\(String(describing: error)))")
             } else {
                 ArticleIndexService.shared.setState(
                     .error, for: dictId,
                     errorMessage: "\(error)"
                 )
-                log.error("executeJob(\(dictId)): build failed: \(String(describing: error))")
+                print("❌ executeJob(\(dictId)): build failed: \(String(describing: error))")
             }
         }
     }
@@ -716,7 +741,7 @@ final class ArticleIndexDispatcher {
     ) -> ArticleEncoder? {
         let profile = Self.effectiveProfile(requested: requestedProfile)
         if requestedProfile != profile {
-            log.info("ComputeProfile: \(String(describing: requestedProfile)) → \(String(describing: profile)) on \(DeviceChipInfo.gpuName ?? "?") (GPU loses to CPU for this model)")
+            debugLog("ComputeProfile: \(String(describing: requestedProfile)) → \(String(describing: profile)) on \(DeviceChipInfo.gpuName ?? "?") (GPU loses to CPU for this model)")
         }
         if let e = encoder, encoderProfile == profile { return e }
         encoder = nil
@@ -726,10 +751,10 @@ final class ArticleIndexDispatcher {
             )
             encoder = e
             encoderProfile = profile
-            log.info("Encoder loaded (profile=\(profile == .foreground ? "foreground/GPU" : "background/CPU"))")
+            debugLog("Encoder loaded (profile=\(profile == .foreground ? "foreground/GPU" : "background/CPU"))")
             return e
         } catch {
-            log.error("Encoder load failed: \(String(describing: error))")
+            print("❌ Encoder load failed: \(String(describing: error))")
             return nil
         }
     }
@@ -836,7 +861,7 @@ final class ArticleIndexDispatcher {
     private func handleThermalChange() {
         let state = ProcessInfo.processInfo.thermalState
         let shouldPause = (state == .serious || state == .critical)
-        log.info("thermalState=\(Self.thermalStateName(state)) → paused=\(shouldPause)")
+        debugLog("thermalState=\(Self.thermalStateName(state)) → paused=\(shouldPause)")
         if shouldPause {
             addPauseReason(.thermal)
         } else {
@@ -846,7 +871,7 @@ final class ArticleIndexDispatcher {
 
     private func handlePowerStateChange() {
         let on = ProcessInfo.processInfo.isLowPowerModeEnabled
-        log.info("lowPowerMode=\(on)")
+        debugLog("lowPowerMode=\(on)")
         if on {
             addPauseReason(.lowPower)
         } else {
@@ -861,7 +886,7 @@ final class ArticleIndexDispatcher {
     /// the encoder the kernel just had to reclaim around. After the
     /// cool-down expires, normal drain resumes.
     private func handleMemoryWarning() {
-        log.info("Memory warning: cancelling current build + evicting encoder + cool-down")
+        debugLog("Memory warning: cancelling current build + evicting encoder + cool-down")
         cancelCurrentBuild()
         evictEncoder(reason: "memory warning")
         addPauseReason(.memoryWarning)
@@ -875,7 +900,7 @@ final class ArticleIndexDispatcher {
         let wasNotPaused = !isPaused
         let (inserted, _) = pauseReasons.insert(reason)
         guard inserted else { return }
-        log.info("Pause +\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
+        debugLog("Pause +\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
         if wasNotPaused {
             // Just entered paused. Cancel the in-flight build so its
             // checkpoint sticks; queue is intentionally preserved.
@@ -886,7 +911,7 @@ final class ArticleIndexDispatcher {
     private func removePauseReason(_ reason: PauseReason) {
         let wasPaused = isPaused
         guard pauseReasons.remove(reason) != nil else { return }
-        log.info("Pause -\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
+        debugLog("Pause -\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
         if wasPaused && !isPaused {
             // Conditions back to normal — drain whatever's queued. If
             // nothing is queued, this is a no-op except for scheduling
@@ -899,16 +924,23 @@ final class ArticleIndexDispatcher {
     /// Caller is responsible for ensuring no in-flight build is using it
     /// (which is why we always `cancelCurrentBuild` before evicting).
     ///
-    /// Also releases the ODR resource request — the encoder being gone
-    /// means we don't need the ~80 MB model file held locally. The OS
-    /// may purge it under storage pressure after this; the next acquire
-    /// pays a redownload (rare — covers low-storage devices).
+    /// Encoder eviction frees ~80 MB of RAM (MLModel + buffers). It does
+    /// NOT release the ODR resource reservation — those are two different
+    /// resources:
+    ///   - encoder is in RAM, eviction frees RAM pressure
+    ///   - ODR file (~43 MB) is on disk; iOS purges it automatically
+    ///     under storage pressure, no manual release needed.
+    /// An earlier version of this method called
+    /// `AssetProvider.release()` here, which flipped the provider state
+    /// machine to `.unknown` and made the overview VC re-render the
+    /// "Downloading Language Model" overlay 60 s after every successful
+    /// indexing pass — even though the model was still locally available.
+    /// That bug showed up on device. Don't reintroduce it.
     private func evictEncoder(reason: String) {
         guard encoder != nil else { return }
-        log.info("Encoder eviction: \(reason) (was profile=\(self.encoderProfile == .foreground ? "foreground/GPU" : "background/CPU"))")
+        debugLog("Encoder eviction: \(reason) (was profile=\(self.encoderProfile == .foreground ? "foreground/GPU" : "background/CPU"))")
         encoder = nil
         encoderProfile = nil
-        ArticleIndexAssetProvider.shared.release()
     }
 
     /// Start the idle-eviction timer if (and only if) no job is in-flight

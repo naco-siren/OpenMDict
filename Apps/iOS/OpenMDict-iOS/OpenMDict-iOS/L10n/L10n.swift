@@ -2564,6 +2564,30 @@ nonisolated enum L10n {
         static var emptyMessage: String {
             NSLocalizedString("articleIndex.empty.message", value: "Import a dictionary first, then enable article search here.", comment: "Empty state message")
         }
+        // MARK: - Model-acquisition overlay (EmptyStateView in the overview VC)
+        //
+        // Shown when the master toggle is ON and the model isn't usable
+        // yet (downloading OR in a classified error state). Error path
+        // uses `L10n.ODRError.*` (extracted in the ODRError commit);
+        // these strings are for the loading and retry-button paths.
+        static var modelOverlayDownloadingTitle: String {
+            NSLocalizedString("articleIndex.modelOverlay.downloading.title", value: "Downloading Language Model", comment: "EmptyStateView title shown when the ODR model is downloading")
+        }
+        static func modelOverlayDownloadingMessage(pct: Int) -> String {
+            String(format: NSLocalizedString("articleIndex.modelOverlay.downloading.message", value: "%d%% — about 80 MB total. Indexing will start automatically once this is done.", comment: "EmptyStateView body shown while the ODR model is downloading; %d is integer percent complete"), pct)
+        }
+        /// Shown when we know the model fetch is pending but no
+        /// progress fraction has arrived yet (pre-probe window OR
+        /// before NSBundleResourceRequest's first KVO tick). Showing
+        /// "0%" would imply the download has started + made no
+        /// progress, which is misleading during the brief
+        /// pre-progress window.
+        static var modelOverlayDownloadingMessageIndeterminate: String {
+            NSLocalizedString("articleIndex.modelOverlay.downloading.message.indeterminate", value: "About 80 MB total. Indexing will start automatically once this is done.", comment: "EmptyStateView body shown while the ODR model fetch is pending but no progress fraction is yet known")
+        }
+        static var modelOverlayRetry: String {
+            NSLocalizedString("articleIndex.modelOverlay.retry", value: "Retry", comment: "EmptyStateView action button title shown when the model failed to download")
+        }
     }
 
     // MARK: - On-Demand Resource error surfaces

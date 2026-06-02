@@ -272,6 +272,47 @@ final class ArticleIndexService {
         }
     }
 
+    /// One-shot launch normalize: rows persisted as `.error` with
+    /// `errorMessage == "Dictionary not loaded"` are wiped back to
+    /// `.notIndexed`. That specific message came from an earlier
+    /// dispatcher bug where `executeJob` ran during the dictionary-load
+    /// window and persisted `.error` for every dict whose reader hadn't
+    /// finished mmap'ing yet. The dispatcher no longer persists that
+    /// state (it leaves the row untouched and waits for the next
+    /// backfill), but the legacy poison sits in CoreData on any device
+    /// that ran the buggy version — every cell shows "Dictionary not
+    /// loaded" forever because `isSchedulerEligible` filters `.error`
+    /// out, so the backfill enqueues 0 and the user sees stale rows.
+    ///
+    /// Safe to run unconditionally on launch: real `.error` rows
+    /// (encoder load failed, build failed, etc.) carry different
+    /// `errorMessage`s and aren't touched.
+    func normalizeStaleNotLoadedErrors() {
+        ensureCachePopulated()
+        var changed = 0
+        for (dictId, snap) in cache
+            where snap.state == .error && snap.errorMessage == "Dictionary not loaded"
+        {
+            let next = ArticleIndexRecordSnapshot(
+                dictId: snap.dictId,
+                state: .notIndexed,
+                indexedThrough: snap.indexedThrough,
+                modelHash: snap.modelHash, mdxHash: snap.mdxHash,
+                lastUpdated: Date(),
+                userPriorityOrder: snap.userPriorityOrder,
+                userExcluded: snap.userExcluded,
+                errorMessage: nil
+            )
+            cache[dictId] = next
+            persist(next)
+            changed += 1
+        }
+        if changed > 0 {
+            debugLog("🧹 ArticleIndexService: cleared \(changed) stale 'Dictionary not loaded' .error record(s) → .notIndexed")
+            revision &+= 1
+        }
+    }
+
     /// Delete the record for a dict (called when the dict itself is
     /// deleted from the library).
     func delete(dictId: String) {

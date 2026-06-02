@@ -48,6 +48,19 @@ final class EmptyStateView: UIView {
 
     // MARK: - Configuration
 
+    /// Visual prominence of the action button.
+    enum ActionStyle: Sendable {
+        /// Transparent background, system-blue text + icon. Lightweight
+        /// CTA / inline link — historical look for "View All History"
+        /// / "Select MDX File" / similar secondary actions.
+        case plain
+        /// Solid systemBlue background with white text + white icon.
+        /// Prominent primary CTA, e.g. Retry on a download-failure
+        /// surface. Carries imagePadding so leading-icon variants
+        /// don't smash the title against the glyph.
+        case prominent
+    }
+
     struct Configuration {
         // Icon
         var iconSystemName: String?
@@ -69,6 +82,7 @@ final class EmptyStateView: UIView {
         // Action button
         var actionTitle: String?
         var actionImageSystemName: String?
+        var actionStyle: ActionStyle = .plain
         var actionHandler: (() -> Void)?
 
         // Layout spacing
@@ -124,12 +138,37 @@ final class EmptyStateView: UIView {
         return l
     }()
 
-    private let actionButton: UIButton = {
-        // `.system` so tinting + accessibility traits come for free.
-        let b = UIButton(type: .system)
-        b.titleLabel?.font = .preferredFont(forTextStyle: .body)
-        return b
-    }()
+    /// Pre-configured for the `.plain` style by default; flips to
+    /// `.filled()` when a configuration with `.prominent` action style
+    /// arrives. See `EmptyStateView.ActionStyle`.
+    private let actionButton: UIButton = UIButton(
+        configuration: EmptyStateView.makeButtonConfig(style: .plain)
+    )
+
+    /// Build a fresh UIButton.Configuration for the requested style.
+    /// Centralized so both the lazy initializer + the `configure(_:)`
+    /// path use identical padding/inset values for each style.
+    private static func makeButtonConfig(style: ActionStyle) -> UIButton.Configuration {
+        switch style {
+        case .plain:
+            // `.plain` = transparent background, system-blue text + icon.
+            // Modest imagePadding so leading icons don't smash the title.
+            var cfg = UIButton.Configuration.plain()
+            cfg.imagePadding = 6
+            cfg.imagePlacement = .leading
+            return cfg
+        case .prominent:
+            // `.filled()` = solid systemBlue with auto-contrast white
+            // title + icon (UIButton applies the contrast for us).
+            // Larger contentInsets give the CTA proper visual weight.
+            var cfg = UIButton.Configuration.filled()
+            cfg.imagePadding = 8
+            cfg.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 18, bottom: 10, trailing: 18)
+            cfg.cornerStyle = .medium
+            cfg.imagePlacement = .leading
+            return cfg
+        }
+    }
 
     /// Held so we can invoke it from `actionButton`'s target without
     /// retaining `self` in the closure.
@@ -208,14 +247,21 @@ final class EmptyStateView: UIView {
         messageLabel.font = configuration.messageFont
         messageLabel.isHidden = (configuration.message?.isEmpty ?? true)
 
-        // Action button
+        // Action button. Build a fresh `UIButton.Configuration` keyed
+        // to the requested `actionStyle` — this swaps the entire
+        // background treatment (filled vs plain) on each reconfigure,
+        // which is needed because the same EmptyStateView instance
+        // may flip e.g. from a `.placeholder` (plain action) to an
+        // `.error` (prominent action) between presentations.
         if let actionTitle = configuration.actionTitle {
-            actionButton.setTitle(actionTitle, for: .normal)
+            var btnConfig = Self.makeButtonConfig(style: configuration.actionStyle)
+            btnConfig.title = actionTitle
             if let imageName = configuration.actionImageSystemName {
-                actionButton.setImage(UIImage(systemName: imageName), for: .normal)
+                btnConfig.image = UIImage(systemName: imageName)
             } else {
-                actionButton.setImage(nil, for: .normal)
+                btnConfig.image = nil
             }
+            actionButton.configuration = btnConfig
             actionButton.isHidden = false
             actionHandler = configuration.actionHandler
         } else {
@@ -306,7 +352,8 @@ extension EmptyStateView.Configuration {
     }
 
     /// Error presentation bound directly to an `ODRError`. Orange tint
-    /// + Retry button. Caller supplies the retry closure.
+    /// + prominent (filled systemBlue) Retry button. Caller supplies
+    /// the retry closure.
     static func error(
         _ odrError: ODRError,
         retryTitle: String,
@@ -319,6 +366,7 @@ extension EmptyStateView.Configuration {
         c.message = odrError.localizedMessage
         c.actionTitle = retryTitle
         c.actionImageSystemName = "arrow.clockwise"
+        c.actionStyle = .prominent
         c.actionHandler = retry
         return c
     }

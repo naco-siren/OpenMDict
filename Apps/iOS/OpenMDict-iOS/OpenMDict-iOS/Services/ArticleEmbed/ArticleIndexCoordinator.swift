@@ -37,17 +37,14 @@ import Foundation
 import NaturalLanguage
 import OpenMDict     // ArticleIndexReader + format types live in core lib
 import OpenMDictKit  // MDict — for DictionaryService.allDictionaries[*].id
-import os.log
 
 @MainActor
 final class ArticleIndexCoordinator {
 
     static let shared = ArticleIndexCoordinator()
 
-    private let log = Logger(
-        subsystem: "io.github.naco-siren.openmdict",
-        category: "ArticleIndexCoordinator"
-    )
+    // Logging convention: see ArticleIndexDispatcher for the rationale —
+    // debugLog (gated by VERBOSE_LOGGING) for info, print for errors.
 
     /// Minimum supported iOS for the feature (picks up
     /// the A13+ chip tier transitively).
@@ -66,6 +63,9 @@ final class ArticleIndexCoordinator {
         // around, so the writer still resumes when the scheduler picks
         // up the dict.
         ArticleIndexService.shared.normalizeOrphanIndexing(liveJob: nil)
+        // Scrub the "Dictionary not loaded" legacy poison from earlier
+        // dispatcher bug — see service method docstring.
+        ArticleIndexService.shared.normalizeStaleNotLoadedErrors()
     }
 
     // MARK: - Top-level availability
@@ -200,7 +200,7 @@ final class ArticleIndexCoordinator {
                 ArticleIndexService.shared.setState(
                     .notIndexed, for: dictId, indexedThrough: snap.indexedThrough
                 )
-                log.info("setEnabled(\(dictId), true): implicit resume from .paused at \(snap.indexedThrough)")
+                debugLog("setEnabled(\(dictId), true): implicit resume from .paused at \(snap.indexedThrough)")
             }
             backfillIfEnabled()
         } else {
@@ -211,7 +211,7 @@ final class ArticleIndexCoordinator {
                 ArticleIndexDispatcher.shared.userPause(dictId)
             }
             ArticleIndexService.shared.setUserExcluded(true, for: dictId)
-            log.info("setEnabled(\(dictId), false): moved to Disabled section (state=\(ArticleIndexService.shared.snapshot(for: dictId).state.rawValue))")
+            debugLog("setEnabled(\(dictId), false): moved to Disabled section (state=\(ArticleIndexService.shared.snapshot(for: dictId).state.rawValue))")
         }
     }
 
@@ -276,15 +276,21 @@ final class ArticleIndexCoordinator {
     /// `runBackgroundPass`, and `scheduleIfNeeded`. `.paused` is
     /// excluded — the user must resume explicitly.
     func backfillIfEnabled() {
-        guard isAvailable, UserDefaults.standard.articleSearchEnabled else { return }
+        guard isAvailable, UserDefaults.standard.articleSearchEnabled else {
+            debugLog("Coordinator.backfillIfEnabled: skipping (isAvailable=\(isAvailable), articleSearchEnabled=\(UserDefaults.standard.articleSearchEnabled))")
+            return
+        }
+        var enqueued = 0
         for dict in DictionaryService.shared.allDictionaries {
             let snap = ArticleIndexService.shared.snapshot(for: dict.id)
             if !snap.userExcluded
                 && ArticleIndexDispatcher.isSchedulerEligible(snap.state)
             {
                 ArticleIndexDispatcher.shared.enqueue(dict.id, priority: .background)
+                enqueued += 1
             }
         }
+        debugLog("Coordinator.backfillIfEnabled: enqueued \(enqueued) dict(s)")
     }
 
     // MARK: - Reader factory (query path)
@@ -308,7 +314,7 @@ final class ArticleIndexCoordinator {
             let reader = try ArticleIndexReader(sidecarURL: url)
             return .success(reader)
         } catch {
-            log.warning("Failed to open sidecar for \(dictId): \(String(describing: error))")
+            debugLog("Failed to open sidecar for \(dictId): \(String(describing: error))")
             return .success(nil)
         }
     }
@@ -327,7 +333,7 @@ final class ArticleIndexCoordinator {
     /// to show it in on those builds.
     func handleDictImported(_ dictId: String) {
         guard isAvailable else {
-            log.debug("handleDictImported(\(dictId)): feature unavailable, no-op")
+            debugLog("handleDictImported(\(dictId)): feature unavailable, no-op")
             return
         }
         // Reset to `.notIndexed`. If a record already exists for this
@@ -347,7 +353,7 @@ final class ArticleIndexCoordinator {
         // dict up. Without this gate, a fresh install + import would
         // start indexing immediately even with the master toggle off.
         guard UserDefaults.standard.articleSearchEnabled else {
-            log.info("handleDictImported(\(dictId)): registered .notIndexed; master toggle OFF, not enqueuing")
+            debugLog("handleDictImported(\(dictId)): registered .notIndexed; master toggle OFF, not enqueuing")
             return
         }
         let snap = ArticleIndexService.shared.snapshot(for: dictId)
@@ -355,7 +361,7 @@ final class ArticleIndexCoordinator {
             ArticleIndexDispatcher.shared.enqueue(dictId, priority: .background)
         }
         let suffix = snap.userExcluded ? " (user-excluded, not enqueued)" : ""
-        log.info("handleDictImported(\(dictId)): registered .notIndexed in service\(suffix)")
+        debugLog("handleDictImported(\(dictId)): registered .notIndexed in service\(suffix)")
     }
 
     /// Called from `DictionaryStorageService.deleteDictionary(id:)` and
@@ -369,10 +375,10 @@ final class ArticleIndexCoordinator {
         if FileManager.default.fileExists(atPath: url.path) {
             do {
                 try FileManager.default.removeItem(at: url)
-                log.info("Deleted article sidecar for \(dictId)")
+                debugLog("Deleted article sidecar for \(dictId)")
             } catch {
                 let desc = String(describing: error)
-                log.warning("Failed to delete article sidecar for \(dictId): \(desc)")
+                debugLog("Failed to delete article sidecar for \(dictId): \(desc)")
             }
         }
         // Drop the catalog row regardless of file presence — service
@@ -396,7 +402,7 @@ final class ArticleIndexCoordinator {
             try? FileManager.default.removeItem(at: url)
         }
         ArticleIndexService.shared.resetCaches()
-        log.info("deleteAllSidecars: cleared \(entries.count) entries")
+        debugLog("deleteAllSidecars: cleared \(entries.count) entries")
     }
 
     // MARK: - Internal helpers

@@ -9751,6 +9751,54 @@
         }
       }
     },
+    "articleIndex.modelOverlay.downloading.message" : {
+      "comment" : "EmptyStateView body shown while the ODR model is downloading; %d is integer percent complete",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%d%% — about 80 MB total. Indexing will start automatically once this is done."
+          }
+        }
+      }
+    },
+    "articleIndex.modelOverlay.downloading.message.indeterminate" : {
+      "comment" : "EmptyStateView body shown while the ODR model fetch is pending but no progress fraction is yet known",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "About 80 MB total. Indexing will start automatically once this is done."
+          }
+        }
+      }
+    },
+    "articleIndex.modelOverlay.downloading.title" : {
+      "comment" : "EmptyStateView title shown when the ODR model is downloading",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Downloading Language Model"
+          }
+        }
+      }
+    },
+    "articleIndex.modelOverlay.retry" : {
+      "comment" : "EmptyStateView action button title shown when the model failed to download",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
     "articleIndex.pauseReason.downloadingModel" : {
       "comment" : "Pause subtitle: ODR download in progress; %d is integer percent complete",
       "extractionState" : "extracted_with_value",
@@ -22480,6 +22528,150 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查詢歷史"
+          }
+        }
+      }
+    },
+    "odrError.dataNotAllowed.message" : {
+      "comment" : "ODR data-not-allowed body copy",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Allow OpenMDict to use cellular or Wi-Fi data in Settings, then try again."
+          }
+        }
+      }
+    },
+    "odrError.dataNotAllowed.title" : {
+      "comment" : "ODR download blocked because the app's data permission is off",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Data Use Restricted"
+          }
+        }
+      }
+    },
+    "odrError.fileNotFoundAfterDownload.message" : {
+      "comment" : "ODR file-not-found body copy; %1$@ is filename, %2$@ is resource tag",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Expected file %1$@ (tag “%2$@”) wasn't present after download. This is likely an app packaging issue — please report it."
+          }
+        }
+      }
+    },
+    "odrError.fileNotFoundAfterDownload.title" : {
+      "comment" : "ODR succeeded but the expected file is missing from the bundle — likely an Xcode tag mis-configuration",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Download Incomplete"
+          }
+        }
+      }
+    },
+    "odrError.insufficientStorage.message" : {
+      "comment" : "ODR insufficient-storage body copy",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Free up some storage on this device and try again."
+          }
+        }
+      }
+    },
+    "odrError.insufficientStorage.title" : {
+      "comment" : "ODR download failed because the device is out of free disk",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not Enough Storage"
+          }
+        }
+      }
+    },
+    "odrError.noNetwork.message" : {
+      "comment" : "ODR no-network body copy",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Please check your Wi-Fi or cellular connection and try again."
+          }
+        }
+      }
+    },
+    "odrError.noNetwork.title" : {
+      "comment" : "ODR download failed because the device has no usable network",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Internet Connection"
+          }
+        }
+      }
+    },
+    "odrError.temporarilyUnavailable.message" : {
+      "comment" : "ODR temporarily-unavailable body copy",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The download couldn't reach Apple's servers. Please try again in a moment."
+          }
+        }
+      }
+    },
+    "odrError.temporarilyUnavailable.title" : {
+      "comment" : "ODR download server unreachable or timed out",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Temporarily Unavailable"
+          }
+        }
+      }
+    },
+    "odrError.unknown.message" : {
+      "comment" : "ODR unknown body copy; %@ is the underlying error.localizedDescription",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Something went wrong while downloading. Details: %@"
+          }
+        }
+      }
+    },
+    "odrError.unknown.title" : {
+      "comment" : "ODR fallback when the error doesn't match any known category",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't Download"
           }
         }
       }

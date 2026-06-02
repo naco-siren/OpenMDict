@@ -58,19 +58,19 @@
 
 import BackgroundTasks
 import Foundation
-import os.log
 
 @MainActor
 final class ArticleIndexBackgroundScheduler {
 
-    // All three nonisolated static so they're reachable from the
-    // BGTaskScheduler-queue closures. See file header.
+    // shared / taskID are `nonisolated static` so they're reachable
+    // from the BGTaskScheduler-queue closures. See file header.
     nonisolated static let shared = ArticleIndexBackgroundScheduler()
 
-    nonisolated static let log = Logger(
-        subsystem: "io.github.naco-siren.openmdict",
-        category: "ArticleIndexBGScheduler"
-    )
+    // Logging: `debugLog(...)` (nonisolated global) is safe to call from
+    // the BGTaskScheduler private queue too — no actor isolation, no
+    // SIGTRAP risk like a @MainActor closure would have. See file header
+    // for the actor-isolation footgun this avoids. Production errors
+    // surface via `print("❌ …")`.
 
     nonisolated static let taskID = AppIdentifiers.articleIndexBGTaskID
 
@@ -106,7 +106,7 @@ final class ArticleIndexBackgroundScheduler {
                 ArticleIndexBackgroundScheduler.shared.handle(task: unsafeTask)
             }
         }
-        Self.log.debug("Registered BGTask handler: \(Self.taskID)")
+        debugLog("Registered BGTask handler: \(Self.taskID)")
     }
 
     /// Submit a processing request IF indexing work is pending and the
@@ -121,7 +121,7 @@ final class ArticleIndexBackgroundScheduler {
         let hasPending = ArticleIndexService.shared.allSnapshots()
             .contains { !$0.userExcluded && ArticleIndexDispatcher.isSchedulerEligible($0.state) }
         guard hasPending else {
-            Self.log.debug("scheduleIfNeeded: nothing pending, not submitting")
+            debugLog("scheduleIfNeeded: nothing pending, not submitting")
             return
         }
         let request = BGProcessingTaskRequest(identifier: Self.taskID)
@@ -129,11 +129,11 @@ final class ArticleIndexBackgroundScheduler {
         request.requiresNetworkConnectivity = false // fully on-device
         do {
             try BGTaskScheduler.shared.submit(request)
-            Self.log.info("Submitted background indexing request")
+            debugLog("Submitted background indexing request")
         } catch {
             // Common on the simulator (BGTaskScheduler unsupported) and
             // when the per-app pending-request cap is hit — non-fatal.
-            Self.log.error("BGTask submit failed: \(String(describing: error))")
+            print("❌ BGTask submit failed: \(String(describing: error))")
         }
     }
 
@@ -141,7 +141,7 @@ final class ArticleIndexBackgroundScheduler {
     /// task is about to expire; then reschedule if work remains. Runs on
     /// MainActor — register()'s closure hops here via Task.
     private func handle(task: BGProcessingTask) {
-        Self.log.info("BGTask launched — starting background indexing pass")
+        debugLog("BGTask launched — starting background indexing pass")
 
         let pass = Task { @MainActor in
             await ArticleIndexDispatcher.shared.runBackgroundPass(
@@ -163,7 +163,7 @@ final class ArticleIndexBackgroundScheduler {
             // Chain another request if anything is still unfinished.
             self.scheduleIfNeeded()
             unsafeTask.setTaskCompleted(success: !pass.isCancelled)
-            Self.log.info("BGTask completed (interrupted=\(pass.isCancelled))")
+            debugLog("BGTask completed (interrupted=\(pass.isCancelled))")
         }
     }
 
@@ -176,7 +176,7 @@ final class ArticleIndexBackgroundScheduler {
     /// stays on the CPU encoder.
     func cancelCurrentPassAndWait() async {
         guard let pass = runningPass else { return }
-        Self.log.info("cancelCurrentPassAndWait: foreground take-over")
+        debugLog("cancelCurrentPassAndWait: foreground take-over")
         pass.cancel()
         ArticleIndexDispatcher.shared.cancelCurrentBuild()
         _ = await pass.value
@@ -196,7 +196,7 @@ final class ArticleIndexBackgroundScheduler {
             // Inferred nonisolated (enclosing func is nonisolated).
             // ONLY nonisolated APIs synchronously (Task.cancel + Self.log);
             // hop for the @MainActor dispatcher call.
-            Self.log.info("BGTask expiring — interrupting pass")
+            debugLog("BGTask expiring — interrupting pass")
             pass.cancel()
             Task { @MainActor in
                 ArticleIndexDispatcher.shared.cancelCurrentBuild()

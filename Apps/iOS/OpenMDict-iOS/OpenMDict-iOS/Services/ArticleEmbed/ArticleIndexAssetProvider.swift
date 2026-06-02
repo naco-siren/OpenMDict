@@ -34,11 +34,50 @@
 //  ODR-only is safe — extensions don't try to load the encoder anyway.
 //
 
+import Combine
 import Foundation
-import os.log
 
 @MainActor
 final class ArticleIndexAssetProvider {
+
+    // MARK: - State machine
+
+    /// Single source of truth for "is the model usable?".
+    ///
+    /// All UI / dispatcher decisions about overlay rendering, retry
+    /// availability, and "can I start indexing?" read this. The previous
+    /// design had VC + dispatcher each maintaining their own caches +
+    /// running a separate `conditionallyBeginAccessingResources` probe;
+    /// the probe occasionally hung indefinitely on the system's internal
+    /// ODR reservation state (same layer as `beginAccessingResources`),
+    /// which made the overlay get stuck in the pessimistic-loading
+    /// branch forever. State machine eliminates the probe and the race.
+    enum State: Sendable, Equatable {
+        /// Have not attempted acquire yet. Initial state on every app
+        /// launch (dispatcher singleton is per-process).
+        case unknown
+        /// Acquire in flight. `progress` is nil until NSProgress KVO
+        /// emits the first fraction; the UI should render an
+        /// indeterminate spinner during that window.
+        case acquiring(progress: Double?)
+        /// Successfully held — `Bundle.main.url(...)` resolves the model
+        /// + vocab paths. `assets` is non-nil.
+        case ready
+        /// Last acquire attempt failed with a classified error. `retry()`
+        /// can re-enter the state machine.
+        case failed(ODRError)
+    }
+
+    @Published private(set) var state: State = .unknown
+
+    /// Resolved URLs once `state == .ready`. Read by the dispatcher
+    /// when it picks up a job. Nil in any other state.
+    @Published private(set) var assets: Assets?
+
+    /// In-flight `ensureAcquired` Task so concurrent callers (VC's
+    /// `viewWillAppear` + dispatcher's `executeJob`) coalesce onto a
+    /// single attempt rather than starting two `NSBundleResourceRequest`s.
+    private var ensureTask: Task<Void, Never>?
 
     static let shared = ArticleIndexAssetProvider()
 
@@ -80,10 +119,8 @@ final class ArticleIndexAssetProvider {
         }
     }
 
-    private let log = Logger(
-        subsystem: "io.github.naco-siren.openmdict",
-        category: "ArticleIndexAssetProvider"
-    )
+    // Logging convention: `debugLog(...)` for info, `print("❌ …")` for
+    // errors. Matches the rest of the codebase (PresetDictionaryService etc.).
 
     /// The currently-held resource request. Non-nil between a successful
     /// acquire and the matching release. Held so the OS keeps the
@@ -99,24 +136,93 @@ final class ArticleIndexAssetProvider {
 
     // MARK: - Public API
 
-    /// Is the resource tag currently downloaded + locally available?
-    /// Cheap, doesn't trigger a download. Useful for the master toggle
-    /// to show "Model not downloaded yet" hint before the user starts
-    /// the first indexing job.
-    func resourcesAvailableLocally() async -> Bool {
-        let probe = NSBundleResourceRequest(tags: [Self.resourceTag])
-        return await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
-            probe.conditionallyBeginAccessingResources { available in
-                if available {
-                    // We weren't planning to hold this — end it now. The
-                    // separate acquire() call will create its own held
-                    // request when the encoder actually needs the URLs.
-                    probe.endAccessingResources()
-                }
-                cont.resume(returning: available)
-            }
+    /// Ensure `state` reaches `.ready` or `.failed`. Idempotent: if a
+    /// previous `ensureAcquired()` is still running, this awaits its
+    /// completion instead of starting a second attempt. Concurrent
+    /// callers (VC's `viewWillAppear` + dispatcher's `executeJob`)
+    /// safely coalesce onto the same attempt.
+    ///
+    /// Doesn't throw — failures are surfaced via `state = .failed(odr)`.
+    /// Callers that need to react to success/failure should observe
+    /// `$state` rather than handle return values.
+    func ensureAcquired() async {
+        // Already settled — nothing to do.
+        if case .ready = state {
+            debugLog("AssetProvider.ensureAcquired: already ready, no-op")
+            return
         }
+        // In flight — piggyback on the existing task.
+        if let existing = ensureTask {
+            debugLog("AssetProvider.ensureAcquired: awaiting existing task")
+            await existing.value
+            return
+        }
+        debugLog("AssetProvider.ensureAcquired: starting fresh acquire from state=\(state)")
+        state = .acquiring(progress: nil)
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            do {
+                let acquired = try await self.acquire(progress: { [weak self] frac in
+                    // KVO is on an arbitrary queue; hop to MainActor to
+                    // touch @Published state.
+                    Task { @MainActor in
+                        guard let self else { return }
+                        if case .acquiring = self.state {
+                            self.state = .acquiring(progress: frac)
+                        }
+                    }
+                })
+                self.assets = acquired
+                self.state = .ready
+                debugLog("AssetProvider.ensureAcquired: success → .ready")
+            } catch let assetError as AssetError {
+                self.assets = nil
+                switch assetError {
+                case .downloadFailed(let odr):
+                    self.state = .failed(odr)
+                case .missingFromBundle(let what):
+                    self.state = .failed(.fileNotFoundAfterDownload(
+                        tag: Self.resourceTag, filename: what
+                    ))
+                }
+                print("❌ AssetProvider.ensureAcquired: failed \(assetError) → state=\(self.state)")
+            } catch {
+                self.assets = nil
+                self.state = .failed(.unknown(underlyingDescription: error.localizedDescription))
+                print("❌ AssetProvider.ensureAcquired: failed unexpectedly \(error) → state=\(self.state)")
+            }
+            self.ensureTask = nil
+        }
+        ensureTask = task
+        await task.value
     }
+
+    /// User-driven retry from the error overlay. Clears the failure
+    /// state and re-enters `ensureAcquired()`. No-op when not in a
+    /// failed state.
+    func retry() async {
+        guard case .failed = state else {
+            debugLog("AssetProvider.retry: not in .failed state (current=\(state)), no-op")
+            return
+        }
+        debugLog("AssetProvider.retry: clearing .failed, re-entering ensureAcquired")
+        state = .unknown
+        await ensureAcquired()
+    }
+
+    /// Manual ceiling on how long a single `acquire()` will wait on the
+    /// system's `beginAccessingResources` before classifying it as
+    /// `.temporarilyUnavailable` and bailing.
+    ///
+    /// `NSBundleResourceRequest` has no built-in timeout: in airplane
+    /// mode the ODR layer hangs indefinitely waiting for reachability
+    /// to come back, which leaves the UI stuck on "Downloading…" with
+    /// no progress and no way to surface "No Internet" to the user.
+    /// 45 s is long enough to absorb a slow cold-start (Apple's CDN
+    /// initial DNS + TLS handshake can be ~5–10 s on cellular), short
+    /// enough that the user reaches actionable error UI in under a
+    /// minute rather than waiting on a hung system call.
+    private static let acquireTimeoutSeconds: TimeInterval = 45
 
     /// Acquire the model + vocab URLs. If a previous acquire() is still
     /// held (no matching release), returns the same URLs immediately —
@@ -130,16 +236,31 @@ final class ArticleIndexAssetProvider {
     /// `@Sendable` so Swift 6 accepts the cross-actor capture.
     ///
     /// Throws `AssetError.downloadFailed` if the download fails (network
-    /// down, server unavailable, etc.) or `.missingFromBundle` if the
-    /// download succeeded but the URLs still don't resolve (shouldn't
-    /// happen with correct Xcode tagging).
+    /// down, server unavailable, manual timeout) or `.missingFromBundle`
+    /// if the download succeeded but the URLs still don't resolve
+    /// (shouldn't happen with correct Xcode tagging).
+    ///
+    /// Failure paths ALWAYS call `request.progress.cancel()` +
+    /// `request.endAccessingResources()` before throwing — without this,
+    /// the system's internal reservation for the tag stays "in flight"
+    /// even after our request is gone, and subsequent acquire attempts
+    /// (across app relaunches!) hang waiting on the zombie reservation.
+    /// This caused a hang on the second and third relaunch.
     func acquire(progress: (@Sendable (Double) -> Void)? = nil) async throws -> Assets {
         // If a prior acquire() is still held, just return the URLs.
         // The system has already loaded the resources locally; this
         // path is a fast resolve for "second + subsequent dicts in a
         // BG pass" (no redownload).
         if activeRequest != nil {
-            return try Self.resolveBundleURLs()
+            debugLog("AssetProvider.acquire: fast path (activeRequest held)")
+            let urls = try Self.resolveBundleURLs()
+            // Keep state in sync — fast-path callers (e.g. a second
+            // job after the first) won't re-trigger the state
+            // machine but the @Published state should still reflect
+            // .ready so VC overlays don't stale.
+            self.assets = urls
+            if case .ready = state {} else { state = .ready }
+            return urls
         }
 
         let request = NSBundleResourceRequest(tags: [Self.resourceTag])
@@ -161,30 +282,94 @@ final class ArticleIndexAssetProvider {
             }
         }
 
-        log.info("Acquiring resource tag '\(Self.resourceTag)' (may trigger download)")
+        debugLog("Acquiring resource tag '\(Self.resourceTag)' (may trigger download, timeout=\(Self.acquireTimeoutSeconds)s)")
+
+        // Run beginAccessingResources + a sleep-throws racer in a
+        // ThrowingTaskGroup. Whichever finishes first wins; the other
+        // is cancelled. The sleep-throws task supplies the manual
+        // timeout that NSBundleResourceRequest itself doesn't have.
+        //
+        // `request` crosses the actor boundary into the unstructured
+        // task group; Swift 6 strict concurrency flags this because
+        // NSBundleResourceRequest isn't declared Sendable. The class
+        // IS thread-safe per Apple's headers (the begin/end and the
+        // progress KVO are all callable from any queue), so we
+        // explicitly mark the local capture as `nonisolated(unsafe)`.
+        nonisolated(unsafe) let unsafeRequest = request
         do {
-            try await request.beginAccessingResources()
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    try await unsafeRequest.beginAccessingResources()
+                }
+                group.addTask {
+                    try await Task.sleep(
+                        nanoseconds: UInt64(Self.acquireTimeoutSeconds * 1_000_000_000)
+                    )
+                    throw AssetTimeoutMarker()
+                }
+                // Await whichever completes first. Then cancel the other.
+                // `group.next()` returns nil only after every task ends, so
+                // this never throws nil — but Swift requires the !.
+                try await group.next()!
+                group.cancelAll()
+            }
         } catch {
+            // Failure path — release the system-side reservation BEFORE
+            // throwing. Skipping this is what caused the zombie-tag hang
+            // across relaunches: the OS thought the previous process was
+            // still acquiring this tag, so new requests queued behind
+            // the dead one indefinitely.
+            request.progress.cancel()
+            request.endAccessingResources()
             progressObservation = nil
-            let classified = ODRError.classify(error)
-            log.error("Resource acquire failed: \(String(describing: error)) → classified=\(String(describing: classified))")
+
+            let classified: ODRError = (error is AssetTimeoutMarker)
+                ? .temporarilyUnavailable
+                : ODRError.classify(error)
+            print("❌ Resource acquire failed: \(String(describing: error)) → classified=\(String(describing: classified))")
             throw AssetError.downloadFailed(classified)
         }
         progressObservation = nil
         activeRequest = request
-        log.info("Resources acquired")
+        debugLog("Resources acquired")
         return try Self.resolveBundleURLs()
     }
 
+    /// Sentinel thrown by the timeout task in `acquire`'s ThrowingTaskGroup
+    /// so the catch block can distinguish "we timed out" from "the system
+    /// raised an honest NSURL/NSCocoa error." The user-facing classification
+    /// stays `.temporarilyUnavailable` either way.
+    private struct AssetTimeoutMarker: Error {}
+
     /// Drop the held request. The system may purge the downloaded files
     /// under storage pressure after this. Idempotent — safe to call when
-    /// nothing is held. Dispatcher calls this from `evictEncoder` so the
-    /// asset lifetime matches the encoder's.
+    /// nothing is held.
+    ///
+    /// **No callers in production code today.** An earlier design called
+    /// this from `Dispatcher.evictEncoder` (the 60 s idle timer + memory
+    /// warning paths) to "match the encoder lifetime", but that
+    /// conflated two different resources:
+    ///   - Encoder = ~80 MB RAM — eviction frees RAM pressure
+    ///   - ODR file = ~43 MB disk — Apple's ODR layer purges it
+    ///     automatically under storage pressure; no manual release needed
+    /// Coupling them caused a nasty UX bug: every successful indexing
+    /// pass was followed 60 s later by a forced state-machine reset
+    /// (state → `.unknown`) which made the overview VC re-render the
+    /// "Downloading Language Model" overlay even though the model was
+    /// still on disk. Decoupled in this commit.
+    ///
+    /// Kept callable for future scenarios (explicit "free storage"
+    /// affordance, master toggle off cleanup, etc.) but expect to
+    /// audit those callsites — the state-machine reset to `.unknown`
+    /// is correct for "user said 'forget this'", incorrect for "we're
+    /// briefly low on RAM".
     func release() {
         guard let request = activeRequest else { return }
-        log.info("Releasing resource tag '\(Self.resourceTag)'")
+        debugLog("AssetProvider.release: releasing resource tag '\(Self.resourceTag)'")
         request.endAccessingResources()
         activeRequest = nil
+        assets = nil
+        state = .unknown
         progressObservation = nil
     }
 

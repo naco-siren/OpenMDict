@@ -85,6 +85,7 @@ final class ArticleIndexOverviewViewController: UIViewController {
         // DeviceChipInfo.prefersCPUForeground tier rule in the dispatcher.
         // Gated by VERBOSE_LOGGING (zero overhead in release).
         debugLog("📱 DeviceChipInfo (overview): \(DeviceChipInfo.summary)")
+        debugLog("ArticleIndexOverviewVC.viewDidLoad: starting")
         title = L10n.ArticleIndex.title
         view.backgroundColor = .systemGroupedBackground
         navigationItem.largeTitleDisplayMode = .never
@@ -92,11 +93,33 @@ final class ArticleIndexOverviewViewController: UIViewController {
         setupDataSource()
         reloadDicts()
         applySnapshot(animated: false)
+        // Prime caches from dispatcher + provider BEFORE subscribing so
+        // the first `updateModelOverlay()` reflects what's already in
+        // flight (e.g. came back to the VC during an in-progress
+        // download initiated by the previous appearance).
+        currentGatePauseReasons = ArticleIndexDispatcher.shared.pauseReasons
+        currentProviderState = ArticleIndexAssetProvider.shared.state
+        updateModelOverlay()
         subscribe()
-        // Auto-backfill: when feature is on, enqueue every eligible dict
-        // (scheduler eligibility = !userExcluded && state ∈ {.notIndexed,
-        // orphan .indexing}; centralized in Dispatcher.isSchedulerEligible).
-        ArticleIndexCoordinator.shared.backfillIfEnabled()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Trigger the provider's state machine + backfill. The provider's
+        // `ensureAcquired` is idempotent: it no-ops if already `.ready`,
+        // piggybacks on the in-flight Task if `.acquiring`, and starts
+        // fresh from `.unknown` or `.failed`. The `$state` subscription
+        // catches every transition for overlay updates.
+        guard UserDefaults.standard.articleSearchEnabled else {
+            debugLog("ArticleIndexOverviewVC.viewWillAppear: master toggle off, no acquire trigger")
+            return
+        }
+        Task { [weak self] in
+            debugLog("ArticleIndexOverviewVC.viewWillAppear: ensureAcquired + backfillIfEnabled")
+            await ArticleIndexAssetProvider.shared.ensureAcquired()
+            guard self != nil else { return }
+            ArticleIndexCoordinator.shared.backfillIfEnabled()
+        }
     }
 
     // MARK: - Setup
@@ -118,7 +141,31 @@ final class ArticleIndexOverviewViewController: UIViewController {
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         collectionView.delegate = self
         view.addSubview(collectionView)
+
+        // Model-status overlay. Visible only when the master toggle is
+        // ON and the model isn't currently usable (downloading or in
+        // some classified error state). When visible, covers the dict
+        // sections — the master toggle row keeps showing in the
+        // collection underneath because the overlay sits BELOW it
+        // (anchored to the master section's bottom). On model-ready
+        // states the overlay is hidden and dict sections render
+        // normally.
+        modelStatusView = EmptyStateView()
+        modelStatusView.translatesAutoresizingMaskIntoConstraints = false
+        modelStatusView.isHidden = true
+        modelStatusView.backgroundColor = .systemGroupedBackground
+        view.addSubview(modelStatusView)
+        NSLayoutConstraint.activate([
+            modelStatusView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 120),
+            modelStatusView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            modelStatusView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            modelStatusView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
+
+    /// Model-status overlay — see `setupCollectionView()` for the
+    /// rationale. Mutated by `updateModelOverlay()`.
+    private var modelStatusView: EmptyStateView!
 
     private func setupDataSource() {
         let toggleReg = UICollectionView.CellRegistration<UICollectionViewListCell, AIItem> {
@@ -305,18 +352,23 @@ final class ArticleIndexOverviewViewController: UIViewController {
             && (snap.state == .indexing || snap.state == .notIndexed)
         if isEligibleForGateOverride,
            let primary = ArticleIndexDispatcher.primaryReason(from: currentGatePauseReasons) {
-            // For `.downloadingModel`, swap in the progress-aware variant
-            // when the fraction is known. The static label is a fallback
-            // for the brief window before NSBundleResourceRequest's KVO
-            // emits the first tick.
-            let subtitle: String
-            if primary == .downloadingModel, let progress = currentDownloadProgress {
-                subtitle = L10n.ArticleIndex.PauseReason.downloadingModel(Int(progress * 100))
-            } else {
-                subtitle = primary.localizedLabel
+            // `.downloadingModel` is intentionally NOT shown per-cell —
+            // when the model is downloading, the whole VC switches to a
+            // full-surface EmptyStateView overlay (see `updateModelOverlay()`)
+            // so the user sees one clear "Downloading…" status instead
+            // of N duplicated cells. Cells in this state render as
+            // normal "queued" rows (the spinner just hasn't kicked in
+            // yet because the encoder isn't loaded).
+            guard primary != .downloadingModel else {
+                return StatusPresentation(
+                    subtitle: L10n.ArticleIndex.statusToBeIndexed,
+                    entriesLine: entriesLine,
+                    subtitleColor: .secondaryLabel,
+                    trailingAccessories: [stateIconAccessory("clock.circle", color: .secondaryLabel)]
+                )
             }
             return StatusPresentation(
-                subtitle: subtitle,
+                subtitle: primary.localizedLabel,
                 entriesLine: entriesLine,
                 subtitleColor: .secondaryLabel,
                 trailingAccessories: [stateIconAccessory("pause.circle.fill", color: .systemOrange)]
@@ -427,13 +479,6 @@ final class ArticleIndexOverviewViewController: UIViewController {
     /// Snapshot of `Dispatcher.pauseReasons` cached so cell renderer reads
     /// it synchronously. Updated by the subscribe() Combine pipeline.
     private var currentGatePauseReasons: Set<ArticleIndexDispatcher.PauseReason> = []
-
-    /// Snapshot of `Dispatcher.downloadProgress` — fraction in [0, 1]
-    /// while the ODR model download is in flight, nil otherwise.
-    /// Combined with `.downloadingModel` in `currentGatePauseReasons`
-    /// to render "Downloading language model (38%)…" on the row being
-    /// acquired.
-    private var currentDownloadProgress: Double?
 
     // MARK: - Cell helper widgets
 
@@ -571,21 +616,84 @@ final class ArticleIndexOverviewViewController: UIViewController {
                 guard self.currentGatePauseReasons != reasons else { return }
                 self.currentGatePauseReasons = reasons
                 self.reconfigureDictRows()
+                self.updateModelOverlay()
             }
             .store(in: &cancellables)
-        // ODR download progress — only meaningful while
-        // `.downloadingModel` is in `pauseReasons`, but subscribing
-        // unconditionally is cheaper than gating on the union. Ticks
-        // many times during a download (KVO every few %).
-        ArticleIndexDispatcher.shared.$downloadProgress
+        // AssetProvider state machine — single source of truth for the
+        // overlay. Transitions:
+        //   .unknown → .acquiring(nil) → .acquiring(progress) → .ready
+        //                            ↘ .failed(odr)
+        //   .failed → (retry) → .unknown → .acquiring → …
+        ArticleIndexAssetProvider.shared.$state
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] progress in
+            .sink { [weak self] state in
                 guard let self else { return }
-                guard self.currentDownloadProgress != progress else { return }
-                self.currentDownloadProgress = progress
-                self.reconfigureDictRows()
+                debugLog("ArticleIndexOverviewVC: provider state → \(state)")
+                self.currentProviderState = state
+                self.updateModelOverlay()
             }
             .store(in: &cancellables)
+    }
+
+    /// Cached `AssetProvider.$state`. Single source of truth for the
+    /// overlay; replaces the previous trio (`modelLocallyAvailable` +
+    /// `currentDownloadProgress` + `currentModelAcquireError`) which
+    /// drifted independently and raced on relaunch.
+    private var currentProviderState: ArticleIndexAssetProvider.State = .unknown
+
+    // MARK: - Model overlay state machine
+
+    /// Decide whether the EmptyStateView overlay should be visible and,
+    /// if so, which presentation. Driven by `AssetProvider.$state`
+    /// (single source of truth) + the master-toggle UserDefault.
+    ///
+    ///   master toggle off                              → hidden
+    ///   provider .unknown                              → .loading (indeterminate)
+    ///   provider .acquiring(nil)                       → .loading (indeterminate)
+    ///   provider .acquiring(progress)                  → .loading (progress%)
+    ///   provider .failed(odr)                          → .error(odr, retry)
+    ///   provider .ready                                → hidden (cells show)
+    private func updateModelOverlay() {
+        let masterOn = UserDefaults.standard.articleSearchEnabled
+        guard masterOn else {
+            modelStatusView.isHidden = true
+            return
+        }
+
+        switch currentProviderState {
+        case .ready:
+            modelStatusView.isHidden = true
+
+        case .failed(let odr):
+            modelStatusView.configure(.error(
+                odr,
+                retryTitle: L10n.ArticleIndex.modelOverlayRetry,
+                retry: { ArticleIndexDispatcher.shared.retryModelAcquire() }
+            ))
+            modelStatusView.isHidden = false
+
+        case .unknown:
+            modelStatusView.configure(.loading(
+                icon: "arrow.down.circle",
+                title: L10n.ArticleIndex.modelOverlayDownloadingTitle,
+                message: L10n.ArticleIndex.modelOverlayDownloadingMessageIndeterminate
+            ))
+            modelStatusView.isHidden = false
+
+        case .acquiring(let progress):
+            let message: String
+            if let progress {
+                message = L10n.ArticleIndex.modelOverlayDownloadingMessage(pct: Int(progress * 100))
+            } else {
+                message = L10n.ArticleIndex.modelOverlayDownloadingMessageIndeterminate
+            }
+            modelStatusView.configure(.loading(
+                icon: "arrow.down.circle",
+                title: L10n.ArticleIndex.modelOverlayDownloadingTitle,
+                message: message
+            ))
+            modelStatusView.isHidden = false
+        }
     }
 
     // MARK: - Trailing swipe (pause action)
@@ -634,10 +742,20 @@ final class ArticleIndexOverviewViewController: UIViewController {
     private func setMasterEnabled(_ on: Bool) {
         UserDefaults.standard.articleSearchEnabled = on
         if on {
-            ArticleIndexCoordinator.shared.backfillIfEnabled()
+            // Same as viewWillAppear: ensure the provider's state
+            // machine kicks off (idempotent if already in flight or
+            // ready), then backfill so per-dict jobs route through
+            // the dispatcher.
+            Task {
+                debugLog("ArticleIndexOverviewVC.setMasterEnabled(true): ensureAcquired + backfillIfEnabled")
+                await ArticleIndexAssetProvider.shared.ensureAcquired()
+                ArticleIndexCoordinator.shared.backfillIfEnabled()
+            }
         } else {
             ArticleIndexDispatcher.shared.cancelAll()
         }
+        // Toggle drives overlay visibility — see updateModelOverlay()
+        updateModelOverlay()
         applySnapshot(animated: true)
     }
 }
