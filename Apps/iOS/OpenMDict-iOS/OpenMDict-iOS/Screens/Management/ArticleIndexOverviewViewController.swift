@@ -832,6 +832,10 @@ final class ArticleIndexOverviewViewController: UIViewController {
             // reservation so iOS reclaims the ~80 MB model file.
             ArticleIndexCoordinator.shared.deleteAllSidecars()
             ArticleIndexAssetProvider.shared.release()
+            // Drop the cached query encoder too, so its CoreML model memory
+            // goes away with the ODR file (the article scope stops querying
+            // the moment the toggle flips off).
+            ArticleSearchService.shared.evictEncoder()
         }
         // Toggle drives overlay visibility — see updateModelOverlay()
         updateModelOverlay()

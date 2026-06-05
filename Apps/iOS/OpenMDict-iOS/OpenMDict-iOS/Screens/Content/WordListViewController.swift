@@ -132,6 +132,13 @@ class WordListViewController: UIViewController {
     /// scope toggles so its query / context state survives.
     private var semanticSession: SemanticLookupSession?
 
+    /// Created lazily on first flip into `.article` scope *when the enabled
+    /// dicts are fully indexed* (a queryable sidecar exists). Drives real
+    /// article-content search via `ArticleSearchService`. Stays nil while
+    /// indexing is incomplete — the scope shows "coming soon" then. Reused
+    /// across scope toggles so its query / context survives.
+    private var articleSession: ArticleLookupSession?
+
     /// The session actually backing the publishers right now. Switches between
     /// `spellingSession` and `semanticSession` as the user toggles scope.
     private var activeSession: (any LookupSessionProtocol)?
@@ -482,14 +489,20 @@ class WordListViewController: UIViewController {
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.applyScopeBarRefresh()
-                // Indexing-progress ticks can flip the article scope between
-                // its "coming soon" and history empty states — the moment the
-                // last enabled dict finishes, `articleScopeFullyIndexed()`
-                // turns true. Re-render so the transition is live instead of
-                // deferred to the next scope flip. (`rebuildSections` calls
-                // `updateEmptyState`; both are cheap and no-op on other scopes
-                // because we gate on `.article`.)
+                // Indexing-progress ticks can flip the article scope from
+                // "coming soon" to live search — the moment the last enabled
+                // dict finishes, `articleScopeFullyIndexed()` turns true. If
+                // the user is already sitting on the article scope when that
+                // happens there's no scope flip to bring the session online,
+                // so do it here (mirrors setScope(.article)). Then re-render.
                 if self.currentScope == .article {
+                    if self.articleScopeFullyIndexed(), self.articleSession == nil {
+                        let new = ArticleLookupSession()
+                        new.setContext(self.resolvedContext)
+                        new.updateQuery(self.searchController.searchBar.text ?? "")
+                        self.articleSession = new
+                        self.setActiveSession(new)
+                    }
                     self.rebuildSections()
                 }
             }
@@ -635,10 +648,18 @@ class WordListViewController: UIViewController {
                     ))
                 }
             case .article:
-                // No real article-content session yet — see SearchScope
-                // docstring. Sections stay empty; `updateEmptyState`
-                // renders the "coming soon" placeholder.
-                break
+                // Article-content results: each is a concrete article in a
+                // specific dict (word + source dict). Render as `.searchResult`
+                // rows — same cell + tap-to-open routing as the spelling
+                // scope — so a tap opens that dict's article. Stays empty
+                // while indexing is incomplete (activeSession is nil then),
+                // in which case `updateEmptyState` shows "coming soon".
+                if !displayedWords.isEmpty {
+                    newSections.append(SectionData(
+                        type: .searchResults,
+                        rows: displayedWords.map { .searchResult($0) }
+                    ))
+                }
             }
         }
 
@@ -944,6 +965,7 @@ class WordListViewController: UIViewController {
         // Keeping the two in lock-step is cheaper than chasing every edge.
         spellingSession?.setContext(group: group)
         semanticSession?.setContext(group: group)
+        articleSession?.setContext(group: group)
         resolvedContext = .group(group)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
@@ -956,6 +978,7 @@ class WordListViewController: UIViewController {
     func loadWords(for dict: MDict) {
         spellingSession?.setContext(dict: dict)
         semanticSession?.setContext(dict: dict)
+        articleSession?.setContext(dict: dict)
         resolvedContext = .dictionary(dict)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
@@ -1016,36 +1039,25 @@ class WordListViewController: UIViewController {
             return
         }
 
-        // Article scope. The query-time consumer hasn't shipped, so we
-        // can't actually run a full-text search yet — but we CAN show the
-        // right empty state:
-        //
-        //   - any non-empty query → "coming soon" (no search to run)
-        //   - empty / idle:
-        //       · enabled dicts NOT all indexed → "coming soon" (the index
-        //         is still being built; explain it's on the way)
-        //       · enabled dicts ALL indexed → fall through to the normal
-        //         idle/activeEmpty branches below, which render lookup
-        //         history + clipboard exactly like the semantic scope. This
-        //         is the case where every *enabled* dict (Bible) was
-        //         indexed, with only *disabled* dicts (WordNet) unfinished —
-        //         "coming soon" was wrong there.
-        if currentScope == .article {
-            let hasQuery: Bool
-            if case .activeWithQuery = displayState { hasQuery = true } else { hasQuery = false }
-            if hasQuery || !articleScopeFullyIndexed() {
-                configureEmptyState(
-                    icon: "text.magnifyingglass",
-                    title: L10n.WordList.articleScopeComingSoonTitle,
-                    message: L10n.WordList.articleScopeComingSoonMessage,
-                    buttonTitle: nil
-                )
-                emptyStateView.isHidden = false
-                tableView.isHidden = true
-                return
-            }
-            // else: all enabled dicts indexed + no active query → fall
-            // through to the semantic-style history/clipboard logic.
+        // Article scope: "coming soon" ONLY while the enabled dicts aren't
+        // all indexed yet (no queryable sidecar exists, so there's literally
+        // nothing to search — explain it's on the way, regardless of whether
+        // the user has typed). Once every enabled dict is indexed, fall
+        // through to the same idle / activeEmpty / activeWithQuery logic as
+        // the other scopes: history + clipboard when empty, real results /
+        // no-results / searching spinner when querying. This is the fix for
+        // the case where every *enabled* dict (Bible) was indexed; only a
+        // *disabled* dict (WordNet) was unfinished — so search should run.
+        if currentScope == .article && !articleScopeFullyIndexed() {
+            configureEmptyState(
+                icon: "text.magnifyingglass",
+                title: L10n.WordList.articleScopeComingSoonTitle,
+                message: L10n.WordList.articleScopeComingSoonMessage,
+                buttonTitle: nil
+            )
+            emptyStateView.isHidden = false
+            tableView.isHidden = true
+            return
         }
 
         switch displayState {
@@ -1594,11 +1606,26 @@ extension WordListViewController {
             }
             setActiveSession(semanticSession)
         case .article:
-            // No real article-content session exists yet — see the
-            // SearchScope.article docstring. Drop the active session so
-            // `updateEmptyState` can show a "coming soon" placeholder
-            // instead of running queries through a stale session.
-            setActiveSession(nil)
+            // Article-content search is live ONLY when the enabled dicts in
+            // this context have all finished indexing (a queryable sidecar
+            // exists). Until then there's nothing to search — leave the
+            // active session nil and `updateEmptyState` shows "coming soon".
+            if articleScopeFullyIndexed() {
+                if articleSession == nil {
+                    let new = ArticleLookupSession()
+                    new.setContext(resolvedContext)
+                    // Inherit the query so flipping in from another scope
+                    // shows article results for the same text (mirrors the
+                    // semantic-scope inheritance above).
+                    if let prev = prevActive {
+                        new.updateQuery(prev.currentQuery)
+                    }
+                    articleSession = new
+                }
+                setActiveSession(articleSession)
+            } else {
+                setActiveSession(nil)
+            }
         }
 
         // Explicit query injection — used by the candidate-tap path to seed
