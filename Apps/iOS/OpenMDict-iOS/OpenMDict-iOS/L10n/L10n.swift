@@ -2533,6 +2533,25 @@ nonisolated enum L10n {
             }
         }
 
+        /// In-app result-count tier knob (Fewer / Default / More) shown under
+        /// the master toggle — the article-search counterpart to the semantic
+        /// results setting in Settings.bundle. Kept in-app because the feature
+        /// is iOS 26+ and Settings.bundle can't conditionally hide a row.
+        enum ResultsCount {
+            static var title: String {
+                NSLocalizedString("articleIndex.resultsCount.title", value: "Results per dictionary", comment: "Setting label: how many article-content matches to return per dictionary")
+            }
+            static var few: String {
+                NSLocalizedString("articleIndex.resultsCount.few", value: "Fewer", comment: "Article-search result-count tier: fewer results")
+            }
+            static var `default`: String {
+                NSLocalizedString("articleIndex.resultsCount.default", value: "Default", comment: "Article-search result-count tier: default")
+            }
+            static var more: String {
+                NSLocalizedString("articleIndex.resultsCount.more", value: "More", comment: "Article-search result-count tier: more results")
+            }
+        }
+
         static var statusIndexed: String {
             NSLocalizedString("articleIndex.status.indexed", value: "Indexed", comment: "Status: dictionary fully indexed for article search")
         }

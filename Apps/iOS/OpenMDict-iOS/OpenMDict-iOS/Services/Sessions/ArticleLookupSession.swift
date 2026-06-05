@@ -34,9 +34,6 @@ import OpenMDictKit
 @MainActor
 final class ArticleLookupSession: ObservableObject, LookupSessionProtocol {
 
-    /// Global top-K returned across all searched dicts. Fixed for now; a
-    /// user-facing "result count" setting is out of scope.
-    private static let topK: Int = 30
 
     // MARK: - Inputs
 
@@ -117,8 +114,11 @@ final class ArticleLookupSession: ObservableObject, LookupSessionProtocol {
 
         searchTask = Task { [refs, nameById, trimmed] in
             do {
+                // Read the tier knob fresh each search so a change in the
+                // overview's Results-per-dictionary setting takes effect on
+                // the next query without any cross-screen plumbing.
                 let matches = try await ArticleSearchService.shared.search(
-                    query: trimmed, in: refs, topK: Self.topK
+                    query: trimmed, in: refs, topK: ArticleResultsTier.current.k
                 )
                 guard !Task.isCancelled else { return }
                 let items: [WordDisplayItem] = matches.map { m in

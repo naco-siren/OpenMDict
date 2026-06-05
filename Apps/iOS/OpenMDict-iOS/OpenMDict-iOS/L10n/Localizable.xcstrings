@@ -49217,6 +49217,102 @@
         }
       }
     },
+    "articleIndex.resultsCount.title": {
+      "comment": "Setting label: how many article-content matches to return per dictionary",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Results per dictionary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每本词典的结果数"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每本詞典的結果數"
+          }
+        }
+      }
+    },
+    "articleIndex.resultsCount.few": {
+      "comment": "Article-search result-count tier: fewer results",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fewer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "较少"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "較少"
+          }
+        }
+      }
+    },
+    "articleIndex.resultsCount.default": {
+      "comment": "Article-search result-count tier: default",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默認"
+          }
+        }
+      }
+    },
+    "articleIndex.resultsCount.more": {
+      "comment": "Article-search result-count tier: more results",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "较多"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "較多"
+          }
+        }
+      }
+    },
     "articleIndex.masterToggle.disable.message.none": {
       "comment": "Disable-confirmation body when zero dictionaries are currently indexed — nothing to clear, only the re-index caveat",
       "extractionState": "manual",

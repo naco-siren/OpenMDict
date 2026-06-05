@@ -59,6 +59,12 @@ private nonisolated enum AIItem: Hashable, Sendable {
     /// "All dictionaries are enabled"). Rendered in the Disabled
     /// section when both partitions are empty.
     case emptyNoDicts
+    /// Per-dictionary article-search result-count knob (Fewer / Default /
+    /// More). Lives in the toggleMaster section under the switch, shown only
+    /// while the master toggle is on. In-app (not Settings.bundle) because the
+    /// feature is iOS 26+ and Settings.bundle can't conditionally hide a row —
+    /// see ArticleResultsTier.
+    case resultsCount
 }
 
 @MainActor
@@ -227,12 +233,44 @@ final class ArticleIndexOverviewViewController: UIViewController {
             cell.accessories = []
         }
 
+        // Result-count tier knob: a pull-down menu button (Fewer / Default /
+        // More), the in-app equivalent of a Settings.bundle multi-value row.
+        // `changesSelectionAsPrimaryAction` makes the button title track the
+        // chosen tier; the UIAction writes the K value to UserDefaults, where
+        // ArticleResultsTier.current reads it on the next search.
+        let resultsReg = UICollectionView.CellRegistration<UICollectionViewListCell, AIItem> {
+            cell, _, _ in
+            var c = cell.defaultContentConfiguration()
+            c.text = L10n.ArticleIndex.ResultsCount.title
+            cell.contentConfiguration = c
+
+            let tiers = ArticleResultsTier.allCases      // [.few, .default, .more]
+            let titles = [
+                L10n.ArticleIndex.ResultsCount.few,
+                L10n.ArticleIndex.ResultsCount.default,
+                L10n.ArticleIndex.ResultsCount.more,
+            ]
+            let current = ArticleResultsTier.current
+            let button = UIButton(type: .system)
+            button.showsMenuAsPrimaryAction = true
+            button.changesSelectionAsPrimaryAction = true
+            button.menu = UIMenu(children: zip(tiers, titles).map { tier, title in
+                UIAction(title: title, state: tier == current ? .on : .off) { _ in
+                    UserDefaults.standard.set(tier.k, forKey: ArticleResultsTier.userDefaultsKey)
+                }
+            })
+            cell.accessories = [.customView(configuration:
+                .init(customView: button, placement: .trailing(displayed: .always)))]
+        }
+
         dataSource = UICollectionViewDiffableDataSource<AISection, AIItem>(
             collectionView: collectionView
         ) { cv, indexPath, item in
             switch item {
             case .masterToggle:
                 return cv.dequeueConfiguredReusableCell(using: toggleReg, for: indexPath, item: item)
+            case .resultsCount:
+                return cv.dequeueConfiguredReusableCell(using: resultsReg, for: indexPath, item: item)
             case .dict:
                 return cv.dequeueConfiguredReusableCell(using: dictReg, for: indexPath, item: item)
             case .emptyEnabled, .emptyDisabled, .emptyNoDicts:
@@ -570,6 +608,9 @@ final class ArticleIndexOverviewViewController: UIViewController {
         snap.appendSections([.toggleMaster])
         snap.appendItems([.masterToggle], toSection: .toggleMaster)
         if UserDefaults.standard.articleSearchEnabled {
+            // Result-count knob sits right under the switch, same section —
+            // only meaningful once the feature is on.
+            snap.appendItems([.resultsCount], toSection: .toggleMaster)
             snap.appendSections([.enabled])
             if enabledIds.isEmpty {
                 snap.appendItems([.emptyEnabled], toSection: .enabled)
@@ -857,8 +898,8 @@ extension ArticleIndexOverviewViewController: UICollectionViewDelegate {
             ArticleIndexCoordinator.shared.setEnabled(!enabled, for: id)
             reloadDicts()
             applySnapshot(animated: true)
-        case .masterToggle, .emptyEnabled, .emptyDisabled, .emptyNoDicts:
-            break  // master row's switch handles its own action; empty rows inert
+        case .masterToggle, .resultsCount, .emptyEnabled, .emptyDisabled, .emptyNoDicts:
+            break  // master switch + results menu handle their own actions; empty rows inert
         }
     }
 }
