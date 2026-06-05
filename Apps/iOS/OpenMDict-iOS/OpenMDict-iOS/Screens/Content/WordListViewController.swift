@@ -140,6 +140,26 @@ class WordListViewController: UIViewController {
     /// see `SearchScope` doc for the rationale.
     private var currentScope: SearchScope = .spelling
 
+    /// Stable snapshot of the current search context, updated *only* by
+    /// `loadWords(for:)`. This is the single source of truth for
+    /// `.article` scope eligibility — deliberately NOT read from
+    /// `activeSession` / `searchSession`, because:
+    ///
+    ///   * `activeSession` becomes `nil` while on the `.article` scope
+    ///     (see `setScope(.article)` → `setActiveSession(nil)`), which
+    ///     would make the scope-eligibility check feed back on itself and
+    ///     flip the scope bar out from under the user.
+    ///   * at injection time the freshly-created session's context is
+    ///     `.none` until `loadWords` lands, so reading it during lazy
+    ///     `searchController` init / `viewDidLoad` gives a different
+    ///     answer than reading it after `loadWords` — that mismatch was
+    ///     the "3 buttons until you tap, then 2" flicker.
+    ///
+    /// `loadWords` always fires for both group and single-dict context
+    /// changes (sidebar selection, setup completion, scene restore), so
+    /// this stays in lock-step with what the user is actually browsing.
+    private var resolvedContext: SearchContext = .none
+
     /// Swap the active session and rewire subscriptions. Idempotent if the
     /// session reference hasn't changed.
     private func setActiveSession(_ session: (any LookupSessionProtocol)?) {
@@ -195,10 +215,7 @@ class WordListViewController: UIViewController {
         // (NLEmbedding) search. We own searchBar.delegate to receive scope
         // changes — UISearchController still handles text via searchResultsUpdater.
         sc.searchBar.delegate = self
-        sc.searchBar.scopeButtonTitles = [
-            L10n.WordList.searchScopeSpelling,
-            L10n.WordList.searchScopeSemantic,
-        ]
+        sc.searchBar.scopeButtonTitles = currentScopeTitles()
         sc.searchBar.selectedScopeButtonIndex = SearchScope.spelling.rawValue
         // Force scope bar visible at all times — on iOS 15 the default is
         // hidden (showsScopeBar = false); on iOS 16+ `automaticallyShowsScopeBar`
@@ -230,6 +247,137 @@ class WordListViewController: UIViewController {
     fileprivate enum SearchScope: Int {
         case spelling = 0
         case semantic = 1
+        /// Added by M15 article-search; only appears in the scope bar
+        /// when the user has flipped on `articleSearchEnabled`. Tapping
+        /// it today surfaces a "coming soon" empty state — the
+        /// query-time consumer for the embedding sidecars is still on
+        /// the Phase 3.5 follow-up list. Once that ships the scope's
+        /// activeSession will be a real article-content session.
+        case article = 2
+    }
+
+    /// Build the `scopeButtonTitles` array for the current toggle state +
+    /// current search context. The `.article` scope is added iff:
+    ///
+    ///   1. the master toggle `articleSearchEnabled` is on, AND
+    ///   2. the current context (group or single dict) contains at least
+    ///      one dictionary the user has NOT moved into the Disabled
+    ///      section of the Article-Search Indexing overview.
+    ///
+    /// Rule (2) is the contract from the overview VC: dicts in the
+    /// Disabled section are explicitly opted out of article search, so
+    /// surfacing an article scope that would silently ignore them (or
+    /// worse, return zero matches and look broken) violates user intent.
+    /// When all dicts in the context are disabled — common case being
+    /// the user is browsing a single-dict context they just disabled —
+    /// the scope bar drops back to the spelling/semantic pair.
+    ///
+    /// Safe to call from the lazy `searchController` initializer: when
+    /// `searchSession` is still nil, `contextDictIds()` returns `[]`,
+    /// `articleScopeAvailable()` returns false, and we land on the
+    /// two-button bar — which is exactly the cold-launch state before
+    /// `MainSplitVC` injects a session anyway.
+    private func currentScopeTitles() -> [String] {
+        var titles = [
+            L10n.WordList.searchScopeSpelling,
+            L10n.WordList.searchScopeSemantic,
+        ]
+        if articleScopeAvailable() {
+            titles.append(L10n.WordList.searchScopeArticle)
+        }
+        return titles
+    }
+
+    /// True iff the master toggle is on AND the current context contains
+    /// at least one non-`userExcluded` dict. See `currentScopeTitles()`
+    /// docstring for the rationale.
+    private func articleScopeAvailable() -> Bool {
+        guard UserDefaults.standard.articleSearchEnabled else { return false }
+        let dictIds = contextDictIds()
+        guard !dictIds.isEmpty else { return false }
+        let service = ArticleIndexService.shared
+        return dictIds.contains { !service.snapshot(for: $0).userExcluded }
+    }
+
+    /// True when the article-content index is *fully built* for the current
+    /// context: master toggle on, at least one enabled (non-excluded) dict
+    /// in context, and EVERY such enabled dict has finished indexing.
+    ///
+    /// This is what distinguishes the article scope's two empty states:
+    ///   - `false` → "coming soon" placeholder (still indexing, or the
+    ///     enabled set is mid-build). The query path isn't usable yet.
+    ///   - `true`  → behave exactly like the semantic scope's empty state:
+    ///     show lookup history (or the no-history view), plus the clipboard
+    ///     row when the search bar is active.
+    ///
+    /// **Disabled dicts don't count.** A context can hold dicts the user
+    /// parked in the overview's Disabled section (e.g. a half-finished
+    /// WordNet); those are filtered out, so a single fully-indexed enabled
+    /// dict (Bible) is enough to flip this true even while a disabled dict
+    /// would still read `.indexing`.
+    private func articleScopeFullyIndexed() -> Bool {
+        guard UserDefaults.standard.articleSearchEnabled else { return false }
+        let service = ArticleIndexService.shared
+        let enabled = contextDictIds().filter { !service.snapshot(for: $0).userExcluded }
+        guard !enabled.isEmpty else { return false }
+        return enabled.allSatisfy { service.snapshot(for: $0).state == .indexed }
+    }
+
+    /// Extract the dictionary id set from `resolvedContext` (the stable
+    /// cache, NOT `activeSession`). `.group` → that group's
+    /// `dictionaryIds` order; `.dictionary` → a single-element list;
+    /// `.none` → empty (pre-`loadWords` / no-context).
+    private func contextDictIds() -> [String] {
+        switch resolvedContext {
+        case .group(let g): return g.dictionaryIds
+        case .dictionary(let d): return [d.id]
+        case .none: return []
+        }
+    }
+
+    /// Reapply scope button titles + clamp the selected scope if the
+    /// article-search toggle just flipped off while the user was sitting
+    /// on `.article`. Called from a UserDefaults `didChange` observer.
+    ///
+    /// **`nonisolated` is mandatory.** `UserDefaults.didChangeNotification`
+    /// is NOT promised to fire on the main thread — iCloud's cloudd XPC
+    /// callbacks land on `com.apple.NSXPCConnection.m-user.com.apple.cloudd`
+    /// (a private serial queue), and when `NSUbiquitousKeyValueStore` or
+    /// the CloudKit status probe touches a mirrored default it re-posts
+    /// the notification straight from that queue. With `-default-isolation=MainActor`
+    /// any `@objc` selector on a `@MainActor`-isolated VC inherits MainActor
+    /// isolation, so Swift 6 traps in `swift_task_checkIsolatedSwift` →
+    /// `dispatch_assert_queue_fail` the first time NotificationCenter calls
+    /// us off-main. We hop onto MainActor explicitly via a Task so the body
+    /// itself can stay isolated.
+    @objc nonisolated private func refreshScopeBar() {
+        Task { @MainActor [weak self] in
+            self?.applyScopeBarRefresh()
+        }
+    }
+
+    private func applyScopeBarRefresh() {
+        let titles = currentScopeTitles()
+        let current = searchController.searchBar.scopeButtonTitles ?? []
+        // Idempotent: bail if nothing changed. This is what keeps the bar
+        // from churning when an unrelated trigger fires (the per-dict
+        // `$revision` tick re-runs this on every indexing-progress update,
+        // for instance). Without this guard, re-assigning identical titles
+        // can make UIKit re-lay-out the scope bar mid-interaction — the
+        // visible "flicker" this guard prevents.
+        guard titles != current else { return }
+        debugLog("WordListVC.applyScopeBarRefresh: \(current.count)→\(titles.count) scopes (ctxDicts=\(contextDictIds().count), master=\(UserDefaults.standard.articleSearchEnabled), scope=\(currentScope))")
+        searchController.searchBar.scopeButtonTitles = titles
+        let articleAvailable = (titles.count == 3)
+        // Snap selection back to spelling if article scope vanished from
+        // under the user — covers all of: master toggle off, current
+        // context's dicts all moved to Disabled section, or context
+        // changed to one with no enabled dicts.
+        if !articleAvailable && currentScope == .article {
+            setScope(.spelling)
+        } else if currentScope == .article {
+            updateEmptyState()
+        }
     }
 
     private lazy var tableView: UITableView = {
@@ -298,10 +446,64 @@ class WordListViewController: UIViewController {
         subscribeToSuggestions()
         subscribeToSearchSettled()
         subscribeToHistoryChanges()
+        // M15: the article-search master toggle lives in
+        // UserDefaults.standard.articleSearchEnabled. Watch for changes
+        // so the scope bar gains/loses its third button (`Article`) live
+        // — including when the user flipped it inside the overview VC
+        // and came back via the back button.
+        //
+        // **Deliberately a narrow, app-private notification, NOT
+        // `UserDefaults.didChangeNotification`.** The latter fires on
+        // *every* defaults write app-wide — and the system writes a
+        // flurry of unrelated keys (keyboard state, dictation, recent
+        // emoji) the instant a search field becomes first responder.
+        // Subscribing to it made tapping the search bar re-run the scope
+        // computation dozens of times, which (combined with the old
+        // activeSession-based context read) produced the "3 scopes until
+        // you tap, then 2" flicker. `setMasterEnabled` is the sole writer
+        // of `articleSearchEnabled` and posts this exact notification.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshScopeBar),
+            name: .articleSearchMasterToggleDidChange,
+            object: nil
+        )
+        // M15: also re-run scope eligibility when the user flips
+        // per-dict Enabled/Disabled membership in the article-search
+        // overview. `revision` ticks on every `upsert`/`setState`/
+        // `setUserExcluded` in ArticleIndexService, so this catches the
+        // case where the current context's only remaining enabled dict
+        // got moved to Disabled while WordListVC is on screen. The
+        // idempotent guard in `applyScopeBarRefresh` absorbs the noisy
+        // ticks (indexing progress bumps `revision` too).
+        ArticleIndexService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.applyScopeBarRefresh()
+                // Indexing-progress ticks can flip the article scope between
+                // its "coming soon" and history empty states — the moment the
+                // last enabled dict finishes, `articleScopeFullyIndexed()`
+                // turns true. Re-render so the transition is live instead of
+                // deferred to the next scope flip. (`rebuildSections` calls
+                // `updateEmptyState`; both are cheap and no-op on other scopes
+                // because we gate on `.article`.)
+                if self.currentScope == .article {
+                    self.rebuildSections()
+                }
+            }
+            .store(in: &cancellables)
         loadHistory()
         if isTutorialMode { updateDisplayState() }
         rebuildSections()
         updateTitleView()
+    }
+
+    deinit {
+        // NotificationCenter observer self-cleanup; explicit for clarity
+        // and to silence Swift 6 strict warnings about retained closures.
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -432,6 +634,11 @@ class WordListViewController: UIViewController {
                         rows: suggestedWords.map { .suggestion($0) }
                     ))
                 }
+            case .article:
+                // No real article-content session yet — see SearchScope
+                // docstring. Sections stay empty; `updateEmptyState`
+                // renders the "coming soon" placeholder.
+                break
             }
         }
 
@@ -590,11 +797,17 @@ class WordListViewController: UIViewController {
 
     // MARK: - History Data
 
-    /// Lookup context tuple derived from current search context.
-    /// Exactly one of the two values is non-nil.
+    /// Lookup context tuple derived from the stable `resolvedContext`.
+    /// Exactly one of the two values is non-nil (or the whole tuple is nil
+    /// for `.none`).
+    ///
+    /// Reads `resolvedContext`, NOT `searchSession?.currentContext`: on the
+    /// `.article` scope the active session is nil, so the session-based read
+    /// would collapse to `.none` and make history fall back to the unfiltered
+    /// all-dictionaries list. `resolvedContext` stays correct across every
+    /// scope.
     private var lookupContext: (dictId: String?, groupId: String?)? {
-        guard let context = searchSession?.currentContext else { return nil }
-        switch context {
+        switch resolvedContext {
         case .group(let group):
             return (nil, group.id)
         case .dictionary(let dict):
@@ -731,15 +944,24 @@ class WordListViewController: UIViewController {
         // Keeping the two in lock-step is cheaper than chasing every edge.
         spellingSession?.setContext(group: group)
         semanticSession?.setContext(group: group)
+        resolvedContext = .group(group)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
+        // Re-evaluate `.article` scope eligibility: the new group may
+        // have zero enabled (non-userExcluded) dicts, in which case the
+        // scope button should disappear.
+        if isViewLoaded { applyScopeBarRefresh() }
     }
 
     func loadWords(for dict: MDict) {
         spellingSession?.setContext(dict: dict)
         semanticSession?.setContext(dict: dict)
+        resolvedContext = .dictionary(dict)
         loadHistory()  // Reload history filtered by new context
         updateTitleView()
+        // Single-dict context: `.article` scope shows iff THIS dict is
+        // not user-excluded. See `articleScopeAvailable()`.
+        if isViewLoaded { applyScopeBarRefresh() }
     }
 
     /// Activate the search bar and show keyboard (called from keyboard shortcut ⌘L)
@@ -794,9 +1016,41 @@ class WordListViewController: UIViewController {
             return
         }
 
+        // Article scope. The query-time consumer hasn't shipped, so we
+        // can't actually run a full-text search yet — but we CAN show the
+        // right empty state:
+        //
+        //   - any non-empty query → "coming soon" (no search to run)
+        //   - empty / idle:
+        //       · enabled dicts NOT all indexed → "coming soon" (the index
+        //         is still being built; explain it's on the way)
+        //       · enabled dicts ALL indexed → fall through to the normal
+        //         idle/activeEmpty branches below, which render lookup
+        //         history + clipboard exactly like the semantic scope. This
+        //         is the case where every *enabled* dict (Bible) was
+        //         indexed, with only *disabled* dicts (WordNet) unfinished —
+        //         "coming soon" was wrong there.
+        if currentScope == .article {
+            let hasQuery: Bool
+            if case .activeWithQuery = displayState { hasQuery = true } else { hasQuery = false }
+            if hasQuery || !articleScopeFullyIndexed() {
+                configureEmptyState(
+                    icon: "text.magnifyingglass",
+                    title: L10n.WordList.articleScopeComingSoonTitle,
+                    message: L10n.WordList.articleScopeComingSoonMessage,
+                    buttonTitle: nil
+                )
+                emptyStateView.isHidden = false
+                tableView.isHidden = true
+                return
+            }
+            // else: all enabled dicts indexed + no active query → fall
+            // through to the semantic-style history/clipboard logic.
+        }
+
         switch displayState {
         case .idle:
-            let context = searchSession?.currentContext ?? .none
+            let context = resolvedContext
             if case .none = context {
                 // No context selected — prompt user to pick a source
                 configureEmptyState(
@@ -825,7 +1079,7 @@ class WordListViewController: UIViewController {
         case .activeEmpty:
             if sections.isEmpty {
                 // No clipboard and no history — show placeholder
-                let context = searchSession?.currentContext ?? .none
+                let context = resolvedContext
                 configureEmptyState(
                     icon: "clock",
                     title: L10n.WordList.noHistoryInSource(contextDisplayName(for: context)),
@@ -840,7 +1094,7 @@ class WordListViewController: UIViewController {
             }
 
         case .activeWithQuery:
-            let context = searchSession?.currentContext ?? .none
+            let context = resolvedContext
             if case .none = context {
                 configureEmptyState(
                     icon: "text.book.closed",
@@ -944,7 +1198,9 @@ class WordListViewController: UIViewController {
     }
 
     private func updateTitleView() {
-        let context = searchSession?.currentContext ?? .none
+        // Stable context, not the active session's — on the `.article`
+        // scope the session is nil and the title would blank out.
+        let context = resolvedContext
         let iconName: String
         let titleText: String
 
@@ -1056,7 +1312,7 @@ extension WordListViewController: UITableViewDataSource {
             c.image = UIImage(systemName: "clock")
             c.imageProperties.tintColor = .secondaryLabel
             // Show dict name unless the context is a single dictionary
-            if case .dictionary = searchSession?.currentContext {
+            if case .dictionary = resolvedContext {
                 // Single-dict context: all records are from the same dict, skip dictName
             } else {
                 c.secondaryText = record.dictName
@@ -1072,7 +1328,7 @@ extension WordListViewController: UITableViewDataSource {
             }
             c.imageProperties.tintColor = .secondaryLabel
             // Show dictionary name as secondary text when displaying a group
-            if case .group = searchSession?.currentContext {
+            if case .group = resolvedContext {
                 c.secondaryText = wordItem.dictName
                 c.secondaryTextProperties.color = .secondaryLabel
             }
@@ -1086,7 +1342,7 @@ extension WordListViewController: UITableViewDataSource {
             }
             c.imageProperties.tintColor = .secondaryLabel
             // Show dictionary name as secondary text when displaying a group
-            if case .group = searchSession?.currentContext {
+            if case .group = resolvedContext {
                 c.secondaryText = wordItem.dictName
                 c.secondaryTextProperties.color = .secondaryLabel
             }
@@ -1192,7 +1448,7 @@ extension WordListViewController: UITableViewDelegate {
             //     restores the exploration state without re-running the
             //     compute. The spelling pipeline then surfaces the word's
             //     per-dict results just like a normal lookup.
-            switch searchSession?.currentContext ?? .none {
+            switch resolvedContext {
             case .dictionary(let dict):
                 onWordSelected?(WordDisplayItem(
                     word: word,
@@ -1337,6 +1593,12 @@ extension WordListViewController {
                 semanticSession = new
             }
             setActiveSession(semanticSession)
+        case .article:
+            // No real article-content session exists yet — see the
+            // SearchScope.article docstring. Drop the active session so
+            // `updateEmptyState` can show a "coming soon" placeholder
+            // instead of running queries through a stale session.
+            setActiveSession(nil)
         }
 
         // Explicit query injection — used by the candidate-tap path to seed

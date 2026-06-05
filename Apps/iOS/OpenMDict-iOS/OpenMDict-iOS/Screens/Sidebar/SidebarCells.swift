@@ -726,7 +726,10 @@ final class ManagementActionCell: UICollectionViewListCell {
             content.image = UIImage(systemName: "waveform.path.ecg")
         case .articleIndex:
             content.text = L10n.ArticleIndex.title
-            content.image = UIImage(systemName: "text.magnifyingglass")
+            // `mail.and.text.magnifyingglass` is iOS 17+, but this entry is
+            // only ever shown on iOS 26+ (the feature's deployment floor),
+            // so the availability gap is moot.
+            content.image = UIImage(systemName: "mail.and.text.magnifyingglass")
         case .settings:
             content.text = L10n.Sidebar.appSettings
             content.image = UIImage(systemName: "gearshape")

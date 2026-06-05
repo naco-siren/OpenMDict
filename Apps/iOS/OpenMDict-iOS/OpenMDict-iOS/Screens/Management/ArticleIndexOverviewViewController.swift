@@ -181,7 +181,18 @@ final class ArticleIndexOverviewViewController: UIViewController {
             let sw = UISwitch()
             sw.isOn = UserDefaults.standard.articleSearchEnabled
             sw.addAction(UIAction { [weak self, weak sw] _ in
-                self?.setMasterEnabled(sw?.isOn ?? false)
+                guard let self, let sw else { return }
+                // Both directions need confirmation — flipping on starts an
+                // ~80 MB download and per-dict indexing pass; flipping off
+                // wipes the model + every existing sidecar. Wrap in an
+                // alert and revert the switch position if the user backs out.
+                self.confirmMasterToggle(desiredOn: sw.isOn) { [weak sw] confirmed in
+                    guard let sw else { return }
+                    if confirmed { return }
+                    // User cancelled — bounce the switch back to its prior
+                    // state without re-firing the action.
+                    sw.setOn(!sw.isOn, animated: true)
+                }
             }, for: .valueChanged)
             cell.accessories = [.customView(configuration:
                 .init(customView: sw, placement: .trailing(displayed: .always)))]
@@ -739,8 +750,70 @@ final class ArticleIndexOverviewViewController: UIViewController {
 
     // MARK: - Master toggle
 
+    /// Present a confirmation alert before flipping the master toggle.
+    /// On confirm, call `setMasterEnabled(desiredOn)`. On cancel, the
+    /// completion is called with `confirmed: false` so the caller can
+    /// snap the UISwitch back to its prior position.
+    ///
+    /// Two distinct copies:
+    ///   - ON: warns about the ~80 MB ODR download + per-dict indexing
+    ///   - OFF: warns about removing the model + every existing sidecar
+    ///     (the indexed-dict count is interpolated so the user sees how
+    ///     much work they're throwing away).
+    private func confirmMasterToggle(desiredOn: Bool, completion: @escaping (Bool) -> Void) {
+        let alert: UIAlertController
+        if desiredOn {
+            alert = UIAlertController(
+                title: L10n.ArticleIndex.MasterToggle.enableTitle,
+                message: L10n.ArticleIndex.MasterToggle.enableMessage,
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(
+                title: L10n.ArticleIndex.MasterToggle.enableConfirm,
+                style: .default,
+                handler: { [weak self] _ in
+                    self?.setMasterEnabled(true)
+                    completion(true)
+                }
+            ))
+            alert.addAction(UIAlertAction(
+                title: L10n.ArticleIndex.MasterToggle.cancel,
+                style: .cancel,
+                handler: { _ in completion(false) }
+            ))
+        } else {
+            let indexedCount = ArticleIndexService.shared.allSnapshots()
+                .filter { $0.state == .indexed }
+                .count
+            alert = UIAlertController(
+                title: L10n.ArticleIndex.MasterToggle.disableTitle,
+                message: L10n.ArticleIndex.MasterToggle.disableMessage(indexedCount: indexedCount),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(
+                title: L10n.ArticleIndex.MasterToggle.disableConfirm,
+                style: .destructive,
+                handler: { [weak self] _ in
+                    self?.setMasterEnabled(false)
+                    completion(true)
+                }
+            ))
+            alert.addAction(UIAlertAction(
+                title: L10n.ArticleIndex.MasterToggle.cancel,
+                style: .cancel,
+                handler: { _ in completion(false) }
+            ))
+        }
+        present(alert, animated: true)
+    }
+
     private func setMasterEnabled(_ on: Bool) {
         UserDefaults.standard.articleSearchEnabled = on
+        // Narrow, app-private signal so WordListVC's scope bar reacts to
+        // THIS toggle only — not to the global UserDefaults.didChange
+        // firehose. See `Notification.Name.articleSearchMasterToggleDidChange`.
+        NotificationCenter.default.post(
+            name: .articleSearchMasterToggleDidChange, object: nil)
         if on {
             // Same as viewWillAppear: ensure the provider's state
             // machine kicks off (idempotent if already in flight or
@@ -752,7 +825,13 @@ final class ArticleIndexOverviewViewController: UIViewController {
                 ArticleIndexCoordinator.shared.backfillIfEnabled()
             }
         } else {
+            debugLog("ArticleIndexOverviewVC.setMasterEnabled(false): cancelAll + tearDown")
             ArticleIndexDispatcher.shared.cancelAll()
+            // Promised by the confirm-disable alert: wipe the on-disk
+            // sidecars + drop in-memory state + release the ODR
+            // reservation so iOS reclaims the ~80 MB model file.
+            ArticleIndexCoordinator.shared.deleteAllSidecars()
+            ArticleIndexAssetProvider.shared.release()
         }
         // Toggle drives overlay visibility — see updateModelOverlay()
         updateModelOverlay()

@@ -951,12 +951,29 @@ nonisolated enum L10n {
             NSLocalizedString("wordList.backButtonTitle", value: "Word Lookup", comment: "Back button title")
         }
 
-        // Search bar scope segmented control (M15 — spelling vs semantic lookup)
+        // Search bar scope segmented control (M15 — spelling vs semantic
+        // vs article-content lookup)
         static var searchScopeSpelling: String {
             NSLocalizedString("wordList.searchScope.spelling", value: "Spelling", comment: "Search bar scope: literal/lemma-based lookup (default)")
         }
         static var searchScopeSemantic: String {
             NSLocalizedString("wordList.searchScope.semantic", value: "Semantic", comment: "Search bar scope: NLEmbedding-based semantic neighbor lookup (slower)")
+        }
+        /// Third scope button, only shown when the user has flipped on
+        /// `articleSearchEnabled` in the article-search overview VC.
+        /// Matches the feature name ("Search by Article Contents")
+        /// shown on the overview VC title.
+        static var searchScopeArticle: String {
+            NSLocalizedString("wordList.searchScope.article", value: "Article", comment: "Search bar scope: article-content (full-text body) lookup; only visible when the user enabled article search in Settings")
+        }
+
+        // Empty-state copy shown when the user picks the Article scope
+        // before the query-time consumer ships (Phase 3.5 follow-up).
+        static var articleScopeComingSoonTitle: String {
+            NSLocalizedString("wordList.articleScopeComingSoon.title", value: "Article search coming soon", comment: "Empty-state title when the user taps the Article scope while the query consumer is still under construction")
+        }
+        static var articleScopeComingSoonMessage: String {
+            NSLocalizedString("wordList.articleScopeComingSoon.message", value: "Your dictionaries are being indexed for article-content search. Once that's done, this scope will return matches by article body, not just by spelling.", comment: "Body copy for the Article-scope coming-soon empty state")
         }
 
         // Two distinct headers: in semantic scope BOTH sections can appear at
@@ -2475,6 +2492,47 @@ nonisolated enum L10n {
         static var emptyNoDicts: String {
             NSLocalizedString("articleIndex.empty.noDicts", value: "No dictionaries imported yet.\nImport a dictionary first to use article search.", comment: "Empty-section placeholder: shown in the Disabled section when the user has zero dictionaries in the entire library")
         }
+
+        // MARK: - Master-toggle confirmation alerts
+        //
+        // Both directions of the "Enable Article Search" switch show a
+        // confirmation alert before committing. ON warns about the ~80 MB
+        // ODR download + per-dict indexing. OFF warns about removing the
+        // model and every existing sidecar (the indexed-dict count is
+        // interpolated into the body copy).
+        enum MasterToggle {
+            static var enableTitle: String {
+                NSLocalizedString("articleIndex.masterToggle.enable.title", value: "Enable article search?", comment: "Confirmation alert title when the user flips the master toggle ON")
+            }
+            static var enableMessage: String {
+                NSLocalizedString("articleIndex.masterToggle.enable.message", value: "OpenMDict will download a roughly 80 MB language model and index your dictionaries one by one. Once indexing is done, you'll be able to pick \"Article\" in the search scope to look up by article body.", comment: "Confirmation body explaining the ~80 MB download + per-dict indexing trigger on enable")
+            }
+            static var enableConfirm: String {
+                NSLocalizedString("articleIndex.masterToggle.enable.confirm", value: "Enable", comment: "Confirm-enable button title")
+            }
+            static var disableTitle: String {
+                NSLocalizedString("articleIndex.masterToggle.disable.title", value: "Disable Article Lookup?", comment: "Confirmation alert title when the user flips the master toggle OFF")
+            }
+            static func disableMessage(indexedCount: Int) -> String {
+                // Deliberately vague about the language model: disabling drops
+                // the ODR reservation, but iOS purges the on-disk asset lazily
+                // (no API to force-delete it now), so we don't promise it's
+                // gone. We DO delete the sidecars + CoreData rows eagerly, so
+                // the re-index caveat is the honest, user-actionable part.
+                if indexedCount == 0 {
+                    // Nothing indexed yet → nothing to clear, only the caveat.
+                    return NSLocalizedString("articleIndex.masterToggle.disable.message.none", value: "If you turn it back on later, your dictionaries will need to be re-indexed.", comment: "Disable-confirmation body when zero dictionaries are currently indexed — nothing to clear, only the re-index caveat")
+                }
+                return String(format: NSLocalizedString("articleIndex.masterToggle.disable.message", value: "This will remove the article-content index for %d dictionary/dictionaries. If you turn it back on later, they'll need to be re-indexed.", comment: "Disable-confirmation body; %d is the number of indexed dictionaries whose on-device indexes are removed"), indexedCount)
+            }
+            static var disableConfirm: String {
+                NSLocalizedString("articleIndex.masterToggle.disable.confirm", value: "Turn Off", comment: "Confirm-disable button title; destructive")
+            }
+            static var cancel: String {
+                NSLocalizedString("articleIndex.masterToggle.cancel", value: "Cancel", comment: "Cancel button for the master-toggle confirmation alert (used by both enable + disable paths)")
+            }
+        }
+
         static var statusIndexed: String {
             NSLocalizedString("articleIndex.status.indexed", value: "Indexed", comment: "Status: dictionary fully indexed for article search")
         }

@@ -154,7 +154,9 @@ class CompactManagementViewController: UIViewController {
                 config.image = UIImage(systemName: "waveform.path.ecg")
             case .articleIndex:
                 config.text = L10n.ArticleIndex.title
-                config.image = UIImage(systemName: "text.magnifyingglass")
+                // `mail.and.text.magnifyingglass` (iOS 17+) — fine, this
+                // entry only shows on the feature's iOS 26+ floor.
+                config.image = UIImage(systemName: "mail.and.text.magnifyingglass")
             case .appSettings:
                 config.text = L10n.Sidebar.appSettings
                 config.image = UIImage(systemName: "gearshape")

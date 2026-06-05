@@ -85,6 +85,22 @@ extension UserDefaults {
 
 }
 
+// MARK: - Article Search Master Toggle Notification
+
+extension Notification.Name {
+    /// Posted by `ArticleIndexOverviewViewController.setMasterEnabled`
+    /// (the *only* writer of `UserDefaults.articleSearchEnabled`)
+    /// immediately after flipping the master toggle.
+    ///
+    /// Consumers — currently `WordListViewController` — listen for this
+    /// instead of `UserDefaults.didChangeNotification` so they react ONLY
+    /// to the article-search toggle, not to the constant churn of
+    /// unrelated defaults writes (keyboard/dictation/etc.) that floods the
+    /// global notification, especially while a search field is active.
+    static let articleSearchMasterToggleDidChange =
+        Notification.Name("io.github.naco-siren.openmdict.articleSearchMasterToggleDidChange")
+}
+
 // MARK: - Enhance Dark Mode Strength
 
 /// Per-dictionary dark mode enhancement strength.
