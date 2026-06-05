@@ -194,6 +194,25 @@ final class ArticleIndexDispatcher {
             case .thermal:             return L10n.ArticleIndex.PauseReason.thermal
             }
         }
+
+        /// Whether *entering* this pause should interrupt — and requeue —
+        /// the dict whose build is currently running. True for genuine
+        /// resource gates that must stop work mid-build. False ONLY for
+        /// `.downloadingModel`: executeJob brackets its OWN
+        /// `ensureAcquired()` call with add/remove of this reason (to keep
+        /// a SECOND job from starting while the ODR download is in flight),
+        /// and the SAME job continues right after — so requeuing there
+        /// would re-enqueue the already-running dict and, because the model
+        /// is usually already local, fire on every job and spin forever.
+        var interruptsRunningBuild: Bool {
+            switch self {
+            case .downloadingModel:
+                return false
+            case .userInitiated, .insufficientStorage, .memoryWarning,
+                 .lowPower, .thermal:
+                return true
+            }
+        }
     }
 
     /// Pick the user-facing primary reason when multiple gates fire
@@ -902,10 +921,41 @@ final class ArticleIndexDispatcher {
         guard inserted else { return }
         debugLog("Pause +\(reason.rawValue) (set=\(self.pauseReasonsDescription))")
         if wasNotPaused {
-            // Just entered paused. Cancel the in-flight build so its
-            // checkpoint sticks; queue is intentionally preserved.
+            // Just entered paused. For a genuine resource gate (thermal /
+            // lowPower / memory / storage), put the running dict back on the
+            // queue BEFORE cancelling its build, so it stays in-flight
+            // across the pause — the cell shows the gate reason instead of
+            // an orphaned "to be indexed" row, and the gate-clear drain
+            // (removePauseReason → runNextIfIdle) resumes it automatically
+            // without the user toggling the dict off and back on. Then
+            // cancel the build so its partial + checkpoint stick.
+            //
+            // `.downloadingModel` is gated out (interruptsRunningBuild ==
+            // false): it's executeJob's own ensureAcquired() bracket, the
+            // same job continues right after, and requeuing it there would
+            // double-enqueue the running dict and spin forever.
+            if reason.interruptsRunningBuild {
+                requeueRunningJob()
+            }
             cancelCurrentBuild()
         }
+    }
+
+    /// Re-insert the currently-running dict at the front of the queue.
+    /// Called when a gate pause is about to cancel its build. Without it the
+    /// dict is lost: it was already popped off the queue when it started
+    /// running, and the running task's continuation nils `runningDictId`
+    /// once the build cancels — leaving an orphan `.indexing` row that's
+    /// neither running nor queued. `isInFlight` then reports false, so the
+    /// overview cell renders "to be indexed" (no resume button) AND the
+    /// gate-clear `runNextIfIdle` finds an empty queue and resumes nothing,
+    /// forcing the user to toggle the dict off and back on. Front-insert +
+    /// `.interactive` so it's first to resume. No-op if nothing's running.
+    private func requeueRunningJob() {
+        guard let dictId = runningDictId else { return }
+        guard !queue.contains(where: { $0.dictId == dictId }) else { return }
+        queue.insert(PendingJob(dictId: dictId, priority: .interactive), at: 0)
+        debugLog("Requeued running job \(dictId) at queue front for gate-pause resume")
     }
 
     private func removePauseReason(_ reason: PauseReason) {
