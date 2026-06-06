@@ -877,9 +877,16 @@ final class ArticleIndexOverviewViewController: UIViewController {
             debugLog("ArticleIndexOverviewVC.setMasterEnabled(false): cancelAll + tearDown")
             ArticleIndexDispatcher.shared.cancelAll()
             // Promised by the confirm-disable alert: wipe the on-disk
-            // sidecars + drop in-memory state + release the ODR
-            // reservation so iOS reclaims the ~80 MB model file.
+            // sidecars + the persisted per-dict state + release the ODR
+            // reservation so iOS can reclaim the ~80 MB model file.
             ArticleIndexCoordinator.shared.deleteAllSidecars()
+            // deleteAllSidecars clears sidecar FILES + the in-memory cache,
+            // but NOT the CoreData rows — its other caller (the nuclear
+            // reset flow) wipes CoreData separately. Nothing else does on
+            // this path, so wipe them explicitly; otherwise re-enabling
+            // shows every dict as `.indexed` again even though its sidecar
+            // is gone, defeating the deliberate force-rebuild trick.
+            ArticleIndexService.shared.deleteAllRecords()
             ArticleIndexAssetProvider.shared.release()
             // Drop the cached query encoder too, so its CoreML model memory
             // goes away with the ODR file (the article scope stops querying

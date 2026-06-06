@@ -364,10 +364,22 @@ final class ArticleIndexAssetProvider {
     /// is correct for "user said 'forget this'", incorrect for "we're
     /// briefly low on RAM".
     func release() {
-        guard let request = activeRequest else { return }
-        debugLog("AssetProvider.release: releasing resource tag '\(Self.resourceTag)'")
-        request.endAccessingResources()
-        activeRequest = nil
+        if let request = activeRequest {
+            debugLog("AssetProvider.release: ending access to resource tag '\(Self.resourceTag)'")
+            request.endAccessingResources()
+            activeRequest = nil
+        } else {
+            debugLog("AssetProvider.release: no active reservation to end (already released, or never begun this session)")
+        }
+        // Reset state UNCONDITIONALLY — even when there was no live
+        // reservation to end. After an app relaunch `activeRequest` is nil
+        // but `state` can still be `.ready` (a fast-path ensureAcquired set
+        // it without re-begin), and `ensureAcquired` no-ops on `.ready`. If
+        // we returned early here (the old `guard ... else { return }`), a
+        // disable-then-enable would leave that stale `.ready` in place and
+        // skip the re-acquire — so the user's "turn off + on to pull the
+        // latest ODR model" trick would silently do nothing. Forcing
+        // `.unknown` guarantees the next enable runs a fresh acquire.
         assets = nil
         state = .unknown
         progressObservation = nil

@@ -109,6 +109,32 @@ final class ArticleIndexService {
         revision &+= 1
     }
 
+    /// Nuke every persisted ArticleIndexRecord AND the in-memory cache.
+    /// Used by the master-toggle-off teardown: disabling article search
+    /// should return per-dict state to a clean slate so re-enabling
+    /// re-indexes from scratch (the deliberate "force rebuild" trick).
+    ///
+    /// `resetCaches()` alone only cleared the in-memory mirror — the
+    /// CoreData rows survived, so on re-enable every dict re-appeared as
+    /// `.indexed` even though `deleteAllSidecars` had already removed its
+    /// sidecar file. Deleting the rows here makes the persisted state agree
+    /// with the now-empty sidecar directory.
+    func deleteAllRecords() {
+        let ctx = stack.viewContext
+        let request = ArticleIndexRecord.fetchRequest()
+        do {
+            let records = try ctx.fetch(request)
+            for r in records { ctx.delete(r) }
+            if ctx.hasChanges { try ctx.save() }
+            debugLog("ArticleIndexService: deleted \(records.count) record(s) from CoreData")
+        } catch {
+            debugLog("❌ ArticleIndexService: deleteAllRecords failed: \(error)")
+        }
+        cache.removeAll()
+        isCachePopulated = false
+        revision &+= 1
+    }
+
     // MARK: - Read API
 
     /// Get the snapshot for a dict, populating the cache lazily on
