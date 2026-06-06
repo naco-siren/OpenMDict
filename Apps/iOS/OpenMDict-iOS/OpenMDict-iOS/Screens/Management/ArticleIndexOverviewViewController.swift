@@ -95,6 +95,14 @@ final class ArticleIndexOverviewViewController: UIViewController {
         title = L10n.ArticleIndex.title
         view.backgroundColor = .systemGroupedBackground
         navigationItem.largeTitleDisplayMode = .never
+        // Modal dismiss (✕). Matches the other modal management VCs —
+        // iCloudTroubleshooting / AppIconChooser / PresetDictionaryPicker
+        // all use a `.close` system item + `dismissSelf`.
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
+            target: self,
+            action: #selector(dismissSelf)
+        )
         setupCollectionView()
         setupDataSource()
         reloadDicts()
@@ -881,6 +889,10 @@ final class ArticleIndexOverviewViewController: UIViewController {
         // Toggle drives overlay visibility — see updateModelOverlay()
         updateModelOverlay()
         applySnapshot(animated: true)
+    }
+
+    @objc private func dismissSelf() {
+        dismiss(animated: true)
     }
 }
 
