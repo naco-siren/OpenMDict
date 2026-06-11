@@ -649,7 +649,10 @@ final class AICoachViewController: UIViewController {
                 triageIcon.image = UIImage(systemName: isPad
                     ? "ipad.gen2.landscape.slash" : "iphone.gen2.slash")
                 triageTitle.text = L10n.AICoach.Triage.deviceTitle
-                triageSubtitle.text = L10n.AICoach.Triage.deviceMessage
+                // Name the actual chip ("Apple A13 Bionic") via the branch-new
+                // DeviceChipInfo probe so an ineligible-hardware user sees
+                // concretely why, not a vague requirement.
+                triageSubtitle.text = L10n.AICoach.Triage.deviceMessage(chip: DeviceChipInfo.brand)
                 triageButton.setTitle(L10n.AICoach.Triage.learnMore, for: .normal)
                 triageButton.isHidden = false
                 triageAction = .learnMore

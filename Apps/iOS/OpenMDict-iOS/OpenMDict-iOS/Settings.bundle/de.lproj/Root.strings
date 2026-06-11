@@ -30,9 +30,6 @@
 "ARTICLES_MORE" = "Mehr";
 
 /* M14 — AI Coach */
-"AI_COACH_GROUP" = "AI Coach";
-"AI_COACH_ENABLED" = "AI Coach aktivieren";
-"AI_COACH_FOOTER" = "Erfordert iOS 26 und ein Apple-Intelligence-fähiges Gerät. Nach der Aktivierung erscheint die Aktion „AI Coach“ in der Seitenleiste und im Tab „Verwaltung“. AI Coach nutzt Apples On-Device Foundation Models, um aus deinen gespeicherten englischen Wörtern Vokabeltests zu erstellen. Alles läuft lokal — keine Daten verlassen dein Gerät.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
 "LOOKUP_SEMANTIC_RESULTS" = "Semantische Suchergebnisse pro Wörterbuch";

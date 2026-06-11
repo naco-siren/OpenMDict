@@ -24,9 +24,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "showLookupCount": true,
             "showEnhanceDarkMode": true,
             "rememberZoomLevel": true,
-            // M14 POC: off by default. User opts in via Settings.app; the
-            // in-app entry point additionally checks iOS 26 + hardware support.
-            "aiCoachEnabled": false,
+            // (AI Coach has no Settings.bundle toggle anymore — it's gated
+            // purely on iOS 26+ and triaged in-app. No default to register.)
         ]
         UserDefaults.standard.register(defaults: defaults)
         UserDefaults.shared.register(defaults: defaults)

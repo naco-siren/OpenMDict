@@ -6845,13 +6845,13 @@
       }
     },
     "aiCoach.triage.deviceMessage": {
-      "comment": "Triage: device not eligible explanation",
+      "comment": "Triage: device not eligible. Arg = marketing chip name from DeviceChipInfo, e.g. 'Apple A13 Bionic'.",
       "extractionState": "extracted_with_value",
       "localizations": {
         "en": {
           "stringUnit": {
-            "state": "new",
-            "value": "AI Coach requires a device that supports Apple Intelligence, such as iPhone 15 Pro or an iPad with M1 chip or later."
+            "state": "translated",
+            "value": "This device's chip (%@) doesn't support Apple Intelligence. AI Coach needs an iPhone 15 Pro / 16 or newer, or an iPad with an M-series chip."
           }
         },
         "ja": {
@@ -6869,13 +6869,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI 教练需要支持 Apple 智能的设备,例如 iPhone 15 Pro,或搭载 M1 及更高芯片的 iPad。"
+            "value": "本设备的芯片(%@)不支持 Apple 智能。AI 教练需要 iPhone 15 Pro / 16 或更新机型，或搭载 M 系列芯片的 iPad。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI Coach 需要支援 Apple 智慧的裝置,例如 iPhone 15 Pro,或搭載 M1 以上晶片的 iPad。"
+            "value": "本裝置的晶片(%@)不支援 Apple 智慧。AI 教練需要 iPhone 15 Pro / 16 或更新機型，或搭載 M 系列晶片的 iPad。"
           }
         }
       }
@@ -49333,6 +49333,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "如果您日後再次啟用該功能,需要重新為詞典建立索引。"
+          }
+        }
+      }
+    },
+    "aiCoach.triage.deviceMessage.generic": {
+      "comment": "Triage: device not eligible, generic fallback when the chip name is unavailable (e.g. simulator).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device doesn't support Apple Intelligence. AI Coach needs an iPhone 15 Pro / 16 or newer, or an iPad with an M-series chip."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本设备不支持 Apple 智能。AI 教练需要 iPhone 15 Pro / 16 或更新机型，或搭载 M 系列芯片的 iPad。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本裝置不支援 Apple 智慧。AI 教練需要 iPhone 15 Pro / 16 或更新機型，或搭載 M 系列晶片的 iPad。"
           }
         }
       }

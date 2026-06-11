@@ -259,8 +259,17 @@ nonisolated enum L10n {
             static var deviceTitle: String {
                 NSLocalizedString("aiCoach.triage.deviceTitle", value: "Device Not Supported", comment: "Triage: device lacks Apple Intelligence hardware")
             }
-            static var deviceMessage: String {
-                NSLocalizedString("aiCoach.triage.deviceMessage", value: "AI Coach requires a device that supports Apple Intelligence, such as iPhone 15 Pro or an iPad with M1 chip or later.", comment: "Triage: device not eligible explanation")
+            /// Device-not-eligible explanation, sharpened with the actual
+            /// marketing chip name from `DeviceChipInfo` when available (e.g.
+            /// "Apple A13 Bionic") so the user understands *why their specific
+            /// device* is excluded, not just an abstract requirement. `chip`
+            /// is nil on the simulator / when the sysctl is sandboxed, in
+            /// which case the generic variant (no chip name) is used.
+            static func deviceMessage(chip: String?) -> String {
+                if let chip, !chip.isEmpty {
+                    return String(format: NSLocalizedString("aiCoach.triage.deviceMessage", value: "This device's chip (%@) doesn't support Apple Intelligence. AI Coach needs an iPhone 15 Pro / 16 or newer, or an iPad with an M-series chip.", comment: "Triage: device not eligible. Arg = marketing chip name from DeviceChipInfo, e.g. 'Apple A13 Bionic'."), chip)
+                }
+                return NSLocalizedString("aiCoach.triage.deviceMessage.generic", value: "This device doesn't support Apple Intelligence. AI Coach needs an iPhone 15 Pro / 16 or newer, or an iPad with an M-series chip.", comment: "Triage: device not eligible, generic fallback used when the chip name is unavailable (e.g. simulator).")
             }
             static var learnMore: String {
                 NSLocalizedString("aiCoach.triage.learnMore", value: "Learn More", comment: "Triage: button to open Apple Support page")

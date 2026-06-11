@@ -2,66 +2,40 @@
 //  AICoach.swift
 //  OpenMDict-iOS
 //
-//  M14 POC: Availability gate for the AI Coach feature.
+//  M14: Availability gate for the AI Coach feature.
 //
-//  Two-tier gate (split during POC debugging):
+//  Single OS gate (was two-tier with a Settings.bundle opt-in toggle).
+//  The toggle was removed: it was meaningless on iOS 15–18 (no Foundation
+//  Models there at all) yet Settings.app shows every Settings.bundle row
+//  unconditionally, so those users stared at a dead switch; and on iOS 26
+//  it was redundant — the in-app facade (AICoachViewController) already
+//  triages every not-ready reason (device-not-eligible, with the actual
+//  chip name via DeviceChipInfo; Apple Intelligence off; model
+//  downloading; locale mismatch). So the entry is gated purely on the OS:
 //
-//    isVisible          — UI gate. Controls whether the sidebar / Management
-//                         row is shown at all. Loose: iOS 26 SDK runtime +
-//                         user opted in via Settings.bundle. Does NOT require
-//                         the on-device model to be ready.
+//    isVisible          — UI gate. iOS 26+ runtime. Controls whether the
+//                         Management entry (sidebar + compact) appears.
+//                         Shown on EVERY iOS 26 device, even ineligible
+//                         hardware, because the facade explains why.
 //
-//    isGenerationReady  — Runtime gate. Controls whether we can actually
-//                         create a session and generate text. Strict: above
-//                         + `SystemLanguageModel.default.availability` is
-//                         exactly `.available`.
-//
-//  The reason for two tiers: in earlier POC builds we required the strict
-//  check for visibility, which meant the row would silently disappear if
-//  Apple Intelligence wasn't enabled in Settings → Apple Intelligence & Siri
-//  (or wasn't done downloading), with no way to tell whether the build
-//  was broken, the toggle didn't take, or Apple Intelligence wasn't ready.
-//  Now the row appears as soon as the user opts in, and tapping it
-//  surfaces the actual `unavailableReason` if generation isn't ready.
-//
-//  The Settings.bundle toggle is visible unconditionally to all users
-//  because Settings.app can't conditionally hide individual entries.
+//    isGenerationReady  — Runtime gate. isVisible AND
+//                         SystemLanguageModel.default.availability == .available.
 //
 
 import Foundation
-import os
 
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
 
-// MARK: - UserDefaults Extension
-
-extension UserDefaults {
-    /// Settings.bundle key for the AI Coach feature toggle.
-    /// Default: false (registered in AppDelegate.didFinishLaunching).
-    fileprivate static let aiCoachEnabledKey = "aiCoachEnabled"
-
-    var aiCoachEnabled: Bool {
-        get { bool(forKey: Self.aiCoachEnabledKey) }
-        set { set(newValue, forKey: Self.aiCoachEnabledKey) }
-    }
-}
-
 // MARK: - AICoach gate
 
-/// Availability helpers for the AI Coach POC.
-///
-/// Not marked `nonisolated`: the user-toggle lookup goes through the
-/// `UserDefaults.aiCoachEnabled` extension which, under the project's
-/// `-default-isolation=MainActor` flag, is implicitly MainActor-isolated.
-/// All call sites (sidebar snapshot build, AppDelegate launch, management
-/// tab rebuild, POC VC) are already on MainActor so this is harmless.
+/// Availability helpers for the AI Coach feature. Plain runtime/OS checks;
+/// all call sites (sidebar snapshot build, management tab rebuild, facade
+/// VC) are already on MainActor.
 enum AICoach {
 
-    /// True iff the runtime is iOS 26+. Independent of hardware/model
-    /// readiness — only used as a hard floor for the Settings.bundle
-    /// toggle to mean anything at all.
+    /// True iff the runtime is iOS 26+ (Foundation Models SDK present).
     static var isOSSupported: Bool {
         #if canImport(FoundationModels)
         if #available(iOS 26, *) { return true }
@@ -69,19 +43,18 @@ enum AICoach {
         return false
     }
 
-    /// **UI gate.** True iff the OS supports Foundation Models AND the user
-    /// has flipped the Settings.app toggle on. The sidebar row and tab entry
-    /// use this — we want users to see the entry as soon as they opt in,
-    /// even if Apple Intelligence isn't downloaded yet.
-    static var isVisible: Bool {
-        guard isOSSupported else { return false }
-        return UserDefaults.standard.aiCoachEnabled
-    }
+    /// **UI gate.** True iff the runtime is iOS 26+. The Management entry
+    /// uses this. We deliberately show it on every iOS 26 device — even
+    /// ones whose chip can't run Apple Intelligence — because the facade
+    /// VC explains exactly why it's unavailable (DeviceChipInfo-aware
+    /// "device not eligible", "Apple Intelligence not enabled", "model
+    /// downloading", or a locale mismatch). Hiding the row would leave the
+    /// user with no signal at all.
+    static var isVisible: Bool { isOSSupported }
 
     /// **Runtime gate.** True iff `isVisible` AND the on-device model is
-    /// reported `.available`. The POC view controller checks this before
-    /// trying to start generation; if false, it shows an alert with
-    /// `unavailableDescription` so the user knows what to fix.
+    /// reported `.available`. The facade checks this before trying to
+    /// generate; if false it triages the specific reason.
     static var isGenerationReady: Bool {
         guard isVisible else { return false }
         #if canImport(FoundationModels)
@@ -95,14 +68,12 @@ enum AICoach {
         return false
     }
 
-    /// Human-readable reason the model isn't ready, suitable for showing
-    /// in an alert. Returns nil when `isGenerationReady` is true.
+    /// Human-readable reason the model isn't ready, for the Flashcard POC
+    /// alert. Returns nil when `isGenerationReady` is true. (The main facade
+    /// VC uses richer per-state triage screens, not this one-liner.)
     static var unavailableDescription: String? {
-        guard isVisible else {
-            if !isOSSupported {
-                return "AI Coach requires iOS 26 or later. This device is on an older OS."
-            }
-            return "AI Coach is disabled. Enable it in Settings → OpenMDict → AI Coach."
+        guard isOSSupported else {
+            return "AI Coach requires iOS 26 or later. This device is on an older OS."
         }
         #if canImport(FoundationModels)
         if #available(iOS 26, *) {
@@ -129,11 +100,9 @@ enum AICoach {
     }
 
     /// Diagnostic snapshot for debug logs. One-line summary of every gate
-    /// the feature passes through, intended for `debugLog` callsites that
-    /// can't easily reach into FoundationModels themselves.
+    /// the feature passes through.
     static var diagnosticSummary: String {
         let osTag      = isOSSupported     ? "OS✓"      : "OS✗"
-        let toggleTag  = UserDefaults.standard.aiCoachEnabled ? "toggle✓" : "toggle✗"
         let visibleTag = isVisible         ? "visible✓" : "visible✗"
         let readyTag   = isGenerationReady ? "ready✓"   : "ready✗"
 
@@ -157,6 +126,6 @@ enum AICoach {
         }
         #endif
 
-        return "[AICoach] \(osTag) \(toggleTag) \(visibleTag) \(readyTag) availability=\(availabilityTag)"
+        return "[AICoach] \(osTag) \(visibleTag) \(readyTag) availability=\(availabilityTag)"
     }
 }

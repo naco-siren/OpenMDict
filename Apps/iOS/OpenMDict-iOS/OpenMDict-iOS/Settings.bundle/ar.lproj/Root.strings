@@ -30,9 +30,6 @@
 "ARTICLES_MORE" = "أكثر";
 
 /* M14 — AI Coach */
-"AI_COACH_GROUP" = "المدرب الذكي";
-"AI_COACH_ENABLED" = "تفعيل المدرب الذكي";
-"AI_COACH_FOOTER" = "يتطلب iOS 26 وجهازًا يدعم Apple Intelligence. عند التفعيل، يظهر إجراء «المدرب الذكي» في الشريط الجانبي وعلامة تبويب الإدارة. يستخدم المدرب الذكي نماذج Foundation Models على جهاز Apple لإنشاء اختبارات مفردات من الكلمات الإنجليزية المُفضّلة. تتم المعالجة محليًا، ولا تغادر أي بيانات جهازك.";
 
 /* Semantic search ("语义" scope) result count tier — M15 Phase 1 */
 "LOOKUP_SEMANTIC_RESULTS" = "نتائج البحث الدلالي لكل قاموس";
