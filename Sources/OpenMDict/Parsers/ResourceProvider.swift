@@ -50,15 +50,16 @@ public final class ResourceProvider {
         
         // 1. Same-name .mdd
         let primaryMDD = baseDirectory.appendingPathComponent(baseName + ".mdd")
-        if let reader = try? MDDParser(path: primaryMDD.path) {
+        if FileManager.default.fileExists(atPath: primaryMDD.path),
+           let reader = Self.loadMDD(primaryMDD.path) {
             readers.append(reader)
         }
-        
+
         // 2. Numbered .mdd files (dict.1.mdd, dict.2.mdd, etc.)
         for i in 1...99 {
             let numberedMDD = baseDirectory.appendingPathComponent("\(baseName).\(i).mdd")
             if FileManager.default.fileExists(atPath: numberedMDD.path) {
-                if let reader = try? MDDParser(path: numberedMDD.path) {
+                if let reader = Self.loadMDD(numberedMDD.path) {
                     readers.append(reader)
                 }
             } else {
@@ -76,11 +77,26 @@ public final class ResourceProvider {
         
         var readers: [MDDParser] = []
         for path in mddPaths {
-            if let reader = try? MDDParser(path: path) {
-                readers.append(reader)
-            }
+            if let reader = Self.loadMDD(path) { readers.append(reader) }
         }
         self.mddReaders = readers
+    }
+
+    /// Create an MDDParser, surfacing (not swallowing) any parse error.
+    ///
+    /// A failed MDD parse silently strips ALL image/audio/js resources while the
+    /// dict still "loads" (the MDX works) — e.g. a 1GB MDD that looks loaded but
+    /// serves nothing. Logging the specific error + file size lets device logs
+    /// pinpoint the cause (truncated import / mmap failure / encryption / bad
+    /// format) instead of failing invisibly behind `try?`.
+    private static func loadMDD(_ path: String) -> MDDParser? {
+        do {
+            return try MDDParser(path: path)
+        } catch {
+            let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int ?? -1
+            print("⚠️ ResourceProvider: MDDParser failed for \((path as NSString).lastPathComponent) (size=\(size) bytes): \(error)")
+            return nil
+        }
     }
     
     // MARK: - Public API

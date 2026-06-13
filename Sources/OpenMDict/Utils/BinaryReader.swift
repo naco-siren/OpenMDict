@@ -23,118 +23,102 @@ enum BinaryReaderError: Error, CustomStringConvertible {
 
 /// Low-level binary reader for MDX/MDD files.
 ///
-/// **Backing storage**: `mmap(2)` with `MAP_PRIVATE` + `PROT_READ`. The entire
-/// file is mapped into the process address space at construction time, exposed
-/// as a zero-copy `Data` (via `bytesNoCopy`). All reads are pure pointer
-/// dereferences — no syscalls, no userspace copies, and no locking is needed
-/// because reading mapped memory is inherently thread-safe.
+/// **Backing storage**: prefers `mmap(2)` (`MAP_SHARED` + `PROT_READ`) — the
+/// whole file is mapped into the address space and exposed as a zero-copy
+/// `Data`. All reads are pure pointer dereferences: no syscalls, no userspace
+/// copies, and no locking (reading mapped memory is inherently thread-safe).
 ///
-/// On iOS this is a meaningful win for memory pressure: `mmap`'d file pages
-/// are *clean* (backed by the file on disk), so the kernel can evict them at
-/// any time without swap. They do not count toward the process's dirty memory
-/// footprint that drives jetsam.
+/// On iOS this is a win for memory pressure: file-backed pages are *clean*
+/// (PROT_READ, no writes), so the kernel can evict them at any time without
+/// swap — they don't count toward the dirty footprint that drives jetsam.
 ///
-/// **Fallback**: under `#if DEBUG_DISABLE_MMAP` the reader uses `FileHandle`
-/// + `NSLock` (the previous implementation), retained for QA / A/B testing.
+/// **Runtime fallback**: if `mmap` fails (notably iOS refusing to map a very
+/// large — 1 GB+ — file: `mmap` returns `MAP_FAILED`), the reader transparently
+/// falls back to a `FileHandle` + `NSLock`. This is slower (a `pread`-style
+/// syscall per access, serialized) but keeps the dictionary fully functional.
+/// Without it, a single failed mapping silently strips *all* of a dict's MDD
+/// resources (images / audio / js) while the MDX still loads.
+///
+/// `#if DEBUG_DISABLE_MMAP` forces the FileHandle path for QA / A-B testing.
+///
+/// **Why `MAP_SHARED` not `MAP_PRIVATE`**: the files are immutable and accessed
+/// read-only, so copy-on-write is pointless; `MAP_SHARED` also avoids the COW
+/// commit charge the kernel reserves for a `MAP_PRIVATE` region, which is the
+/// most likely reason a 1 GB+ `MAP_PRIVATE` mapping was being refused on device.
 final class BinaryReader {
 
     // MARK: - Storage
+    //
+    // Exactly one of these is non-nil. `mapped != nil` ⇒ mmap path (lock-free).
+    // `handle != nil` ⇒ FileHandle fallback (serialized via `lock`).
 
-    #if DEBUG_DISABLE_MMAP
-    private let handle: FileHandle
+    /// The mmap-backed `Data`. Its custom deallocator `munmap`s on release.
+    private let mapped: Data?
+    /// FileHandle fallback (also the `DEBUG_DISABLE_MMAP` path).
+    private let handle: FileHandle?
+    /// Serializes the FileHandle path only (the mmap path needs no lock).
     private let lock = NSLock()
-    #else
-    /// The mmap-backed `Data`. The custom deallocator releases the mapping
-    /// when this `Data` is destroyed.
-    private let mapped: Data
-    /// Sequential read cursor (used during init parsing only — random-access
-    /// reads use `atomicRead(at:count:)` which is stateless).
+    /// Sequential read cursor. Used by `readBytes`/`seek`/`skip` (single-threaded
+    /// init parsing); random-access reads use `atomicRead(at:count:)`.
     private var cursor: Int = 0
-    #endif
 
     let fileSize: UInt64
 
     // MARK: - Init
 
     init(path: String) throws {
-        #if DEBUG_DISABLE_MMAP
-        guard let handle = FileHandle(forReadingAtPath: path) else {
-            throw BinaryReaderError.invalidData("Cannot open file: \(path)")
-        }
-        self.handle = handle
-        let currentPos = handle.offsetInFile
-        handle.seekToEndOfFile()
-        self.fileSize = handle.offsetInFile
-        handle.seek(toFileOffset: currentPos)
-        #else
-        // Open the file just long enough to mmap it; the fd can be closed
-        // immediately after — Unix mappings keep the file alive.
         let fd = open(path, O_RDONLY)
         guard fd >= 0 else {
             throw BinaryReaderError.invalidData("Cannot open file: \(path)")
         }
-        defer { close(fd) }
 
         var st = stat()
         guard fstat(fd, &st) == 0, st.st_size > 0 else {
+            close(fd)
             throw BinaryReaderError.invalidData("Cannot stat or empty file: \(path)")
         }
         let size = Int(st.st_size)
+        self.fileSize = UInt64(size)
 
-        guard let raw = mmap(nil, size, PROT_READ, MAP_PRIVATE, fd, 0),
-              raw != UnsafeMutableRawPointer(bitPattern: -1)
-        else {
-            throw BinaryReaderError.invalidData("mmap failed for: \(path)")
+        #if DEBUG_DISABLE_MMAP
+        let attemptMmap = false
+        #else
+        let attemptMmap = true
+        #endif
+
+        if attemptMmap {
+            let rawPtr = mmap(nil, size, PROT_READ, MAP_SHARED, fd, 0)
+            if let raw = rawPtr, raw != UnsafeMutableRawPointer(bitPattern: -1) {
+                close(fd)  // Unix mappings keep the file alive after close.
+                // Hint random access — disables readahead so record lookups
+                // don't pull in adjacent unused pages.
+                _ = madvise(raw, size, MADV_RANDOM)
+                self.mapped = Data(
+                    bytesNoCopy: raw,
+                    count: size,
+                    deallocator: .custom { ptr, len in munmap(ptr, len) }
+                )
+                self.handle = nil
+                return
+            }
+            // mmap failed — capture errno immediately, then fall back so the
+            // dict still works instead of losing all MDD resources silently.
+            let err = String(cString: strerror(errno))
+            print("⚠️ BinaryReader: mmap failed (\(err)) for \(size)-byte file — using FileHandle fallback: \((path as NSString).lastPathComponent)")
         }
 
-        // Hint to the kernel: random access. Disables readahead so record
-        // lookups don't pull in adjacent unused pages.
-        _ = madvise(raw, size, MADV_RANDOM)
-
-        // Wrap as Data with a custom deallocator so munmap fires when the
-        // Data (and therefore this BinaryReader) is released.
-        self.mapped = Data(
-            bytesNoCopy: raw,
-            count: size,
-            deallocator: .custom { ptr, len in
-                munmap(ptr, len)
-            }
-        )
-        self.fileSize = UInt64(size)
-        #endif
-    }
-
-    deinit {
-        #if DEBUG_DISABLE_MMAP
-        try? handle.close()
-        #endif
+        // FileHandle fallback. Reuse the already-open fd (FileHandle closes it).
+        self.mapped = nil
+        self.handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
     }
 
     // MARK: - Sequential cursor (used during init parsing)
 
-    var position: UInt64 {
-        #if DEBUG_DISABLE_MMAP
-        return handle.offsetInFile
-        #else
-        return UInt64(cursor)
-        #endif
-    }
+    var position: UInt64 { UInt64(cursor) }
 
-    func seek(to offset: UInt64) {
-        #if DEBUG_DISABLE_MMAP
-        handle.seek(toFileOffset: offset)
-        #else
-        cursor = Int(offset)
-        #endif
-    }
+    func seek(to offset: UInt64) { cursor = Int(offset) }
 
-    func skip(_ bytes: Int) {
-        #if DEBUG_DISABLE_MMAP
-        handle.seek(toFileOffset: handle.offsetInFile + UInt64(bytes))
-        #else
-        cursor += bytes
-        #endif
-    }
+    func skip(_ bytes: Int) { cursor += bytes }
 
     // MARK: - Reads
 
@@ -143,95 +127,87 @@ final class BinaryReader {
     /// Always returns a `Data` with `startIndex == 0` so that legacy callers
     /// using `data[0]` indexing keep working.
     func readBytes(_ count: Int) throws -> Data {
-        #if DEBUG_DISABLE_MMAP
-        guard let data = try handle.read(upToCount: count), data.count == count else {
-            throw BinaryReaderError.readFailed(expected: count, got: 0)
+        if let mapped {
+            let end = cursor + count
+            guard end <= mapped.count else {
+                throw BinaryReaderError.readFailed(expected: count, got: max(mapped.count - cursor, 0))
+            }
+            // Copy out of the mmap region into a fresh Data with startIndex == 0.
+            let result = mapped.withUnsafeBytes { rawBuf -> Data in
+                Data(bytes: rawBuf.baseAddress!.advanced(by: cursor), count: count)
+            }
+            cursor = end
+            return result
+        } else {
+            lock.lock(); defer { lock.unlock() }
+            handle!.seek(toFileOffset: UInt64(cursor))
+            guard let data = try handle!.read(upToCount: count), data.count == count else {
+                throw BinaryReaderError.readFailed(expected: count, got: 0)
+            }
+            cursor += count
+            return data
         }
-        return data
-        #else
-        let end = cursor + count
-        guard end <= mapped.count else {
-            throw BinaryReaderError.readFailed(expected: count, got: max(mapped.count - cursor, 0))
-        }
-        // Copy out of the mmap region into a fresh Data with startIndex == 0.
-        // This is a memcpy, but mmap still saves us the syscall + the kernel
-        // page-cache → user-buffer transition that FileHandle.read does.
-        let result = mapped.withUnsafeBytes { rawBuf -> Data in
-            let base = rawBuf.baseAddress!.advanced(by: cursor)
-            return Data(bytes: base, count: count)
-        }
-        cursor = end
-        return result
-        #endif
     }
 
     /// Read up to `count` bytes (allows partial reads).
     func readAvailable(_ count: Int) throws -> Data {
-        #if DEBUG_DISABLE_MMAP
-        return try handle.read(upToCount: count) ?? Data()
-        #else
-        let end = min(cursor + count, mapped.count)
-        let actualCount = end - cursor
-        let result = mapped.withUnsafeBytes { rawBuf -> Data in
-            let base = rawBuf.baseAddress!.advanced(by: cursor)
-            return Data(bytes: base, count: actualCount)
+        if let mapped {
+            let end = min(cursor + count, mapped.count)
+            let actualCount = end - cursor
+            let result = mapped.withUnsafeBytes { rawBuf -> Data in
+                Data(bytes: rawBuf.baseAddress!.advanced(by: cursor), count: actualCount)
+            }
+            cursor = end
+            return result
+        } else {
+            lock.lock(); defer { lock.unlock() }
+            handle!.seek(toFileOffset: UInt64(cursor))
+            let data = (try handle!.read(upToCount: count)) ?? Data()
+            cursor += data.count
+            return data
         }
-        cursor = end
-        return result
-        #endif
     }
 
     /// Peek bytes without advancing the cursor (debug helper).
     func peekBytes(_ count: Int) throws -> Data {
-        #if DEBUG_DISABLE_MMAP
-        let currentPos = handle.offsetInFile
-        guard let data = try handle.read(upToCount: count) else { return Data() }
-        handle.seek(toFileOffset: currentPos)
-        return data
-        #else
-        let end = min(cursor + count, mapped.count)
-        let actualCount = end - cursor
-        return mapped.withUnsafeBytes { rawBuf -> Data in
-            let base = rawBuf.baseAddress!.advanced(by: cursor)
-            return Data(bytes: base, count: actualCount)
+        if let mapped {
+            let end = min(cursor + count, mapped.count)
+            let actualCount = end - cursor
+            return mapped.withUnsafeBytes { rawBuf -> Data in
+                Data(bytes: rawBuf.baseAddress!.advanced(by: cursor), count: actualCount)
+            }
+        } else {
+            lock.lock(); defer { lock.unlock() }
+            handle!.seek(toFileOffset: UInt64(cursor))
+            return (try handle!.read(upToCount: count)) ?? Data()
         }
-        #endif
     }
 
     // MARK: - Atomic Read (thread-safe random access)
 
     /// Atomic seek-and-read: positions to `offset` and reads `count` bytes.
     ///
-    /// On the mmap path this is **lock-free** — multiple threads can read
-    /// different regions concurrently without contention. We still memcpy
-    /// out of the mapping into a fresh `Data` so callers can rely on
-    /// `startIndex == 0`. The wins versus `FileHandle.read` are:
-    ///   1. No `read(2)` syscall per call.
-    ///   2. No double-buffering (page cache → kernel buffer → user buffer).
-    ///   3. Clean file-backed pages (jetsam-friendly on iOS).
-    ///   4. No `NSLock` contention.
-    ///
-    /// On the `FileHandle` fallback path it serializes through `NSLock`.
+    /// On the mmap path this is **lock-free** — multiple threads read different
+    /// regions concurrently. On the FileHandle fallback it serializes through
+    /// `NSLock`. Both return a fresh `Data` with `startIndex == 0`.
     func atomicRead(at offset: UInt64, count: Int) throws -> Data {
-        #if DEBUG_DISABLE_MMAP
-        lock.lock()
-        defer { lock.unlock() }
-        handle.seek(toFileOffset: offset)
-        guard let data = try handle.read(upToCount: count), data.count == count else {
-            throw BinaryReaderError.readFailed(expected: count, got: 0)
+        if let mapped {
+            let start = Int(offset)
+            let end = start + count
+            guard start >= 0, end <= mapped.count else {
+                throw BinaryReaderError.readFailed(expected: count, got: 0)
+            }
+            return mapped.withUnsafeBytes { rawBuf -> Data in
+                Data(bytes: rawBuf.baseAddress!.advanced(by: start), count: count)
+            }
+        } else {
+            lock.lock(); defer { lock.unlock() }
+            handle!.seek(toFileOffset: offset)
+            guard let data = try handle!.read(upToCount: count), data.count == count else {
+                throw BinaryReaderError.readFailed(expected: count, got: 0)
+            }
+            return data
         }
-        return data
-        #else
-        let start = Int(offset)
-        let end = start + count
-        guard start >= 0, end <= mapped.count else {
-            throw BinaryReaderError.readFailed(expected: count, got: 0)
-        }
-        return mapped.withUnsafeBytes { rawBuf -> Data in
-            let base = rawBuf.baseAddress!.advanced(by: start)
-            return Data(bytes: base, count: count)
-        }
-        #endif
     }
 
     // MARK: - Integer reading (Big Endian — MDX uses BE)
