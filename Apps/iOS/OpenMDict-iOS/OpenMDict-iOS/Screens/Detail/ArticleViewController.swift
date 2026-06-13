@@ -3,9 +3,20 @@
 //  OpenMDict-iOS
 //
 //  Paged article view for compact mode (iPhone / iPad narrow).
-//  Displays all open articles in a horizontally-scrollable pager
-//  with a floating page control at the bottom.
-//  Each page is an ArticlePageView (shared component: header + WKWebView).
+//  Displays all open articles in a horizontally-paged UICollectionView with a
+//  floating page control at the bottom.  Each page is a CompactArticleCell
+//  (shared ArticlePageView: header + WKWebView).
+//
+//  ── Why a recycling collection view (not a manual UIScrollView pager) ──
+//  The old implementation kept one live WKWebView per open article (up to the
+//  per-device capacity, 30–60) and tore them ALL down + rebuilt them on every
+//  push.  Discarded webviews were mid-navigation and got pinned by WebKit's
+//  NavigationState, so they accumulated unboundedly → memory climbed → the app
+//  OOM-crashed inside Auto Layout (`+[NSISVariable …] couldNotInstantiate`).
+//  A UICollectionView recycles cells, so the live WKWebView working set is
+//  bounded to the visible window (~1–3), and a diffable data source keyed by
+//  the stable article id means a new lookup only builds ONE cell instead of
+//  rebuilding every page.  This mirrors the regular-mode ArticlesViewController.
 //
 
 import Combine
@@ -33,30 +44,27 @@ class ArticleViewController: UIViewController {
     // MARK: - Pager State
 
     private var articles: [ArticleDisplayItem] = []
+    /// id → article, for O(1) lookup from the diffable data source (which is
+    /// keyed by the stable article id, not the full `ArticleDisplayItem`).
+    private var articlesById: [String: ArticleDisplayItem] = [:]
     private(set) var currentPageIndex: Int = 0
     /// Lazy-init from the persisted compact-trait zoom so a freshly-built
     /// pager (cold start, or after navigating away + back) starts at the
     /// user's last-used level instead of always 100%.  Subsequent updates
     /// arrive via `setZoomLevel(_:)` from DetailContainerVC.applyZoom().
     private lazy var currentZoomLevel: Int = UserDefaults.shared.initialZoomLevel(compact: true)
-    private var lookupCountCancellable: AnyCancellable?
     private var bookmarkCancellable: AnyCancellable?
-
-    // MARK: - Pages
-
-    private var pages: [ArticlePageView] = []
-    private var pageLeadingConstraints: [NSLayoutConstraint] = []
+    private var lookupHistoryCancellable: AnyCancellable?
 
     // MARK: - Safe Area (manual, same pattern as ArticlesVC)
 
-    /// Constraint from scrollView.top → view.top, constant = effective safe area.
+    /// Constraint from collectionView.top → view.top, constant = effective safe area.
     /// We manage this manually instead of using `safeAreaLayoutGuide.topAnchor`
     /// because safeAreaLayoutGuide doesn't propagate from UINavigationController
     /// during a `UIViewControllerTransitionCoordinator.animate` block.
-    private var scrollViewTopConstraint: NSLayoutConstraint!
+    private var collectionViewTopConstraint: NSLayoutConstraint!
 
     /// Effective safe area top: own value, falling back to parent's.
-    /// Mirrors the `effectiveSafeAreaTop` pattern in ArticlesVC.
     private var effectiveSafeAreaTop: CGFloat {
         let myTop = view.safeAreaInsets.top
         if myTop > 0 { return myTop }
@@ -65,21 +73,37 @@ class ArticleViewController: UIViewController {
 
     // MARK: - Pager UI
 
-    private lazy var scrollView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.translatesAutoresizingMaskIntoConstraints = false
-        sv.isPagingEnabled = true
-        sv.showsHorizontalScrollIndicator = false
-        sv.showsVerticalScrollIndicator = false
-        sv.bounces = true
-        sv.delegate = self
-        // Safe area is handled manually via scrollViewTopConstraint.
-        // Prevent UIKit from adding automatic content insets that would
-        // double-offset the pages and cause the header to scroll with
-        // the WKWebView content when inside a UINavigationController.
-        sv.contentInsetAdjustmentBehavior = .never
-        return sv
+    private lazy var pagerLayout: UICollectionViewFlowLayout = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.minimumLineSpacing = 0
+        layout.minimumInteritemSpacing = 0
+        layout.sectionInset = .zero
+        return layout
     }()
+
+    private lazy var collectionView: UICollectionView = {
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: pagerLayout)
+        cv.translatesAutoresizingMaskIntoConstraints = false
+        // Full-width cells + native paging give the same snapping as the old
+        // UIScrollView pager, with no visible scroll indicator.
+        cv.isPagingEnabled = true
+        cv.showsHorizontalScrollIndicator = false
+        cv.showsVerticalScrollIndicator = false
+        cv.alwaysBounceVertical = false
+        // Safe area is handled manually via collectionViewTopConstraint.
+        cv.contentInsetAdjustmentBehavior = .never
+        cv.backgroundColor = .clear
+        cv.delegate = self
+        return cv
+    }()
+
+    /// Lazy so `configure(...)` works even when DetailContainerVC calls it
+    /// before this VC's view loads (compact first-lookup pushes an article
+    /// *before* the container is on the nav stack).  Accessing it self-builds
+    /// the data source + (lazy) collection view, mirroring how the old pager
+    /// tolerated early configuration via its lazy `scrollView`.
+    private lazy var dataSource: UICollectionViewDiffableDataSource<Int, String> = makeDataSource()
 
     private lazy var pageControlBackdrop: UIVisualEffectView = {
         let effect: UIVisualEffect
@@ -105,12 +129,6 @@ class ArticleViewController: UIViewController {
         return pc
     }()
 
-    private lazy var webViewConfiguration: WKWebViewConfiguration = {
-        let config = WKWebViewConfiguration()
-        config.setURLSchemeHandler(MDictSchemeHandler.shared, forURLScheme: "mdict")
-        return config
-    }()
-
     private lazy var emptyView: ArticlePlaceholderView = {
         let v = ArticlePlaceholderView.empty()
         v.translatesAutoresizingMaskIntoConstraints = false
@@ -123,39 +141,43 @@ class ArticleViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
-        
+
         navigationItem.largeTitleDisplayMode = .never
         setupUI()
         showEmpty()
 
+        // Refresh bookmark icon / lookup count on visible cells when the
+        // underlying services change (same pattern as ArticlesViewController).
         bookmarkCancellable = BookmarkService.shared.$revision
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.bookmarksDidChange()
             }
+
+        lookupHistoryCancellable = LookupHistoryService.shared.$revision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.lookupCountsDidChange()
+            }
     }
 
     private func setupUI() {
-        view.addSubview(scrollView)
+        view.addSubview(collectionView)
         view.addSubview(emptyView)
 
-        // Floating page control with capsule backdrop
-        if #available(iOS 26, *) {
-            pageControlBackdrop.contentView.addSubview(pageControl)
-        } else {
-            pageControlBackdrop.contentView.addSubview(pageControl)
-        }
+        pageControlBackdrop.contentView.addSubview(pageControl)
         view.addSubview(pageControlBackdrop)
 
         // Manual safe area: topAnchor + constant (not safeAreaLayoutGuide — see comment above)
-        scrollViewTopConstraint = scrollView.topAnchor.constraint(equalTo: view.topAnchor, constant: effectiveSafeAreaTop)
+        collectionViewTopConstraint = collectionView.topAnchor.constraint(equalTo: view.topAnchor, constant: effectiveSafeAreaTop)
 
         NSLayoutConstraint.activate([
-            scrollViewTopConstraint,
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            collectionViewTopConstraint,
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             // Page control backdrop — centered at bottom
             pageControlBackdrop.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -176,14 +198,14 @@ class ArticleViewController: UIViewController {
 
     override func viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
-        scrollViewTopConstraint.constant = effectiveSafeAreaTop
+        collectionViewTopConstraint.constant = effectiveSafeAreaTop
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        // Keep scrollView below nav bar (parent fallback for first transition)
-        scrollViewTopConstraint.constant = effectiveSafeAreaTop
+        // Keep collectionView below nav bar (parent fallback for first transition)
+        collectionViewTopConstraint.constant = effectiveSafeAreaTop
 
         // Capsule shape for page control backdrop
         if pageControlBackdrop.bounds.height > 0 {
@@ -191,69 +213,106 @@ class ArticleViewController: UIViewController {
             pageControlBackdrop.layer.masksToBounds = true
         }
 
-        guard !pages.isEmpty else { return }
-        let pageWidth = scrollView.bounds.width
-        guard pageWidth > 0 else { return }
-
-        // Update content size
-        scrollView.contentSize = CGSize(
-            width: pageWidth * CGFloat(pages.count),
-            height: scrollView.bounds.height
-        )
-
-        // Update each page's leading constraint
-        for (index, constraint) in pageLeadingConstraints.enumerated() {
-            constraint.constant = CGFloat(index) * pageWidth
+        // Each page fills the collection view; native paging snaps per page.
+        let size = collectionView.bounds.size
+        if size.width > 0, size.height > 0, pagerLayout.itemSize != size {
+            pagerLayout.itemSize = size
+            pagerLayout.invalidateLayout()
+            // Restore the current page after a bounds / orientation change once
+            // the new contentSize has settled (defer to next runloop tick).
+            let targetPage = currentPageIndex
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.pagerLayout.itemSize.width > 0 else { return }
+                self.scrollToPage(targetPage, animated: false)
+            }
         }
-
-        // Restore current page offset (without animation to avoid flicker)
-        scrollView.contentOffset = CGPoint(
-            x: CGFloat(currentPageIndex) * pageWidth,
-            y: 0
-        )
     }
 
-    // MARK: - Trait Changes
+    // MARK: - Data Source
 
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            reloadAllPages()
+    private func makeDataSource() -> UICollectionViewDiffableDataSource<Int, String> {
+        let cellReg = UICollectionView.CellRegistration<CompactArticleCell, String> { [weak self] cell, _, articleId in
+            guard let self, let article = self.articlesById[articleId] else { return }
+
+            cell.configure(with: article)
+            cell.setZoomLevel(self.currentZoomLevel)
+
+            // ── Wire pageView callbacks ──
+            // The registration handler re-runs on reconfigure, so captured
+            // immutable fields (dictId/word) stay fresh; the close handler
+            // resolves the *current* article by the cell's live index so it
+            // matches even after a pending → loaded contentState change.
+            cell.pageView.onEntryLinkTapped = { [weak self] word, fragment in
+                guard let self else { return }
+                self.delegate?.articleViewController(self, didTapEntryLink: word, fragment: fragment, inDict: article.dictId)
+            }
+            cell.pageView.onSoundLinkTapped = { url in
+                AudioService.shared.play(url: url, dictId: article.dictId)
+            }
+            cell.pageView.onJumpSearch = { [weak self] text in
+                guard let self else { return }
+                self.delegate?.articleViewController(self, didRequestJumpSearch: text, inDict: article.dictId)
+            }
+            cell.pageView.onEnhanceDarkModeStrengthChanged = { newStrength in
+                DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: article.dictId, strength: newStrength)
+            }
+            cell.pageView.onBookmarkTapped = { [weak self, weak cell] isCurrentlyBookmarked in
+                guard let self else { return }
+                if isCurrentlyBookmarked {
+                    self.confirmRemoveBookmark(word: article.word, dictId: article.dictId, dictName: article.dictName)
+                } else {
+                    cell?.pageView.setBookmarked(true)
+                    let created = BookmarkService.shared.toggleBookmark(word: article.word, dictId: article.dictId)
+                    if created {
+                        BookmarkCountService.shared.incrementAll(dictId: article.dictId)
+                    }
+                }
+            }
+            cell.pageView.onFindTapped = { [weak self, weak cell] in
+                self?.dismissAllFindsExcept(cell)
+            }
+            cell.pageView.onCloseTapped = { [weak self, weak cell] in
+                guard let self, let cell,
+                      let idx = self.collectionView.indexPath(for: cell)?.item,
+                      idx < self.articles.count else { return }
+                self.delegate?.articleViewController(self, didCloseArticle: self.articles[idx])
+            }
+        }
+
+        return UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, articleId in
+            collectionView.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: articleId)
         }
     }
 
     // MARK: - Public API (called by Container)
 
     func configure(articles: [ArticleDisplayItem], currentIndex: Int) {
+        let oldById = articlesById
+        self.articles = articles
+        self.articlesById = Dictionary(articles.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+
         guard !articles.isEmpty else {
             showEmpty()
             return
         }
 
-        let oldIds = self.articles.map(\.id)
-        let newIds = articles.map(\.id)
+        showContent()
 
-        if oldIds == newIds {
-            // Same articles in same order — update contentState changes in-place
-            for (index, newArticle) in articles.enumerated() {
-                if self.articles[index].contentState != newArticle.contentState {
-                    self.articles[index] = newArticle
-                    if index < pages.count {
-                        loadContent(for: newArticle, in: pages[index])
-                        // Remove native pending overlay once content arrives
-                        if case .pending = newArticle.contentState {} else {
-                            pages[index].removePendingOverlay()
-                        }
-                    }
-                }
-            }
-        } else {
-            // Article set changed — full rebuild
-            self.articles = articles
-            rebuildPages()
+        // Build a snapshot of stable ids.  Items present in both old and new
+        // keep their cell (and WKWebView); only genuinely-new ids build a cell.
+        // Ids whose contentState changed (pending → loaded) are reconfigured
+        // in place so the same WKWebView reloads, without a teardown/rebuild.
+        var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
+        snapshot.appendSections([0])
+        snapshot.appendItems(articles.map(\.id))
+        let changedIds = articles.compactMap { article -> String? in
+            guard let old = oldById[article.id], old.contentState != article.contentState else { return nil }
+            return article.id
+        }
+        if !changedIds.isEmpty {
+            snapshot.reconfigureItems(changedIds)
         }
 
-        // Navigate to requested page
         let safeIndex = max(0, min(currentIndex, articles.count - 1))
         currentPageIndex = safeIndex
 
@@ -264,339 +323,190 @@ class ArticleViewController: UIViewController {
         pageControl.isHidden = !showPager
         pageControlBackdrop.isHidden = !showPager
 
-        // Show content and navigate
-        showContent()
-        scrollToPageInternal(safeIndex, animated: false)
-        updateCurrentPageState()
+        dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
+            // After the snapshot lands (and contentSize updates) jump to the
+            // requested page.  viewDidLayoutSubviews also restores this on a
+            // later bounds change, so a too-early call here is harmless.
+            self?.scrollToPage(safeIndex, animated: false)
+        }
     }
 
     /// Navigate to a specific page. Called by Container for keyboard shortcuts / external navigation.
     func navigateToPage(_ page: Int, animated: Bool = false) {
-        scrollToPageInternal(page, animated: animated)
-        updateCurrentPageState()
+        guard page >= 0, page < articles.count else { return }
+        currentPageIndex = page
+        pageControl.currentPage = page
+        scrollToPage(page, animated: animated)
         delegate?.articleViewController(self, didChangePage: page)
     }
 
     /// Scroll the page at index 0 (the most recently navigated-to article) to
     /// an in-page anchor.  Used by cross-reference click handling so the user
-    /// lands at the matching `id` inside the target article.  No-op when
-    /// `anchor` is nil or the page isn't built yet.
+    /// lands at the matching `id` inside the target article.  Retries on the
+    /// next runloop tick if the cell isn't dequeued yet.
     func scrollFirstPage(toAnchor anchor: String?) {
-        guard let anchor, !anchor.isEmpty, let first = pages.first else { return }
-        first.scrollToAnchor(anchor)
-    }
-
-    // MARK: - Page Management
-
-    private func rebuildPages() {
-        // Remove old pages
-        for page in pages {
-            page.removeFromSuperview()
-        }
-        pages.removeAll()
-        pageLeadingConstraints.removeAll()
-
-        // Add new pages
-        for (index, article) in articles.enumerated() {
-            addPage(for: article, at: index)
-        }
-
-        // Update content size
-        let pageWidth = scrollView.bounds.width
-        scrollView.contentSize = CGSize(
-            width: pageWidth * CGFloat(articles.count),
-            height: scrollView.bounds.height
-        )
-    }
-
-    private func addPage(for article: ArticleDisplayItem, at index: Int) {
-        let pageView = makeArticlePageView(for: article)
-        scrollView.addSubview(pageView)
-
-        let leadingConstraint = pageView.leadingAnchor.constraint(
-            equalTo: scrollView.leadingAnchor,
-            constant: CGFloat(index) * scrollView.bounds.width
-        )
-
-        NSLayoutConstraint.activate([
-            pageView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            pageView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            pageView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
-            leadingConstraint,
-        ])
-
-        pages.append(pageView)
-        pageLeadingConstraints.append(leadingConstraint)
-
-        // Apply per-dict dark mode enhancement strength.
-        pageView.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: article.dictId))
-
-        // Propagate the pager's current zoom to the freshly-created page —
-        // otherwise it would render at default 100% even when the user has
-        // an active 50% / 150% session (currentZoomLevel is the source of
-        // truth, updated by DetailContainerVC.applyZoom on slider changes
-        // and seeded from UserDefaults on first access).
-        pageView.setZoomLevel(currentZoomLevel)
-
-        loadContent(for: article, in: pageView)
-
-        // Native pending overlay while dictionary loads
-        if case .pending = article.contentState {
-            pageView.showPendingOverlay(word: article.word, dictName: article.dictName)
+        guard let anchor, !anchor.isEmpty else { return }
+        let indexPath = IndexPath(item: 0, section: 0)
+        if let cell = collectionView.cellForItem(at: indexPath) as? CompactArticleCell {
+            cell.scrollToAnchor(anchor)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let cell = self?.collectionView.cellForItem(at: indexPath) as? CompactArticleCell else { return }
+                cell.scrollToAnchor(anchor)
+            }
         }
     }
 
-    /// Create a page view for the given article.
-    private func makeArticlePageView(for article: ArticleDisplayItem) -> ArticlePageView {
-        let config = ArticlePageView.Configuration.compactPager(
-            webViewConfig: webViewConfiguration
-        )
-        let pageView = ArticlePageView(configuration: config)
-        pageView.translatesAutoresizingMaskIntoConstraints = false
+    // MARK: - Page Navigation
 
-        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        pageView.configure(word: article.word, dictName: article.dictName,
-                          dictId: article.dictId, isBookmarked: isBookmarked)
-
-        // Wire callbacks
-        pageView.onBookmarkTapped = { [weak self] isCurrentlyBookmarked in
-            self?.handleBookmarkTapped(isCurrentlyBookmarked: isCurrentlyBookmarked)
-        }
-        pageView.onEntryLinkTapped = { [weak self] word, fragment in
-            guard let self else { return }
-            // Determine which page this belongs to
-            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
-               pageIndex < self.articles.count {
-                let dictId = self.articles[pageIndex].dictId
-                self.delegate?.articleViewController(self, didTapEntryLink: word, fragment: fragment, inDict: dictId)
-            }
-        }
-        pageView.onSoundLinkTapped = { [weak self] url in
-            guard let self else { return }
-            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
-               pageIndex < self.articles.count {
-                let dictId = self.articles[pageIndex].dictId
-                AudioService.shared.play(url: url, dictId: dictId)
-            }
-        }
-        pageView.onJumpSearch = { [weak self] text in
-            guard let self else { return }
-            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
-               pageIndex < self.articles.count {
-                let dictId = self.articles[pageIndex].dictId
-                self.delegate?.articleViewController(self, didRequestJumpSearch: text, inDict: dictId)
-            }
-        }
-        pageView.onEnhanceDarkModeStrengthChanged = { [weak self] newStrength in
-            guard let self else { return }
-            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
-               pageIndex < self.articles.count {
-                let dictId = self.articles[pageIndex].dictId
-                DictMetadataService.shared.updateEnhanceDarkModeStrength(dictId: dictId, strength: newStrength)
-            }
-        }
-        pageView.onCloseTapped = { [weak self] in
-            guard let self else { return }
-            if let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
-               pageIndex < self.articles.count {
-                let article = self.articles[pageIndex]
-                self.delegate?.articleViewController(self, didCloseArticle: article)
-            }
-        }
-        pageView.onFindTapped = { [weak self] in
-            // Dismiss find on all other pages when one page opens find
-            guard let self else { return }
-            if #available(iOS 16.0, *) {
-                for (idx, p) in self.pages.enumerated() {
-                    if p !== pageView && p.isFindNavigatorVisible {
-                        p.dismissFind()
-                    }
-                }
-            }
-        }
-
-        return pageView
-    }
-
-    private func scrollToPageInternal(_ page: Int, animated: Bool) {
+    /// Scroll to a page by setting the content offset directly.  Full-width
+    /// cells mean `page * width` is exactly the snapped paging position.
+    private func scrollToPage(_ page: Int, animated: Bool) {
         guard page >= 0, page < articles.count else { return }
-        currentPageIndex = page
-        pageControl.currentPage = page
-
-        let pageWidth = scrollView.bounds.width
-        if pageWidth > 0 {
-            scrollView.setContentOffset(
-                CGPoint(x: CGFloat(page) * pageWidth, y: 0),
-                animated: animated
-            )
-        }
-    }
-
-    /// Update bookmark state and lookup count subscription for the current page.
-    private func updateCurrentPageState() {
-        guard currentPageIndex < articles.count,
-              currentPageIndex < pages.count else { return }
-        let article = articles[currentPageIndex]
-        let page = pages[currentPageIndex]
-
-        // Bookmark state
-        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        page.setBookmarked(isBookmarked)
-
-        // Lookup count subscription (re-binds on each page change)
-        lookupCountCancellable = LookupHistoryService.shared
-            .lookupCountPublisher(word: article.word, dictId: article.dictId)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] count in
-                guard let self,
-                      self.currentPageIndex < self.pages.count else { return }
-                self.pages[self.currentPageIndex].setLookupCount(count)
-            }
+        let pageWidth = collectionView.bounds.width
+        guard pageWidth > 0 else { return }  // not laid out yet; viewDidLayoutSubviews restores
+        collectionView.setContentOffset(CGPoint(x: CGFloat(page) * pageWidth, y: 0), animated: animated)
     }
 
     @objc private func pageControlValueChanged(_ sender: UIPageControl) {
         navigateToPage(sender.currentPage, animated: true)
     }
 
-    // MARK: - Content Loading
-
-    private func loadContent(for article: ArticleDisplayItem, in pageView: ArticlePageView) {
-        switch article.contentState {
-        case .pending:
-            let html = ArticleHTMLRenderer.renderPending(word: article.word, traitCollection: traitCollection)
-            pageView.loadHTMLContent(html)
-
-        case .loaded(let html, _):
-            let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
-            pageView.loadHTMLContent(styledHTML)
-
-        case .notFound:
-            let html = ArticleHTMLRenderer.renderNotFound(word: article.word, dictName: article.dictName, traitCollection: traitCollection)
-            pageView.loadHTMLContent(html)
-        }
-    }
-
-    private func reloadAllPages() {
-        for (index, page) in pages.enumerated() where index < articles.count {
-            loadContent(for: articles[index], in: page)
-        }
+    /// Sync `currentPageIndex` + page control from the scroll position after a
+    /// user-driven swipe, and notify the delegate of the page change.
+    private func syncCurrentPageFromScroll() {
+        let pageWidth = collectionView.bounds.width
+        guard pageWidth > 0, !articles.isEmpty else { return }
+        let page = Int(round(collectionView.contentOffset.x / pageWidth))
+        let clamped = min(max(0, page), articles.count - 1)
+        guard clamped != currentPageIndex else { return }
+        currentPageIndex = clamped
+        pageControl.currentPage = clamped
+        delegate?.articleViewController(self, didChangePage: clamped)
     }
 
     // MARK: - Show / Hide States
 
     private func showContent() {
         emptyView.isHidden = true
-        scrollView.isHidden = false
+        collectionView.isHidden = false
     }
 
     private func showEmpty() {
         emptyView.isHidden = false
-        scrollView.isHidden = true
+        collectionView.isHidden = true
         pageControl.isHidden = true
         pageControlBackdrop.isHidden = true
         articles = []
-        for page in pages { page.removeFromSuperview() }
-        pages.removeAll()
-        pageLeadingConstraints.removeAll()
+        articlesById = [:]
         currentPageIndex = 0
+        var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
+        snapshot.appendSections([0])
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     // MARK: - Bookmark Actions
 
-    private func handleBookmarkTapped(isCurrentlyBookmarked: Bool) {
-        guard currentPageIndex < articles.count,
-              currentPageIndex < pages.count else { return }
-        let article = articles[currentPageIndex]
-        let page = pages[currentPageIndex]
-
-        if isCurrentlyBookmarked {
-            // Removing → show confirmation
-            let alert = UIAlertController(
-                title: L10n.Bookmarks.removeBookmark,
-                message: L10n.Bookmarks.removeBookmarkMessage(word: article.word, dictName: article.dictName),
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-            alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
-                guard let self else { return }
-                BookmarkService.shared.toggleBookmark(
-                    word: article.word, dictId: article.dictId
-                )
-                page.setBookmarked(false)
-            })
-            present(alert, animated: true)
-        } else {
-            // Adding → immediate
-            let created = BookmarkService.shared.toggleBookmark(
-                word: article.word, dictId: article.dictId
-            )
-            if created {
-                BookmarkCountService.shared.incrementAll(dictId: article.dictId)
-            }
-            page.setBookmarked(created)
-        }
+    private func confirmRemoveBookmark(word: String, dictId: String, dictName: String) {
+        let alert = UIAlertController(
+            title: L10n.Bookmarks.removeBookmark,
+            message: L10n.Bookmarks.removeBookmarkMessage(word: word, dictName: dictName),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { _ in
+            BookmarkService.shared.toggleBookmark(word: word, dictId: dictId)
+        })
+        present(alert, animated: true)
     }
 
     private func bookmarksDidChange() {
-        guard currentPageIndex < articles.count,
-              currentPageIndex < pages.count else { return }
-        let article = articles[currentPageIndex]
-        let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        pages[currentPageIndex].setBookmarked(isBookmarked)
+        for cell in collectionView.visibleCells {
+            (cell as? CompactArticleCell)?.refreshBookmarkState()
+        }
+    }
+
+    private func lookupCountsDidChange() {
+        for cell in collectionView.visibleCells {
+            (cell as? CompactArticleCell)?.refreshLookupCount()
+        }
     }
 
     // MARK: - Zoom
 
     func setZoomLevel(_ level: Int) {
         currentZoomLevel = level
-        for page in pages {
-            page.setZoomLevel(level)
+        for cell in collectionView.visibleCells {
+            (cell as? CompactArticleCell)?.setZoomLevel(level)
         }
     }
 
-    /// Re-apply per-dict dark mode enhancement to all pages.
+    /// Re-apply per-dict dark mode enhancement to all visible pages.
     /// Called when DictMetadataService revision changes (e.g. user toggled enhanceDarkMode).
     func refreshDarkModeEnhance() {
-        for (index, page) in pages.enumerated() where index < articles.count {
-            page.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: articles[index].dictId))
+        for cell in collectionView.visibleCells {
+            guard let articleCell = cell as? CompactArticleCell,
+                  let indexPath = collectionView.indexPath(for: cell),
+                  let id = dataSource.itemIdentifier(for: indexPath),
+                  let article = articlesById[id] else { continue }
+            articleCell.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: article.dictId))
         }
     }
 
-    /// Re-evaluate visibility of the enhance dark mode button on all pages.
+    /// Re-evaluate visibility of the enhance dark mode button on all visible pages.
     /// Called when the Settings toggle changes.
     func refreshEnhanceDarkModeVisibility() {
-        for page in pages {
-            page.updateEnhanceDarkModeButtonVisibility()
+        for cell in collectionView.visibleCells {
+            (cell as? CompactArticleCell)?.pageView.updateEnhanceDarkModeButtonVisibility()
         }
     }
 
     // MARK: - Find
 
-    /// Present or hide system Find UI (iOS 16+)
+    private func dismissAllFindsExcept(_ excludeCell: CompactArticleCell?) {
+        guard #available(iOS 16.0, *) else { return }
+        for cell in collectionView.visibleCells {
+            if let articleCell = cell as? CompactArticleCell, articleCell !== excludeCell {
+                articleCell.dismissFind()
+            }
+        }
+    }
+
+    /// Present or hide system Find UI (iOS 16+) on the current page.
     @available(iOS 16.0, *)
     func toggleFind() {
-        guard currentPageIndex < pages.count else { return }
-        let page = pages[currentPageIndex]
-        if page.isFindNavigatorVisible {
-            page.dismissFind()
+        let indexPath = IndexPath(item: currentPageIndex, section: 0)
+        guard let cell = collectionView.cellForItem(at: indexPath) as? CompactArticleCell else { return }
+        if cell.isFindNavigatorVisible {
+            cell.dismissFind()
         } else {
-            page.presentFind()
+            cell.presentFind()
         }
     }
 }
 
-// MARK: - UIScrollViewDelegate
+// MARK: - UICollectionViewDelegate
 
-extension ArticleViewController: UIScrollViewDelegate {
+extension ArticleViewController: UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        // Re-apply per-dict dark mode to cells scrolling into view (the dict's
+        // setting may have changed while this cell was off-screen / pooled).
+        guard let articleCell = cell as? CompactArticleCell,
+              let id = dataSource.itemIdentifier(for: indexPath),
+              let article = articlesById[id] else { return }
+        articleCell.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: article.dictId))
+    }
+
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        guard scrollView === self.scrollView else { return }
-        let pageWidth = scrollView.bounds.width
-        guard pageWidth > 0 else { return }
-        let page = Int(round(scrollView.contentOffset.x / pageWidth))
-        guard page != currentPageIndex, page >= 0, page < articles.count else { return }
-        currentPageIndex = page
-        pageControl.currentPage = page
-        updateCurrentPageState()
-        delegate?.articleViewController(self, didChangePage: page)
+        guard scrollView === collectionView else { return }
+        syncCurrentPageFromScroll()
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard scrollView === collectionView else { return }
+        if !decelerate {
+            syncCurrentPageFromScroll()
+        }
     }
 }
