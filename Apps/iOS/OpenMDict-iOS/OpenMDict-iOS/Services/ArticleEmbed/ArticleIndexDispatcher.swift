@@ -744,23 +744,19 @@ final class ArticleIndexDispatcher {
     }
 
     /// Return an encoder configured for `profile`, (re)loading if the
-    /// current one is nil or was built for a different profile. Foreground
-    /// uses GPU (fast); background uses CPU (the GPU is forbidden while the
-    /// app is backgrounded). Dropping the old instance first keeps peak
-    /// memory at a single model.
+    /// current one is nil or was built for a different profile. Dropping the
+    /// old instance first keeps peak memory at a single model.
     ///
-    /// **Chip-tier downgrade**: on chips where the small-model GPU path is
-    /// slower than CPU (A13 et al — see `DeviceChipInfo.prefersCPUForeground`),
-    /// a foreground request is transparently mapped to `.background`
-    /// (`.cpuOnly`). The caller still asks for `.foreground`; we just don't
-    /// dispatch through the GPU when we know it loses.
+    /// In practice the profile is always CPU now — `effectiveProfile` maps
+    /// every request to `.background` (`.cpuOnly`); the GPU path is disabled
+    /// under the app-lifecycle GPU ban (see `effectiveProfile`).
     private func ensureEncoder(
         profile requestedProfile: ArticleEncoder.ComputeProfile,
         modelURL: URL, vocabURL: URL
     ) -> ArticleEncoder? {
         let profile = Self.effectiveProfile(requested: requestedProfile)
         if requestedProfile != profile {
-            debugLog("ComputeProfile: \(String(describing: requestedProfile)) → \(String(describing: profile)) on \(DeviceChipInfo.gpuName ?? "?") (GPU loses to CPU for this model)")
+            debugLog("ComputeProfile: \(String(describing: requestedProfile)) → \(String(describing: profile)) (GPU disabled — CPU only)")
         }
         if let e = encoder, encoderProfile == profile { return e }
         encoder = nil
@@ -778,16 +774,33 @@ final class ArticleIndexDispatcher {
         }
     }
 
-    /// Translate a requested compute profile into what we actually run.
-    /// `.background` is identity (the GPU-in-background ban is a kernel
-    /// rule, can't override). `.foreground` gets downgraded to `.background`
-    /// on chips where the GPU is slower than CPU for our small MiniLM-L6
-    /// model (see `DeviceChipInfo.prefersCPUForeground`).
+    /// Translate a requested compute profile into what we ACTUALLY run.
+    ///
+    /// **Always `.background` (== `.cpuOnly`). The GPU path is disabled.**
+    ///
+    /// `.foreground` would map to `.cpuAndGPU`, but iOS forbids submitting
+    /// GPU command buffers the moment the app leaves the foreground-ACTIVE
+    /// state — and that includes the merely-INACTIVE state (Control Center
+    /// pulled down, an incoming call, the Face ID sheet, the app switcher,
+    /// the lock transition), not just true background. A foreground GPU
+    /// build there dies with
+    /// kIOGPUCommandBufferCallbackErrorBackgroundExecutionNotPermitted.
+    /// Indexing is a minutes-long task the user inevitably interrupts that
+    /// way, so a GPU build is fundamentally unreliable — on TestFlight it
+    /// failed systematically across A14+ devices (every dict stuck at a red
+    /// error needing a manual retry).
+    ///
+    /// CPU is immune to the lifecycle rule and runs uninterrupted whether
+    /// the app is active or inactive. The small MiniLM-L6 model's GPU
+    /// advantage was never even confirmed: A13 measured GPU SLOWER (45 vs
+    /// 187 articles/s); A14+ keeping GPU was an untested assumption. So we
+    /// trade a hypothetical speedup for real stability and always use CPU.
+    /// (`DeviceChipInfo.prefersCPUForeground` is now moot for this path but
+    /// stays for other callers.)
     private static func effectiveProfile(
         requested: ArticleEncoder.ComputeProfile
     ) -> ArticleEncoder.ComputeProfile {
-        guard requested == .foreground else { return requested }
-        return DeviceChipInfo.prefersCPUForeground ? .background : .foreground
+        .background
     }
 
     /// Scheduler eligibility predicate for a persisted state. Centralized

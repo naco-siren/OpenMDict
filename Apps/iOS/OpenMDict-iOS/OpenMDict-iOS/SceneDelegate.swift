@@ -216,13 +216,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         //      exit. Without this, a sync backfillIfEnabled below would see
         //      the dict as still "running" (the BGTask's runBackgroundPass
         //      hasn't released its runningDictId yet) and the enqueue
-        //      would no-op, leaving the build on the CPU encoder.
-        //   2. Backfill — re-enqueues every eligible dict; once the pass is
-        //      gone the dispatcher routes the new jobs through the
-        //      foreground queue (GPU profile). On iPhone 11 / A13 this is
-        //      counterproductive (CPU is faster than GPU for this small
-        //      model), so we'll likely want a device-tier gate later. On
-        //      newer ANE/M-series this is the speedup we want.
+        //      would no-op.
+        //   2. Backfill — re-enqueues every eligible dict so the foreground
+        //      queue takes over from the BGTask. Both run the CPU encoder
+        //      (GPU disabled — see effectiveProfile); the take-over is still
+        //      needed so foreground and BGTask don't both hold runningDictId.
         Task { @MainActor in
             await ArticleIndexBackgroundScheduler.shared.cancelCurrentPassAndWait()
             ArticleIndexCoordinator.shared.backfillIfEnabled()
@@ -230,11 +228,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {
-        // M15: the foreground encoder runs on the GPU, which the kernel
-        // forbids once we're backgrounded — an in-flight build would abort
-        // with kIOGPUCommandBufferCallbackErrorBackgroundExecutionNotPermitted.
-        // Stop it now (it flushes a valid partial); the BGTask scheduled
-        // just below resumes it on the CPU.
+        // M15: stop the in-flight foreground build now (it flushes a valid
+        // partial → resumable). The build is CPU-only (GPU disabled — see
+        // effectiveProfile), but iOS suspends the app's foreground work
+        // shortly after backgrounding regardless; the BGTask scheduled just
+        // below has the proper background execution budget to resume it.
         ArticleIndexDispatcher.shared.cancelCurrentBuild()
         // Ask the system to run article-embedding indexing in the
         // background. No-op if nothing's pending or the feature is off.
