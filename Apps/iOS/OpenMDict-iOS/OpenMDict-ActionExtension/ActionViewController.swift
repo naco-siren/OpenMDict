@@ -39,8 +39,17 @@ class ActionViewController: UIViewController {
 
     // MARK: - Pages
 
-    private var pages: [ArticlePageView] = []
-    private var pageLeadingConstraints: [NSLayoutConstraint] = []
+    /// Windowed pager. `results` is the full source of truth, but only the
+    /// pages within `pageWindowRadius` of the current page keep a live
+    /// `ArticlePageView` (and therefore a live `WKWebView`). Off-window pages
+    /// are torn down so a lookup that matches many dictionaries — or a long
+    /// cross-reference chain — can't pile up dozens of WKWebViews in the Action
+    /// Extension's tight memory budget. (The main app's pager was fixed
+    /// separately via a recycling UICollectionView; an extension keeps its
+    /// lighter manual pager + this windowing.)
+    private var liveWebPages: [Int: ArticlePageView] = [:]
+    private var liveLeadingConstraints: [Int: NSLayoutConstraint] = [:]
+    private let pageWindowRadius = 1
     private var isBookmarked = false
 
     // MARK: - Pager UI
@@ -191,7 +200,7 @@ class ActionViewController: UIViewController {
     /// Called when appearance mode changes so that static CSS colors
     /// (baked by ArticleHTMLRenderer at render time) are refreshed.
     private func reloadAllPages() {
-        for (index, page) in pages.enumerated() where index < results.count {
+        for (index, page) in liveWebPages where index < results.count {
             let result = results[index]
             let renderedHTML = ArticleHTMLRenderer.renderArticle(
                 html: result.html,
@@ -252,12 +261,13 @@ class ActionViewController: UIViewController {
     /// page control tap uses `animated: true` for a smooth swipe feel.
     private func navigateToPage(_ page: Int, animated: Bool = false) {
         guard let sv = scrollView else { return }
+        currentPageIndex = page
+        pageControl?.currentPage = page
+        refreshPageWindow(center: page)  // build the target + neighbor before scrolling
         sv.setContentOffset(
             CGPoint(x: CGFloat(page) * sv.bounds.width, y: 0),
             animated: animated
         )
-        currentPageIndex = page
-        pageControl?.currentPage = page
         updateCurrentPageState()
     }
 
@@ -398,16 +408,16 @@ class ActionViewController: UIViewController {
             backdrop.layer.cornerRadius = backdrop.bounds.height / 2
         }
 
-        guard let sv = scrollView, !pages.isEmpty else { return }
+        guard let sv = scrollView, !results.isEmpty else { return }
 
         let pageWidth = sv.bounds.width
         guard pageWidth > 0 else { return }
 
-        // Update content size
-        sv.contentSize = CGSize(width: pageWidth * CGFloat(pages.count), height: sv.bounds.height)
+        // Update content size from the full result count (windowed pages are a subset)
+        sv.contentSize = CGSize(width: pageWidth * CGFloat(results.count), height: sv.bounds.height)
 
-        // Update each page container's leading constraint
-        for (index, constraint) in pageLeadingConstraints.enumerated() {
+        // Reposition each live page's leading constraint (only window pages exist)
+        for (index, constraint) in liveLeadingConstraints {
             constraint.constant = CGFloat(index) * pageWidth
         }
 
@@ -419,14 +429,13 @@ class ActionViewController: UIViewController {
 
     /// Keyboard shortcut handler — delegates to the current page's bookmark toggle.
     @objc private func bookmarkTapped() {
-        guard currentPageIndex < pages.count else { return }
-        let page = pages[currentPageIndex]
+        guard let page = liveWebPages[currentPageIndex] else { return }
         handleBookmarkTapped(isCurrentlyBookmarked: page.isBookmarked, pageView: page)
     }
 
     /// Shared bookmark toggle logic (called from both keyboard shortcut and page callback).
     private func handleBookmarkTapped(isCurrentlyBookmarked: Bool, pageView: ArticlePageView) {
-        guard let pageIndex = pages.firstIndex(where: { $0 === pageView }),
+        guard let pageIndex = indexOfPage(pageView),
               pageIndex < results.count else { return }
         let result = results[pageIndex]
 
@@ -459,10 +468,12 @@ class ActionViewController: UIViewController {
     // MARK: - Lookup Count
 
     private func subscribeLookupCount() {
-        guard currentPageIndex < results.count,
-              currentPageIndex < pages.count else { return }
+        // Read the setting up front: with the toggle off there's no info row on
+        // any page, so skip the count publisher subscription entirely.
+        guard UserDefaults.shared.showLookupCount,
+              currentPageIndex < results.count,
+              let page = liveWebPages[currentPageIndex] else { return }
         let result = results[currentPageIndex]
-        let page = pages[currentPageIndex]
 
         lookupCountCancellable = LookupHistoryService.shared
             .lookupCountPublisher(word: result.keyword, dictId: result.dictId)
@@ -487,19 +498,19 @@ class ActionViewController: UIViewController {
     @objc private func zoomOutTapped() { zoomOut() }
 
     private func zoomIn() {
-        guard !pages.isEmpty else { return }
+        guard !results.isEmpty else { return }
         zoom.zoomIn()
         didChangeZoom()
     }
 
     private func zoomOut() {
-        guard !pages.isEmpty else { return }
+        guard !results.isEmpty else { return }
         zoom.zoomOut()
         didChangeZoom()
     }
 
     private func resetZoom() {
-        guard !pages.isEmpty else { return }
+        guard !results.isEmpty else { return }
         zoom.reset()
         didChangeZoom()
     }
@@ -534,7 +545,7 @@ class ActionViewController: UIViewController {
     }
 
     private func applyZoomToAllPages() {
-        for page in pages {
+        for page in liveWebPages.values {
             page.setZoomLevel(zoom.current)
         }
     }
@@ -582,7 +593,7 @@ class ActionViewController: UIViewController {
     }
 
     @objc private func zoomSliderChanged(_ sender: UISlider) {
-        guard !pages.isEmpty else { return }
+        guard !results.isEmpty else { return }
         let index = Int(sender.value.rounded())
         sender.value = Float(index)
         let newLevel = ZoomLevel.levels[index]
@@ -999,18 +1010,13 @@ class ActionViewController: UIViewController {
         if results.count == 1 {
             setupPager()
         } else {
-            addPage(for: result)
-            pageControl?.numberOfPages = results.count
-            pageControl?.isHidden = false
-            pageControlBackdrop?.isHidden = false
+            didAppendResult()
         }
     }
 
     /// Creates the pager container and the first page.
     private func setupPager() {
         removeStatusView()
-
-        let result = results[0]
 
         // Enable zoom controls now that articles are available
         zoomSlider?.isEnabled = true
@@ -1094,11 +1100,9 @@ class ActionViewController: UIViewController {
             spinner.centerYAnchor.constraint(equalTo: backdrop.centerYAnchor),
         ])
 
-        // Update bookmark/lookup count for first result
+        // Build the first page, then bind its bookmark / lookup-count UI.
+        hydratePage(at: 0)
         updateCurrentPageState()
-
-        // Add first page
-        addPage(for: result)
     }
 
     /// Create an ArticlePageView for the given article result.
@@ -1118,6 +1122,16 @@ class ActionViewController: UIViewController {
         }
         pageView.configure(word: displayWord, dictName: result.dictName,
                           dictId: result.dictId, isBookmarked: bookmarked)
+        // Set the lookup count at build time — BEFORE this page can scroll into
+        // view — so the "looked up N times" info row never appears at settle and
+        // nudges the layout (which reads as a janky snap). Gate on the setting up
+        // front: when the toggle is off we skip the count lookup (and subscription)
+        // entirely and the row stays hidden on every page. When on, every Action
+        // Extension result was just `recordLookup`'d (count ≥ 1), so the row shows
+        // on every page → uniform header height, no scroll-induced shift.
+        if UserDefaults.shared.showLookupCount {
+            pageView.setLookupCount(LookupHistoryService.shared.totalLookupCount(word: result.keyword, dictId: result.dictId))
+        }
 
         // Wire callbacks (capture pageView weakly to avoid retain cycles)
         pageView.onBookmarkTapped = { [weak self, weak pageView] isCurrentlyBookmarked in
@@ -1147,7 +1161,7 @@ class ActionViewController: UIViewController {
         }
         pageView.onJumpSearch = { [weak self, weak pageView] text in
             guard let self, let pageView else { return }
-            guard let pageIndex = self.pages.firstIndex(where: { $0 === pageView }),
+            guard let pageIndex = self.indexOfPage(pageView),
                   pageIndex < self.results.count else { return }
             let dictId = self.results[pageIndex].dictId
             let dictName = self.results[pageIndex].dictName
@@ -1160,9 +1174,8 @@ class ActionViewController: UIViewController {
     /// Updates bookmark state and lookup count subscription for the current page.
     private func updateCurrentPageState() {
         guard currentPageIndex < results.count,
-              currentPageIndex < pages.count else { return }
+              let page = liveWebPages[currentPageIndex] else { return }
         let result = results[currentPageIndex]
-        let page = pages[currentPageIndex]
 
         // Bookmark state
         isBookmarked = BookmarkService.shared.isBookmarked(word: result.keyword, dictId: result.dictId)
@@ -1172,114 +1185,122 @@ class ActionViewController: UIViewController {
         subscribeLookupCount()
     }
 
-    /// Adds a new page (ArticlePageView) for the given article result.
-    private func addPage(for result: ArticleResult) {
-        guard let sv = scrollView else { return }
+    // MARK: - Windowed page lifecycle
+
+    /// Result index of a currently-live page view (off-window pages aren't live).
+    private func indexOfPage(_ pageView: ArticlePageView) -> Int? {
+        liveWebPages.first(where: { $0.value === pageView })?.key
+    }
+
+    /// Ensure exactly the pages within `pageWindowRadius` of `center` are live;
+    /// tear down the rest, freeing their WKWebViews.
+    private func refreshPageWindow(center: Int) {
+        guard !results.isEmpty else { return }
+        let lo = max(0, center - pageWindowRadius)
+        let hi = min(results.count - 1, center + pageWindowRadius)
+        let window = Set(lo...hi)
+
+        for index in Array(liveWebPages.keys) where !window.contains(index) {
+            dehydratePage(at: index)
+        }
+        for index in window where liveWebPages[index] == nil {
+            hydratePage(at: index)
+        }
+    }
+
+    /// Build, position and load the page for `results[index]` (no-op if already live).
+    private func hydratePage(at index: Int) {
+        guard let sv = scrollView, index >= 0, index < results.count,
+              liveWebPages[index] == nil else { return }
+        let result = results[index]
 
         let pageView = makeArticlePageView(for: result)
         sv.addSubview(pageView)
 
-        let pageIndex = pages.count
-        let leadingConstraint = pageView.leadingAnchor.constraint(
-            equalTo: sv.leadingAnchor,
-            constant: CGFloat(pageIndex) * sv.bounds.width
+        let leading = pageView.leadingAnchor.constraint(
+            equalTo: sv.leadingAnchor, constant: CGFloat(index) * sv.bounds.width
         )
-
         NSLayoutConstraint.activate([
             pageView.topAnchor.constraint(equalTo: sv.topAnchor),
             pageView.widthAnchor.constraint(equalTo: sv.widthAnchor),
             pageView.heightAnchor.constraint(equalTo: sv.heightAnchor),
-            leadingConstraint,
+            leading,
         ])
+        liveWebPages[index] = pageView
+        liveLeadingConstraints[index] = leading
 
-        pages.append(pageView)
-        pageLeadingConstraints.append(leadingConstraint)
-
-        sv.contentSize = CGSize(
-            width: sv.bounds.width * CGFloat(pages.count),
-            height: sv.bounds.height
-        )
-
-        // Apply display settings before loading content (ArticlePageView auto-applies on didFinish)
+        // Display settings before content (ArticlePageView re-applies on didFinish).
         if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
-        if let meta = DictMetadataService.shared.find(dictId: result.dictId) {
-            if meta.enhanceDarkMode {
-                let strength = EnhanceDarkModeStrength(rawValue: meta.enhanceDarkModeStrength) ?? .standard
-                pageView.setDarkModeEnhance(strength: strength)
-            }
+        if let meta = DictMetadataService.shared.find(dictId: result.dictId), meta.enhanceDarkMode {
+            let strength = EnhanceDarkModeStrength(rawValue: meta.enhanceDarkModeStrength) ?? .standard
+            pageView.setDarkModeEnhance(strength: strength)
         }
-
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
-            html: result.html,
-            dictId: result.dictId,
-            traitCollection: traitCollection
+            html: result.html, dictId: result.dictId, traitCollection: traitCollection
         )
         pageView.loadHTMLContent(renderedHTML)
+    }
+
+    /// Tear down the live page at `index`, freeing its WKWebView.
+    private func dehydratePage(at index: Int) {
+        liveLeadingConstraints[index]?.isActive = false
+        liveLeadingConstraints[index] = nil
+        liveWebPages[index]?.removeFromSuperview()
+        liveWebPages[index] = nil
+    }
+
+    /// Grow the scroll content for a newly-appended (streamed) result. The page
+    /// itself is built only if it lands inside the current window, so streaming
+    /// many dict hits no longer spawns one WKWebView per result.
+    private func didAppendResult() {
+        if let sv = scrollView {
+            sv.contentSize = CGSize(width: sv.bounds.width * CGFloat(results.count), height: sv.bounds.height)
+        }
+        pageControl?.numberOfPages = results.count
+        pageControl?.isHidden = results.count <= 1
+        pageControlBackdrop?.isHidden = results.count <= 1
+        refreshPageWindow(center: currentPageIndex)
     }
 
     /// Insert a jump-searched article at the front (index 0) of the pager.
     private func insertArticleAtFront(_ result: ArticleResult) {
         guard let sv = scrollView else { return }
+        let pageWidth = sv.bounds.width
 
-        // 1. Insert into data arrays at index 0
+        // 1. Insert into the source of truth at index 0.
         results.insert(result, at: 0)
 
-        // 2. Shift all existing pages right by one page width
-        let pageWidth = sv.bounds.width
-        for constraint in pageLeadingConstraints {
-            constraint.constant += pageWidth
+        // 2. Every existing live page's result index shifts +1 — rebuild the
+        //    window maps with shifted keys and repositioned leading constraints.
+        var shiftedPages: [Int: ArticlePageView] = [:]
+        var shiftedConstraints: [Int: NSLayoutConstraint] = [:]
+        for (index, page) in liveWebPages {
+            let newIndex = index + 1
+            shiftedPages[newIndex] = page
+            if let c = liveLeadingConstraints[index] {
+                c.constant = CGFloat(newIndex) * pageWidth
+                shiftedConstraints[newIndex] = c
+            }
         }
+        liveWebPages = shiftedPages
+        liveLeadingConstraints = shiftedConstraints
 
-        // 3. Create & insert new page at index 0
-        let pageView = makeArticlePageView(for: result)
-        sv.addSubview(pageView)
-
-        let leadingConstraint = pageView.leadingAnchor.constraint(
-            equalTo: sv.leadingAnchor, constant: 0
-        )
-        NSLayoutConstraint.activate([
-            pageView.topAnchor.constraint(equalTo: sv.topAnchor),
-            pageView.widthAnchor.constraint(equalTo: sv.widthAnchor),
-            pageView.heightAnchor.constraint(equalTo: sv.heightAnchor),
-            leadingConstraint,
-        ])
-
-        pages.insert(pageView, at: 0)
-        pageLeadingConstraints.insert(leadingConstraint, at: 0)
-
-        // 4. Update content size & page control
-        sv.contentSize = CGSize(
-            width: pageWidth * CGFloat(pages.count),
-            height: sv.bounds.height
-        )
+        // 3. Grow content + page control; keep the current page visually stable
+        //    by shifting both the index and the offset right by one page.
+        sv.contentSize = CGSize(width: pageWidth * CGFloat(results.count), height: sv.bounds.height)
         pageControl?.numberOfPages = results.count
         pageControl?.isHidden = results.count <= 1
         pageControlBackdrop?.isHidden = results.count <= 1
-
-        // 5. Keep current view stable: shift contentOffset right by one page
+        currentPageIndex += 1
         sv.contentOffset.x += pageWidth
 
-        // 6. Display settings + render
-        if !zoom.isDefault { pageView.setZoomLevel(zoom.current) }
-        if let meta = DictMetadataService.shared.find(dictId: result.dictId) {
-            if meta.enhanceDarkMode {
-                let strength = EnhanceDarkModeStrength(rawValue: meta.enhanceDarkModeStrength) ?? .standard
-                pageView.setDarkModeEnhance(strength: strength)
-            }
-        }
-        let renderedHTML = ArticleHTMLRenderer.renderArticle(
-            html: result.html, dictId: result.dictId,
-            traitCollection: traitCollection
-        )
-        pageView.loadHTMLContent(renderedHTML)
-
-        // 7. Record lookup history
+        // 4. Record lookup history.
         LookupHistoryService.shared.recordLookup(
             word: result.keyword, dictId: result.dictId,
             lookupContextDictId: nil, lookupContextGroupId: nil
         )
 
-        // 8. Animate scroll to page 0
+        // 5. Animate to the new front page (hydrates page 0 + its neighbor).
         navigateToPage(0, animated: true)
     }
 
@@ -1497,7 +1518,7 @@ class ActionViewController: UIViewController {
         guard let mdictURL = MDictURL(url), mdictURL.isAudio else { return }
 
         // Determine which dictionary this page belongs to
-        guard let pageIndex = pages.firstIndex(where: { $0 === pageView }),
+        guard let pageIndex = indexOfPage(pageView),
               pageIndex < results.count else { return }
         let dictId = results[pageIndex].dictId
 
@@ -1594,7 +1615,7 @@ class ActionViewController: UIViewController {
     /// Presents an alert asking the user to confirm opening an entry link in the main app.
     private func confirmOpenInApp(word: String, from pageView: ArticlePageView) {
         let result: ArticleResult? = {
-            guard let idx = pages.firstIndex(where: { $0 === pageView }), idx < results.count else { return nil }
+            guard let idx = indexOfPage(pageView), idx < results.count else { return nil }
             return results[idx]
         }()
         let title = String(format: L10n.ActionExtension.browseEntryTitle, word)
@@ -1720,11 +1741,30 @@ extension ActionViewController: UIScrollViewDelegate {
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView === self.scrollView else { return }
-        let page = Int(round(scrollView.contentOffset.x / scrollView.bounds.width))
+        settleToCurrentPage()
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard scrollView === self.scrollView, !decelerate else { return }
+        settleToCurrentPage()
+    }
+
+    private func settleToCurrentPage() {
+        guard let sv = scrollView, sv.bounds.width > 0 else { return }
+        let page = Int(round(sv.contentOffset.x / sv.bounds.width))
         guard page != currentPageIndex, page >= 0, page < results.count else { return }
         currentPageIndex = page
         pageControl?.currentPage = page
-        updateCurrentPageState()
+        updateCurrentPageState()  // lightweight: bookmark + lookup-count subscribe
+
+        // Build the look-ahead page (and free the trailing one) AFTER the snap,
+        // off the animation path. The page just swiped to is already live — it was
+        // the previous window's neighbour — so creating the *next* WKWebView (the
+        // heavy part) no longer stutters the deceleration. A fast multi-page flick
+        // may briefly land on a not-yet-built page; it fills in on the next runloop.
+        DispatchQueue.main.async { [weak self] in
+            self?.refreshPageWindow(center: page)
+        }
     }
 }
 
