@@ -75,7 +75,11 @@ final class CompactArticleCell: UICollectionViewCell {
         pageView.configure(word: article.word, dictName: article.dictName,
                            dictId: article.dictId, isBookmarked: isBookmarked)
 
-        let count = LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+        // Compute the lookup count only when the setting is on; off → 0 (hidden),
+        // skipping the lookup entirely.
+        let count = UserDefaults.shared.showLookupCount
+            ? LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+            : 0
         pageView.setLookupCount(count)
 
         pageView.setDarkModeEnhance(strength: ArticlesViewController.enhanceStrength(for: article.dictId))
@@ -143,7 +147,10 @@ final class CompactArticleCell: UICollectionViewCell {
     /// Refresh only the lookup count label from persistence.
     func refreshLookupCount() {
         guard let article = currentArticle else { return }
-        pageView.setLookupCount(LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId))
+        let count = UserDefaults.shared.showLookupCount
+            ? LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+            : 0
+        pageView.setLookupCount(count)
     }
 
     /// Re-render the current article's HTML (e.g. on light/dark appearance change).

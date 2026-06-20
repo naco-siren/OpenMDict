@@ -78,8 +78,10 @@ class ArticleCell: UICollectionViewCell {
         pageView.configure(word: article.word, dictName: article.dictName,
                           dictId: article.dictId, isBookmarked: isBookmarked)
 
-        // Lookup count
-        let count = LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+        // Lookup count — compute only when the setting is on; off → 0 (hidden).
+        let count = UserDefaults.shared.showLookupCount
+            ? LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+            : 0
         pageView.setLookupCount(count)
 
         // Grid mode: disable webView scroll & interaction, hide per-cell find
@@ -151,7 +153,9 @@ class ArticleCell: UICollectionViewCell {
     /// Refresh only the lookup count label from persistence.
     func refreshLookupCount() {
         guard let article = currentArticle else { return }
-        let count = LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+        let count = UserDefaults.shared.showLookupCount
+            ? LookupHistoryService.shared.totalLookupCount(word: article.word, dictId: article.dictId)
+            : 0
         pageView.setLookupCount(count)
     }
 
