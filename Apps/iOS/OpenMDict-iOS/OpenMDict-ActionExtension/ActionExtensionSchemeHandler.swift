@@ -47,6 +47,19 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         var resourceData: Data?
         let filename = String(resourcePath.dropFirst()) // Remove leading /
         let fileExtension = (filename as NSString).pathExtension.lowercased()
+        let isStylesheetOrScript = (fileExtension == "css" || fileExtension == "js")
+
+        // 0. CSS/JS ONLY: a loose file in the dict's css/ or js/ subdir
+        //    OVERRIDES the MDD-embedded copy (tier2 cache below).  Matches the
+        //    GoldenDict/Eudic(欧路) convention where a dictionary ships loose
+        //    .css/.js to patch resources baked into the MDD without repacking
+        //    it.  Kept in sync with the main app's MDictSchemeHandler.
+        if isStylesheetOrScript {
+            resourceData = loadFromCSSJSSubdir(dictId: dictId, filename: filename, fileExtension: fileExtension)
+            if resourceData != nil {
+                print("🌐 scheme[\(dictId)] HIT tier0 (loose \(fileExtension) override): '\(filename)'")
+            }
+        }
 
         // 1. Check dictionary directory on disk (e.g., extracted files at root level)
         if resourceData == nil {
@@ -70,43 +83,6 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
                 resourceData = try? Data(contentsOf: URL(fileURLWithPath: cachedPath))
                 if resourceData != nil {
                     print("🌐 scheme[\(dictId)] HIT tier2 (cache): '\(filename)'")
-                }
-            }
-        }
-
-        // 3. Check css/ or js/ subdirectory with case-insensitive matching
-        if resourceData == nil {
-            let dictDir = dictionariesRoot.appendingPathComponent(dictId)
-            var subDirURL: URL?
-
-            switch fileExtension {
-            case "css":
-                subDirURL = dictDir.appendingPathComponent("css", isDirectory: true)
-            case "js":
-                subDirURL = dictDir.appendingPathComponent("js", isDirectory: true)
-            default:
-                break
-            }
-
-            if let dirURL = subDirURL {
-                // Exact match
-                let exactURL = dirURL.appendingPathComponent(filename)
-                if FileManager.default.fileExists(atPath: exactURL.path) {
-                    resourceData = try? Data(contentsOf: exactURL)
-                }
-
-                // Case-insensitive fallback
-                if resourceData == nil,
-                   let contents = try? FileManager.default.contentsOfDirectory(
-                    at: dirURL, includingPropertiesForKeys: nil
-                   ) {
-                    let lowercased = filename.lowercased()
-                    for fileURL in contents {
-                        if fileURL.lastPathComponent.lowercased() == lowercased {
-                            resourceData = try? Data(contentsOf: fileURL)
-                            break
-                        }
-                    }
                 }
             }
         }
@@ -145,6 +121,41 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
 
     nonisolated func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
         // Nothing to cancel — we complete synchronously
+    }
+
+    // MARK: - Loose CSS/JS Override
+
+    /// Load a CSS/JS resource from the dict's `css/` or `js/` subdir (where
+    /// loose .css/.js files are copied at import).  Exact match first, then
+    /// case-insensitive.  Returns `nil` if absent (caller falls back to the
+    /// MDD-extracted cache copy).
+    private nonisolated func loadFromCSSJSSubdir(dictId: String, filename: String, fileExtension: String) -> Data? {
+        let dictDir = dictionariesRoot.appendingPathComponent(dictId)
+        let dirURL: URL
+        switch fileExtension {
+        case "css": dirURL = dictDir.appendingPathComponent("css", isDirectory: true)
+        case "js":  dirURL = dictDir.appendingPathComponent("js", isDirectory: true)
+        default:    return nil
+        }
+
+        // Exact match
+        let exactURL = dirURL.appendingPathComponent(filename)
+        if FileManager.default.fileExists(atPath: exactURL.path),
+           let data = try? Data(contentsOf: exactURL) {
+            return data
+        }
+
+        // Case-insensitive fallback
+        if let contents = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
+            let lowercased = filename.lowercased()
+            for fileURL in contents where fileURL.lastPathComponent.lowercased() == lowercased {
+                if let data = try? Data(contentsOf: fileURL) {
+                    return data
+                }
+            }
+        }
+
+        return nil
     }
 
     // MARK: - MIME Type Detection

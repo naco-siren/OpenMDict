@@ -49,18 +49,32 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
         var resourceData: Data?
         let filename = String(resourcePath.dropFirst()) // Remove leading /
         let fileExtension = (filename as NSString).pathExtension.lowercased()
+        let isStylesheetOrScript = (fileExtension == "css" || fileExtension == "js")
+
+        // 0. CSS/JS ONLY: a loose file in the dict's css/ or js/ storage dir
+        //    OVERRIDES the MDD-embedded copy.  This matches the GoldenDict /
+        //    Eudic(欧路) convention: a dictionary ships loose .css/.js next to
+        //    the .mdx/.mdd specifically to patch the resources baked into the
+        //    (often huge) MDD without repacking it — "overhaul"/patch packages
+        //    depend on this.  Images/audio keep MDD-first (steps 1–2 below);
+        //    loose copies of those are rare and the MDD is the canonical source.
+        if isStylesheetOrScript {
+            resourceData = Self.loadFromStorageDir(dictId: dictId, filename: filename, fileExtension: fileExtension)
+        }
 
         // 1. Try MDD with multiple path variations
-        let pathsToTry = [
-            resourcePath,                           // /1.png
-            String(resourcePath.dropFirst()),       // 1.png (without leading /)
-            "\\" + String(resourcePath.dropFirst()) // \1.png (MDD format)
-        ]
+        if resourceData == nil {
+            let pathsToTry = [
+                resourcePath,                           // /1.png
+                String(resourcePath.dropFirst()),       // 1.png (without leading /)
+                "\\" + String(resourcePath.dropFirst()) // \1.png (MDD format)
+            ]
 
-        for path in pathsToTry {
-            if let data = dict.resource(for: path) {
-                resourceData = data
-                break
+            for path in pathsToTry {
+                if let data = dict.resource(for: path) {
+                    resourceData = data
+                    break
+                }
             }
         }
 
@@ -73,47 +87,6 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
                 resourceData = try? Data(contentsOf: URL(fileURLWithPath: filePath))
                 if resourceData != nil {
                     print("📄 MDictSchemeHandler: Loaded from directory: \(filename)")
-                }
-            }
-        }
-
-        // 3. Check Library/Dictionaries/{id}/css/ or js/ directory
-        if resourceData == nil {
-            let storage = DictionaryStorageService.shared
-            var directoryURL: URL?
-
-            switch fileExtension {
-            case "css":
-                directoryURL = storage.cssDirectoryURL(id: dictId)
-            case "js":
-                directoryURL = storage.jsDirectoryURL(id: dictId)
-            default:
-                break
-            }
-
-            if let dirURL = directoryURL {
-                // Try exact match first
-                let exactURL = dirURL.appendingPathComponent(filename)
-                if FileManager.default.fileExists(atPath: exactURL.path) {
-                    resourceData = try? Data(contentsOf: exactURL)
-                    if resourceData != nil {
-                        print("📄 MDictSchemeHandler: Loaded from storage [\(fileExtension)]: \(filename)")
-                    }
-                }
-
-                // Try case-insensitive match
-                if resourceData == nil,
-                   let contents = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
-                    let lowercasedFilename = filename.lowercased()
-                    for fileURL in contents {
-                        if fileURL.lastPathComponent.lowercased() == lowercasedFilename {
-                            resourceData = try? Data(contentsOf: fileURL)
-                            if resourceData != nil {
-                                print("📄 MDictSchemeHandler: Loaded from storage (case-insensitive) [\(fileExtension)]: \(fileURL.lastPathComponent)")
-                                break
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -155,7 +128,45 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
     func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
         // Nothing to cancel - we complete synchronously
     }
-    
+
+    // MARK: - Loose CSS/JS Override
+
+    /// Load a CSS/JS resource from the dictionary's `css/` or `js/` storage
+    /// directory — the location loose .css/.js files are copied to at import.
+    /// Tries an exact filename match first, then a case-insensitive match.
+    /// Returns `nil` if the directory or file doesn't exist (caller then falls
+    /// back to the MDD-embedded copy).
+    private static func loadFromStorageDir(dictId: String, filename: String, fileExtension: String) -> Data? {
+        let storage = DictionaryStorageService.shared
+        let dirURL: URL
+        switch fileExtension {
+        case "css": dirURL = storage.cssDirectoryURL(id: dictId)
+        case "js":  dirURL = storage.jsDirectoryURL(id: dictId)
+        default:    return nil
+        }
+
+        // Exact match
+        let exactURL = dirURL.appendingPathComponent(filename)
+        if FileManager.default.fileExists(atPath: exactURL.path),
+           let data = try? Data(contentsOf: exactURL) {
+            print("📄 MDictSchemeHandler: Loaded from storage [\(fileExtension)]: \(filename)")
+            return data
+        }
+
+        // Case-insensitive match
+        if let contents = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
+            let lowercasedFilename = filename.lowercased()
+            for fileURL in contents where fileURL.lastPathComponent.lowercased() == lowercasedFilename {
+                if let data = try? Data(contentsOf: fileURL) {
+                    print("📄 MDictSchemeHandler: Loaded from storage (case-insensitive) [\(fileExtension)]: \(fileURL.lastPathComponent)")
+                    return data
+                }
+            }
+        }
+
+        return nil
+    }
+
     // MARK: - MIME Type Detection
     
     private static func mimeType(for path: String) -> String {
