@@ -3,7 +3,7 @@
 //  OpenMDictKit
 //
 //  Per-dictionary resource manifest (`<dict-id>/manifest.json`).
-//  Describes the MDX, MDD, CSS, JS files inside a single dictionary folder.
+//  Describes the MDX, MDD, CSS, JS, font files inside a single dictionary folder.
 //
 //  Note: The root DictionaryManifest struct and DictionaryEntry have been
 //  removed — dictionary metadata is now persisted in CoreData
@@ -31,27 +31,49 @@ public struct DictManifest: Codable {
     
     /// Custom JS files (0-N)
     public var js: [ResourceEntry]
-    
+
+    /// Bundled font files (0-N), e.g. ttf/otf/woff/woff2 referenced by `@font-face`
+    public var fonts: [ResourceEntry]
+
     public init(
         id: String,
         mdx: MDXEntry,
         mdd: [ResourceEntry] = [],
         css: [ResourceEntry] = [],
-        js: [ResourceEntry] = []
+        js: [ResourceEntry] = [],
+        fonts: [ResourceEntry] = []
     ) {
         self.id = id
         self.mdx = mdx
         self.mdd = mdd
         self.css = css
         self.js = js
+        self.fonts = fonts
     }
-    
+
+    /// Backward-compatible decoder: manifests written before the `fonts`
+    /// category (and any other resource array) is absent from older JSON on
+    /// disk / in iCloud.  Swift's synthesized decoder would *require* every
+    /// key, so a missing `fonts` key would throw and orphan the whole dict.
+    /// `decodeIfPresent ?? []` makes every resource array optional-on-read
+    /// while encoding stays synthesized (always writes `fonts`).
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        mdx = try c.decode(MDXEntry.self, forKey: .mdx)
+        mdd = try c.decodeIfPresent([ResourceEntry].self, forKey: .mdd) ?? []
+        css = try c.decodeIfPresent([ResourceEntry].self, forKey: .css) ?? []
+        js = try c.decodeIfPresent([ResourceEntry].self, forKey: .js) ?? []
+        fonts = try c.decodeIfPresent([ResourceEntry].self, forKey: .fonts) ?? []
+    }
+
     /// Total size of all files in bytes
     public var totalSizeBytes: Int64 {
         mdx.sizeBytes
         + mdd.reduce(0) { $0 + $1.sizeBytes }
         + css.reduce(0) { $0 + $1.sizeBytes }
         + js.reduce(0) { $0 + $1.sizeBytes }
+        + fonts.reduce(0) { $0 + $1.sizeBytes }
     }
     
     /// Total size in KB (for metadata sync)
@@ -141,20 +163,35 @@ extension DictManifest {
     public func jsEntry(hash: String) -> ResourceEntry? {
         js.first { $0.hash == hash }
     }
-    
+
+    /// Find font entry by filename
+    public func fontEntry(fileName: String) -> ResourceEntry? {
+        fonts.first { $0.fileName == fileName }
+    }
+
+    /// Find font entry by hash
+    public func fontEntry(hash: String) -> ResourceEntry? {
+        fonts.first { $0.hash == hash }
+    }
+
     /// All MDD file paths (relative to dict directory)
     public var mddPaths: [String] {
         mdd.map { "mdd/\($0.fileName)" }
     }
-    
+
     /// All CSS file paths (relative to dict directory)
     public var cssPaths: [String] {
         css.map { "css/\($0.fileName)" }
     }
-    
+
     /// All JS file paths (relative to dict directory)
     public var jsPaths: [String] {
         js.map { "js/\($0.fileName)" }
+    }
+
+    /// All font file paths (relative to dict directory)
+    public var fontPaths: [String] {
+        fonts.map { "fonts/\($0.fileName)" }
     }
 }
 
@@ -208,5 +245,21 @@ extension DictManifest {
         let count = js.count
         js.removeAll { $0.fileName == fileName }
         return js.count < count
+    }
+
+    /// Add font entry (returns false if hash already exists)
+    @discardableResult
+    public mutating func addFont(_ entry: ResourceEntry) -> Bool {
+        guard fontEntry(hash: entry.hash) == nil else { return false }
+        fonts.append(entry)
+        return true
+    }
+
+    /// Remove font entry by filename
+    @discardableResult
+    public mutating func removeFont(fileName: String) -> Bool {
+        let count = fonts.count
+        fonts.removeAll { $0.fileName == fileName }
+        return fonts.count < count
     }
 }

@@ -99,7 +99,11 @@ final class CompactArticleCell: UICollectionViewCell {
         case .loaded(let html, _):
             pageView.removePendingOverlay()
             let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
-            pageView.loadHTMLContent(styledHTML)
+            // Same-origin base URL so `@font-face` fonts (a CORS-enabled fetch)
+            // load from mdict://<dictId> without being blocked as cross-origin.
+            // See ArticleCell.loadContent for the full rationale.
+            let baseURL = URL(string: "\(MDictSchemeHandler.scheme)://\(article.dictId)/")
+            pageView.loadHTMLContent(styledHTML, baseURL: baseURL)
 
         case .notFound:
             pageView.removePendingOverlay()

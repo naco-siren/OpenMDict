@@ -47,15 +47,16 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         var resourceData: Data?
         let filename = String(resourcePath.dropFirst()) // Remove leading /
         let fileExtension = (filename as NSString).pathExtension.lowercased()
-        let isStylesheetOrScript = (fileExtension == "css" || fileExtension == "js")
+        let isLooseOverridable = Self.looseOverridableExtensions.contains(fileExtension)
 
-        // 0. CSS/JS ONLY: a loose file in the dict's css/ or js/ subdir
+        // 0. CSS/JS/fonts: a loose file in the dict's css/ js/ fonts/ subdir
         //    OVERRIDES the MDD-embedded copy (tier2 cache below).  Matches the
         //    GoldenDict/Eudic(欧路) convention where a dictionary ships loose
-        //    .css/.js to patch resources baked into the MDD without repacking
-        //    it.  Kept in sync with the main app's MDictSchemeHandler.
-        if isStylesheetOrScript {
-            resourceData = loadFromCSSJSSubdir(dictId: dictId, filename: filename, fileExtension: fileExtension)
+        //    .css/.js/.ttf to patch resources baked into the MDD without
+        //    repacking it (fonts are *only* ever shipped loose).  Kept in sync
+        //    with the main app's MDictSchemeHandler.
+        if isLooseOverridable {
+            resourceData = loadFromLooseSubdir(dictId: dictId, filename: filename, fileExtension: fileExtension)
             if resourceData != nil {
                 print("🌐 scheme[\(dictId)] HIT tier0 (loose \(fileExtension) override): '\(filename)'")
             }
@@ -125,23 +126,35 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
 
     // MARK: - Loose CSS/JS Override
 
-    /// Load a CSS/JS resource from the dict's `css/` or `js/` subdir (where
-    /// loose .css/.js files are copied at import).  Exact match first, then
-    /// case-insensitive.  Returns `nil` if absent (caller falls back to the
-    /// MDD-extracted cache copy).
-    private nonisolated func loadFromCSSJSSubdir(dictId: String, filename: String, fileExtension: String) -> Data? {
+    /// Extensions whose loose subdir copy overrides the MDD-extracted cache.
+    /// Kept in sync with the main app's `MDictSchemeHandler`.
+    nonisolated static let looseOverridableExtensions: Set<String> = [
+        "css", "js", "ttf", "otf", "woff", "woff2"
+    ]
+
+    /// Load a CSS/JS/font resource from the dict's `css/`, `js/`, or `fonts/`
+    /// subdir (where loose files are copied at import).  Exact match first,
+    /// then case-insensitive.  Returns `nil` if absent (caller falls back to
+    /// the MDD-extracted cache copy).
+    ///
+    /// Fonts are memory-mapped (`.mappedIfSafe`) — large, read-only, so they
+    /// stay file-backed clean pages off the dirty footprint.
+    private nonisolated func loadFromLooseSubdir(dictId: String, filename: String, fileExtension: String) -> Data? {
         let dictDir = dictionariesRoot.appendingPathComponent(dictId)
         let dirURL: URL
+        let options: Data.ReadingOptions
         switch fileExtension {
-        case "css": dirURL = dictDir.appendingPathComponent("css", isDirectory: true)
-        case "js":  dirURL = dictDir.appendingPathComponent("js", isDirectory: true)
+        case "css": dirURL = dictDir.appendingPathComponent("css", isDirectory: true);  options = []
+        case "js":  dirURL = dictDir.appendingPathComponent("js", isDirectory: true);   options = []
+        case "ttf", "otf", "woff", "woff2":
+            dirURL = dictDir.appendingPathComponent("fonts", isDirectory: true);  options = [.mappedIfSafe]
         default:    return nil
         }
 
         // Exact match
         let exactURL = dirURL.appendingPathComponent(filename)
         if FileManager.default.fileExists(atPath: exactURL.path),
-           let data = try? Data(contentsOf: exactURL) {
+           let data = try? Data(contentsOf: exactURL, options: options) {
             return data
         }
 
@@ -149,7 +162,7 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         if let contents = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
             let lowercased = filename.lowercased()
             for fileURL in contents where fileURL.lastPathComponent.lowercased() == lowercased {
-                if let data = try? Data(contentsOf: fileURL) {
+                if let data = try? Data(contentsOf: fileURL, options: options) {
                     return data
                 }
             }

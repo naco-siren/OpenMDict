@@ -49,16 +49,18 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
         var resourceData: Data?
         let filename = String(resourcePath.dropFirst()) // Remove leading /
         let fileExtension = (filename as NSString).pathExtension.lowercased()
-        let isStylesheetOrScript = (fileExtension == "css" || fileExtension == "js")
+        // Loose files in the dict's css/ js/ fonts/ storage dirs OVERRIDE the
+        // MDD-embedded copy.  This matches the GoldenDict / Eudic(欧路)
+        // convention: a dictionary ships loose .css/.js/.ttf next to the
+        // .mdx/.mdd specifically to patch resources baked into the (often
+        // huge) MDD without repacking it — "overhaul"/patch packages depend on
+        // this, and fonts are *only* ever shipped loose (MDX/MDD almost never
+        // embed them).  Images/audio keep MDD-first (steps 1–2); loose copies
+        // of those are rare and the MDD is the canonical source.
+        let isLooseOverridable = Self.looseOverridableExtensions.contains(fileExtension)
 
-        // 0. CSS/JS ONLY: a loose file in the dict's css/ or js/ storage dir
-        //    OVERRIDES the MDD-embedded copy.  This matches the GoldenDict /
-        //    Eudic(欧路) convention: a dictionary ships loose .css/.js next to
-        //    the .mdx/.mdd specifically to patch the resources baked into the
-        //    (often huge) MDD without repacking it — "overhaul"/patch packages
-        //    depend on this.  Images/audio keep MDD-first (steps 1–2 below);
-        //    loose copies of those are rare and the MDD is the canonical source.
-        if isStylesheetOrScript {
+        // 0. CSS/JS/fonts: serve the loose storage-dir copy first.
+        if isLooseOverridable {
             resourceData = Self.loadFromStorageDir(dictId: dictId, filename: filename, fileExtension: fileExtension)
         }
 
@@ -129,26 +131,39 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
         // Nothing to cancel - we complete synchronously
     }
 
-    // MARK: - Loose CSS/JS Override
+    // MARK: - Loose CSS/JS/Font Override
 
-    /// Load a CSS/JS resource from the dictionary's `css/` or `js/` storage
-    /// directory — the location loose .css/.js files are copied to at import.
+    /// Extensions whose loose storage-dir copy overrides the MDD-embedded one.
+    static let looseOverridableExtensions: Set<String> = [
+        "css", "js", "ttf", "otf", "woff", "woff2"
+    ]
+
+    /// Load a CSS/JS/font resource from the dictionary's `css/`, `js/`, or
+    /// `fonts/` storage directory — where loose files are copied at import.
     /// Tries an exact filename match first, then a case-insensitive match.
     /// Returns `nil` if the directory or file doesn't exist (caller then falls
     /// back to the MDD-embedded copy).
+    ///
+    /// Fonts are memory-mapped (`.mappedIfSafe`): they're large and read-only,
+    /// so mmap keeps them as file-backed clean pages the kernel can evict for
+    /// free under memory pressure — they don't count against the app's dirty
+    /// footprint regardless of font size (e.g. a 15 MB CJK face).
     private static func loadFromStorageDir(dictId: String, filename: String, fileExtension: String) -> Data? {
         let storage = DictionaryStorageService.shared
         let dirURL: URL
+        let options: Data.ReadingOptions
         switch fileExtension {
-        case "css": dirURL = storage.cssDirectoryURL(id: dictId)
-        case "js":  dirURL = storage.jsDirectoryURL(id: dictId)
-        default:    return nil
+        case "css":  dirURL = storage.cssDirectoryURL(id: dictId);  options = []
+        case "js":   dirURL = storage.jsDirectoryURL(id: dictId);   options = []
+        case "ttf", "otf", "woff", "woff2":
+            dirURL = storage.fontsDirectoryURL(id: dictId);  options = [.mappedIfSafe]
+        default:     return nil
         }
 
         // Exact match
         let exactURL = dirURL.appendingPathComponent(filename)
         if FileManager.default.fileExists(atPath: exactURL.path),
-           let data = try? Data(contentsOf: exactURL) {
+           let data = try? Data(contentsOf: exactURL, options: options) {
             print("📄 MDictSchemeHandler: Loaded from storage [\(fileExtension)]: \(filename)")
             return data
         }
@@ -157,7 +172,7 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
         if let contents = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
             let lowercasedFilename = filename.lowercased()
             for fileURL in contents where fileURL.lastPathComponent.lowercased() == lowercasedFilename {
-                if let data = try? Data(contentsOf: fileURL) {
+                if let data = try? Data(contentsOf: fileURL, options: options) {
                     print("📄 MDictSchemeHandler: Loaded from storage (case-insensitive) [\(fileExtension)]: \(fileURL.lastPathComponent)")
                     return data
                 }

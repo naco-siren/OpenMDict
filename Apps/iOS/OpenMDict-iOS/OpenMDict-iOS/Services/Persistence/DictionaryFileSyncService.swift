@@ -180,6 +180,13 @@ final class DictionaryFileSyncService {
             files.append((entry.fileName, url, entry.hash, entry.sizeBytes))
         }
 
+        // Fonts
+        let fontsDir = storage.fontsDirectoryURL(id: dictId)
+        for entry in manifest.fonts {
+            let url = fontsDir.appendingPathComponent(entry.fileName)
+            files.append((entry.fileName, url, entry.hash, entry.sizeBytes))
+        }
+
         return files
     }
 
@@ -420,6 +427,13 @@ final class DictionaryFileSyncService {
                 .appendingPathComponent(entry.fileName)
         }
 
+        // Fonts
+        for entry in manifest.fonts {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.fontsDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+
         // 4. Fetch all file records
         let recordIDs = recordIDToLocalPath.keys.map { CKRecord.ID(recordName: $0) }
         let totalFiles = recordIDs.count
@@ -544,10 +558,12 @@ final class DictionaryFileSyncService {
         let mddToDownload = diffNewOrChanged(local: localManifest?.mdd ?? [], remote: remoteManifest.mdd)
         let cssToDownload = diffNewOrChanged(local: localManifest?.css ?? [], remote: remoteManifest.css)
         let jsToDownload  = diffNewOrChanged(local: localManifest?.js ?? [],  remote: remoteManifest.js)
+        let fontToDownload = diffNewOrChanged(local: localManifest?.fonts ?? [], remote: remoteManifest.fonts)
 
         let mddToDelete = diffDeleted(local: localManifest?.mdd ?? [], remote: remoteManifest.mdd)
         let cssToDelete = diffDeleted(local: localManifest?.css ?? [], remote: remoteManifest.css)
         let jsToDelete  = diffDeleted(local: localManifest?.js ?? [],  remote: remoteManifest.js)
+        let fontToDelete = diffDeleted(local: localManifest?.fonts ?? [], remote: remoteManifest.fonts)
 
         // Download new/changed files
         var recordIDToLocalPath: [String: URL] = [:]
@@ -565,6 +581,11 @@ final class DictionaryFileSyncService {
         for entry in jsToDownload {
             let name = recordName(dictId: dictId, fileName: entry.fileName)
             recordIDToLocalPath[name] = storage.jsDirectoryURL(id: dictId)
+                .appendingPathComponent(entry.fileName)
+        }
+        for entry in fontToDownload {
+            let name = recordName(dictId: dictId, fileName: entry.fileName)
+            recordIDToLocalPath[name] = storage.fontsDirectoryURL(id: dictId)
                 .appendingPathComponent(entry.fileName)
         }
 
@@ -599,6 +620,10 @@ final class DictionaryFileSyncService {
         }
         for entry in jsToDelete {
             let url = storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
+            try? FileManager.default.removeItem(at: url)
+        }
+        for entry in fontToDelete {
+            let url = storage.fontsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
             try? FileManager.default.removeItem(at: url)
         }
 

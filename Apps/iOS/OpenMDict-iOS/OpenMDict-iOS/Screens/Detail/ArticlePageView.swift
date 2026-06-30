@@ -845,6 +845,16 @@ extension ArticlePageView: WKNavigationDelegate {
         default:
             if navigationAction.navigationType == .other {
                 decisionHandler(.allow)
+            } else if scheme == "mdict",
+                      url.fragment != nil,
+                      url.host == webView.url?.host {
+                // Same-document in-page anchor jump (e.g. <a href="#sense2">).
+                // The article now loads under an `mdict://<dictId>/` base URL
+                // (so `@font-face` fonts are same-origin), which makes such
+                // relative links resolve to the mdict scheme instead of
+                // about:blank. Allow them so WebKit scrolls within the page
+                // rather than cancelling the navigation.
+                decisionHandler(.allow)
             } else {
                 decisionHandler(.cancel)
             }

@@ -207,7 +207,10 @@ class ActionViewController: UIViewController {
                 dictId: result.dictId,
                 traitCollection: traitCollection
             )
-            page.loadHTMLContent(renderedHTML)
+            // Same-origin base URL so `@font-face` fonts load from
+            // mdict://<dictId> without being blocked as cross-origin.
+            let baseURL = URL(string: "\(ActionExtensionSchemeHandler.scheme)://\(result.dictId)/")
+            page.loadHTMLContent(renderedHTML, baseURL: baseURL)
         }
     }
 
@@ -1238,7 +1241,10 @@ class ActionViewController: UIViewController {
         let renderedHTML = ArticleHTMLRenderer.renderArticle(
             html: result.html, dictId: result.dictId, traitCollection: traitCollection
         )
-        pageView.loadHTMLContent(renderedHTML)
+        // Same-origin base URL so `@font-face` fonts load from mdict://<dictId>
+        // without being blocked as cross-origin.
+        let baseURL = URL(string: "\(ActionExtensionSchemeHandler.scheme)://\(result.dictId)/")
+        pageView.loadHTMLContent(renderedHTML, baseURL: baseURL)
     }
 
     /// Tear down the live page at `index`, freeing its WKWebView.

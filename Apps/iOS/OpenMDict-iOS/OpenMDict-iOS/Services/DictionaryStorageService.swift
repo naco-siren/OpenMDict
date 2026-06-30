@@ -122,33 +122,6 @@ enum ResourceError: LocalizedError {
     }
 }
 
-// MARK: - Associated Files (for import)
-
-/// Files discovered alongside an MDX during import
-struct AssociatedFiles {
-    var mddFiles: [URL] = []
-    var cssFiles: [URL] = []
-    var jsFiles: [URL] = []
-    var fontFiles: [URL] = []
-    
-    var isEmpty: Bool {
-        mddFiles.isEmpty && cssFiles.isEmpty && jsFiles.isEmpty && fontFiles.isEmpty
-    }
-    
-    var totalCount: Int {
-        mddFiles.count + cssFiles.count + jsFiles.count + fontFiles.count
-    }
-    
-    var summary: String {
-        var parts: [String] = []
-        if !mddFiles.isEmpty { parts.append("\(mddFiles.count) MDD") }
-        if !cssFiles.isEmpty { parts.append("\(cssFiles.count) CSS") }
-        if !jsFiles.isEmpty { parts.append("\(jsFiles.count) JS") }
-        if !fontFiles.isEmpty { parts.append("\(fontFiles.count) fonts") }
-        return parts.isEmpty ? "No resources" : parts.joined(separator: ", ")
-    }
-}
-
 // MARK: - Selected File (for import form)
 
 /// A file selected by user for import (with security-scoped bookmark)
@@ -213,22 +186,6 @@ struct ImportFormState {
         if !jsFiles.isEmpty { parts.append("\(jsFiles.count) JS") }
         if !fontFiles.isEmpty { parts.append("\(fontFiles.count) fonts") }
         return parts.isEmpty ? "No resources" : parts.joined(separator: ", ")
-    }
-    
-    /// Create from auto-discovered files (for Quick Import)
-    static func fromDiscovery(
-        mdxURL: URL,
-        associated: AssociatedFiles,
-        displayName: String
-    ) -> ImportFormState {
-        var state = ImportFormState()
-        state.displayName = displayName
-        state.mdxFile = SelectedFile(url: mdxURL, isAutoDiscovered: false)
-        state.mddFiles = associated.mddFiles.map { SelectedFile(url: $0, isAutoDiscovered: true) }
-        state.cssFiles = associated.cssFiles.map { SelectedFile(url: $0, isAutoDiscovered: true) }
-        state.jsFiles = associated.jsFiles.map { SelectedFile(url: $0, isAutoDiscovered: true) }
-        state.fontFiles = associated.fontFiles.map { SelectedFile(url: $0, isAutoDiscovered: true) }
-        return state
     }
     
     /// Create from existing metadata (for Edit mode)
@@ -606,20 +563,31 @@ final class DictionaryStorageService {
             ))
         }
         
-        // 6. Copy fonts (preserve extension) - TODO: add to dict manifest later
+        // 6. Copy fonts (preserve extension, calculate hash)
+        var fontEntries: [DictManifest.ResourceEntry] = []
+        print("📄 Storage: Copying \(fontFiles.count) font files")
         for file in fontFiles {
             let destURL = fontsDirectoryURL(id: id).appendingPathComponent(file.fileName)
-            let (_, size) = try await copyFile(file, to: destURL)
+            print("📄 Storage: Copying font \(file.fileName) to \(destURL.path)")
+            let (hash, size) = try await copyFileWithHash(file, to: destURL)
             totalSizeBytes += size
+            print("📄 Storage: font copied, size=\(size), hash=\(hash.prefix(8))...")
+
+            fontEntries.append(DictManifest.ResourceEntry(
+                fileName: file.fileName,
+                hash: hash,
+                sizeBytes: size
+            ))
         }
-        
+
         // 7. Create and save dict manifest
         let dictManifest = DictManifest(
             id: id,
             mdx: mdxEntry,
             mdd: mddEntries,
             css: cssEntries,
-            js: jsEntries
+            js: jsEntries,
+            fonts: fontEntries
         )
         
         do {
@@ -733,59 +701,6 @@ final class DictionaryStorageService {
         }
 
         print("🗑️ Deleted dictionary: \(id)")
-    }
-    
-    // MARK: - Discovery
-    
-    /// Discover associated files for an MDX
-    /// Scans the same directory for MDD, CSS, JS files with matching names
-    func discoverAssociatedFiles(for mdxURL: URL) -> AssociatedFiles {
-        let directory = mdxURL.deletingLastPathComponent()
-        let baseName = mdxURL.deletingPathExtension().lastPathComponent
-        
-        var result = AssociatedFiles()
-        
-        guard directory.startAccessingSecurityScopedResource() else {
-            print("⚠️ Cannot access directory for discovery")
-            return result
-        }
-        defer { directory.stopAccessingSecurityScopedResource() }
-        
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.fileSizeKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return result
-        }
-        
-        for url in contents {
-            let fileName = url.deletingPathExtension().lastPathComponent
-            let ext = url.pathExtension.lowercased()
-            
-            // MDD: baseName.mdd, baseName.1.mdd, baseName.2.mdd, etc.
-            if ext == "mdd" {
-                if fileName == baseName || fileName.hasPrefix("\(baseName).") {
-                    result.mddFiles.append(url)
-                }
-            }
-            
-            // CSS: baseName.css
-            if ext == "css" && fileName == baseName {
-                result.cssFiles.append(url)
-            }
-            
-            // JS: baseName.js
-            if ext == "js" && fileName == baseName {
-                result.jsFiles.append(url)
-            }
-        }
-        
-        // Sort MDD files by name to maintain consistent order
-        result.mddFiles.sort { $0.lastPathComponent < $1.lastPathComponent }
-        
-        print("🔍 Discovered: \(result.summary) for \(baseName)")
-        return result
     }
     
     // MARK: - Query

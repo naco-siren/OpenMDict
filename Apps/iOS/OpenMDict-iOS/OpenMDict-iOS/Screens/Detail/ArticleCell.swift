@@ -116,7 +116,14 @@ class ArticleCell: UICollectionViewCell {
         case .loaded(let html, _):
             pageView.removePendingOverlay()
             let styledHTML = ArticleHTMLRenderer.renderArticle(html: html, dictId: article.dictId, traitCollection: traitCollection)
-            pageView.loadHTMLContent(styledHTML)
+            // Load with an mdict://<dictId>/ base URL so the document's origin
+            // matches its resources. `@font-face` fonts are a CORS-enabled
+            // fetch: served from mdict://<dictId>, they'd be cross-origin to an
+            // about:blank document and WebKit would refuse to apply them. Same
+            // origin sidesteps that. (CSS/images aren't CORS-restricted, so the
+            // base URL only matters for fonts.)
+            let baseURL = URL(string: "\(MDictSchemeHandler.scheme)://\(article.dictId)/")
+            pageView.loadHTMLContent(styledHTML, baseURL: baseURL)
 
         case .notFound:
             pageView.removePendingOverlay()
