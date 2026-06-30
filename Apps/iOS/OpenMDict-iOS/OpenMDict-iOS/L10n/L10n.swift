@@ -1312,7 +1312,7 @@ nonisolated enum L10n {
             NSLocalizedString("resourceEditor.section.js", value: "CUSTOM SCRIPTS (JS)", comment: "Section header")
         }
         static var sectionFonts: String {
-            NSLocalizedString("resourceEditor.section.fonts", value: "CUSTOM FONTS", comment: "Section header")
+            NSLocalizedString("resourceEditor.section.fonts", value: "CUSTOM FONTS (TTF, OTF, WOFF, WOFF2)", comment: "Section header; the parenthetical lists supported font file formats")
         }
         static var deleteResourceTitle: String {
             NSLocalizedString("resourceEditor.deleteResource.title", value: "Delete Resource?", comment: "Alert title for resource deletion")

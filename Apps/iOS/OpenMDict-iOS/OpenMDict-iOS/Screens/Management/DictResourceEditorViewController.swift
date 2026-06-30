@@ -47,7 +47,7 @@ class DictResourceEditorViewController: UIViewController {
             }
         }
     }
-    
+
     nonisolated enum Item: Hashable {
         case resourceFile(ResourceFile)
         case addButton(Section)
@@ -172,7 +172,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: iconName = "archivebox.fill"
             case .css: iconName = "paintbrush.fill"
             case .js: iconName = "chevron.left.forwardslash.chevron.right"
-            case .fonts: iconName = "textformat"
+            case .fonts: iconName = "character"
             }
             content.image = UIImage(systemName: iconName)
             content.imageProperties.tintColor = .systemBlue
@@ -196,7 +196,11 @@ class DictResourceEditorViewController: UIViewController {
             cell, indexPath, section in
             
             var content = cell.defaultContentConfiguration()
-            content.text = L10n.ResourceEditor.addFile(ext: section.resourceType.fileExtension.uppercased())
+            // Other sections show the extension acronym ("Add CSS File"); fonts
+            // have no single extension, so use the word "Font" ("Add Font File")
+            // — the supported formats are listed in the section header instead.
+            let addExt = section == .fonts ? "Font" : section.resourceType.fileExtension.uppercased()
+            content.text = L10n.ResourceEditor.addFile(ext: addExt)
             content.textProperties.color = .systemBlue
             content.image = UIImage(systemName: "plus.circle")
             content.imageProperties.tintColor = .systemBlue
@@ -233,7 +237,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: iconName = "archivebox"       // outlined
             case .css: iconName = "paintbrush"       // outlined
             case .js: iconName = "chevron.left.forwardslash.chevron.right"  // no fill variant
-            case .fonts: iconName = "textformat"     // no fill variant
+            case .fonts: iconName = "character"      // no fill variant
             }
             content.image = UIImage(systemName: iconName)
             content.imageProperties.tintColor = .systemBlue  // Same blue as stored files

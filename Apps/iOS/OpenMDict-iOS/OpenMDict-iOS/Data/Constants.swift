@@ -76,13 +76,10 @@ nonisolated enum AppIdentifiers {
         static let mdd = UTType(UTTypeValue.mdd) ?? .data
         static let css = UTType(filenameExtension: ResourceExtension.css) ?? .plainText
         static let js = UTType.javaScript
-        /// UTTypes for the font document picker. `.font` catches ttf/otf; the
-        /// rest are added by extension since no umbrella type reliably covers
-        /// woff2. Derived from `ResourceExtension.fonts` (single source).
-        static let fonts: [UTType] = {
-            var types: [UTType] = [.font]
-            types += ResourceExtension.fonts.compactMap { UTType(filenameExtension: $0) }
-            return types
-        }()
+        /// UTTypes for the font document picker — derived strictly from
+        /// `ResourceExtension.fonts` so ONLY .ttf/.otf/.woff/.woff2 are
+        /// selectable. (The broad `.font` umbrella is intentionally NOT used:
+        /// it also matches .ttc/.dfont, which the scheme handler doesn't serve.)
+        static let fonts: [UTType] = ResourceExtension.fonts.compactMap { UTType(filenameExtension: $0) }
     }
 }

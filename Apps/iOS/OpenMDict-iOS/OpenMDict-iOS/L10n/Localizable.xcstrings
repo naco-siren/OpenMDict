@@ -26522,79 +26522,79 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "خطوط مخصصة"
+            "value": "خطوط مخصصة (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "EIGENE SCHRIFTEN"
+            "value": "EIGENE SCHRIFTEN (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "CUSTOM FONTS"
+            "value": "CUSTOM FONTS (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "FUENTES PERSONALIZADAS"
+            "value": "FUENTES PERSONALIZADAS (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "POLICES PERSONNALISÉES"
+            "value": "POLICES PERSONNALISÉES (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कस्टम फ़ॉन्ट"
+            "value": "कस्टम फ़ॉन्ट (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "カスタムフォント"
+            "value": "カスタムフォント (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "사용자 정의 글꼴"
+            "value": "사용자 정의 글꼴 (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "FONTES PERSONALIZADAS"
+            "value": "FONTES PERSONALIZADAS (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "ПОЛЬЗОВАТЕЛЬСКИЕ ШРИФТЫ"
+            "value": "ПОЛЬЗОВАТЕЛЬСКИЕ ШРИФТЫ (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "ВЛАСНІ ШРИФТИ"
+            "value": "ВЛАСНІ ШРИФТИ (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "自定义字体"
+            "value": "自定义字体 (TTF, OTF, WOFF, WOFF2)"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "自訂字型"
+            "value": "自訂字型 (TTF, OTF, WOFF, WOFF2)"
           }
         }
       }
