@@ -80,8 +80,10 @@ final class MockDictManagementDataSource: DictManagementDataSource {
     func addMDD(to dictId: String, from url: URL) async throws -> String { "mock.mdd" }
     func addCSS(to dictId: String, from url: URL) async throws -> String { "mock.css" }
     func addJS(to dictId: String, from url: URL) async throws -> String { "mock.js" }
+    func addFont(to dictId: String, from url: URL) async throws -> String { "mock.ttf" }
 
     func removeMDD(from dictId: String, fileName: String) throws {}
     func removeCSS(from dictId: String, fileName: String) throws {}
     func removeJS(from dictId: String, fileName: String) throws {}
+    func removeFont(from dictId: String, fileName: String) throws {}
 }

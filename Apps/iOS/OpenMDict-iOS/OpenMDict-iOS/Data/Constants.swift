@@ -44,5 +44,15 @@ nonisolated enum AppIdentifiers {
         static let mdd = UTType(UTTypeValue.mdd) ?? .data
         static let css = UTType(filenameExtension: "css") ?? .plainText
         static let js = UTType.javaScript
+        /// Font formats WebKit can render (ttf/otf/woff/woff2). Several UTTypes
+        /// because there's no single umbrella type that reliably covers woff2;
+        /// `.font` catches ttf/otf, the rest are added explicitly by extension.
+        static let fonts: [UTType] = ([
+            .font,
+            UTType(filenameExtension: "ttf"),
+            UTType(filenameExtension: "otf"),
+            UTType(filenameExtension: "woff"),
+            UTType(filenameExtension: "woff2")
+        ] as [UTType?]).compactMap { $0 }
     }
 }

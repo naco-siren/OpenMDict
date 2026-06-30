@@ -54,11 +54,13 @@ protocol DictManagementDataSource: AnyObject {
     func addMDD(to dictId: String, from url: URL) async throws -> String
     func addCSS(to dictId: String, from url: URL) async throws -> String
     func addJS(to dictId: String, from url: URL) async throws -> String
+    func addFont(to dictId: String, from url: URL) async throws -> String
 
     /// Remove a resource file.
     func removeMDD(from dictId: String, fileName: String) throws
     func removeCSS(from dictId: String, fileName: String) throws
     func removeJS(from dictId: String, fileName: String) throws
+    func removeFont(from dictId: String, fileName: String) throws
 }
 
 // MARK: - Default Implementation
@@ -113,6 +115,10 @@ final class DefaultDictManagementDataSource: DictManagementDataSource {
         try await DictionaryService.shared.addJS(to: dictId, from: url)
     }
 
+    func addFont(to dictId: String, from url: URL) async throws -> String {
+        try await DictionaryService.shared.addFont(to: dictId, from: url)
+    }
+
     func removeMDD(from dictId: String, fileName: String) throws {
         try DictionaryService.shared.removeMDD(from: dictId, fileName: fileName)
     }
@@ -123,5 +129,9 @@ final class DefaultDictManagementDataSource: DictManagementDataSource {
 
     func removeJS(from dictId: String, fileName: String) throws {
         try DictionaryService.shared.removeJS(from: dictId, fileName: fileName)
+    }
+
+    func removeFont(from dictId: String, fileName: String) throws {
+        try DictionaryService.shared.removeFont(from: dictId, fileName: fileName)
     }
 }

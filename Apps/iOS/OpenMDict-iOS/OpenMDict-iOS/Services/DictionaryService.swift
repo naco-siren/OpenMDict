@@ -771,13 +771,15 @@ final class DictionaryService: ObservableObject {
         let mddFiles = importSession.pendingMDDFiles.map { SelectedFile(url: $0.url) }
         let cssFiles = importSession.pendingCSSFiles.map { SelectedFile(url: $0.url) }
         let jsFiles = importSession.pendingJSFiles.map { SelectedFile(url: $0.url) }
-        
+        let fontFiles = importSession.pendingFontFiles.map { SelectedFile(url: $0.url) }
+
         // 1. Copy files to storage
         let dictId = try await storage.importDictionary(
             mdxFile: mdxFile,
             mddFiles: mddFiles,
             cssFiles: cssFiles,
             jsFiles: jsFiles,
+            fontFiles: fontFiles,
             displayName: displayName,
             headerSHA256: headerSHA256
         )
@@ -1221,6 +1223,28 @@ final class DictionaryService: ObservableObject {
         return fileName
     }
 
+    /// Add a font file to a dictionary
+    /// - Parameters:
+    ///   - dictId: Dictionary ID
+    ///   - fileURL: Source file URL (from UIDocumentPicker)
+    /// - Returns: fileName of the added file
+    func addFont(to dictId: String, from fileURL: URL) async throws -> String {
+        let fileName = try await storage.addFontResource(dictId: dictId, sourceURL: fileURL)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "fonts")
+        return fileName
+    }
+
+    /// Remove a font file from a dictionary
+    /// - Parameters:
+    ///   - dictId: Dictionary ID
+    ///   - fileName: File name to remove
+    func removeFont(from dictId: String, fileName: String) throws {
+        try storage.removeFontResource(dictId: dictId, fileName: fileName)
+        // Incremental CloudKit sync (fire-and-forget)
+        syncAfterResourceRemove(dictId: dictId, fileName: fileName)
+    }
+
     /// Remove a JS file from a dictionary
     /// - Parameters:
     ///   - dictId: Dictionary ID
@@ -1265,10 +1289,11 @@ final class DictionaryService: ObservableObject {
             let manifest = storage.loadDictManifest(id: dictId)
             let entries: [DictManifest.ResourceEntry]
             switch subdirectory {
-            case "mdd": entries = manifest?.mdd ?? []
-            case "css": entries = manifest?.css ?? []
-            case "js":  entries = manifest?.js ?? []
-            default:    entries = []
+            case "mdd":   entries = manifest?.mdd ?? []
+            case "css":   entries = manifest?.css ?? []
+            case "js":    entries = manifest?.js ?? []
+            case "fonts": entries = manifest?.fonts ?? []
+            default:      entries = []
             }
             let hash = entries.first(where: { $0.fileName == fileName })?.hash ?? ""
 

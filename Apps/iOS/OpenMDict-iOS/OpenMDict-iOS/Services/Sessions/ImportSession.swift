@@ -87,7 +87,10 @@ final class ImportSession: ObservableObject {
     
     /// JS files to import
     @Published private(set) var pendingJSFiles: [PendingFile] = []
-    
+
+    /// Font files to import
+    @Published private(set) var pendingFontFiles: [PendingFile] = []
+
     // MARK: - Computed Properties
     
     /// Dictionary ID = MDX header SHA256 (available before import)
@@ -194,9 +197,35 @@ final class ImportSession: ObservableObject {
             removeJS(at: index)
         }
     }
-    
+
+    // MARK: - Font Operations
+
+    /// Add font file with its size (call while security scope is active)
+    func addFont(_ url: URL, fileSize: Int64) {
+        let file = PendingFile(url: url, fileSize: fileSize)
+        guard !pendingFontFiles.contains(where: { $0.fileName == file.fileName }) else {
+            print("⚠️ ImportSession: font already added - \(file.fileName)")
+            return
+        }
+        pendingFontFiles.append(file)
+        let hasBookmark = file.bookmarkData != nil
+        print("📦 ImportSession: font added - \(file.fileName), size=\(fileSize), bookmark=\(hasBookmark)")
+    }
+
+    func removeFont(at index: Int) {
+        guard index >= 0 && index < pendingFontFiles.count else { return }
+        let removed = pendingFontFiles.remove(at: index)
+        print("📦 ImportSession: font removed - \(removed.fileName)")
+    }
+
+    func removeFont(id: UUID) {
+        if let index = pendingFontFiles.firstIndex(where: { $0.id == id }) {
+            removeFont(at: index)
+        }
+    }
+
     // MARK: - Reset
-    
+
     /// Clear all state (call after import completes or is cancelled)
     func reset() {
         mdxPendingFile = nil
@@ -204,6 +233,7 @@ final class ImportSession: ObservableObject {
         pendingMDDFiles = []
         pendingCSSFiles = []
         pendingJSFiles = []
+        pendingFontFiles = []
         print("📦 ImportSession: reset")
     }
 }

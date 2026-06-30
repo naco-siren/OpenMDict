@@ -37,19 +37,28 @@ nonisolated struct ResourceFile: Identifiable, Hashable {
     }
     
     enum ResourceType: String, CaseIterable {
-        case mdx, mdd, css, js
-        
+        case mdx, mdd, css, js, fonts
+
         var displayName: String {
             switch self {
             case .mdx: return "Dictionary File"
             case .mdd: return "Resource Files"
             case .css: return "Custom Styles"
             case .js: return "Custom Scripts"
+            case .fonts: return "Custom Fonts"
             }
         }
-        
+
+        /// File extension used for the legacy directory-scan fallback and the
+        /// "Add <EXT> file" button label. Fonts have several extensions
+        /// (ttf/otf/woff/woff2), so there's no single one — "font" reads
+        /// correctly in the button and the directory fallback isn't used for
+        /// fonts (font listing is manifest-driven).
         var fileExtension: String {
-            rawValue
+            switch self {
+            case .fonts: return "font"
+            default:     return rawValue
+            }
         }
     }
     
@@ -1156,7 +1165,88 @@ final class DictionaryStorageService {
         }
         return dictManifest.js.map { ResourceFile(entry: $0, type: .js) }
     }
-    
+
+    // MARK: - Font Resource CRUD
+
+    /// Add a font file to a dictionary (preserving original filename)
+    func addFontResource(dictId: String, sourceURL: URL) async throws -> String {
+        guard metadataService.find(dictId: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+
+        guard var dictManifest = loadDictManifest(id: dictId) else {
+            throw ResourceError.dictManifestNotFound(id: dictId)
+        }
+
+        let fontsDir = fontsDirectoryURL(id: dictId)
+        let fileName = sourceURL.lastPathComponent
+
+        guard sourceURL.startAccessingSecurityScopedResource() else {
+            throw ResourceError.accessDenied(sourceURL)
+        }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
+        let attrs = try? FileManager.default.attributesOfItem(atPath: sourceURL.path)
+        let fileSize = (attrs?[.size] as? Int64) ?? 0
+        let hash = try await calculateSHA256(of: sourceURL)
+
+        if dictManifest.fontEntry(hash: hash) != nil {
+            throw ResourceError.duplicateContent(fileName: fileName)
+        }
+
+        if let existing = dictManifest.fontEntry(fileName: fileName) {
+            throw ResourceError.fileNameConflict(fileName: fileName, existingHash: existing.hash, newHash: hash)
+        }
+
+        // fonts/ dir may not exist on dictionaries imported before font support.
+        try? FileManager.default.createDirectory(at: fontsDir, withIntermediateDirectories: true)
+
+        let destURL = fontsDir.appendingPathComponent(fileName)
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            throw ResourceError.copyFailed(error)
+        }
+
+        let entry = DictManifest.ResourceEntry(fileName: fileName, hash: hash, sizeBytes: fileSize)
+        dictManifest.fonts.append(entry)
+        try saveDictManifest(dictManifest)
+
+        print("➕ Added font resource: \(fileName) to \(dictId.prefix(8))...")
+        return fileName
+    }
+
+    /// Remove a font file by fileName
+    func removeFontResource(dictId: String, fileName: String) throws {
+        guard metadataService.find(dictId: dictId) != nil else {
+            throw ResourceError.dictionaryNotFound(id: dictId)
+        }
+
+        guard var dictManifest = loadDictManifest(id: dictId) else {
+            throw ResourceError.dictManifestNotFound(id: dictId)
+        }
+
+        guard dictManifest.fontEntry(fileName: fileName) != nil else {
+            throw ResourceError.notFound(fileName: fileName)
+        }
+
+        let targetURL = fontsDirectoryURL(id: dictId).appendingPathComponent(fileName)
+
+        try FileManager.default.removeItem(at: targetURL)
+
+        dictManifest.removeFont(fileName: fileName)
+        try saveDictManifest(dictManifest)
+
+        print("➖ Removed font resource: \(fileName) from \(dictId.prefix(8))...")
+    }
+
+    /// List all font files for a dictionary (manifest-driven; legacy
+    /// dictionaries predate font support so there's nothing to scan).
+    func listFontResources(dictId: String) -> [ResourceFile] {
+        guard let dictManifest = loadDictManifest(id: dictId) else { return [] }
+        return dictManifest.fonts.map { ResourceFile(entry: $0, type: .fonts) }
+    }
+
     // MARK: - Resource Listing Helper (Legacy fallback)
     
     /// List ResourceFile objects from a directory (for legacy dictionaries without dict manifest)
@@ -1235,7 +1325,8 @@ final class DictionaryStorageService {
         resources.append(contentsOf: listMDDResources(dictId: dictId))
         resources.append(contentsOf: listCSSResources(dictId: dictId))
         resources.append(contentsOf: listJSResources(dictId: dictId))
-        
+        resources.append(contentsOf: listFontResources(dictId: dictId))
+
         return resources
     }
 }

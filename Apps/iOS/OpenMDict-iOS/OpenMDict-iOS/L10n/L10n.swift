@@ -1311,6 +1311,9 @@ nonisolated enum L10n {
         static var sectionJs: String {
             NSLocalizedString("resourceEditor.section.js", value: "CUSTOM SCRIPTS (JS)", comment: "Section header")
         }
+        static var sectionFonts: String {
+            NSLocalizedString("resourceEditor.section.fonts", value: "CUSTOM FONTS", comment: "Section header")
+        }
         static var deleteResourceTitle: String {
             NSLocalizedString("resourceEditor.deleteResource.title", value: "Delete Resource?", comment: "Alert title for resource deletion")
         }

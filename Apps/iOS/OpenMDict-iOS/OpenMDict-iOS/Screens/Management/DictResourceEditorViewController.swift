@@ -15,7 +15,7 @@ class DictResourceEditorViewController: UIViewController {
     // MARK: - Types
     
     nonisolated enum Section: Int, CaseIterable {
-        case mdx, mdd, css, js
+        case mdx, mdd, css, js, fonts
 
         var title: String {
             switch self {
@@ -23,6 +23,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: return L10n.ResourceEditor.sectionMdd
             case .css: return L10n.ResourceEditor.sectionCss
             case .js: return L10n.ResourceEditor.sectionJs
+            case .fonts: return L10n.ResourceEditor.sectionFonts
             }
         }
 
@@ -32,6 +33,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: return .mdd
             case .css: return .css
             case .js: return .js
+            case .fonts: return .fonts
             }
         }
 
@@ -41,6 +43,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: return [AppIdentifiers.ResourceType.mdd]
             case .css: return [AppIdentifiers.ResourceType.css]
             case .js: return [AppIdentifiers.ResourceType.js]
+            case .fonts: return AppIdentifiers.ResourceType.fonts
             }
         }
     }
@@ -169,6 +172,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: iconName = "archivebox.fill"
             case .css: iconName = "paintbrush.fill"
             case .js: iconName = "chevron.left.forwardslash.chevron.right"
+            case .fonts: iconName = "textformat"
             }
             content.image = UIImage(systemName: iconName)
             content.imageProperties.tintColor = .systemBlue
@@ -229,6 +233,7 @@ class DictResourceEditorViewController: UIViewController {
             case .mdd: iconName = "archivebox"       // outlined
             case .css: iconName = "paintbrush"       // outlined
             case .js: iconName = "chevron.left.forwardslash.chevron.right"  // no fill variant
+            case .fonts: iconName = "textformat"     // no fill variant
             }
             content.image = UIImage(systemName: iconName)
             content.imageProperties.tintColor = .systemBlue  // Same blue as stored files
@@ -328,15 +333,19 @@ class DictResourceEditorViewController: UIViewController {
         
         let session = DictionaryService.shared.importSession
         
-        // Subscribe to all pending file changes
-        Publishers.CombineLatest4(
-            session.$mdxPendingFile,
-            session.$pendingMDDFiles,
-            session.$pendingCSSFiles,
-            session.$pendingJSFiles
+        // Subscribe to all pending file changes (CombineLatest4 maxes at 4
+        // publishers, so the font publisher is combined in a second stage).
+        Publishers.CombineLatest(
+            Publishers.CombineLatest4(
+                session.$mdxPendingFile,
+                session.$pendingMDDFiles,
+                session.$pendingCSSFiles,
+                session.$pendingJSFiles
+            ),
+            session.$pendingFontFiles
         )
         .receive(on: DispatchQueue.main)
-        .sink { [weak self] _, _, _, _ in
+        .sink { [weak self] _, _ in
             self?.applyImportingSnapshot()
         }
         .store(in: &cancellables)
@@ -371,7 +380,7 @@ class DictResourceEditorViewController: UIViewController {
     private func applyImportingSnapshot(animated: Bool = false) {
         let session = DictionaryService.shared.importSession
         
-        debugLog("📋 applyImportingSnapshot: mdxPendingFile=\(session.mdxPendingFile?.fileName ?? "nil"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count)")
+        debugLog("📋 applyImportingSnapshot: mdxPendingFile=\(session.mdxPendingFile?.fileName ?? "nil"), MDD=\(session.pendingMDDFiles.count), CSS=\(session.pendingCSSFiles.count), JS=\(session.pendingJSFiles.count), fonts=\(session.pendingFontFiles.count)")
         
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases)
@@ -406,6 +415,14 @@ class DictResourceEditorViewController: UIViewController {
             snapshot.appendItems(session.pendingJSFiles.map { .pendingFile($0) }, toSection: .js)
         }
         snapshot.appendItems([.addButton(.js)], toSection: .js)
+
+        // Fonts section
+        if session.pendingFontFiles.isEmpty {
+            snapshot.appendItems([.emptyPlaceholder(.fonts)], toSection: .fonts)
+        } else {
+            snapshot.appendItems(session.pendingFontFiles.map { .pendingFile($0) }, toSection: .fonts)
+        }
+        snapshot.appendItems([.addButton(.fonts)], toSection: .fonts)
         
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
@@ -446,8 +463,10 @@ class DictResourceEditorViewController: UIViewController {
 
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: section.allowedUTTypes)
         picker.delegate = self
-        picker.allowsMultipleSelection = false
-        
+        // Multiple selection — font families ship as several files (regular,
+        // bold, italic…), and MDD/CSS/JS dicts can have several too.
+        picker.allowsMultipleSelection = true
+
         // Store which section we're adding to
         picker.view.tag = section.rawValue
         
@@ -486,6 +505,8 @@ class DictResourceEditorViewController: UIViewController {
                 try serviceDataSource.removeCSS(from: dictId, fileName: resource.fileName)
             case .js:
                 try serviceDataSource.removeJS(from: dictId, fileName: resource.fileName)
+            case .fonts:
+                try serviceDataSource.removeFont(from: dictId, fileName: resource.fileName)
             }
             
             // Reload
@@ -496,78 +517,87 @@ class DictResourceEditorViewController: UIViewController {
         }
     }
     
-    private func addResource(from url: URL, to section: Section) {
+    /// Add one or more picked files to a section. The picker allows multiple
+    /// selection (handy for font families that ship as 4+ files), so this
+    /// handles a batch: editing mode shows a single loading modal for the
+    /// whole batch and reloads once; importing mode appends each to the
+    /// session.
+    private func addResources(from urls: [URL], to section: Section) {
+        guard !urls.isEmpty else { return }
         switch mode {
         case .empty:
             return
-            
+
         case .editing(let dictId):
-            // Editing mode: copy file to storage immediately
-            // Show loading modal on the presenting view controller
+            // Editing mode: copy files to storage immediately.
+            // One loading modal for the whole batch.
             let presentingVC = view.window?.rootViewController
             let loadingVC = presentingVC?.showLoadingModal(message: L10n.ResourceEditor.addingResource)
-            
+
             Task {
-                do {
-                    switch section {
-                    case .mdx:
-                        break  // Not addable
-                    case .mdd:
-                        _ = try await serviceDataSource.addMDD(to: dictId, from: url)
-                    case .css:
-                        _ = try await serviceDataSource.addCSS(to: dictId, from: url)
-                    case .js:
-                        _ = try await serviceDataSource.addJS(to: dictId, from: url)
-                    }
-                    
-                    // Reload on main thread
-                    await MainActor.run {
-                        presentingVC?.hideLoadingModal(loadingVC)
-                        reloadData()
-                    }
-                    
-                } catch {
-                    await MainActor.run {
-                        presentingVC?.hideLoadingModal(loadingVC)
-                        showError(error)
+                var firstError: Error?
+                for url in urls {
+                    do {
+                        switch section {
+                        case .mdx:
+                            break  // Not addable
+                        case .mdd:
+                            _ = try await serviceDataSource.addMDD(to: dictId, from: url)
+                        case .css:
+                            _ = try await serviceDataSource.addCSS(to: dictId, from: url)
+                        case .js:
+                            _ = try await serviceDataSource.addJS(to: dictId, from: url)
+                        case .fonts:
+                            _ = try await serviceDataSource.addFont(to: dictId, from: url)
+                        }
+                    } catch {
+                        // Keep going so one bad/duplicate file doesn't abort the
+                        // rest of the batch; surface the first error at the end.
+                        if firstError == nil { firstError = error }
                     }
                 }
+
+                await MainActor.run {
+                    presentingVC?.hideLoadingModal(loadingVC)
+                    reloadData()
+                    if let firstError { showError(firstError) }
+                }
             }
-            
+
         case .importing:
-            // Importing mode: add to ImportSession (will be copied on import)
-            // IMPORTANT: Create PendingFile while security scope is active to capture bookmark
-            let hasAccess = url.startAccessingSecurityScopedResource()
-            debugLog("📋 addResource: url=\(url.lastPathComponent), hasAccess=\(hasAccess)")
-            
-            // Get file size while we have access
-            var fileSize: Int64 = 0
-            if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-               let size = attrs[.size] as? Int64 {
-                fileSize = size
-                debugLog("📋 addResource: fileSize=\(fileSize)")
-            } else {
-                debugLog("⚠️ addResource: failed to get file size for \(url.path)")
-            }
-            
-            // Add to session (PendingFile.init will capture bookmark while scope is active)
+            // Importing mode: add to ImportSession (copied on import).
+            // IMPORTANT: capture each PendingFile while its security scope is active.
             let session = DictionaryService.shared.importSession
-            switch section {
-            case .mdx:
-                break  // Not addable (MDX is set via DictInfoVC)
-            case .mdd:
-                session.addMDD(url, fileSize: fileSize)
-            case .css:
-                session.addCSS(url, fileSize: fileSize)
-            case .js:
-                session.addJS(url, fileSize: fileSize)
+            for url in urls {
+                let hasAccess = url.startAccessingSecurityScopedResource()
+                debugLog("📋 addResource: url=\(url.lastPathComponent), hasAccess=\(hasAccess)")
+
+                var fileSize: Int64 = 0
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+                   let size = attrs[.size] as? Int64 {
+                    fileSize = size
+                } else {
+                    debugLog("⚠️ addResource: failed to get file size for \(url.path)")
+                }
+
+                switch section {
+                case .mdx:
+                    break  // Not addable (MDX is set via DictInfoVC)
+                case .mdd:
+                    session.addMDD(url, fileSize: fileSize)
+                case .css:
+                    session.addCSS(url, fileSize: fileSize)
+                case .js:
+                    session.addJS(url, fileSize: fileSize)
+                case .fonts:
+                    session.addFont(url, fileSize: fileSize)
+                }
+
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
             }
-            
-            // Now safe to close security scope
-            if hasAccess {
-                url.stopAccessingSecurityScopedResource()
-            }
-            // Note: applyImportingSnapshot() will be called automatically via Combine subscription
+            // Note: applyImportingSnapshot() is called automatically via Combine.
         }
     }
     
@@ -627,11 +657,11 @@ extension DictResourceEditorViewController: UICollectionViewDelegate {
 extension DictResourceEditorViewController: UIDocumentPickerDelegate {
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first,
+        guard !urls.isEmpty,
               let section = Section(rawValue: controller.view.tag) else {
             return
         }
-        
-        addResource(from: url, to: section)
+
+        addResources(from: urls, to: section)
     }
 }
