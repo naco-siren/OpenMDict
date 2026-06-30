@@ -845,7 +845,7 @@ extension ArticlePageView: WKNavigationDelegate {
         default:
             if navigationAction.navigationType == .other {
                 decisionHandler(.allow)
-            } else if scheme == "mdict",
+            } else if scheme == AppIdentifiers.ResourceScheme.scheme,
                       url.fragment != nil,
                       url.host == webView.url?.host {
                 // Same-document in-page anchor jump (e.g. <a href="#sense2">).

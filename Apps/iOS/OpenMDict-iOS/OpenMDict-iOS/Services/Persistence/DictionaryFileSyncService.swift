@@ -387,7 +387,7 @@ final class DictionaryFileSyncService {
         // 2. Create directory structure
         do {
             try FileManager.default.createDirectory(at: dictDir, withIntermediateDirectories: true)
-            for subdir in ["mdd", "css", "js", "fonts"] {
+            for subdir in AppIdentifiers.ResourceDirectory.all {
                 let subdirURL = dictDir.appendingPathComponent(subdir, isDirectory: true)
                 try FileManager.default.createDirectory(at: subdirURL, withIntermediateDirectories: true)
             }

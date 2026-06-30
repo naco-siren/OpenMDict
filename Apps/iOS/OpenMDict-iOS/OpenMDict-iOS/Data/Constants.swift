@@ -25,9 +25,41 @@ nonisolated enum AppIdentifiers {
     }
 
     enum URLScheme {
+        /// Deep-link scheme for inter-process navigation (Action Extension →
+        /// main app, Shortcuts, etc.): `openmdict://lookup?word=…`.
         static let scheme = "openmdict"
     }
-    
+
+    /// Custom WKWebView URL scheme for serving in-dictionary resources
+    /// (CSS/JS/images/audio/fonts) through the MDict scheme handlers:
+    /// `mdict://<dictId>/<path>`.
+    enum ResourceScheme {
+        static let scheme = "mdict"
+    }
+
+    /// Subdirectory names under each dictionary's storage folder
+    /// (`AppGroup/Library/Dictionaries/<dictId>/<subdir>/`).
+    enum ResourceDirectory {
+        static let mdd = "mdd"
+        static let css = "css"
+        static let js = "js"
+        static let fonts = "fonts"
+        /// All resource subdirs, created at import / CloudKit download.
+        static let all = [mdd, css, js, fonts]
+    }
+
+    /// Resource file extensions (lowercased, no leading dot).
+    enum ResourceExtension {
+        static let css = "css"
+        static let js = "js"
+        /// Font formats WebKit can render.
+        static let fonts: Set<String> = ["ttf", "otf", "woff", "woff2"]
+        /// Extensions whose loose storage-dir copy OVERRIDES the MDD-embedded
+        /// one (GoldenDict/Eudic patch-package convention). Images/audio stay
+        /// MDD-first, so they're intentionally excluded.
+        static let looseOverridable: Set<String> = fonts.union([css, js])
+    }
+
     enum Activity {
         /// Activity type for full scene state restoration
         static let sceneState = "io.github.naco-siren.OpenMDict.sceneState"
@@ -42,17 +74,15 @@ nonisolated enum AppIdentifiers {
     enum ResourceType {
         static let mdx = UTType(UTTypeValue.mdx) ?? .data
         static let mdd = UTType(UTTypeValue.mdd) ?? .data
-        static let css = UTType(filenameExtension: "css") ?? .plainText
+        static let css = UTType(filenameExtension: ResourceExtension.css) ?? .plainText
         static let js = UTType.javaScript
-        /// Font formats WebKit can render (ttf/otf/woff/woff2). Several UTTypes
-        /// because there's no single umbrella type that reliably covers woff2;
-        /// `.font` catches ttf/otf, the rest are added explicitly by extension.
-        static let fonts: [UTType] = ([
-            .font,
-            UTType(filenameExtension: "ttf"),
-            UTType(filenameExtension: "otf"),
-            UTType(filenameExtension: "woff"),
-            UTType(filenameExtension: "woff2")
-        ] as [UTType?]).compactMap { $0 }
+        /// UTTypes for the font document picker. `.font` catches ttf/otf; the
+        /// rest are added by extension since no umbrella type reliably covers
+        /// woff2. Derived from `ResourceExtension.fonts` (single source).
+        static let fonts: [UTType] = {
+            var types: [UTType] = [.font]
+            types += ResourceExtension.fonts.compactMap { UTType(filenameExtension: $0) }
+            return types
+        }()
     }
 }

@@ -56,7 +56,7 @@ struct MDictURL {
             self.resourcePath = parsed.word
             self.fragment = parsed.fragment
 
-        case "mdict":
+        case AppIdentifiers.ResourceScheme.scheme:
             self.scheme = .mdict
             self.resourcePath = Self.parseMDictURL(url)
             self.fragment = nil

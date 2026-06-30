@@ -317,22 +317,22 @@ final class DictionaryStorageService {
     
     /// MDD directory for a dictionary
     func mddDirectoryURL(id: String) -> URL {
-        dictionaryDirectoryURL(id: id).appendingPathComponent("mdd", isDirectory: true)
+        dictionaryDirectoryURL(id: id).appendingPathComponent(AppIdentifiers.ResourceDirectory.mdd, isDirectory: true)
     }
-    
+
     /// CSS directory for a dictionary
     func cssDirectoryURL(id: String) -> URL {
-        dictionaryDirectoryURL(id: id).appendingPathComponent("css", isDirectory: true)
+        dictionaryDirectoryURL(id: id).appendingPathComponent(AppIdentifiers.ResourceDirectory.css, isDirectory: true)
     }
-    
+
     /// JS directory for a dictionary
     func jsDirectoryURL(id: String) -> URL {
-        dictionaryDirectoryURL(id: id).appendingPathComponent("js", isDirectory: true)
+        dictionaryDirectoryURL(id: id).appendingPathComponent(AppIdentifiers.ResourceDirectory.js, isDirectory: true)
     }
-    
+
     /// Fonts directory for a dictionary
     func fontsDirectoryURL(id: String) -> URL {
-        dictionaryDirectoryURL(id: id).appendingPathComponent("fonts", isDirectory: true)
+        dictionaryDirectoryURL(id: id).appendingPathComponent(AppIdentifiers.ResourceDirectory.fonts, isDirectory: true)
     }
     
     // MARK: - Dict Metadata (CoreData)

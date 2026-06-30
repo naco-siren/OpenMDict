@@ -930,7 +930,7 @@ class ActionViewController: UIViewController {
 
                     if !allResourcePaths.isEmpty {
                         // Create MDD parsers (MDX is already released)
-                        let mddDir = dictDir.appendingPathComponent("mdd", isDirectory: true)
+                        let mddDir = dictDir.appendingPathComponent(AppIdentifiers.ResourceDirectory.mdd, isDirectory: true)
                         print("📖 Dict[\(index)] MDD dir: \(mddDir.path)")
                         print("📖 Dict[\(index)] manifest.mdd count: \(manifest.mdd.count)")
                         for entry in manifest.mdd {
@@ -1388,7 +1388,7 @@ class ActionViewController: UIViewController {
             if !manifest.mdd.isEmpty {
                 let resourcePaths = HTMLResourceRewriter.extractResourcePaths(from: html)
                 if !resourcePaths.isEmpty {
-                    let mddDir = dictDir.appendingPathComponent("mdd", isDirectory: true)
+                    let mddDir = dictDir.appendingPathComponent(AppIdentifiers.ResourceDirectory.mdd, isDirectory: true)
                     let mddParsers: [MDDParser] = manifest.mdd.compactMap { mddEntry in
                         let path = mddDir.appendingPathComponent(mddEntry.fileName).path
                         return try? MDDParser(path: path)
@@ -1589,7 +1589,7 @@ class ActionViewController: UIViewController {
             return nil
         }
 
-        let mddDir = dictDir.appendingPathComponent("mdd", isDirectory: true)
+        let mddDir = dictDir.appendingPathComponent(AppIdentifiers.ResourceDirectory.mdd, isDirectory: true)
         let mddParsers: [MDDParser] = manifest.mdd.compactMap { entry in
             let path = mddDir.appendingPathComponent(entry.fileName).path
             return try? MDDParser(path: path)

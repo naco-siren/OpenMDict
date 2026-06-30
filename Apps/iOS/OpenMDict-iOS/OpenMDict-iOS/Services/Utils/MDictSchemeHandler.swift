@@ -11,7 +11,7 @@ import OpenMDictKit
 
 final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
     
-    static let scheme = "mdict"
+    static let scheme = AppIdentifiers.ResourceScheme.scheme
     static let shared = MDictSchemeHandler()
     
     private override init() {
@@ -57,7 +57,7 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
         // this, and fonts are *only* ever shipped loose (MDX/MDD almost never
         // embed them).  Images/audio keep MDD-first (steps 1–2); loose copies
         // of those are rare and the MDD is the canonical source.
-        let isLooseOverridable = Self.looseOverridableExtensions.contains(fileExtension)
+        let isLooseOverridable = AppIdentifiers.ResourceExtension.looseOverridable.contains(fileExtension)
 
         // 0. CSS/JS/fonts: serve the loose storage-dir copy first.
         if isLooseOverridable {
@@ -133,11 +133,6 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
 
     // MARK: - Loose CSS/JS/Font Override
 
-    /// Extensions whose loose storage-dir copy overrides the MDD-embedded one.
-    static let looseOverridableExtensions: Set<String> = [
-        "css", "js", "ttf", "otf", "woff", "woff2"
-    ]
-
     /// Load a CSS/JS/font resource from the dictionary's `css/`, `js/`, or
     /// `fonts/` storage directory — where loose files are copied at import.
     /// Tries an exact filename match first, then a case-insensitive match.
@@ -152,12 +147,15 @@ final class MDictSchemeHandler: NSObject, WKURLSchemeHandler {
         let storage = DictionaryStorageService.shared
         let dirURL: URL
         let options: Data.ReadingOptions
-        switch fileExtension {
-        case "css":  dirURL = storage.cssDirectoryURL(id: dictId);  options = []
-        case "js":   dirURL = storage.jsDirectoryURL(id: dictId);   options = []
-        case "ttf", "otf", "woff", "woff2":
-            dirURL = storage.fontsDirectoryURL(id: dictId);  options = [.mappedIfSafe]
-        default:     return nil
+        if fileExtension == AppIdentifiers.ResourceExtension.css {
+            dirURL = storage.cssDirectoryURL(id: dictId); options = []
+        } else if fileExtension == AppIdentifiers.ResourceExtension.js {
+            dirURL = storage.jsDirectoryURL(id: dictId); options = []
+        } else if AppIdentifiers.ResourceExtension.fonts.contains(fileExtension) {
+            // Fonts are large + read-only → memory-map.
+            dirURL = storage.fontsDirectoryURL(id: dictId); options = [.mappedIfSafe]
+        } else {
+            return nil
         }
 
         // Exact match

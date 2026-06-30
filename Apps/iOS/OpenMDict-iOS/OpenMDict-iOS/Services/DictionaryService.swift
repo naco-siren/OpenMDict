@@ -1164,7 +1164,7 @@ final class DictionaryService: ObservableObject {
         // Reload MDD resources in MDict instance
         reloadMDDResources(for: dictId)
         // Incremental CloudKit sync (fire-and-forget)
-        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "mdd")
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: AppIdentifiers.ResourceDirectory.mdd)
         return fileName
     }
 
@@ -1197,7 +1197,7 @@ final class DictionaryService: ObservableObject {
     func addCSS(to dictId: String, from fileURL: URL) async throws -> String {
         let fileName = try await storage.addCSSResource(dictId: dictId, sourceURL: fileURL)
         // Incremental CloudKit sync (fire-and-forget)
-        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "css")
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: AppIdentifiers.ResourceDirectory.css)
         return fileName
     }
 
@@ -1219,7 +1219,7 @@ final class DictionaryService: ObservableObject {
     func addJS(to dictId: String, from fileURL: URL) async throws -> String {
         let fileName = try await storage.addJSResource(dictId: dictId, sourceURL: fileURL)
         // Incremental CloudKit sync (fire-and-forget)
-        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "js")
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: AppIdentifiers.ResourceDirectory.js)
         return fileName
     }
 
@@ -1231,7 +1231,7 @@ final class DictionaryService: ObservableObject {
     func addFont(to dictId: String, from fileURL: URL) async throws -> String {
         let fileName = try await storage.addFontResource(dictId: dictId, sourceURL: fileURL)
         // Incremental CloudKit sync (fire-and-forget)
-        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: "fonts")
+        syncAfterResourceAdd(dictId: dictId, fileName: fileName, subdirectory: AppIdentifiers.ResourceDirectory.fonts)
         return fileName
     }
 
@@ -1289,11 +1289,11 @@ final class DictionaryService: ObservableObject {
             let manifest = storage.loadDictManifest(id: dictId)
             let entries: [DictManifest.ResourceEntry]
             switch subdirectory {
-            case "mdd":   entries = manifest?.mdd ?? []
-            case "css":   entries = manifest?.css ?? []
-            case "js":    entries = manifest?.js ?? []
-            case "fonts": entries = manifest?.fonts ?? []
-            default:      entries = []
+            case AppIdentifiers.ResourceDirectory.mdd:   entries = manifest?.mdd ?? []
+            case AppIdentifiers.ResourceDirectory.css:   entries = manifest?.css ?? []
+            case AppIdentifiers.ResourceDirectory.js:    entries = manifest?.js ?? []
+            case AppIdentifiers.ResourceDirectory.fonts: entries = manifest?.fonts ?? []
+            default:                                     entries = []
             }
             let hash = entries.first(where: { $0.fileName == fileName })?.hash ?? ""
 

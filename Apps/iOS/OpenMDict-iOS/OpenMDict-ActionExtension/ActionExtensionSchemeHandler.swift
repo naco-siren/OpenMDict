@@ -13,7 +13,7 @@ import WebKit
 
 final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
 
-    nonisolated static let scheme = "mdict"
+    nonisolated static let scheme = AppIdentifiers.ResourceScheme.scheme
 
     /// Root URL for dictionary storage in the App Group container.
     private let dictionariesRoot: URL
@@ -47,7 +47,7 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         var resourceData: Data?
         let filename = String(resourcePath.dropFirst()) // Remove leading /
         let fileExtension = (filename as NSString).pathExtension.lowercased()
-        let isLooseOverridable = Self.looseOverridableExtensions.contains(fileExtension)
+        let isLooseOverridable = AppIdentifiers.ResourceExtension.looseOverridable.contains(fileExtension)
 
         // 0. CSS/JS/fonts: a loose file in the dict's css/ js/ fonts/ subdir
         //    OVERRIDES the MDD-embedded copy (tier2 cache below).  Matches the
@@ -126,12 +126,6 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
 
     // MARK: - Loose CSS/JS Override
 
-    /// Extensions whose loose subdir copy overrides the MDD-extracted cache.
-    /// Kept in sync with the main app's `MDictSchemeHandler`.
-    nonisolated static let looseOverridableExtensions: Set<String> = [
-        "css", "js", "ttf", "otf", "woff", "woff2"
-    ]
-
     /// Load a CSS/JS/font resource from the dict's `css/`, `js/`, or `fonts/`
     /// subdir (where loose files are copied at import).  Exact match first,
     /// then case-insensitive.  Returns `nil` if absent (caller falls back to
@@ -143,12 +137,14 @@ final class ActionExtensionSchemeHandler: NSObject, WKURLSchemeHandler {
         let dictDir = dictionariesRoot.appendingPathComponent(dictId)
         let dirURL: URL
         let options: Data.ReadingOptions
-        switch fileExtension {
-        case "css": dirURL = dictDir.appendingPathComponent("css", isDirectory: true);  options = []
-        case "js":  dirURL = dictDir.appendingPathComponent("js", isDirectory: true);   options = []
-        case "ttf", "otf", "woff", "woff2":
-            dirURL = dictDir.appendingPathComponent("fonts", isDirectory: true);  options = [.mappedIfSafe]
-        default:    return nil
+        if fileExtension == AppIdentifiers.ResourceExtension.css {
+            dirURL = dictDir.appendingPathComponent(AppIdentifiers.ResourceDirectory.css, isDirectory: true); options = []
+        } else if fileExtension == AppIdentifiers.ResourceExtension.js {
+            dirURL = dictDir.appendingPathComponent(AppIdentifiers.ResourceDirectory.js, isDirectory: true); options = []
+        } else if AppIdentifiers.ResourceExtension.fonts.contains(fileExtension) {
+            dirURL = dictDir.appendingPathComponent(AppIdentifiers.ResourceDirectory.fonts, isDirectory: true); options = [.mappedIfSafe]
+        } else {
+            return nil
         }
 
         // Exact match
