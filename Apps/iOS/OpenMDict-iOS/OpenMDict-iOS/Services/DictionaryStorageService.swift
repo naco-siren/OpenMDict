@@ -413,6 +413,7 @@ final class DictionaryStorageService {
             mddCount: dictManifest.mdd.count,
             cssCount: dictManifest.css.count,
             jsCount: dictManifest.js.count,
+            fontsCount: dictManifest.fonts.count,
             totalSizeKB: dictManifest.totalSizeKB
         )
     }

@@ -180,12 +180,13 @@ final class DictMetadataService {
     /// incremental per-file sync (uploadSingleFile / deleteSingleFile) is
     /// handled by the caller (DictionaryService.syncAfterResourceAdd/Remove).
     func syncResourceCounts(dictId: String, mddCount: Int, cssCount: Int,
-                            jsCount: Int, totalSizeKB: Int64) {
+                            jsCount: Int, fontsCount: Int, totalSizeKB: Int64) {
         let ctx = stack.viewContext
         guard let record = fetchRecord(dictId: dictId) else { return }
         record.mddCount = Int32(mddCount)
         record.cssCount = Int32(cssCount)
         record.jsCount = Int32(jsCount)
+        record.fontsCount = Int32(fontsCount)
         record.totalSizeKB = totalSizeKB
         record.updatedAt = Date()
         save(ctx)

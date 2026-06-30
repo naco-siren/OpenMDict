@@ -361,20 +361,23 @@ final class DictionaryService: ObservableObject {
 
                 // Compare local resource counts against metadata from CoreData
                 let localManifest = self.storage.loadDictManifest(id: dictId)
-                let localMddCount = Int32(localManifest?.mdd.count ?? 0)
-                let localCssCount = Int32(localManifest?.css.count ?? 0)
-                let localJsCount  = Int32(localManifest?.js.count ?? 0)
+                let localMddCount  = Int32(localManifest?.mdd.count ?? 0)
+                let localCssCount  = Int32(localManifest?.css.count ?? 0)
+                let localJsCount   = Int32(localManifest?.js.count ?? 0)
+                let localFontCount = Int32(localManifest?.fonts.count ?? 0)
 
                 let changed = localMddCount != metadata.mddCount
                     || localCssCount != metadata.cssCount
                     || localJsCount  != metadata.jsCount
+                    || localFontCount != metadata.fontsCount
 
                 guard changed else { continue }
 
                 debugLog("☁️ Remote update detected for \(dictId.prefix(16)): "
                     + "mdd \(localMddCount)→\(metadata.mddCount), "
                     + "css \(localCssCount)→\(metadata.cssCount), "
-                    + "js \(localJsCount)→\(metadata.jsCount)")
+                    + "js \(localJsCount)→\(metadata.jsCount), "
+                    + "fonts \(localFontCount)→\(metadata.fontsCount)")
 
                 // Per-file incremental update: fetch remote manifest → diff → download only changed files
                 DictMetadataService.shared.markDownloading(dictId)
@@ -1267,6 +1270,7 @@ final class DictionaryService: ObservableObject {
             mddCount: manifest.mdd.count,
             cssCount: manifest.css.count,
             jsCount: manifest.js.count,
+            fontsCount: manifest.fonts.count,
             totalSizeKB: manifest.totalSizeKB
         )
     }
