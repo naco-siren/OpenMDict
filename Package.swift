@@ -54,6 +54,14 @@ let package = Package(
             name: "OpenMDictTests",
             dependencies: ["OpenMDict"],
             path: "Tests/OpenMDictTests"
+        ),
+
+        // Kit tests: pure sync/reconciliation policies plus the Core Data
+        // persistent-history mechanics the iOS app's CloudKit code relies on.
+        .testTarget(
+            name: "OpenMDictKitTests",
+            dependencies: ["OpenMDictKit"],
+            path: "Tests/OpenMDictKitTests"
         )
     ]
 )

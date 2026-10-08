@@ -16,7 +16,7 @@ import Foundation
 
 /// Detailed resource manifest for a single dictionary.
 /// Stored in `<dict-id>/manifest.json` within Library/Dictionaries/
-public struct DictManifest: Codable {
+public struct DictManifest: Codable, Equatable, Sendable {
     /// Dictionary ID (same as folder name, MDX header SHA256)
     public let id: String
     
@@ -87,7 +87,7 @@ public struct DictManifest: Codable {
 extension DictManifest {
     
     /// MDX file entry (read-only, cannot be removed)
-    public struct MDXEntry: Codable {
+    public struct MDXEntry: Codable, Equatable, Sendable {
         /// Original filename (e.g., "MyDict.mdx")
         public let fileName: String
         
@@ -105,7 +105,7 @@ extension DictManifest {
     }
     
     /// Resource file entry (MDD/CSS/JS)
-    public struct ResourceEntry: Codable, Identifiable, Equatable {
+    public struct ResourceEntry: Codable, Identifiable, Equatable, Sendable {
         /// Unique ID within type (same as fileName)
         public var id: String { fileName }
         
