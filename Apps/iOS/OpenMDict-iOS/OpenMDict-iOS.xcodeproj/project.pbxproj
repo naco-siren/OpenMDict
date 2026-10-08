@@ -124,7 +124,6 @@
 		F80DBF852F4A7B9D00ED2985 /* Kaikki-KO-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF5F2F4A7B9D00ED2985 /* Kaikki-KO-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-ko-en", ); }; };
 		F80DBF862F4A7B9D00ED2985 /* WikDict-EN-TR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF752F4A7B9D00ED2985 /* WikDict-EN-TR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-en-tr", ); }; };
 		F80DBF872F4A7B9D00ED2985 /* Bible-SVD-AR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF502F4A7B9D00ED2985 /* Bible-SVD-AR.mdx */; settings = {ASSET_TAGS = ("preset-dict-bible-svd-ar", ); }; };
-		F80DBF882F4A7B9D00ED2985 /* Bible-Turkish-TR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF522F4A7B9D00ED2985 /* Bible-Turkish-TR.mdx */; settings = {ASSET_TAGS = ("preset-dict-bible-turkish-tr", ); }; };
 		F80DBF892F4A7B9D00ED2985 /* GCIDE-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF582F4A7B9D00ED2985 /* GCIDE-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-gcide-en", ); }; };
 		F80DBF8A2F4A7B9D00ED2985 /* Kaikki-FR-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF5D2F4A7B9D00ED2985 /* Kaikki-FR-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-fr-en", ); }; };
 		F80DBF8B2F4A7B9D00ED2985 /* Kaikki-IT-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF5E2F4A7B9D00ED2985 /* Kaikki-IT-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-kaikki-it-en", ); }; };
@@ -330,7 +329,6 @@
 		F80DBF4F2F4A7B9D00ED2985 /* Bible-RV1909-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-RV1909-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-RV1909-ES/Bible-RV1909-ES.mdx"; sourceTree = "<absolute>"; };
 		F80DBF502F4A7B9D00ED2985 /* Bible-SVD-AR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-SVD-AR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-SVD-AR/Bible-SVD-AR.mdx"; sourceTree = "<absolute>"; };
 		F80DBF512F4A7B9D00ED2985 /* Bible-Synodal-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Synodal-RU.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Synodal-RU/Bible-Synodal-RU.mdx"; sourceTree = "<absolute>"; };
-		F80DBF522F4A7B9D00ED2985 /* Bible-Turkish-TR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Turkish-TR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Turkish-TR/Bible-Turkish-TR.mdx"; sourceTree = "<absolute>"; };
 		F80DBF532F4A7B9D00ED2985 /* Bible-Vulgate-LA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Vulgate-LA.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Vulgate-LA/Bible-Vulgate-LA.mdx"; sourceTree = "<absolute>"; };
 		F80DBF542F4A7B9D00ED2985 /* CC-Canto-YUE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CC-Canto-YUE-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/CC-Canto-YUE-EN/CC-Canto-YUE-EN.mdx"; sourceTree = "<absolute>"; };
 		F80DBF552F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CEDICT-ZH-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx"; sourceTree = "<absolute>"; };
@@ -668,7 +666,6 @@
 				F80DBF4F2F4A7B9D00ED2985 /* Bible-RV1909-ES.mdx */,
 				F80DBF502F4A7B9D00ED2985 /* Bible-SVD-AR.mdx */,
 				F80DBF512F4A7B9D00ED2985 /* Bible-Synodal-RU.mdx */,
-				F80DBF522F4A7B9D00ED2985 /* Bible-Turkish-TR.mdx */,
 				F80DBF532F4A7B9D00ED2985 /* Bible-Vulgate-LA.mdx */,
 				F80DBF542F4A7B9D00ED2985 /* CC-Canto-YUE-EN.mdx */,
 				F80DBF552F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx */,
@@ -818,7 +815,6 @@
 					"preset-dict-bible-rv1909-es",
 					"preset-dict-bible-svd-ar",
 					"preset-dict-bible-synodal-ru",
-					"preset-dict-bible-turkish-tr",
 					"preset-dict-bible-vulgate-la",
 					"preset-dict-cc-canto-yue-en",
 					"preset-dict-cedict-zh-en",
@@ -1054,7 +1050,6 @@
 				F80DBF852F4A7B9D00ED2985 /* Kaikki-KO-EN.mdx in Resources */,
 				F80DBF862F4A7B9D00ED2985 /* WikDict-EN-TR.mdx in Resources */,
 				F80DBF872F4A7B9D00ED2985 /* Bible-SVD-AR.mdx in Resources */,
-				F80DBF882F4A7B9D00ED2985 /* Bible-Turkish-TR.mdx in Resources */,
 				F80DBF892F4A7B9D00ED2985 /* GCIDE-EN.mdx in Resources */,
 				F80DBF8A2F4A7B9D00ED2985 /* Kaikki-FR-EN.mdx in Resources */,
 				F80DBF8B2F4A7B9D00ED2985 /* Kaikki-IT-EN.mdx in Resources */,
