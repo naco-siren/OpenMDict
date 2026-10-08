@@ -407,15 +407,68 @@ final class DictionaryStorageService {
     }
     
     /// Sync dict manifest resource counts to CoreData metadata.
+    ///
+    /// The counts describe what peers can fetch from CloudKit, so files above
+    /// the upload cap are excluded (they stay local-only). `totalSizeKB`
+    /// remains the true on-disk total — the sidebar displays it.
     private func syncDictManifestToMetadata(_ dictManifest: DictManifest) {
+        let counts = ManifestSyncRules.syncableCounts(of: dictManifest)
         metadataService.syncResourceCounts(
             dictId: dictManifest.id,
-            mddCount: dictManifest.mdd.count,
-            cssCount: dictManifest.css.count,
-            jsCount: dictManifest.js.count,
-            fontsCount: dictManifest.fonts.count,
+            mddCount: counts.mdd,
+            cssCount: counts.css,
+            jsCount: counts.js,
+            fontsCount: counts.fonts,
             totalSizeKB: dictManifest.totalSizeKB
         )
+    }
+
+    /// Re-sync metadata counts for a dictionary whose manifest lists files
+    /// above the upload cap, if the stored counts still include them (written
+    /// by an older build). Returns `true` when a correction was written.
+    func resyncResourceCountsIfNeeded(id: String) -> Bool {
+        guard let manifest = loadDictManifest(id: id),
+              ManifestSyncRules.hasNonSyncableEntries(manifest),
+              let metadata = metadataService.find(dictId: id) else { return false }
+        let counts = ManifestSyncRules.syncableCounts(of: manifest)
+        let stored = ManifestSyncRules.ResourceCounts(
+            mdd: Int(metadata.mddCount), css: Int(metadata.cssCount),
+            js: Int(metadata.jsCount), fonts: Int(metadata.fontsCount)
+        )
+        guard counts != stored else { return false }
+        syncDictManifestToMetadata(manifest)
+        return true
+    }
+
+    // MARK: - Disk Presence & Download Staging
+
+    /// Whether at least one dictionary folder (with a manifest) exists on
+    /// disk, regardless of CoreData metadata. During a CloudKit mirroring
+    /// reset the metadata table is empty for a while although every
+    /// dictionary is still present; callers deciding whether this is a
+    /// first install must not trust the table alone.
+    var hasAnyDictionaryOnDisk: Bool {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: rootDirectoryURL.path) else {
+            return false
+        }
+        return names.contains { name in
+            !name.hasPrefix(".") && FileManager.default.fileExists(atPath: dictManifestURL(id: name).path)
+        }
+    }
+
+    /// Staging directory for an in-progress CloudKit download. The download
+    /// is moved to `dictionaryDirectoryURL(id:)` only once it is complete.
+    func downloadStagingDirectoryURL(id: String) -> URL {
+        rootDirectoryURL.appendingPathComponent(".downloading", isDirectory: true)
+            .appendingPathComponent(id, isDirectory: true)
+    }
+
+    /// Remove staging directories left behind by a crash or kill mid-download.
+    func sweepDownloadStaging() {
+        let staging = rootDirectoryURL.appendingPathComponent(".downloading", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: staging.path) else { return }
+        try? FileManager.default.removeItem(at: staging)
+        debugLog("🧹 Removed stale download staging directory")
     }
 
     /// Insert a new dictionary metadata record into CoreData.

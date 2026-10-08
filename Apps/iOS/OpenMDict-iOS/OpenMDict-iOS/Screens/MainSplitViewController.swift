@@ -557,7 +557,9 @@ class MainSplitViewController: UISplitViewController {
         hasAttemptedSetup = true
 
         let syncMode = SyncModeService.shared.currentMode
-        let hasDicts = DictMetadataService.shared.hasAnyDictionaries
+        // Not just the metadata table: during a CloudKit mirroring reset it
+        // is empty for a while although every dictionary is still on disk.
+        let hasDicts = DictionaryService.shared.hasAnyDictionariesForSetup
 
         let needsSetup = syncMode == .notDecided || !hasDicts
 

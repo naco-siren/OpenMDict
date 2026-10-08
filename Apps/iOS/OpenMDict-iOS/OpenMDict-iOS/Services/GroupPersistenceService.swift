@@ -111,7 +111,17 @@ final class GroupPersistenceService {
     /// Persist groups by diffing against existing CoreData records.
     /// Only inserts, updates, or deletes the records that actually changed.
     /// Called by DictionaryService.persistGroups().
-    func saveAllGroups(_ groups: [SavedGroup]) {
+    ///
+    /// - Parameter allowBootstrapInsert: Permit inserting groups into an
+    ///   EMPTY group table. Only the first-launch bootstrap may do that.
+    ///   At any other time an empty table means CloudKit's mirroring
+    ///   delegate is resetting (it purges every mirrored row before
+    ///   re-importing the zone); inserting then mints new CKRecords for the
+    ///   same groups and lets dedup delete the originals on every device.
+    /// - Returns: `true` when the groups were saved (or nothing changed),
+    ///   `false` when the save was refused or failed.
+    @discardableResult
+    func saveAllGroups(_ groups: [SavedGroup], allowBootstrapInsert: Bool = false) -> Bool {
         let ctx = stack.viewContext
 
         // 1. Fetch all existing group records → index by groupId
@@ -124,7 +134,12 @@ final class GroupPersistenceService {
             existingGroups = Dictionary(records.map { ($0.groupId, $0) }, uniquingKeysWith: { first, _ in first })
         } catch {
             debugLog("❌ GroupPersistenceService: failed to fetch existing groups: \(error)")
-            return
+            return false
+        }
+
+        if existingGroups.isEmpty && !groups.isEmpty && !allowBootstrapInsert {
+            debugLog("⚠️ GroupPersistenceService: group table is empty — refusing to re-insert \(groups.count) groups (mirroring reset / re-import in progress?)")
+            return false
         }
 
         // 2. Fetch all existing entry records → index by groupId
@@ -139,7 +154,7 @@ final class GroupPersistenceService {
             existingEntries = index
         } catch {
             debugLog("❌ GroupPersistenceService: failed to fetch existing entries: \(error)")
-            return
+            return false
         }
 
         // 3. Compute set differences
@@ -185,12 +200,14 @@ final class GroupPersistenceService {
         }
 
         // 6. Save
-        guard ctx.hasChanges else { return }
+        guard ctx.hasChanges else { return true }
         do {
             try ctx.save()
             debugLog("📂 GroupPersistenceService: saved \(groups.count) groups to CoreData")
+            return true
         } catch {
             debugLog("❌ GroupPersistenceService: save failed: \(error)")
+            return false
         }
     }
 

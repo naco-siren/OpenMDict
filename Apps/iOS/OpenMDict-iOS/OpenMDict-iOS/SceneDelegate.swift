@@ -25,7 +25,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // is immediately destroyed.
         let syncMode = SyncModeService.shared.currentMode
         let isFirstInstall = syncMode == .notDecided
-            || !DictMetadataService.shared.hasAnyDictionaries
+            || !DictionaryService.shared.hasAnyDictionariesForSetup
         let hasOtherScene = UIApplication.shared.connectedScenes
             .contains { $0.activationState != .unattached && $0 !== scene }
 

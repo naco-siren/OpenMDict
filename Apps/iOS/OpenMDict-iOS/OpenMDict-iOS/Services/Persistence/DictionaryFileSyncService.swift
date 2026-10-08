@@ -70,8 +70,14 @@ final class DictionaryFileSyncService {
 
     /// Maximum single-file size we are willing to upload (bytes).
     /// CKAsset technically allows ~50 GB per asset, but we cap uploads to
-    /// protect the user's iCloud storage quota.
-    private let maxAssetBytes: Int64 = 500 * 1024 * 1024
+    /// protect the user's iCloud storage quota. Shared with the manifest
+    /// reconciliation rules so counts/merges agree on what is syncable.
+    private let maxAssetBytes: Int64 = ManifestSyncRules.maxSyncableBytes
+
+    /// Dictionaries with a download in progress. The remote-change pipeline
+    /// can request the same dictionary several times while one download is
+    /// still running; the first caller wins, the rest are told to wait.
+    private var inFlightDownloads = Set<String>()
 
     /// Maximum records per CKModifyRecordsOperation batch.
     private let maxBatchSize = 400
@@ -99,6 +105,12 @@ final class DictionaryFileSyncService {
     /// Called during iCloud nuclear reset.
     func cancelAllOperations() {
         syncProgress.removeAll()
+        inFlightDownloads.removeAll()
+    }
+
+    /// Whether a download for this dictionary is currently in progress.
+    func isDownloading(_ dictId: String) -> Bool {
+        inFlightDownloads.contains(dictId)
     }
 
     // MARK: - Record Name Helpers
@@ -138,6 +150,32 @@ final class DictionaryFileSyncService {
         return record
     }
 
+    // MARK: - Cloud Manifest
+
+    /// Write the CloudKit-facing copy of a manifest to a temp file.
+    ///
+    /// Files above `maxAssetBytes` are never uploaded, so the manifest stored
+    /// in CloudKit lists syncable entries only. Advertising a local-only file
+    /// would make every peer fetch a record that does not exist, and a peer's
+    /// merge could then "delete" the origin's local copy (see
+    /// `ManifestSyncRules`).
+    private func cloudManifestFile(for manifest: DictManifest) -> (url: URL, sizeBytes: Int64)? {
+        let subset = ManifestSyncRules.syncableSubset(of: manifest)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(subset) else { return nil }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cloud-manifest-\(manifest.id).json")
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            debugLog("❌ Could not stage cloud manifest for \(manifest.id.prefix(16)): \(error)")
+            return nil
+        }
+        return (url, Int64(data.count))
+    }
+
     // MARK: - Enumerate Files
 
     /// Enumerate all files in a dictionary directory that should be synced.
@@ -149,11 +187,10 @@ final class DictionaryFileSyncService {
         let dictDir = storage.dictionaryDirectoryURL(id: dictId)
         var files: [(String, URL, String, Int64)] = []
 
-        // manifest.json
-        let manifestURL = storage.dictManifestURL(id: dictId)
-        let manifestSize = (try? FileManager.default.attributesOfItem(
-            atPath: manifestURL.path)[.size] as? Int64) ?? 0
-        files.append(("manifest.json", manifestURL, "", manifestSize))
+        // manifest.json — the CloudKit copy lists syncable entries only.
+        if let cloudManifest = cloudManifestFile(for: manifest) {
+            files.append(("manifest.json", cloudManifest.url, "", cloudManifest.sizeBytes))
+        }
 
         // MDX
         let mdxURL = dictDir.appendingPathComponent(manifest.mdx.fileName)
@@ -290,14 +327,16 @@ final class DictionaryFileSyncService {
             fileSizeBytes: fileSizeBytes
         ))
 
-        // Updated manifest
-        let manifestURL = storage.dictManifestURL(id: dictId)
-        let manifestSize = (try? FileManager.default.attributesOfItem(
-            atPath: manifestURL.path)[.size] as? Int64) ?? 0
+        // Updated manifest (CloudKit copy: syncable entries only)
+        guard let localManifest = storage.loadDictManifest(id: dictId),
+              let cloudManifest = cloudManifestFile(for: localManifest) else {
+            debugLog("❌ Single file upload skipped — no manifest for \(dictId.prefix(16))")
+            return
+        }
         records.append(buildFileRecord(
             dictId: dictId, fileName: "manifest.json",
-            fileURL: manifestURL, fileHash: "",
-            fileSizeBytes: manifestSize
+            fileURL: cloudManifest.url, fileHash: "",
+            fileSizeBytes: cloudManifest.sizeBytes
         ))
 
         do {
@@ -320,14 +359,16 @@ final class DictionaryFileSyncService {
             recordName: recordName(dictId: dictId, fileName: fileName)
         )
 
-        // Updated manifest
-        let manifestURL = storage.dictManifestURL(id: dictId)
-        let manifestSize = (try? FileManager.default.attributesOfItem(
-            atPath: manifestURL.path)[.size] as? Int64) ?? 0
+        // Updated manifest (CloudKit copy: syncable entries only)
+        guard let localManifest = storage.loadDictManifest(id: dictId),
+              let cloudManifest = cloudManifestFile(for: localManifest) else {
+            debugLog("❌ Single file delete skipped — no manifest for \(dictId.prefix(16))")
+            return
+        }
         let manifestRecord = buildFileRecord(
             dictId: dictId, fileName: "manifest.json",
-            fileURL: manifestURL, fileHash: "",
-            fileSizeBytes: manifestSize
+            fileURL: cloudManifest.url, fileHash: "",
+            fileSizeBytes: cloudManifest.sizeBytes
         )
 
         let operation = CKModifyRecordsOperation(
@@ -359,6 +400,13 @@ final class DictionaryFileSyncService {
     /// Returns `true` if the dictionary files are now available locally.
     @discardableResult
     func downloadDictionary(dictId: String) async -> Bool {
+        // Single-flight (must precede the first await).
+        guard inFlightDownloads.insert(dictId).inserted else {
+            debugLog("☁️↓ \(dictId.prefix(16)) already downloading — skip")
+            return false
+        }
+        defer { inFlightDownloads.remove(dictId) }
+
         // Pre-flight
         guard SyncModeService.shared.isCloudSyncEnabled else { return false }
         guard await isCloudAvailable() else {
@@ -372,66 +420,69 @@ final class DictionaryFileSyncService {
             return true
         }
 
+        // Everything is downloaded into a staging directory and moved into
+        // place only once every file is present, so a dictionary directory
+        // that exists is always complete (no half-built directory for a
+        // concurrent caller to trip over).
+        let stagingDir = storage.downloadStagingDirectoryURL(id: dictId)
+        try? FileManager.default.removeItem(at: stagingDir)
+
         syncProgress[dictId] = .downloading(fractionCompleted: 0)
 
         // 1. Fetch manifest
-        guard let manifest = await fetchRemoteManifest(dictId: dictId) else {
+        guard let remoteManifest = await fetchRemoteManifest(dictId: dictId) else {
             debugLog("❌ No manifest in CloudKit for \(dictId.prefix(16))")
             updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
+        // Entries above the upload cap cannot exist as CloudKit assets
+        // (an older build may still have listed them).
+        let plan = ManifestSyncRules.merge(local: nil, remote: remoteManifest)
+        let manifest = plan.merged
 
         syncProgress[dictId] = .downloading(fractionCompleted: 0.1)
 
-        // 2. Create directory structure
+        // 2. Create directory structure (in staging)
         do {
-            try FileManager.default.createDirectory(at: dictDir, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
             for subdir in AppIdentifiers.ResourceDirectory.all {
-                let subdirURL = dictDir.appendingPathComponent(subdir, isDirectory: true)
+                let subdirURL = stagingDir.appendingPathComponent(subdir, isDirectory: true)
                 try FileManager.default.createDirectory(at: subdirURL, withIntermediateDirectories: true)
             }
         } catch {
             debugLog("❌ Failed to create dirs for \(dictId.prefix(16)): \(error)")
-            try? FileManager.default.removeItem(at: dictDir)
+            try? FileManager.default.removeItem(at: stagingDir)
             updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
 
-        // 3. Build record IDs → local paths mapping
+        // 3. Build record IDs → staging paths mapping
         var recordIDToLocalPath: [String: URL] = [:]
+        func stagingPath(_ subdir: String, _ fileName: String) -> URL {
+            stagingDir.appendingPathComponent(subdir, isDirectory: true).appendingPathComponent(fileName)
+        }
 
         // MDX
         let mdxName = recordName(dictId: dictId, fileName: manifest.mdx.fileName)
-        recordIDToLocalPath[mdxName] = dictDir.appendingPathComponent(manifest.mdx.fileName)
+        recordIDToLocalPath[mdxName] = stagingDir.appendingPathComponent(manifest.mdx.fileName)
 
-        // MDD
-        for entry in manifest.mdd {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.mddDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.mdd {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                stagingPath(AppIdentifiers.ResourceDirectory.mdd, entry.fileName)
         }
-
-        // CSS
-        for entry in manifest.css {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.cssDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.css {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                stagingPath(AppIdentifiers.ResourceDirectory.css, entry.fileName)
         }
-
-        // JS
-        for entry in manifest.js {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.jsDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.js {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                stagingPath(AppIdentifiers.ResourceDirectory.js, entry.fileName)
         }
-
-        // Fonts
-        for entry in manifest.fonts {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.fontsDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.fonts {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                stagingPath(AppIdentifiers.ResourceDirectory.fonts, entry.fileName)
         }
 
         // 4. Fetch all file records
@@ -448,13 +499,13 @@ final class DictionaryFileSyncService {
                 fetchedRecords = try await fetchBatch(batch)
             } catch {
                 debugLog("❌ Batch fetch failed for \(dictId.prefix(16)): \(error)")
-                try? FileManager.default.removeItem(at: dictDir)
+                try? FileManager.default.removeItem(at: stagingDir)
                 updateSyncStatus(dictId: dictId, status: .error)
                 syncProgress.removeValue(forKey: dictId)
                 return false
             }
 
-            // Copy each asset to local path
+            // Copy each asset to its staging path
             var copyFailed = false
             for (recordID, record) in fetchedRecords {
                 guard let asset = record["fileAsset"] as? CKAsset,
@@ -463,7 +514,6 @@ final class DictionaryFileSyncService {
                     continue
                 }
                 do {
-                    // Remove existing file if present (e.g. retry after partial download)
                     try? FileManager.default.removeItem(at: destURL)
                     try FileManager.default.copyItem(at: assetURL, to: destURL)
                     downloaded += 1
@@ -485,19 +535,29 @@ final class DictionaryFileSyncService {
         // corrupt dictionary directory that the user cannot open.
         if downloaded < totalFiles {
             debugLog("❌ Incomplete download: \(downloaded)/\(totalFiles) files — cleaning up \(dictId.prefix(16))")
-            try? FileManager.default.removeItem(at: dictDir)
+            try? FileManager.default.removeItem(at: stagingDir)
             updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
 
-        // 5. Save manifest locally
-        let manifestURL = storage.dictManifestURL(id: dictId)
+        // 5. Save manifest into staging (last, so a complete staging dir
+        //    always has one), then publish atomically.
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? encoder.encode(manifest) {
-            try? data.write(to: manifestURL, options: .atomic)
+        do {
+            let data = try encoder.encode(manifest)
+            try data.write(to: stagingDir.appendingPathComponent("manifest.json"), options: .atomic)
+            try FileManager.default.createDirectory(at: dictDir.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try FileManager.default.moveItem(at: stagingDir, to: dictDir)
+        } catch {
+            debugLog("❌ Failed to publish download for \(dictId.prefix(16)): \(error)")
+            try? FileManager.default.removeItem(at: stagingDir)
+            updateSyncStatus(dictId: dictId, status: .error)
+            syncProgress.removeValue(forKey: dictId)
+            return false
         }
         storage.invalidateDictManifestCache(id: dictId)
 
@@ -547,46 +607,72 @@ final class DictionaryFileSyncService {
         }
     }
 
+    /// Whether the dictionary's manifest record still exists in CloudKit.
+    ///
+    /// A genuine remote delete removes it (`deleteCloudRecords`); a
+    /// mirroring reset only purges local rows and never touches CloudKit.
+    /// This is the evidence `DictionaryService` requires before deleting
+    /// local files for a dictionary whose metadata row disappeared.
+    /// Returns nil when CloudKit could not be asked (retry later).
+    func remoteManifestExists(dictId: String) async -> Bool? {
+        let recordID = CKRecord.ID(recordName: manifestRecordName(dictId: dictId))
+        do {
+            // desiredKeys keeps the asset itself from being downloaded.
+            let results = try await database.records(for: [recordID], desiredKeys: ["dictId"])
+            guard let result = results[recordID] else { return nil }
+            switch result {
+            case .success:
+                return true
+            case .failure(let error):
+                if let ckError = error as? CKError, ckError.code == .unknownItem { return false }
+                debugLog("⚠️ Manifest existence check failed for \(dictId.prefix(16)): \(error)")
+                return nil
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            return false
+        } catch {
+            debugLog("⚠️ Manifest existence check failed for \(dictId.prefix(16)): \(error)")
+            return nil
+        }
+    }
+
     // MARK: - Download Updated Files (Incremental)
 
     /// Diff local vs remote manifest and download/delete only changed files.
     @discardableResult
     func downloadUpdatedFiles(dictId: String, remoteManifest: DictManifest) async -> Bool {
+        // Single-flight (must precede the first await).
+        guard inFlightDownloads.insert(dictId).inserted else {
+            debugLog("☁️↓ \(dictId.prefix(16)) already downloading — skip incremental update")
+            return false
+        }
+        defer { inFlightDownloads.remove(dictId) }
+
         let localManifest = storage.loadDictManifest(id: dictId)
 
-        // Compute diffs per resource type
-        let mddToDownload = diffNewOrChanged(local: localManifest?.mdd ?? [], remote: remoteManifest.mdd)
-        let cssToDownload = diffNewOrChanged(local: localManifest?.css ?? [], remote: remoteManifest.css)
-        let jsToDownload  = diffNewOrChanged(local: localManifest?.js ?? [],  remote: remoteManifest.js)
-        let fontToDownload = diffNewOrChanged(local: localManifest?.fonts ?? [], remote: remoteManifest.fonts)
-
-        let mddToDelete = diffDeleted(local: localManifest?.mdd ?? [], remote: remoteManifest.mdd)
-        let cssToDelete = diffDeleted(local: localManifest?.css ?? [], remote: remoteManifest.css)
-        let jsToDelete  = diffDeleted(local: localManifest?.js ?? [],  remote: remoteManifest.js)
-        let fontToDelete = diffDeleted(local: localManifest?.fonts ?? [], remote: remoteManifest.fonts)
+        // Reconcile: only syncable remote entries are fetched, local entries
+        // above the upload cap are never deleted (CloudKit has no copy), and
+        // the merged manifest keeps them.
+        let plan = ManifestSyncRules.merge(local: localManifest, remote: remoteManifest)
 
         // Download new/changed files
         var recordIDToLocalPath: [String: URL] = [:]
 
-        for entry in mddToDownload {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.mddDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.mdd {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                storage.mddDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
         }
-        for entry in cssToDownload {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.cssDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.css {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                storage.cssDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
         }
-        for entry in jsToDownload {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.jsDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.js {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
         }
-        for entry in fontToDownload {
-            let name = recordName(dictId: dictId, fileName: entry.fileName)
-            recordIDToLocalPath[name] = storage.fontsDirectoryURL(id: dictId)
-                .appendingPathComponent(entry.fileName)
+        for entry in plan.download.fonts {
+            recordIDToLocalPath[recordName(dictId: dictId, fileName: entry.fileName)] =
+                storage.fontsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
         }
 
         if !recordIDToLocalPath.isEmpty {
@@ -599,6 +685,8 @@ final class DictionaryFileSyncService {
                           let destURL = recordIDToLocalPath[recordID.recordName] else {
                         continue
                     }
+                    try FileManager.default.createDirectory(at: destURL.deletingLastPathComponent(),
+                                                            withIntermediateDirectories: true)
                     // Remove existing file if overwriting
                     try? FileManager.default.removeItem(at: destURL)
                     try FileManager.default.copyItem(at: assetURL, to: destURL)
@@ -609,36 +697,35 @@ final class DictionaryFileSyncService {
             }
         }
 
-        // Delete removed files
-        for entry in mddToDelete {
-            let url = storage.mddDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
-            try? FileManager.default.removeItem(at: url)
+        // Delete removed files (syncable ones only — see ManifestSyncRules)
+        for entry in plan.delete.mdd {
+            try? FileManager.default.removeItem(
+                at: storage.mddDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
-        for entry in cssToDelete {
-            let url = storage.cssDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
-            try? FileManager.default.removeItem(at: url)
+        for entry in plan.delete.css {
+            try? FileManager.default.removeItem(
+                at: storage.cssDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
-        for entry in jsToDelete {
-            let url = storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
-            try? FileManager.default.removeItem(at: url)
+        for entry in plan.delete.js {
+            try? FileManager.default.removeItem(
+                at: storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
-        for entry in fontToDelete {
-            let url = storage.fontsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName)
-            try? FileManager.default.removeItem(at: url)
+        for entry in plan.delete.fonts {
+            try? FileManager.default.removeItem(
+                at: storage.fontsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
 
-        // Save updated manifest locally
+        // Save merged manifest locally
         let manifestURL = storage.dictManifestURL(id: dictId)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? encoder.encode(remoteManifest) {
+        if let data = try? encoder.encode(plan.merged) {
             try? data.write(to: manifestURL, options: .atomic)
         }
         storage.invalidateDictManifestCache(id: dictId)
 
-        let totalChanges = recordIDToLocalPath.count + mddToDelete.count + cssToDelete.count + jsToDelete.count
-        debugLog("☁️↓ Incremental update: \(totalChanges) changes for \(dictId.prefix(16))")
+        debugLog("☁️↓ Incremental update: \(plan.changeCount) changes for \(dictId.prefix(16))")
         return true
     }
 
@@ -684,6 +771,12 @@ final class DictionaryFileSyncService {
             }
             // JS
             for entry in manifest.js {
+                recordIDsToDelete.append(CKRecord.ID(
+                    recordName: recordName(dictId: dictId, fileName: entry.fileName)
+                ))
+            }
+            // Fonts
+            for entry in manifest.fonts {
                 recordIDsToDelete.append(CKRecord.ID(
                     recordName: recordName(dictId: dictId, fileName: entry.fileName)
                 ))
@@ -826,28 +919,6 @@ final class DictionaryFileSyncService {
         throw lastError!
     }
 
-    // MARK: - Manifest Diff Helpers
-
-    /// Files that are new or changed (in remote but not in local, or different hash).
-    private func diffNewOrChanged(
-        local: [DictManifest.ResourceEntry],
-        remote: [DictManifest.ResourceEntry]
-    ) -> [DictManifest.ResourceEntry] {
-        let localByName = Dictionary(uniqueKeysWithValues: local.map { ($0.fileName, $0) })
-        return remote.filter { remoteEntry in
-            guard let localEntry = localByName[remoteEntry.fileName] else { return true }
-            return localEntry.hash != remoteEntry.hash
-        }
-    }
-
-    /// Files that exist locally but not remotely (deleted on source device).
-    private func diffDeleted(
-        local: [DictManifest.ResourceEntry],
-        remote: [DictManifest.ResourceEntry]
-    ) -> [DictManifest.ResourceEntry] {
-        let remoteNames = Set(remote.map { $0.fileName })
-        return local.filter { !remoteNames.contains($0.fileName) }
-    }
 }
 
 // MARK: - CKError + Retriable

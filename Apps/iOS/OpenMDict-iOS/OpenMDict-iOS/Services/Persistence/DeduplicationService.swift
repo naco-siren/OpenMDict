@@ -230,7 +230,7 @@ final class DeduplicationService {
                 let loserUpdated = record.value(forKey: "updatedAt") as? Date ?? Date.distantPast
                 if loserUpdated > winnerUpdated {
                     for key in ["displayName", "updatedAt",
-                                "mddCount", "cssCount", "jsCount",
+                                "mddCount", "cssCount", "jsCount", "fontsCount",
                                 "totalSizeKB", "cloudSyncStatus",
                                 "enhanceDarkMode", "enhanceDarkModeStrength"] {
                         winner.setValue(record.value(forKey: key), forKey: key)
@@ -253,6 +253,7 @@ final class DeduplicationService {
         request.sortDescriptors = [
             NSSortDescriptor(key: "groupId", ascending: true),
             NSSortDescriptor(key: "modifiedAt", ascending: false),  // latest first
+            NSSortDescriptor(key: "createdAt", ascending: true),    // deterministic tie-break: oldest record wins
         ]
 
         guard let records = try? ctx.fetch(request), records.count > 1 else { return 0 }

@@ -89,6 +89,45 @@ final class DictionaryService: ObservableObject {
     /// Cancellable for CloudKit remote change subscription (groups).
     private var remoteChangeCancellable: AnyCancellable?
 
+    /// Cancellable for CloudKit "import completed" events: re-evaluates
+    /// pending remote deletes once a mirroring reset has re-imported the zone.
+    private var importCompletedCancellable: AnyCancellable?
+
+    // MARK: Remote-change bookkeeping (see handleRemoteChange)
+
+    /// Single-flight guard + "run again when done" flag for handleRemoteChange.
+    private var isHandlingRemoteChange = false
+    private var remoteChangeRerunPending = false
+
+    /// Last known cloudSyncStatus per dictionary, remembered from every
+    /// metadata pass so it is still available after a metadata row vanished.
+    private var lastKnownSyncStatus: [String: CloudSyncStatus] = [:]
+
+    /// Loaded dictionaries whose metadata row is missing, with the time the
+    /// absence was first seen. They stay loaded and on disk until CloudKit
+    /// confirms the deletion (see RemoteDeletePolicy).
+    private var pendingRemoteDeletes: [String: Date] = [:]
+
+    /// Per dictionary: the import end time that was current when it was last
+    /// verified against CloudKit, so each is re-verified at most once per
+    /// completed import.
+    private var remoteDeleteVerifiedAfter: [String: Date] = [:]
+
+    /// Dictionaries already logged as "kept — never uploaded".
+    private var loggedUnrecoverable: Set<String> = []
+
+    /// Bounded memo for step 3 (remote resource updates): attempts per
+    /// (dictId, advertised counts). Metadata written by older builds can
+    /// advertise files that were never uploaded; this caps the cost until
+    /// the origin device re-saves its counts under the current rule.
+    private var resourceReconcileAttempts: [String: Int] = [:]
+
+    /// `true` when setupGroups found no group rows and created the default
+    /// group in memory (first launch): the next persistGroups() may then
+    /// insert into the empty table. Otherwise an empty group table means a
+    /// CloudKit mirroring reset is in flight and inserts are refused.
+    private var groupsNeedBootstrap = false
+
     private init() {}
 
     // MARK: - Sidecar Index Cache Bootstrap
@@ -170,6 +209,16 @@ final class DictionaryService: ObservableObject {
     func resetAllState() {
         remoteChangeCancellable?.cancel()
         remoteChangeCancellable = nil
+        importCompletedCancellable?.cancel()
+        importCompletedCancellable = nil
+        isHandlingRemoteChange = false
+        remoteChangeRerunPending = false
+        lastKnownSyncStatus.removeAll()
+        pendingRemoteDeletes.removeAll()
+        remoteDeleteVerifiedAfter.removeAll()
+        loggedUnrecoverable.removeAll()
+        resourceReconcileAttempts.removeAll()
+        groupsNeedBootstrap = false
 
         allDictionaries.removeAll()
         groups.removeAll()
@@ -222,6 +271,7 @@ final class DictionaryService: ObservableObject {
     func setup() {
         // 1. Load dictionaries from CoreData metadata + per-dict manifests
         loadUserDictionaries()
+        rememberSyncStatuses(DictMetadataService.shared.loadAll())
 
         // 2. Setup groups from CoreData (or create defaults)
         setupGroups()
@@ -249,6 +299,49 @@ final class DictionaryService: ObservableObject {
                 .sink { [weak self] in
                     self?.handleRemoteChange()
                 }
+            // A completed import is what lets a pending remote delete be
+            // verified (or cancelled, after a mirroring reset re-imports).
+            importCompletedCancellable = CoreDataStack.shared.cloudKitImportCompletedPublisher
+                .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.handleRemoteChange()
+                }
+            // Housekeeping: drop download staging left by a kill mid-download,
+            // and correct metadata counts written by older builds for
+            // dictionaries that hold files above the upload cap.
+            storage.sweepDownloadStaging()
+            resyncResourceCountsForNonSyncableEntries()
+        }
+    }
+
+    /// Whether the app has dictionaries, for first-install detection.
+    ///
+    /// Besides metadata rows this counts dictionaries loaded in memory and,
+    /// in iCloud mode, dictionary folders on disk: during a CloudKit
+    /// mirroring reset the metadata table is empty for a while even though
+    /// every dictionary is still present, and the onboarding picker must
+    /// not appear over a library that is about to come back.
+    var hasAnyDictionariesForSetup: Bool {
+        if DictMetadataService.shared.hasAnyDictionaries { return true }
+        if !allDictionaries.isEmpty { return true }
+        if SyncModeService.shared.isCloudSyncEnabled && storage.hasAnyDictionaryOnDisk { return true }
+        return false
+    }
+
+    private func rememberSyncStatuses(_ metadata: [DictMetadata]) {
+        for m in metadata {
+            lastKnownSyncStatus[m.dictId] = CloudSyncStatus(rawValue: m.cloudSyncStatus) ?? .pending
+        }
+    }
+
+    /// One-time reconciliation for dictionaries whose manifest lists files
+    /// above the upload cap. Older builds counted those files in the synced
+    /// metadata, which made every other device chase an update that could
+    /// never be downloaded. Only the device holding such a file (the origin)
+    /// re-saves its counts; peers converge on the next remote change.
+    private func resyncResourceCountsForNonSyncableEntries() {
+        for dict in allDictionaries where storage.resyncResourceCountsIfNeeded(id: dict.id) {
+            debugLog("☁️ Resynced resource counts for \(dict.id.prefix(16)) (manifest has non-syncable entries)")
         }
     }
 
@@ -273,156 +366,253 @@ final class DictionaryService: ObservableObject {
 
     /// Handle a CloudKit remote change.
     ///
-    /// Three concerns, in order:
-    ///   1. **Remote deletes** — metadata disappeared → clean up local
-    ///      files + unload MDict instance.
+    /// Four concerns, in order:
+    ///   1. **Remote deletes** — metadata disappeared. Never trusted on its
+    ///      own: `NSPersistentCloudKitContainer` purges EVERY mirrored row
+    ///      when it resets (expired history token, expired change token,
+    ///      zone gone) and only then re-imports the zone. The dictionary
+    ///      stays loaded and on disk until CloudKit itself confirms that
+    ///      its manifest record is gone (see `RemoteDeletePolicy`).
     ///   2. **Remote adds** — new metadata with no local files → download
     ///      from CloudKit + load into memory.
-    ///   3. **Groups** — reload group membership from CoreData.
+    ///   3. **Remote updates** — resource counts changed on another device
+    ///      → reconcile against the remote manifest.
+    ///   4. **Groups** — reload group membership from CoreData.
     ///
-    /// Dictionaries must be resolved *before* groups, because group
-    /// entries reference dictIds.
+    /// Single-flight: notifications that arrive while a pass is running
+    /// (including the ones this pass's own saves post) coalesce into one
+    /// follow-up pass instead of spawning concurrent passes.
     private func handleRemoteChange() {
+        guard !isHandlingRemoteChange else {
+            remoteChangeRerunPending = true
+            return
+        }
+        isHandlingRemoteChange = true
         Task {
-            let allMetadata = DictMetadataService.shared.loadAll()
-            let metadataIds = Set(allMetadata.map { $0.dictId })
-            let loadedIds = Set(allDictionaries.map { $0.id })
-
-            // --- 1. Detect remote deletes ---
-            // Dictionaries loaded locally but whose metadata was deleted
-            // on another device.  Clean up files + unload.
-            let deletedIds = loadedIds.subtracting(metadataIds)
-            for dictId in deletedIds {
-                debugLog("☁️ Remote delete detected for \(dictId.prefix(16))")
-                // Remove local files
-                let dictDir = storage.dictionaryDirectoryURL(id: dictId)
-                try? FileManager.default.removeItem(at: dictDir)
-                storage.invalidateDictManifestCache(id: dictId)
-                // Drop the persistent sidecar index so the cache doesn't
-                // accumulate orphans. dictId == MDX header SHA256 in this
-                // app, so it doubles as the sidecar file name.
-                // `DictionaryStorageService.deleteDictionary()` already does
-                // this for the user-initiated delete path — mirror it here
-                // for the iCloud remote-delete path.
-                MDictReader.removeSidecarCache(forHeaderSHA256: dictId)
-                // M15 Phase 3: same cleanup for the article-embedding sidecar.
-                // Unconditional (runs even on iOS < 26) — see Coordinator.
-                ArticleIndexCoordinator.shared.handleDictDeleted(dictId)
-                // Unload from memory + remove from groups
-                refreshAfterDelete(dictId)
-                // De-index from Spotlight
-                SpotlightIndexingService.shared.deindexDictionary(id: dictId)
+            await processRemoteChange()
+            isHandlingRemoteChange = false
+            if remoteChangeRerunPending {
+                remoteChangeRerunPending = false
+                debugLog("☁️ DictionaryService: re-running remote change pass (notifications arrived mid-pass)")
+                handleRemoteChange()
             }
+        }
+    }
 
-            // --- 2. Detect remote adds ---
-            // Metadata records whose dictionary files aren't loaded yet.
-            let missingIds = metadataIds.subtracting(loadedIds)
-            for dictId in missingIds {
-                let dictDir = storage.dictionaryDirectoryURL(id: dictId)
-                let hasLocalFiles = FileManager.default.fileExists(atPath: dictDir.path)
+    private func processRemoteChange() async {
+        let allMetadata = DictMetadataService.shared.loadAll()
+        rememberSyncStatuses(allMetadata)
+        let metadataIds = Set(allMetadata.map { $0.dictId })
 
-                if hasLocalFiles {
-                    // Files exist but MDict not loaded (race on launch)
-                    await refreshAfterImport(dictId)
-                } else {
-                    // Check cloudSyncStatus before attempting download.
-                    // If the originating device hasn't finished uploading yet
-                    // (status == .pending), the CKRecord doesn't exist —
-                    // skip to avoid pointless "Record not found" errors.
-                    let metadata = allMetadata.first { $0.dictId == dictId }
-                    let syncStatus = metadata.flatMap {
-                        CloudSyncStatus(rawValue: $0.cloudSyncStatus)
-                    } ?? .pending
+        // --- 1. Remote deletes (evidence-based) ---
+        await handleMissingMetadata(
+            loadedIds: Set(allDictionaries.map { $0.id }),
+            metadataIds: metadataIds
+        )
+        let loadedIds = Set(allDictionaries.map { $0.id })
 
-                    guard syncStatus == .synced else {
-                        debugLog("☁️ Skipping download for \(dictId.prefix(16)): cloudSyncStatus=\(syncStatus)")
-                        continue
-                    }
+        // --- 2. Detect remote adds ---
+        // Metadata records whose dictionary files aren't loaded yet.
+        let missingIds = metadataIds.subtracting(loadedIds)
+        for dictId in missingIds {
+            let dictDir = storage.dictionaryDirectoryURL(id: dictId)
+            let hasLocalFiles = FileManager.default.fileExists(atPath: dictDir.path)
 
-                    // Files not on device → download from CloudKit
-                    DictMetadataService.shared.markDownloading(dictId)
-                    let downloaded = await DictionaryFileSyncService.shared
-                        .downloadDictionary(dictId: dictId)
-                    DictMetadataService.shared.clearDownloading(dictId)
-                    if downloaded {
-                        await refreshAfterImport(dictId)
-                    }
-                }
-            }
+            if hasLocalFiles {
+                // Files exist but MDict not loaded (race on launch, or the
+                // metadata row came back after a mirroring reset).
+                await refreshAfterImport(dictId)
+            } else {
+                // Check cloudSyncStatus before attempting download.
+                // If the originating device hasn't finished uploading yet
+                // (status == .pending), the CKRecord doesn't exist —
+                // skip to avoid pointless "Record not found" errors.
+                let metadata = allMetadata.first { $0.dictId == dictId }
+                let syncStatus = metadata.flatMap {
+                    CloudSyncStatus(rawValue: $0.cloudSyncStatus)
+                } ?? .pending
 
-            // --- 3. Detect remote updates ---
-            // Already-loaded dictionaries whose files changed on another device
-            // (e.g. MDD added/removed).  Compare local manifest against synced metadata.
-            let existingIds = loadedIds.intersection(metadataIds)
-            for dictId in existingIds {
-                guard let metadata = allMetadata.first(where: { $0.dictId == dictId }) else { continue }
-                let syncStatus = CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
-                guard syncStatus == .synced else { continue }
-
-                // Compare local resource counts against metadata from CoreData
-                let localManifest = self.storage.loadDictManifest(id: dictId)
-                let localMddCount  = Int32(localManifest?.mdd.count ?? 0)
-                let localCssCount  = Int32(localManifest?.css.count ?? 0)
-                let localJsCount   = Int32(localManifest?.js.count ?? 0)
-                let localFontCount = Int32(localManifest?.fonts.count ?? 0)
-
-                let changed = localMddCount != metadata.mddCount
-                    || localCssCount != metadata.cssCount
-                    || localJsCount  != metadata.jsCount
-                    || localFontCount != metadata.fontsCount
-
-                guard changed else { continue }
-
-                debugLog("☁️ Remote update detected for \(dictId.prefix(16)): "
-                    + "mdd \(localMddCount)→\(metadata.mddCount), "
-                    + "css \(localCssCount)→\(metadata.cssCount), "
-                    + "js \(localJsCount)→\(metadata.jsCount), "
-                    + "fonts \(localFontCount)→\(metadata.fontsCount)")
-
-                // Per-file incremental update: fetch remote manifest → diff → download only changed files
-                DictMetadataService.shared.markDownloading(dictId)
-
-                guard let remoteManifest = await DictionaryFileSyncService.shared
-                        .fetchRemoteManifest(dictId: dictId) else {
-                    DictMetadataService.shared.clearDownloading(dictId)
-                    debugLog("❌ Remote manifest fetch failed for \(dictId.prefix(16))")
+                guard syncStatus == .synced else {
+                    debugLog("☁️ Skipping download for \(dictId.prefix(16)): cloudSyncStatus=\(syncStatus)")
                     continue
                 }
+                guard !DictionaryFileSyncService.shared.isDownloading(dictId) else { continue }
 
-                let updated = await DictionaryFileSyncService.shared
-                    .downloadUpdatedFiles(dictId: dictId, remoteManifest: remoteManifest)
-
+                // Files not on device → download from CloudKit
+                DictMetadataService.shared.markDownloading(dictId)
+                let downloaded = await DictionaryFileSyncService.shared
+                    .downloadDictionary(dictId: dictId)
                 DictMetadataService.shared.clearDownloading(dictId)
-
-                if updated {
-                    self.storage.invalidateDictManifestCache(id: dictId)
-                    // Reload MDD/CSS/JS resources from the updated files
-                    self.reloadMDDResources(for: dictId)
-                    debugLog("☁️ Remote update applied for \(dictId.prefix(16))")
-                } else {
-                    debugLog("❌ Remote incremental update failed for \(dictId.prefix(16))")
+                if downloaded {
+                    await refreshAfterImport(dictId)
                 }
             }
-
-            // --- 3b. Sync metadata fields (displayName) to live MDict instances ---
-            var anyNameChanged = false
-            for dictId in existingIds {
-                guard let metadata = allMetadata.first(where: { $0.dictId == dictId }),
-                      let dict = self.dict(id: dictId) else { continue }
-                if dict.userDisplayName != metadata.displayName {
-                    debugLog("☁️ displayName updated: \(dictId.prefix(16))… "
-                        + "\"\(dict.userDisplayName ?? "nil")\" → \"\(metadata.displayName)\"")
-                    dict.userDisplayName = metadata.displayName
-                    anyNameChanged = true
-                }
-            }
-            if anyNameChanged {
-                displayNameRevision += 1
-            }
-
-            // --- 4. Reload groups ---
-            reloadGroupsFromCoreData()
         }
+
+        // --- 3. Detect remote updates ---
+        // Already-loaded dictionaries whose files changed on another device
+        // (e.g. MDD added/removed). Compare the counts of resources that can
+        // exist in CloudKit (files above the upload cap are local-only by
+        // definition) against the synced metadata counts.
+        let existingIds = loadedIds.intersection(metadataIds)
+        for dictId in existingIds {
+            guard let metadata = allMetadata.first(where: { $0.dictId == dictId }) else { continue }
+            let syncStatus = CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+            guard syncStatus == .synced else { continue }
+
+            let localManifest = self.storage.loadDictManifest(id: dictId)
+            let local = localManifest.map { ManifestSyncRules.syncableCounts(of: $0) } ?? .zero
+            let advertised = ManifestSyncRules.ResourceCounts(
+                mdd: Int(metadata.mddCount), css: Int(metadata.cssCount),
+                js: Int(metadata.jsCount), fonts: Int(metadata.fontsCount)
+            )
+            guard local != advertised else { continue }
+
+            // Bounded per (dict, advertised counts): metadata written by an
+            // older build can advertise files no remote manifest will ever
+            // satisfy. Three attempts per process cover a genuine update
+            // whose manifest upload is still in flight.
+            let memoKey = "\(dictId)|\(advertised.mdd),\(advertised.css),\(advertised.js),\(advertised.fonts)"
+            let attempts = resourceReconcileAttempts[memoKey, default: 0]
+            guard attempts < 3 else { continue }
+            resourceReconcileAttempts[memoKey] = attempts + 1
+
+            debugLog("☁️ Remote update detected for \(dictId.prefix(16)): "
+                + "mdd \(local.mdd)→\(advertised.mdd), "
+                + "css \(local.css)→\(advertised.css), "
+                + "js \(local.js)→\(advertised.js), "
+                + "fonts \(local.fonts)→\(advertised.fonts)")
+
+            // Per-file incremental update: fetch remote manifest → merge → download only changed files
+            DictMetadataService.shared.markDownloading(dictId)
+
+            guard let remoteManifest = await DictionaryFileSyncService.shared
+                    .fetchRemoteManifest(dictId: dictId) else {
+                DictMetadataService.shared.clearDownloading(dictId)
+                debugLog("❌ Remote manifest fetch failed for \(dictId.prefix(16))")
+                continue
+            }
+
+            let updated = await DictionaryFileSyncService.shared
+                .downloadUpdatedFiles(dictId: dictId, remoteManifest: remoteManifest)
+
+            DictMetadataService.shared.clearDownloading(dictId)
+
+            if updated {
+                self.storage.invalidateDictManifestCache(id: dictId)
+                // Reload MDD/CSS/JS resources from the updated files
+                self.reloadMDDResources(for: dictId)
+                debugLog("☁️ Remote update applied for \(dictId.prefix(16))")
+            } else {
+                debugLog("❌ Remote incremental update failed for \(dictId.prefix(16))")
+            }
+        }
+
+        // --- 3b. Sync metadata fields (displayName) to live MDict instances ---
+        var anyNameChanged = false
+        for dictId in existingIds {
+            guard let metadata = allMetadata.first(where: { $0.dictId == dictId }),
+                  let dict = self.dict(id: dictId) else { continue }
+            if dict.userDisplayName != metadata.displayName {
+                debugLog("☁️ displayName updated: \(dictId.prefix(16))… "
+                    + "\"\(dict.userDisplayName ?? "nil")\" → \"\(metadata.displayName)\"")
+                dict.userDisplayName = metadata.displayName
+                anyNameChanged = true
+            }
+        }
+        if anyNameChanged {
+            displayNameRevision += 1
+        }
+
+        // --- 4. Reload groups ---
+        reloadGroupsFromCoreData()
+    }
+
+    /// Step 1 of `processRemoteChange`: loaded dictionaries without a
+    /// metadata row. See `RemoteDeletePolicy` for the rules; only a
+    /// dictionary whose manifest record is confirmed gone from CloudKit is
+    /// deleted locally.
+    private func handleMissingMetadata(loadedIds: Set<String>, metadataIds: Set<String>) async {
+        let stack = CoreDataStack.shared
+        let recoverable = Set(lastKnownSyncStatus.filter { $0.value == .synced }.map { $0.key })
+
+        let evaluation = RemoteDeletePolicy.evaluate(
+            loadedIds: loadedIds,
+            metadataIds: metadataIds,
+            previousPending: pendingRemoteDeletes,
+            recoverableFromCloud: recoverable,
+            lastSuccessfulImportEnd: stack.lastSuccessfulImportEnd,
+            resetSuspected: stack.isMirroringResetSuspected,
+            lastVerifiedAfter: remoteDeleteVerifiedAfter,
+            now: Date()
+        )
+
+        for id in evaluation.reappeared {
+            debugLog("☁️ Metadata for \(id.prefix(16)) is back — remote delete cancelled (mirroring reset)")
+            remoteDeleteVerifiedAfter.removeValue(forKey: id)
+            loggedUnrecoverable.remove(id)
+        }
+        for (id, firstSeen) in evaluation.pending where pendingRemoteDeletes[id] == nil {
+            debugLog("☁️ Metadata missing for \(id.prefix(16)) — keeping files and instance until CloudKit confirms (first seen \(firstSeen))")
+        }
+        pendingRemoteDeletes = evaluation.pending
+
+        if evaluation.heldForReset {
+            debugLog("☁️ Remote delete HELD for \(evaluation.pending.count) dictionaries — mirroring reset in progress")
+            return
+        }
+
+        for id in evaluation.unrecoverable where !loggedUnrecoverable.contains(id) {
+            loggedUnrecoverable.insert(id)
+            let status = lastKnownSyncStatus[id].map { "\($0)" } ?? "unknown"
+            debugLog("☁️ Metadata missing for \(id.prefix(16)) but its files were never uploaded (status \(status)) — kept on this device")
+        }
+
+        guard !evaluation.candidates.isEmpty, let importEnd = stack.lastSuccessfulImportEnd else { return }
+
+        for id in evaluation.candidates.sorted() {
+            remoteDeleteVerifiedAfter[id] = importEnd
+            let exists = await DictionaryFileSyncService.shared.remoteManifestExists(dictId: id)
+            switch exists {
+            case .some(false):
+                debugLog("☁️ Remote delete CONFIRMED for \(id.prefix(16)) — manifest no longer in CloudKit")
+                pendingRemoteDeletes.removeValue(forKey: id)
+                remoteDeleteVerifiedAfter.removeValue(forKey: id)
+                applyRemoteDelete(id)
+            case .some(true):
+                debugLog("☁️ Remote delete REJECTED for \(id.prefix(16)) — manifest still in CloudKit (mirroring reset?)")
+            case .none:
+                // CloudKit unreachable — try again on the next pass.
+                remoteDeleteVerifiedAfter.removeValue(forKey: id)
+            }
+        }
+    }
+
+    /// Remove a dictionary that another device deleted (confirmed).
+    private func applyRemoteDelete(_ dictId: String) {
+        // Remove local files
+        let dictDir = storage.dictionaryDirectoryURL(id: dictId)
+        try? FileManager.default.removeItem(at: dictDir)
+        storage.invalidateDictManifestCache(id: dictId)
+        // Drop the persistent sidecar index so the cache doesn't
+        // accumulate orphans. dictId == MDX header SHA256 in this
+        // app, so it doubles as the sidecar file name.
+        // `DictionaryStorageService.deleteDictionary()` already does
+        // this for the user-initiated delete path — mirror it here
+        // for the iCloud remote-delete path.
+        MDictReader.removeSidecarCache(forHeaderSHA256: dictId)
+        // M15 Phase 3: same cleanup for the article-embedding sidecar.
+        // Unconditional (runs even on iOS < 26) — see Coordinator.
+        ArticleIndexCoordinator.shared.handleDictDeleted(dictId)
+        // Unload from memory + remove from in-memory groups. The device that
+        // deleted the dictionary already removed its GroupEntryRecords and
+        // that change arrives through CloudKit (step 4 reloads the groups),
+        // so nothing is written here — writing during a reset would
+        // re-insert group rows with new record ids.
+        refreshAfterDelete(dictId, persistGroups: false)
+        // De-index from Spotlight
+        SpotlightIndexingService.shared.deindexDictionary(id: dictId)
+        lastKnownSyncStatus.removeValue(forKey: dictId)
     }
 
     /// Reload groups from CoreData after a CloudKit remote change.
@@ -495,6 +685,7 @@ final class DictionaryService: ObservableObject {
         let loadedGroups = groupPersistence.loadGroups()
 
         if !loadedGroups.isEmpty {
+            groupsNeedBootstrap = false
             // Restore from CoreData
             groups = loadedGroups.map { loaded in
                 // Filter to only IDs that exist in allDictionaries
@@ -513,7 +704,17 @@ final class DictionaryService: ObservableObject {
                 return group
             }
         } else {
-            // First launch (no CoreData records) — create default group
+            // First launch (no CoreData records) — create default group.
+            // Exception: in iCloud mode an empty table with dictionaries
+            // still on disk is the signature of a mirroring reset (the app
+            // was killed before the re-import); the groups will come back
+            // with the import and must not be re-created with new ids.
+            let looksLikeMirroringReset = SyncModeService.shared.isCloudSyncEnabled
+                && allDictionaries.isEmpty && storage.hasAnyDictionaryOnDisk
+            groupsNeedBootstrap = !looksLikeMirroringReset
+            if looksLikeMirroringReset {
+                debugLog("☁️ No group rows but dictionaries on disk — assuming mirroring reset, not bootstrapping groups")
+            }
             let now = Date()
             let allGroup = MDicts(
                 id: "all",
@@ -952,7 +1153,10 @@ final class DictionaryService: ObservableObject {
     
     /// Called after deleting a dictionary
     /// - Parameter id: The deleted dictionary's ID
-    private func refreshAfterDelete(_ id: String) {
+    /// - Parameter persistGroups: Write the updated group membership to
+    ///   CoreData. `false` on the CloudKit remote-delete path, where the
+    ///   originating device already removed the entries.
+    private func refreshAfterDelete(_ id: String, persistGroups: Bool = true) {
         // 1. Remove from allDictionaries
         allDictionaries.removeAll { $0.id == id }
         
@@ -963,7 +1167,9 @@ final class DictionaryService: ObservableObject {
         }
         
         // 3. Persist updated groups
-        persistGroups()
+        if persistGroups {
+            self.persistGroups()
+        }
         
         print("🗑️ Removed dictionary from service: \(id)")
     }
@@ -980,7 +1186,9 @@ final class DictionaryService: ObservableObject {
                 dictionaryIds: group.dictionaryIds
             )
         }
-        groupPersistence.saveAllGroups(savedGroups)
+        if groupPersistence.saveAllGroups(savedGroups, allowBootstrapInsert: groupsNeedBootstrap) {
+            groupsNeedBootstrap = false
+        }
     }
     
     // MARK: - Group CRUD
@@ -1260,25 +1468,12 @@ final class DictionaryService: ObservableObject {
 
     // MARK: - Incremental CloudKit Sync Helpers
 
-    /// Sync resource counts from manifest into metadata (CoreData).
-    /// This ensures the remote device's `handleRemoteChange` Phase 3
-    /// can detect resource changes by comparing metadata counts.
-    private func syncMetadataResourceCounts(dictId: String) {
-        guard let manifest = storage.loadDictManifest(id: dictId) else { return }
-        DictMetadataService.shared.syncResourceCounts(
-            dictId: dictId,
-            mddCount: manifest.mdd.count,
-            cssCount: manifest.css.count,
-            jsCount: manifest.js.count,
-            fontsCount: manifest.fonts.count,
-            totalSizeKB: manifest.totalSizeKB
-        )
-    }
+    // Metadata resource counts are written by DictionaryStorageService when
+    // it saves the manifest (syncable entries only — see ManifestSyncRules),
+    // which is how remote devices detect resource changes.
 
     /// Fire-and-forget: upload a newly added resource file + updated manifest.
     private func syncAfterResourceAdd(dictId: String, fileName: String, subdirectory: String) {
-        // Update metadata counts so remote devices detect the change
-        syncMetadataResourceCounts(dictId: dictId)
         Task {
             let dictDir = storage.dictionaryDirectoryURL(id: dictId)
             let fileURL = dictDir.appendingPathComponent(subdirectory, isDirectory: true)
@@ -1313,8 +1508,6 @@ final class DictionaryService: ObservableObject {
 
     /// Fire-and-forget: delete a removed resource file's CKRecord + re-upload manifest.
     private func syncAfterResourceRemove(dictId: String, fileName: String) {
-        // Update metadata counts so remote devices detect the change
-        syncMetadataResourceCounts(dictId: dictId)
         Task {
             await DictionaryFileSyncService.shared.deleteSingleFile(
                 dictId: dictId,
