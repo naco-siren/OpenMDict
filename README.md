@@ -5,7 +5,7 @@ A pure Swift library for parsing MDict dictionary files (.mdx/.mdd), with a comp
 ## Library Features
 
 - ✅ **MDX V2 (2.0)** - Full support with zlib decompression
-- ✅ **MDX V1 (1.x)** - Full support with LZO decompression (official minilzo 2.10)
+- ✅ **MDX V1 (1.x)** - Full support with LZO decompression (pure-Swift LZO1X decoder, no C dependencies)
 - ✅ **MDD Resources** - Images, audio, CSS, and other embedded files
 - ✅ **Salted Dictionaries** - RIPEMD128 decryption for obfuscated dictionaries
 - ✅ **Cross-platform** - macOS, iOS, iPadOS (Swift Package Manager)
@@ -396,12 +396,27 @@ MDICT_TEST_FILE=path/to/dict.mdx MDICT_TEST_WORD=hello swift test --filter MDXPa
 MDICT_TEST_FILE=path/to/dict.mdx MDICT_TEST_SAMPLE=10 swift test --filter MDXParserTests
 ```
 
+The pure-Swift LZO1X decoder has its own suite (`LZO1XTests`): known-answer
+vectors in `Tests/Fixtures/lzo1x/` covering every instruction class of the
+format, plus truncation, corruption and garbage inputs that must fail cleanly.
+Two further suites are opt-in because they need real dictionaries or take time:
+
+```bash
+# Golden digests of every entry + resource — run before and after a parser/decoder
+# refactor and diff the output files (MDX 1.x dictionaries exercise the LZO path)
+MDICT_DIGEST_DICTS="a.mdx:b.mdx" MDICT_DIGEST_OUT=/tmp/digest.txt \
+    swift test -c release --filter DictionaryDigestTests
+
+# LZO1X decode throughput (MB/s per vector)
+MDICT_LZO_BENCH=1 swift test -c release --filter LZO1XBenchmark
+```
+
 ## Project Structure
 
 ```
 OpenMDict/
 ├── Sources/
-│   ├── OpenMDict/                # Core library (pure Swift + CLZ)
+│   ├── OpenMDict/                # Core library (pure Swift)
 │   │   ├── MDictReader.swift     # Public facade
 │   │   ├── Parsers/
 │   │   │   ├── MDXParser.swift
@@ -411,12 +426,12 @@ OpenMDict/
 │   │   └── Utils/
 │   │       ├── BinaryReader.swift    # mmap-backed random access
 │   │       ├── SidecarIndex.swift    # Persistent index cache + write modes
-│   │       ├── Decompressor.swift    # zlib + LZO
+│   │       ├── Decompressor.swift    # zlib + LZO dispatch
+│   │       ├── LZO1X.swift           # Pure-Swift LZO1X decoder
 │   │       ├── HTMLEntityDecoder.swift
 │   │       ├── Levenshtein.swift
 │   │       └── RIPEMD128.swift
-│   ├── OpenMDictKit/             # ViewModel layer for iOS/macOS hosts
-│   └── CLZ/                      # LZO C library (minilzo 2.10)
+│   └── OpenMDictKit/             # ViewModel layer for iOS/macOS hosts
 ├── Apps/
 │   ├── CLI/                      # openmdict — general-purpose reader
 │   ├── Bench/                    # openmdict-bench — sidecar A/B benchmark
@@ -446,5 +461,5 @@ MIT License
 
 ## Acknowledgments
 
-- [minilzo](http://www.oberhumer.com/opensource/lzo/) - LZO compression library by Markus F.X.J. Oberhumer
+- [lzokay](https://github.com/AxioDL/lzokay) - MIT-licensed LZO1X implementation the Swift decoder is modelled on (see THIRD-PARTY-NOTICES.md)
 - [readmdict](https://github.com/zhansliu/writemdict) - Python MDict reference implementation

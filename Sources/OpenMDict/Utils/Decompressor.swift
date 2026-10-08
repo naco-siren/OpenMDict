@@ -1,6 +1,5 @@
 import Foundation
 import Compression
-import CLZ
 
 /// Compression type markers in MDX blocks
 enum CompressionType: UInt8 {
@@ -12,7 +11,7 @@ enum CompressionType: UInt8 {
 /// Errors during decompression
 enum DecompressionError: Error, CustomStringConvertible {
     case unknownType(UInt8)
-    case lzoFailed(Int32)
+    case lzoFailed(LZO1XError)
     case zlibFailed
     case checksumMismatch(expected: UInt32, got: UInt32)
     
@@ -20,8 +19,8 @@ enum DecompressionError: Error, CustomStringConvertible {
         switch self {
         case .unknownType(let t):
             return "Unknown compression type: \(t)"
-        case .lzoFailed(let code):
-            return "LZO decompression failed with code: \(code)"
+        case .lzoFailed(let error):
+            return "LZO decompression failed: \(error)"
         case .zlibFailed:
             return "Zlib decompression failed"
         case .checksumMismatch(let expected, let got):
@@ -32,11 +31,6 @@ enum DecompressionError: Error, CustomStringConvertible {
 
 /// Decompressor for MDX blocks
 struct Decompressor {
-    
-    /// Initialize LZO library (call once at startup)
-    static func initialize() {
-        lzo_initialize()  // Use wrapper function instead of lzo_init() macro
-    }
     
     /// Decompress a block based on compression type
     /// - Parameters:
@@ -57,28 +51,16 @@ struct Decompressor {
         }
     }
     
-    /// Decompress using LZO1X
+    /// Decompress using LZO1X (pure-Swift decoder, see `LZO1X`).
+    ///
+    /// Like `lzo1x_decompress_safe`, a stream that decodes to fewer bytes than
+    /// `outputSize` yields a shorter result rather than an error.
     static func decompressLZO(_ input: Data, outputSize: Int) throws -> Data {
-        var output = Data(count: outputSize)
-        var outLen = lzo_uint(outputSize)
-        
-        let result = input.withUnsafeBytes { inPtr -> Int32 in
-            output.withUnsafeMutableBytes { outPtr -> Int32 in
-                lzo1x_decompress_safe(
-                    inPtr.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                    lzo_uint(input.count),
-                    outPtr.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                    &outLen,
-                    nil
-                )
-            }
+        do {
+            return try LZO1X.decompress(input, expectedSize: outputSize)
+        } catch let error as LZO1XError {
+            throw DecompressionError.lzoFailed(error)
         }
-        
-        guard result == LZO_E_OK else {
-            throw DecompressionError.lzoFailed(result)
-        }
-        
-        return output.prefix(Int(outLen))
     }
     
     /// Decompress using zlib (via Apple's Compression framework)
@@ -123,12 +105,5 @@ struct Decompressor {
         }
         
         return output.prefix(decodedSize)
-    }
-    
-    /// Calculate Adler-32 checksum
-    static func adler32(_ data: Data) -> UInt32 {
-        data.withUnsafeBytes { ptr -> UInt32 in
-            lzo_adler32(1, ptr.baseAddress?.assumingMemoryBound(to: UInt8.self), lzo_uint(data.count))
-        }
     }
 }

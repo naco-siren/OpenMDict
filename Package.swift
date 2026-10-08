@@ -14,17 +14,9 @@ let package = Package(
         .executable(name: "openmdict-bench", targets: ["OpenMDictBench"])
     ],
     targets: [
-        // C library for LZO decompression
-        .target(
-            name: "CLZ",
-            path: "Sources/CLZ",
-            publicHeadersPath: "include"
-        ),
-        
-        // Core parsing library (platform-agnostic)
+        // Core parsing library (platform-agnostic, pure Swift)
         .target(
             name: "OpenMDict",
-            dependencies: ["CLZ"],
             path: "Sources/OpenMDict"
         ),
         
