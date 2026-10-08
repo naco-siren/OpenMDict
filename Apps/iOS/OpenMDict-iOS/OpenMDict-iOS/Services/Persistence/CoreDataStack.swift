@@ -143,7 +143,7 @@ final class CoreDataStack {
                 debugLog("🧪 DEBUG: expireHistoryOnLaunch → \(expired ? "expired" : "FAILED")")
             }
             #endif
-            purgeOldPersistentHistory()
+            purgeLocalStoreHistory()
         }
     }
 
@@ -231,7 +231,7 @@ final class CoreDataStack {
         if enableCloudKit {
             installRemoteChangeObserver()
             installCloudKitEventObserver()
-            purgeOldPersistentHistory()
+            purgeLocalStoreHistory()
         }
 
         debugLog("🔄 CoreDataStack: container reset and recreated (CloudKit=\(enableCloudKit))")
@@ -386,23 +386,40 @@ final class CoreDataStack {
         return container
     }
 
-    /// Purge persistent history transactions older than 7 days.
-    /// Prevents unbounded WAL growth when CloudKit sync is enabled.
-    /// Safe to call on every launch — deleting already-synced history
-    /// does not affect CloudKit mirroring.
-    func purgeOldPersistentHistory() {
+    /// Purge persistent history older than 7 days from the LOCAL store only.
+    ///
+    /// The cloud ("Default") store is deliberately never purged.
+    /// `NSPersistentCloudKitContainer` anchors its exporter on a
+    /// persistent-history token — the number of the last transaction it
+    /// analysed — and Core Data reports that token as expired
+    /// (`NSPersistentHistoryTokenExpiredError`, 134301) the moment that
+    /// transaction row no longer exists, regardless of its age or of any
+    /// newer transactions. An export with nothing to do does not advance the
+    /// token, so on a device that sat idle for a week the old date-based
+    /// purge deleted the anchor, the next export failed, and the mirroring
+    /// delegate reset with reason "HistoryExpired": every mirrored row was
+    /// purged locally and the whole zone re-imported (2026-10-08 incident).
+    /// Apple's guidance for mirrored stores is to leave history alone.
+    ///
+    /// The Local store (article-index state) has no history consumer, so a
+    /// date cutoff is safe there. `affectedStores` confines the request —
+    /// without it the request would purge both stores.
+    func purgeLocalStoreHistory() {
         let ctx = newBackgroundContext()
+        let localURL = Self.localStoreURL()
         Task.detached {
             await ctx.perform {
-                let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 3600)
-                let deleteRequest = NSPersistentHistoryChangeRequest.deleteHistory(
-                    before: sevenDaysAgo
-                )
+                guard let localStore = ctx.persistentStoreCoordinator?.persistentStore(for: localURL) else {
+                    return
+                }
+                let cutoff = Date().addingTimeInterval(-7 * 24 * 3600)
+                let request = NSPersistentHistoryChangeRequest.deleteHistory(before: cutoff)
+                request.affectedStores = [localStore]
                 do {
-                    try ctx.execute(deleteRequest)
-                    debugLog("🧹 Purged persistent history older than 7 days")
+                    try ctx.execute(request)
+                    debugLog("🧹 Purged Local-store persistent history older than 7 days (cloud store untouched)")
                 } catch {
-                    debugLog("⚠️ Persistent history purge failed: \(error)")
+                    debugLog("⚠️ Local-store history purge failed: \(error)")
                 }
             }
         }
