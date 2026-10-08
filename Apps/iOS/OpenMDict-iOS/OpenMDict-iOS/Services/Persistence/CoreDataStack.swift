@@ -49,6 +49,49 @@ final class CoreDataStack {
     /// but won't spawn a second concurrent pass.
     private var isProcessingRemoteChange = false
 
+    // MARK: - CloudKit Mirroring Events
+
+    /// Emits the end time of every successful CloudKit import observed in
+    /// this process. `DictionaryService` re-evaluates pending remote deletes
+    /// on it, so a mirroring reset that re-imports the zone resolves cleanly.
+    let cloudKitImportCompletedPublisher = PassthroughSubject<Date, Never>()
+
+    /// Bumped whenever the mirroring-reset bookkeeping changes
+    /// (the troubleshooting screen subscribes to refresh its status row).
+    @Published private(set) var mirroringStatusRevision: UInt = 0
+
+    /// End time of the most recent successful CloudKit import in this process.
+    private(set) var lastSuccessfulImportEnd: Date?
+
+    /// `true` from the moment a CloudKit event fails in a way that makes
+    /// `NSPersistentCloudKitContainer` reset its mirror (expired persistent-
+    /// history token, expired server change token, zone gone) until the next
+    /// successful import completes. A reset purges EVERY mirrored row locally
+    /// before re-importing, so while this is set the disappearance of a row
+    /// must not be read as "another device deleted it".
+    private(set) var isMirroringResetSuspected = false
+    private(set) var mirroringResetSuspectedAt: Date?
+
+    private var cloudKitEventObserver: Any?
+
+    private static let lastResetDateKey = "cloudkit.lastMirroringResetAt"
+    private static let lastResetReasonKey = "cloudkit.lastMirroringResetReason"
+    private static let resetCountKey = "cloudkit.mirroringResetCount"
+
+    /// The most recent mirroring reset seen on this device, persisted across
+    /// launches for the troubleshooting screen.
+    var lastMirroringReset: (date: Date, reason: String)? {
+        guard let date = UserDefaults.standard.object(forKey: Self.lastResetDateKey) as? Date else {
+            return nil
+        }
+        return (date, UserDefaults.standard.string(forKey: Self.lastResetReasonKey) ?? "unknown")
+    }
+
+    /// How many mirroring resets this device has recorded.
+    var mirroringResetCount: Int {
+        UserDefaults.standard.integer(forKey: Self.resetCountKey)
+    }
+
     // MARK: - Container
 
     /// Backing storage — set by `setup(enableCloudKit:)` or
@@ -90,6 +133,16 @@ final class CoreDataStack {
         _persistentContainer = createContainer(enableCloudKit: enableCloudKit)
         if enableCloudKit {
             installRemoteChangeObserver()
+            installCloudKitEventObserver()
+            #if DEBUG
+            if UserDefaults.standard.bool(forKey: Self.debugExpireHistoryOnLaunchKey) {
+                // Test harness: expire the cloud store's history BEFORE the
+                // mirroring delegate's post-setup export, reproducing the
+                // 2026-10-08 launch-order race deterministically.
+                let expired = debugExpireCloudStoreHistory()
+                debugLog("🧪 DEBUG: expireHistoryOnLaunch → \(expired ? "expired" : "FAILED")")
+            }
+            #endif
             purgeOldPersistentHistory()
         }
     }
@@ -110,6 +163,7 @@ final class CoreDataStack {
         // Recreate container with CloudKit
         _persistentContainer = createContainer(enableCloudKit: true)
         installRemoteChangeObserver()
+        installCloudKitEventObserver()
 
         debugLog("☁️ CoreDataStack: reloaded with CloudKit enabled")
     }
@@ -136,11 +190,13 @@ final class CoreDataStack {
     /// - Parameter enableCloudKit: Whether the new container should have
     ///   CloudKit sync enabled.
     func resetAndRecreateContainer(enableCloudKit: Bool) {
-        // 1. Remove remote change observer and cancel pending work.
+        // 1. Remove observers and cancel pending work.
         if let obs = remoteChangeObserver {
             NotificationCenter.default.removeObserver(obs)
             remoteChangeObserver = nil
         }
+        removeCloudKitEventObserver()
+        resetMirroringState()
         remoteChangeWorkItem?.cancel()
         remoteChangeWorkItem = nil
         isProcessingRemoteChange = false
@@ -174,6 +230,7 @@ final class CoreDataStack {
         _persistentContainer = createContainer(enableCloudKit: enableCloudKit)
         if enableCloudKit {
             installRemoteChangeObserver()
+            installCloudKitEventObserver()
             purgeOldPersistentHistory()
         }
 
@@ -350,6 +407,177 @@ final class CoreDataStack {
             }
         }
     }
+
+    // MARK: - CloudKit Event Observer
+
+    /// Observe `NSPersistentCloudKitContainer.eventChangedNotification`
+    /// (public API, iOS 14+) for the whole life of the process so the app can
+    /// tell a mirroring reset apart from genuine remote changes.
+    private func installCloudKitEventObserver() {
+        guard cloudKitEventObserver == nil else { return }
+        cloudKitEventObserver = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            // Destructure inside the closure: Notification is not Sendable.
+            guard let event = notification.userInfo?[
+                NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+            ] as? NSPersistentCloudKitContainer.Event else { return }
+            let type = event.type
+            let endDate = event.endDate
+            let succeeded = event.succeeded
+            let nsError = event.error as NSError?
+            let domain = nsError?.domain
+            let code = nsError?.code
+            MainActor.assumeIsolated {
+                self?.handleCloudKitEvent(type: type, endDate: endDate, succeeded: succeeded,
+                                          errorDomain: domain, errorCode: code)
+            }
+        }
+    }
+
+    private func removeCloudKitEventObserver() {
+        if let obs = cloudKitEventObserver {
+            NotificationCenter.default.removeObserver(obs)
+            cloudKitEventObserver = nil
+        }
+    }
+
+    /// Forget any in-flight reset suspicion (container is being recreated).
+    private func resetMirroringState() {
+        isMirroringResetSuspected = false
+        mirroringResetSuspectedAt = nil
+        lastSuccessfulImportEnd = nil
+        mirroringStatusRevision &+= 1
+    }
+
+    /// Maps a failed CloudKit event's error to the reason the mirroring
+    /// delegate will reset for, or nil when the error does not cause a reset.
+    ///
+    /// 134301 is `NSPersistentHistoryTokenExpiredError`; the CloudKit codes
+    /// are the ones the delegate's recovery path treats as "start over".
+    nonisolated static func mirroringResetReason(errorDomain: String, errorCode: Int) -> String? {
+        if errorDomain == NSCocoaErrorDomain && errorCode == 134301 {
+            return "historyExpired"
+        }
+        if errorDomain == CKErrorDomain {
+            switch CKError.Code(rawValue: errorCode) {
+            case .changeTokenExpired: return "changeTokenExpired"
+            case .zoneNotFound, .userDeletedZone: return "zoneDeleted"
+            default: return nil
+            }
+        }
+        return nil
+    }
+
+    private static func eventTypeName(_ type: NSPersistentCloudKitContainer.EventType) -> String {
+        switch type {
+        case .setup: return "setup"
+        case .import: return "import"
+        case .export: return "export"
+        @unknown default: return "unknown"
+        }
+    }
+
+    private func handleCloudKitEvent(
+        type: NSPersistentCloudKitContainer.EventType,
+        endDate: Date?,
+        succeeded: Bool,
+        errorDomain: String?,
+        errorCode: Int?
+    ) {
+        // Each request posts once when it starts (no endDate) and once when
+        // it finishes; only finished events carry a result.
+        guard let endDate else { return }
+        let name = Self.eventTypeName(type)
+
+        if !succeeded {
+            debugLog("☁️ CloudKit \(name) failed: \(errorDomain ?? "?") \(errorCode ?? 0)")
+            if let domain = errorDomain, let code = errorCode,
+               let reason = Self.mirroringResetReason(errorDomain: domain, errorCode: code),
+               !isMirroringResetSuspected {
+                isMirroringResetSuspected = true
+                mirroringResetSuspectedAt = endDate
+                recordMirroringReset(reason: reason, at: endDate)
+                debugLog("☁️⚠️ CloudKit mirroring reset suspected (\(reason)) — remote deletes on hold until the next successful import")
+                mirroringStatusRevision &+= 1
+            }
+            return
+        }
+
+        debugLog("☁️ CloudKit \(name) succeeded")
+        guard type == .import else { return }
+        lastSuccessfulImportEnd = endDate
+        if isMirroringResetSuspected {
+            isMirroringResetSuspected = false
+            debugLog("☁️✅ CloudKit mirroring reset recovered — import completed")
+            mirroringStatusRevision &+= 1
+        }
+        cloudKitImportCompletedPublisher.send(endDate)
+    }
+
+    private func recordMirroringReset(reason: String, at date: Date) {
+        let defaults = UserDefaults.standard
+        defaults.set(date, forKey: Self.lastResetDateKey)
+        defaults.set(reason, forKey: Self.lastResetReasonKey)
+        defaults.set(defaults.integer(forKey: Self.resetCountKey) + 1, forKey: Self.resetCountKey)
+    }
+
+    #if DEBUG
+    // MARK: - Debug Harness (HistoryExpired reproduction)
+
+    /// Launch argument `-openmdict.debug.expireHistoryOnLaunch 1`: expire the
+    /// cloud store's history right after the stores load, before the first
+    /// export — the exact order of the 2026-10-08 incident.
+    static let debugExpireHistoryOnLaunchKey = "openmdict.debug.expireHistoryOnLaunch"
+
+    /// Delete EVERY persistent-history transaction of the cloud store.
+    ///
+    /// The mirroring exporter's stored token then refers to a transaction
+    /// that no longer exists, so its next export (the post-setup export on
+    /// the next launch, or the one triggered by any local save) fails with
+    /// 134301 and the delegate resets with reason HistoryExpired — the same
+    /// state a device reaches after sitting idle through the old 7-day purge.
+    @discardableResult
+    func debugExpireCloudStoreHistory() -> Bool {
+        let ctx = newBackgroundContext()
+        let url = Self.cloudStoreURL()
+        var ok = false
+        ctx.performAndWait {
+            guard let store = ctx.persistentStoreCoordinator?.persistentStore(for: url) else { return }
+            let request = NSPersistentHistoryChangeRequest.deleteHistory(before: Date.distantFuture)
+            request.affectedStores = [store]
+            do {
+                try ctx.execute(request)
+                ok = true
+            } catch {
+                debugLog("🧪 DEBUG: expire cloud-store history failed: \(error)")
+            }
+        }
+        if ok {
+            debugLog("🧪 DEBUG: expired ALL cloud-store persistent history — the next CloudKit export will fail with 134301 (HistoryExpired)")
+        }
+        return ok
+    }
+
+    /// Number of persistent-history transactions stored for the cloud store.
+    func debugCloudStoreHistoryTransactionCount() -> Int {
+        let ctx = newBackgroundContext()
+        let url = Self.cloudStoreURL()
+        var count = 0
+        ctx.performAndWait {
+            guard let store = ctx.persistentStoreCoordinator?.persistentStore(for: url) else { return }
+            let request = NSPersistentHistoryChangeRequest.fetchHistory(after: nil as NSPersistentHistoryToken?)
+            request.affectedStores = [store]
+            request.fetchRequest = NSPersistentHistoryTransaction.fetchRequest
+            guard let result = try? ctx.execute(request) as? NSPersistentHistoryResult,
+                  let transactions = result.result as? [NSPersistentHistoryTransaction] else { return }
+            count = transactions.count
+        }
+        return count
+    }
+    #endif
 
     /// Subscribe to NSPersistentStoreRemoteChange and relay via
     /// `remoteChangePublisher`.

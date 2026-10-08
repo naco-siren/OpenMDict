@@ -13,6 +13,7 @@
 //  compact layouts.  Dismissible by tapping outside.
 //
 
+import Combine
 import CoreData
 import UIKit
 
@@ -27,20 +28,26 @@ final class iCloudTroubleshootingViewController: UIViewController {
         case status
         case cloudData
         case dangerZone
+        /// DEBUG builds only: the HistoryExpired reproduction harness.
+        case debug
     }
 
     private nonisolated enum Item: Hashable, Sendable {
         case syncStatus
+        case lastSyncReset
         case dictCount
         case groupCount
         case bookmarkCount
         case historyCount
         case clearAllCloudData
         case clearAllLocalData
+        case debugHistoryCount
+        case debugExpireHistory
     }
 
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var collectionView: UICollectionView!
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - State
 
@@ -65,6 +72,42 @@ final class iCloudTroubleshootingViewController: UIViewController {
         configureCollectionView()
         configureDataSource()
         applySnapshot()
+
+        // Refresh the "last sync reset" row if a mirroring reset happens
+        // while this screen is open.
+        CoreDataStack.shared.$mirroringStatusRevision
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.reconfigureDynamicRows() }
+            .store(in: &cancellables)
+    }
+
+    /// Re-render rows whose content is computed at display time.
+    private func reconfigureDynamicRows() {
+        var snapshot = dataSource.snapshot()
+        let dynamic = snapshot.itemIdentifiers.filter {
+            $0 == .lastSyncReset || $0 == .debugHistoryCount
+        }
+        guard !dynamic.isEmpty else { return }
+        snapshot.reconfigureItems(dynamic)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    /// Secondary text for the "last sync reset" row.
+    private var lastSyncResetDescription: String {
+        guard let reset = CoreDataStack.shared.lastMirroringReset else {
+            return L10n.Troubleshoot.lastResetNever
+        }
+        let date = DateFormatter.localizedString(from: reset.date, dateStyle: .medium, timeStyle: .short)
+        let reason: String
+        switch reset.reason {
+        case "historyExpired":     reason = L10n.Troubleshoot.lastResetReasonHistoryExpired
+        case "changeTokenExpired": reason = L10n.Troubleshoot.lastResetReasonChangeTokenExpired
+        case "zoneDeleted":        reason = L10n.Troubleshoot.lastResetReasonZoneDeleted
+        default:                   reason = reset.reason
+        }
+        let count = CoreDataStack.shared.mirroringResetCount
+        return count > 1 ? "\(date) · \(reason) · ×\(count)" : "\(date) · \(reason)"
     }
 
     @objc private func dismissSelf() {
@@ -125,6 +168,15 @@ final class iCloudTroubleshootingViewController: UIViewController {
                     placement: .trailing(displayed: .always)
                 ))]
 
+            case .lastSyncReset:
+                let hadReset = CoreDataStack.shared.lastMirroringReset != nil
+                config.image = UIImage(systemName: hadReset ? "arrow.triangle.2.circlepath.icloud" : "checkmark.icloud")
+                config.imageProperties.tintColor = hadReset ? .systemOrange : .systemGreen
+                config.text = L10n.Troubleshoot.lastResetTitle
+                config.secondaryText = self.lastSyncResetDescription
+                config.secondaryTextProperties.color = .secondaryLabel
+                config.secondaryTextProperties.numberOfLines = 0
+
             case .dictCount:
                 config.image = UIImage(systemName: "books.vertical")
                 config.text = L10n.Troubleshoot.dictCount(self.dictionaryCount)
@@ -158,6 +210,26 @@ final class iCloudTroubleshootingViewController: UIViewController {
                 config.secondaryTextProperties.numberOfLines = 0
                 config.image = UIImage(systemName: "exclamationmark.triangle.fill")
                 config.imageProperties.tintColor = .systemRed
+
+            // DEBUG-only harness rows (plain literals: developer-facing, not localized)
+            case .debugHistoryCount:
+                config.image = UIImage(systemName: "clock.arrow.circlepath")
+                config.imageProperties.tintColor = .secondaryLabel
+                #if DEBUG
+                config.text = "History transactions: \(CoreDataStack.shared.debugCloudStoreHistoryTransactionCount()) (cloud store)"
+                #endif
+                config.secondaryText = "Persistent-history rows the CloudKit exporter anchors on."
+                config.secondaryTextProperties.color = .secondaryLabel
+                config.secondaryTextProperties.numberOfLines = 0
+
+            case .debugExpireHistory:
+                config.text = "Expire persistent history (DEBUG)"
+                config.textProperties.color = .systemRed
+                config.secondaryText = "Deletes ALL cloud-store history. Force-quit and relaunch: the next export fails with 134301 and the mirroring delegate resets (HistoryExpired) — the 2026-10-08 incident on demand."
+                config.secondaryTextProperties.color = .secondaryLabel
+                config.secondaryTextProperties.numberOfLines = 0
+                config.image = UIImage(systemName: "clock.badge.exclamationmark")
+                config.imageProperties.tintColor = .systemRed
             }
 
             cell.contentConfiguration = config
@@ -176,6 +248,7 @@ final class iCloudTroubleshootingViewController: UIViewController {
             case .status:     config.text = L10n.Troubleshoot.sectionStatus
             case .cloudData:  config.text = L10n.Troubleshoot.sectionCloudData
             case .dangerZone: config.text = L10n.Troubleshoot.dangerZone
+            case .debug:      config.text = "Debug (DEBUG build only)"
             case .none:       break
             }
             header.contentConfiguration = config
@@ -189,6 +262,8 @@ final class iCloudTroubleshootingViewController: UIViewController {
             let section = self.dataSource.sectionIdentifier(for: indexPath.section)
             if section == .dangerZone {
                 config.text = L10n.Troubleshoot.dangerZoneFooter
+            } else if section == .debug {
+                config.text = "Test harness for the CloudKit HistoryExpired reset. Use only on a test iCloud account; afterwards the device re-imports its zone from iCloud."
             }
             config.textProperties.font = .preferredFont(forTextStyle: .footnote)
             config.textProperties.color = .secondaryLabel
@@ -222,7 +297,8 @@ final class iCloudTroubleshootingViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
         snapshot.appendSections([.status])
-        snapshot.appendItems([.syncStatus], toSection: .status)
+        snapshot.appendItems(isCloudEnabled ? [.syncStatus, .lastSyncReset] : [.syncStatus],
+                             toSection: .status)
 
         if isCloudEnabled {
             snapshot.appendSections([.cloudData])
@@ -237,6 +313,13 @@ final class iCloudTroubleshootingViewController: UIViewController {
             [isCloudEnabled ? .clearAllCloudData : .clearAllLocalData],
             toSection: .dangerZone
         )
+
+        #if DEBUG
+        if isCloudEnabled {
+            snapshot.appendSections([.debug])
+            snapshot.appendItems([.debugHistoryCount, .debugExpireHistory], toSection: .debug)
+        }
+        #endif
 
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -314,6 +397,36 @@ final class iCloudTroubleshootingViewController: UIViewController {
         }
     }
 
+    // MARK: - DEBUG: HistoryExpired harness
+
+    #if DEBUG
+    private func beginDebugExpireHistory() {
+        beginReset(
+            alert1Title: "Expire persistent history?",
+            alert1Message: "Deletes ALL persistent-history transactions of the CloudKit store on this device. The next CloudKit export will fail with error 134301 and the mirroring delegate will reset (HistoryExpired): every mirrored row is purged locally and the zone is re-imported from iCloud.\n\nOnly use on a test iCloud account.",
+            alert2Title: "EXPIRE HISTORY NOW?",
+            alert2Message: "Afterwards force-quit the app and relaunch it from Xcode (or toggle a bookmark) to trigger the export."
+        ) { [weak self] in
+            self?.executeDebugExpireHistory()
+        }
+    }
+
+    private func executeDebugExpireHistory() {
+        let ok = CoreDataStack.shared.debugExpireCloudStoreHistory()
+        let alert = UIAlertController(
+            title: ok ? "History expired" : "Expire failed",
+            message: ok
+                ? "Force-quit and relaunch (or make any change) to trigger the HistoryExpired reset. Watch the console for 134301."
+                : "See the console for the error.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default) { [weak self] _ in
+            self?.reconfigureDynamicRows()
+        })
+        present(alert, animated: true)
+    }
+    #endif
+
     // MARK: - Shared Progress UI
 
     private func showProgressAndRun(
@@ -389,6 +502,7 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
     ) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
         return item == .syncStatus || item == .clearAllCloudData || item == .clearAllLocalData
+            || item == .debugExpireHistory
     }
 
     func collectionView(
@@ -402,6 +516,10 @@ extension iCloudTroubleshootingViewController: UICollectionViewDelegate {
         case .syncStatus:       showSyncModeAlert()
         case .clearAllCloudData: beginCloudReset()
         case .clearAllLocalData: beginLocalReset()
+        case .debugExpireHistory:
+            #if DEBUG
+            beginDebugExpireHistory()
+            #endif
         default: break
         }
     }

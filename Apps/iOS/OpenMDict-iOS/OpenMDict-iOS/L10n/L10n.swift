@@ -2175,6 +2175,23 @@ nonisolated enum L10n {
             NSLocalizedString("troubleshoot.status.footer.disabled", value: "To enable iCloud sync, use the reset option below or reinstall the app.", comment: "Section footer: how to enable sync when disabled")
         }
 
+        // MARK: Status — last CloudKit mirroring reset
+        static var lastResetTitle: String {
+            NSLocalizedString("troubleshoot.lastReset.title", value: "Last Sync Reset", comment: "Cell title: when iCloud mirroring last reset itself on this device")
+        }
+        static var lastResetNever: String {
+            NSLocalizedString("troubleshoot.lastReset.never", value: "Never", comment: "Cell subtitle: iCloud mirroring has never reset on this device")
+        }
+        static var lastResetReasonHistoryExpired: String {
+            NSLocalizedString("troubleshoot.lastReset.reason.historyExpired", value: "History expired", comment: "Reason for an iCloud mirroring reset: persistent history token expired")
+        }
+        static var lastResetReasonChangeTokenExpired: String {
+            NSLocalizedString("troubleshoot.lastReset.reason.changeTokenExpired", value: "Server change token expired", comment: "Reason for an iCloud mirroring reset: CloudKit server change token expired")
+        }
+        static var lastResetReasonZoneDeleted: String {
+            NSLocalizedString("troubleshoot.lastReset.reason.zoneDeleted", value: "iCloud zone deleted", comment: "Reason for an iCloud mirroring reset: the CloudKit record zone was deleted")
+        }
+
         // MARK: Cloud data counts
         static func dictCount(_ n: Int) -> String {
             String(format: NSLocalizedString("troubleshoot.count.dict", value: "%d Dictionaries", comment: "Cell: number of synced dictionaries"), n)
