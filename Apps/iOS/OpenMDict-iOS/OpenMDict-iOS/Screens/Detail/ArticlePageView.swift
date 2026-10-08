@@ -158,6 +158,28 @@ class ArticlePageView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    // MARK: - Colors
+
+    /// Resolve a dynamic color at the **base** user-interface level.
+    ///
+    /// Pages hosted in an elevated context — the Action Extension sheet, or any
+    /// modal presentation — would otherwise get the *elevated* dark-mode
+    /// variant of the system background (e.g. `#2C2C2E` instead of `#1C1C1E`).
+    /// The enhance-dark-mode filter maps a white article background to a fixed
+    /// floor tone (`EnhanceDarkModeStrength.floor`, `#1C1C1C` at the standard
+    /// tier) that is calibrated against the base-level color, so an elevated
+    /// container shows through the 12 px body margin as a visibly lighter
+    /// frame around the article. Pinning the level keeps the page looking the
+    /// same wherever it is presented.
+    private static func baseLevelColor(_ color: UIColor) -> UIColor {
+        UIColor { traits in
+            let base = UITraitCollection(traitsFrom: [
+                traits, UITraitCollection(userInterfaceLevel: .base)
+            ])
+            return color.resolvedColor(with: base)
+        }
+    }
+
     // MARK: - Build UI
 
     private func buildUI(configuration: Configuration) {
@@ -165,12 +187,12 @@ class ArticlePageView: UIView {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.layer.cornerRadius = configuration.cornerRadius
         containerView.layer.masksToBounds = configuration.cornerRadius > 0
-        containerView.backgroundColor = configuration.backgroundColor
+        containerView.backgroundColor = Self.baseLevelColor(configuration.backgroundColor)
         addSubview(containerView)
 
         // Header
         headerView.translatesAutoresizingMaskIntoConstraints = false
-        headerView.backgroundColor = configuration.headerBackgroundColor
+        headerView.backgroundColor = Self.baseLevelColor(configuration.headerBackgroundColor)
         containerView.addSubview(headerView)
 
         // Bookmark button (leading) — added to headerStack below, not headerView directly
