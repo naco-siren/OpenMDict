@@ -6,7 +6,7 @@ import Foundation
 /// Tests MDX parsing functionality in isolation
 ///
 /// Environment variables:
-///   MDICT_TEST_FILE   - Path to .mdx file (required)
+///   MDICT_TEST_FILE   - Path to .mdx file (optional; defaults to Tests/Fixtures/tiny.mdx)
 ///   MDICT_TEST_WORD   - Specific word to test lookup (optional)
 ///   MDICT_TEST_SAMPLE - Number of entries to sample for testing, default 5 (optional)
 ///
@@ -51,11 +51,7 @@ struct MDXParserTests {
     static var parser: MDXParser? {
         if !_initialized {
             _initialized = true
-            guard let path = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"],
-                  !path.isEmpty else {
-                print("⚠️ Set MDICT_TEST_FILE environment variable to run tests")
-                return nil
-            }
+            let path = TestFixtures.mdxPath
             do {
                 _parser = try MDXParser(path: path)
                 print("✅ [MDXParser] Loaded: \(_parser!.info.title) with \(_parser!.entryCount) entries")

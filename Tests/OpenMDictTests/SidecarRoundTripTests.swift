@@ -21,7 +21,7 @@ struct SidecarRoundTripTests {
     // MARK: - Fixtures
 
     static var testMDXPath: String? {
-        ProcessInfo.processInfo.environment["MDICT_TEST_FILE"]
+        TestFixtures.mdxPath
     }
 
     private static func makeTempSidecarDir() -> URL {

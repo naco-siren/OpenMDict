@@ -3,7 +3,7 @@ import Foundation
 @testable import OpenMDict
 
 /// Tests for MDDParser and ResourceProvider
-/// Run with: MDICT_TEST_FILE=path/to/dict.mdx swift test
+/// Run with: swift test  (or MDICT_TEST_FILE=path/to/dict.mdx swift test)
 @Suite(.serialized)
 struct ResourceTests {
     
@@ -16,12 +16,7 @@ struct ResourceTests {
         guard !_initialized else { return }
         _initialized = true
         
-        guard let path = ProcessInfo.processInfo.environment["MDICT_TEST_FILE"],
-              !path.isEmpty else {
-            print("⚠️ Set MDICT_TEST_FILE to test resources")
-            return
-        }
-        
+        let path = TestFixtures.mdxPath
         mdxPath = path
         resourceProvider = ResourceProvider(mdxPath: path)
         

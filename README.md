@@ -374,10 +374,17 @@ swift run openmdict-bench --dicts-dir dicts --purge --verify -n 5
 The test suite covers the `MDXParser` / `MDDParser` facade APIs, the
 `MDictReader` integration layer, and the sidecar index fast-path round-trip
 (slow-path + fast-path must produce byte-equal lookup results, plus
-invalidation and write-mode behaviour). An MDX file must be supplied via
-the `MDICT_TEST_FILE` environment variable — tests are skipped without it.
+invalidation and write-mode behaviour). By default the suites run against
+the tiny synthetic dictionary in `Tests/Fixtures/` (`tiny.mdx` + `tiny.mdd`,
+regenerated with `Tests/Fixtures/make-fixture.py`), so a plain `swift test`
+passes on a clean clone. Set `MDICT_TEST_FILE` to run the same suites against
+a real dictionary — note that `SidecarRoundTripTests` re-parses the whole file
+several times, which takes minutes on a large MDX.
 
 ```bash
+# Default: bundled fixture
+swift test
+
 # Full test suite against a real MDX
 MDICT_TEST_FILE=path/to/dict.mdx swift test
 
