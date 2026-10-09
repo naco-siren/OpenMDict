@@ -5,7 +5,7 @@
 //  Lets the user choose an alternate app icon from a list of variants.
 //  Uses UIApplication.setAlternateIconName(_:) to apply the selection.
 //
-//  iOS 18+: .icon bundles → 12 cells (light/dark/tinted handled by system).
+//  iOS 18+: .icon bundles → 9 cells (light/dark/tinted handled by system).
 //  iOS 15–17: PNG fallback → light + dark cells per variant (inverse
 //             variants get a single cell since they have no dark counterpart).
 //
@@ -16,7 +16,6 @@ import UIKit
 
 private nonisolated enum Section: Int, Hashable, CaseIterable, Sendable {
     case standard
-    case classic
 }
 
 // MARK: - AppIconChooserViewController
@@ -122,7 +121,6 @@ final class AppIconChooserViewController: UIViewController {
             let section = Section(rawValue: indexPath.section)!
             switch section {
             case .standard: config.text = L10n.AppIcon.sectionStandard
-            case .classic:  config.text = L10n.AppIcon.sectionClassic
             }
             supplementaryView.contentConfiguration = config
         }
@@ -142,19 +140,8 @@ final class AppIconChooserViewController: UIViewController {
 
     private func rebuildSnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, AppIconItem>()
-
-        let standardIcons = AppIcon.standardIcons
-        if !standardIcons.isEmpty {
-            snapshot.appendSections([.standard])
-            snapshot.appendItems(makeItems(from: standardIcons), toSection: .standard)
-        }
-
-        let classicIcons = AppIcon.easterEggIcons
-        if !classicIcons.isEmpty {
-            snapshot.appendSections([.classic])
-            snapshot.appendItems(makeItems(from: classicIcons), toSection: .classic)
-        }
-
+        snapshot.appendSections([.standard])
+        snapshot.appendItems(makeItems(from: AppIcon.allCases), toSection: .standard)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 

@@ -2,7 +2,6 @@
 //  ArticleLayoutMode.swift
 //  OpenMDict-iOS
 //
-//
 
 import UIKit
 

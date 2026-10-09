@@ -2,7 +2,6 @@
 //  Lookupable.swift
 //  OpenMDict
 //
-//
 import Combine
 
 // MARK: - Lookupable Protocol

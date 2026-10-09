@@ -2,7 +2,6 @@
 //  DebugLog.swift
 //  OpenMDict-iOS
 //
-//
 
 import UIKit
 

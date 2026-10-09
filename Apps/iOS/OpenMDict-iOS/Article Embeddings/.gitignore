@@ -1,11 +1,11 @@
 # Article Embeddings — model + vocab assets for M15 article-content search.
-# Reproducible from scripts/build-st-coreml.py — don't commit them,
-# regenerate locally per scripts/ instructions.
+# Downloaded by scripts/bootstrap-assets.sh (reproducible from
+# scripts/model/build-st-coreml.py) — don't commit them.
 # Phase 3.1 model survey concluded MiniLM-L6 is the production choice
 # (see docs/article-embeddings.md). ane-distilbert / bge-small / gte-small /
 # e5-small / MiniLM-L12 are negative results, intentionally NOT bundled.
 #
-# .mlpackage = source-of-truth (output of scripts/build-st-coreml.py).
+# .mlpackage = source-of-truth (output of scripts/model/build-st-coreml.py).
 # .mlmodelc  = pre-compiled output of scripts/precompile-article-embed-model.sh.
 #              Pre-compiled because Xcode auto-compiles .mlpackage during
 #              the Sources build phase, which prevents ODR ASSET_TAGS
@@ -14,3 +14,7 @@
 all-MiniLM-L6-v2.mlpackage/
 all-MiniLM-L6-v2.mlmodelc/
 vocab.txt
+# Bootstrap / precompile bookkeeping and crash leftovers.
+all-MiniLM-L6-v2.mlmodelc.sha256
+.precompile.*/
+.bootstrap-tmp.*/

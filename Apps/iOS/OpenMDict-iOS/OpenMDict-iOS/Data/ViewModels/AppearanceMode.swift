@@ -2,7 +2,6 @@
 //  AppearanceMode.swift
 //  OpenMDict-iOS
 //
-//
 
 import UIKit
 

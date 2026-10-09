@@ -148,27 +148,6 @@
 					<string>OpenMDict-East114514-iPhone</string>
 				</array>
 			</dict>
-			<key>ClassicLiquidGlass</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicLiquidGlass-iPhone</string>
-				</array>
-			</dict>
-			<key>ClassicLiquidGlass-Inverse</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicLiquidGlass-Inverse-iPhone</string>
-				</array>
-			</dict>
-			<key>ClassicMatte</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicMatte-iPhone</string>
-				</array>
-			</dict>
 			<key>OpenMDict-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -223,20 +202,6 @@
 				<key>CFBundleIconFiles</key>
 				<array>
 					<string>OpenMDict-East114514-Dark-iPhone</string>
-				</array>
-			</dict>
-			<key>ClassicLiquidGlass-Dark</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicLiquidGlass-Dark-iPhone</string>
-				</array>
-			</dict>
-			<key>ClassicMatte-Dark</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicMatte-Dark-iPhone</string>
 				</array>
 			</dict>
 		</dict>
@@ -309,30 +274,6 @@
 					<string>OpenMDict-East114514-iPadPro</string>
 				</array>
 			</dict>
-			<key>ClassicLiquidGlass</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicLiquidGlass-iPad</string>
-					<string>ClassicLiquidGlass-iPadPro</string>
-				</array>
-			</dict>
-			<key>ClassicLiquidGlass-Inverse</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicLiquidGlass-Inverse-iPad</string>
-					<string>ClassicLiquidGlass-Inverse-iPadPro</string>
-				</array>
-			</dict>
-			<key>ClassicMatte</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicMatte-iPad</string>
-					<string>ClassicMatte-iPadPro</string>
-				</array>
-			</dict>
 			<key>OpenMDict-Dark</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -395,22 +336,6 @@
 				<array>
 					<string>OpenMDict-East114514-Dark-iPad</string>
 					<string>OpenMDict-East114514-Dark-iPadPro</string>
-				</array>
-			</dict>
-			<key>ClassicLiquidGlass-Dark</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicLiquidGlass-Dark-iPad</string>
-					<string>ClassicLiquidGlass-Dark-iPadPro</string>
-				</array>
-			</dict>
-			<key>ClassicMatte-Dark</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ClassicMatte-Dark-iPad</string>
-					<string>ClassicMatte-Dark-iPadPro</string>
 				</array>
 			</dict>
 		</dict>

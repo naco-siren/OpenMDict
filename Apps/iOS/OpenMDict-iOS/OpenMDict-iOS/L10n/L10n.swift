@@ -2094,9 +2094,6 @@ nonisolated enum L10n {
         static var sectionStandard: String {
             NSLocalizedString("appIcon.section.standard", value: "Standard", comment: "Section header: standard app icons")
         }
-        static var sectionClassic: String {
-            NSLocalizedString("appIcon.section.classic", value: "Classic", comment: "Section header: classic easter egg icons")
-        }
         static var defaultIcon: String {
             NSLocalizedString("appIcon.default", value: "Default", comment: "App icon name: default icon")
         }
@@ -2123,15 +2120,6 @@ nonisolated enum L10n {
         }
         static var east114514: String {
             NSLocalizedString("appIcon.east114514", value: "114514", comment: "App icon name: easter egg variant")
-        }
-        static var classicLiquidGlass: String {
-            NSLocalizedString("appIcon.classicLiquidGlass", value: "Liquid Glass", comment: "App icon name: liquid glass style")
-        }
-        static var classicLiquidGlassInverse: String {
-            NSLocalizedString("appIcon.classicLiquidGlassInverse", value: "Liquid Glass (Inverse)", comment: "App icon name: inverted colors variant of liquid glass icon")
-        }
-        static var classicMatte: String {
-            NSLocalizedString("appIcon.classicMatte", value: "Matte", comment: "App icon name: matte style")
         }
         /// Format string for dark variant labels on iOS 15–17.
         /// %@ is the base icon name, e.g. "Default" → "Default (Dark)".

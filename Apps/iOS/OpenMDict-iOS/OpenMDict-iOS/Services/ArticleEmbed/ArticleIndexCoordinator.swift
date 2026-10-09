@@ -46,8 +46,8 @@ final class ArticleIndexCoordinator {
     // Logging convention: see ArticleIndexDispatcher for the rationale —
     // debugLog (gated by VERBOSE_LOGGING) for info, print for errors.
 
-    /// Minimum supported iOS for the feature (picks up
-    /// the A13+ chip tier transitively).
+    /// Minimum supported iOS for the feature (see docs/article-embeddings.md,
+    /// "Why iOS 26 as the floor" — picks up the A13+ chip tier transitively).
     static let minimumSupportedOSMajor: Int = 26
 
     private init() {

@@ -4,7 +4,8 @@
 //
 //  M15 Phase 1 — user-facing tier knob for semantic search result count.
 //
-//  Plan B (locked after a multi-source real-data bench):
+//  Plan B (locked after a multi-source, CEFR-stratified real-data bench;
+//  see docs/article-embeddings.md, "Phase 1", for the methodology):
 //
 //      Single uniform cosine floor (0.45) for all tiers. The tier knob is
 //      purely K — how many top-K results to display. Quality over quantity:
