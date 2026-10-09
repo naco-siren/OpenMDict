@@ -128,7 +128,14 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
         if metadataProvider.downloadingDictIds.contains(dictId) {
             return .pending
         }
-        return CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+        let status = CloudSyncStatus(rawValue: metadata.cloudSyncStatus) ?? .pending
+        // Synced in iCloud but not loaded on this device yet (queued for
+        // download after a fresh install or a mirroring reset): the files are
+        // on their way, so show it as syncing rather than "ready".
+        if status == .synced && dictionaryProvider.dict(id: dictId) == nil {
+            return .pending
+        }
+        return status
     }
 
     func iCloudSectionStatus() -> ICloudSectionStatus? {

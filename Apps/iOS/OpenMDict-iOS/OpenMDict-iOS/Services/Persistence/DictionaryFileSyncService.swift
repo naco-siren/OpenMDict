@@ -150,6 +150,44 @@ final class DictionaryFileSyncService {
         return record
     }
 
+    // MARK: - Background File Operations
+
+    // This service is MainActor-isolated, so a plain FileManager call here
+    // runs on the main thread. Copying a multi-hundred-MB CloudKit asset that
+    // way froze the sidebar and stalled dictionary loading for minutes
+    // (observed on an iPad mini 4 during an 862 MB download). Every copy,
+    // move and bulk delete therefore hops to a utility-priority task; only
+    // URLs cross the isolation boundary.
+
+    private nonisolated static func copyFile(from source: URL, to destination: URL) async throws {
+        try await Task.detached(priority: .utility) {
+            let fm = FileManager.default
+            try fm.createDirectory(at: destination.deletingLastPathComponent(),
+                                   withIntermediateDirectories: true)
+            try? fm.removeItem(at: destination)
+            try fm.copyItem(at: source, to: destination)
+        }.value
+    }
+
+    private nonisolated static func removeItem(at url: URL) async {
+        await Task.detached(priority: .utility) {
+            try? FileManager.default.removeItem(at: url)
+        }.value
+    }
+
+    /// Write `manifestData` into the staging directory and move the whole
+    /// directory into its final place in one background hop.
+    private nonisolated static func publish(staging: URL, to destination: URL,
+                                            manifestData: Data) async throws {
+        try await Task.detached(priority: .utility) {
+            let fm = FileManager.default
+            try manifestData.write(to: staging.appendingPathComponent("manifest.json"), options: .atomic)
+            try fm.createDirectory(at: destination.deletingLastPathComponent(),
+                                   withIntermediateDirectories: true)
+            try fm.moveItem(at: staging, to: destination)
+        }.value
+    }
+
     // MARK: - Cloud Manifest
 
     /// Write the CloudKit-facing copy of a manifest to a temp file.
@@ -425,7 +463,7 @@ final class DictionaryFileSyncService {
         // that exists is always complete (no half-built directory for a
         // concurrent caller to trip over).
         let stagingDir = storage.downloadStagingDirectoryURL(id: dictId)
-        try? FileManager.default.removeItem(at: stagingDir)
+        await Self.removeItem(at: stagingDir)
 
         syncProgress[dictId] = .downloading(fractionCompleted: 0)
 
@@ -452,7 +490,7 @@ final class DictionaryFileSyncService {
             }
         } catch {
             debugLog("❌ Failed to create dirs for \(dictId.prefix(16)): \(error)")
-            try? FileManager.default.removeItem(at: stagingDir)
+            await Self.removeItem(at: stagingDir)
             updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
@@ -499,7 +537,7 @@ final class DictionaryFileSyncService {
                 fetchedRecords = try await fetchBatch(batch)
             } catch {
                 debugLog("❌ Batch fetch failed for \(dictId.prefix(16)): \(error)")
-                try? FileManager.default.removeItem(at: stagingDir)
+                await Self.removeItem(at: stagingDir)
                 updateSyncStatus(dictId: dictId, status: .error)
                 syncProgress.removeValue(forKey: dictId)
                 return false
@@ -514,8 +552,7 @@ final class DictionaryFileSyncService {
                     continue
                 }
                 do {
-                    try? FileManager.default.removeItem(at: destURL)
-                    try FileManager.default.copyItem(at: assetURL, to: destURL)
+                    try await Self.copyFile(from: assetURL, to: destURL)
                     downloaded += 1
                     syncProgress[dictId] = .downloading(
                         fractionCompleted: 0.1 + 0.8 * Double(downloaded) / Double(totalFiles)
@@ -535,7 +572,7 @@ final class DictionaryFileSyncService {
         // corrupt dictionary directory that the user cannot open.
         if downloaded < totalFiles {
             debugLog("❌ Incomplete download: \(downloaded)/\(totalFiles) files — cleaning up \(dictId.prefix(16))")
-            try? FileManager.default.removeItem(at: stagingDir)
+            await Self.removeItem(at: stagingDir)
             updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
@@ -548,13 +585,10 @@ final class DictionaryFileSyncService {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         do {
             let data = try encoder.encode(manifest)
-            try data.write(to: stagingDir.appendingPathComponent("manifest.json"), options: .atomic)
-            try FileManager.default.createDirectory(at: dictDir.deletingLastPathComponent(),
-                                                    withIntermediateDirectories: true)
-            try FileManager.default.moveItem(at: stagingDir, to: dictDir)
+            try await Self.publish(staging: stagingDir, to: dictDir, manifestData: data)
         } catch {
             debugLog("❌ Failed to publish download for \(dictId.prefix(16)): \(error)")
-            try? FileManager.default.removeItem(at: stagingDir)
+            await Self.removeItem(at: stagingDir)
             updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
@@ -685,11 +719,7 @@ final class DictionaryFileSyncService {
                           let destURL = recordIDToLocalPath[recordID.recordName] else {
                         continue
                     }
-                    try FileManager.default.createDirectory(at: destURL.deletingLastPathComponent(),
-                                                            withIntermediateDirectories: true)
-                    // Remove existing file if overwriting
-                    try? FileManager.default.removeItem(at: destURL)
-                    try FileManager.default.copyItem(at: assetURL, to: destURL)
+                    try await Self.copyFile(from: assetURL, to: destURL)
                 }
             } catch {
                 debugLog("❌ Incremental download failed for \(dictId.prefix(16)): \(error)")
@@ -699,20 +729,16 @@ final class DictionaryFileSyncService {
 
         // Delete removed files (syncable ones only — see ManifestSyncRules)
         for entry in plan.delete.mdd {
-            try? FileManager.default.removeItem(
-                at: storage.mddDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
+            await Self.removeItem(at: storage.mddDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
         for entry in plan.delete.css {
-            try? FileManager.default.removeItem(
-                at: storage.cssDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
+            await Self.removeItem(at: storage.cssDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
         for entry in plan.delete.js {
-            try? FileManager.default.removeItem(
-                at: storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
+            await Self.removeItem(at: storage.jsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
         for entry in plan.delete.fonts {
-            try? FileManager.default.removeItem(
-                at: storage.fontsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
+            await Self.removeItem(at: storage.fontsDirectoryURL(id: dictId).appendingPathComponent(entry.fileName))
         }
 
         // Save merged manifest locally
