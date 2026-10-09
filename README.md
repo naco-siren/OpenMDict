@@ -23,13 +23,16 @@ A full-featured MDict dictionary reader built with UIKit and Swift 6.
 - **Bookmarks & History** — Bookmark entries across dictionaries; lookup history with per-dictionary trophy counts
 - **Unlimited Imports & Groups** — Import and manage MDX/MDD files as well as groups with no limits
 - **iCloud Sync** — Dictionaries, bookmarks, lookup history, and groups sync across devices via CloudKit, with cross-device nuclear reset and built-in troubleshooting UI
-- **Preset Dictionaries** — 65 curated open-source dictionaries (WordNet, JMdict, CC-CEDICT, Wiktionary, and more) for quick setup
+- **Preset Dictionaries** — 64 curated open-source dictionaries (WordNet, JMdict, CC-CEDICT, Wiktionary, and more) for quick setup
 - **13 Languages** — English, 简体中文, 繁體中文, Русский, Español, Deutsch, 日本語, Français, Português (BR), 한국어, Українська, العربية, हिन्दी
 
 ## Requirements
 
 - Swift 6.0+
-- macOS 12+ / iOS 15.6+
+- macOS 12+ / iOS 15.6+ (deployment targets)
+- Building the iOS app additionally needs **Xcode 26 on macOS 15.6 or later**.
+  If the iOS platform is not installed yet (Xcode reports a missing iOS SDK or
+  simulator runtime), run `xcodebuild -downloadPlatform iOS` once.
 
 ## Installation
 
@@ -289,7 +292,7 @@ swift run openmdict dict.mdx list 20
 
 # List / read MDD resources
 swift run openmdict dict.mdx resources 10
-swift run openmdict dict.mdx resource mydict.css
+swift run openmdict dict.mdx resource style.css
 
 # Debug: raw header XML / per-key hex dump
 swift run openmdict dict.mdx header
@@ -335,10 +338,10 @@ takes the cache directory as a positional argument).
 
 ```bash
 # Show sidecar status for a dict (reports age, size, validity + MDD pair)
-OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict sidecar info MyDict.mdx
+OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict sidecar info path/to/dictionary.mdx
 
 # Delete + rebuild a sidecar (e.g. after a suspected corruption)
-OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict sidecar rebuild MyDict.mdx
+OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict sidecar rebuild path/to/dictionary.mdx
 
 # Enumerate every .idx file in a cache directory with size + age + magic-byte check
 swift run openmdict sidecar list /tmp/mdx-cache
@@ -411,6 +414,96 @@ MDICT_DIGEST_DICTS="a.mdx:b.mdx" MDICT_DIGEST_OUT=/tmp/digest.txt \
 MDICT_LZO_BENCH=1 swift test -c release --filter LZO1XBenchmark
 ```
 
+## Build from a clean clone
+
+The repository contains the Swift package, the iOS project and the pipeline
+that produces the preset dictionaries. The large generated assets — the
+preset `.mdx` files and the CoreML article-embedding model — are not
+committed; they are published as GitHub Release assets and fetched by a
+bootstrap script that verifies every file against
+`preset-dicts/assets.lock.json`.
+
+```bash
+git clone https://github.com/naco-siren/OpenMDict.git
+cd OpenMDict
+
+# 1. Fetch the preset dictionaries + CoreML model listed in the lock file
+scripts/bootstrap-assets.sh
+
+# 2. Library, CLI tools and tests (no Xcode project involved)
+swift build && swift test
+
+# 3. Compile check of the iOS app, no signing identity required.
+#    Every build configuration reads Local.xcconfig (git-ignored) as its base
+#    configuration, so the file must exist even for an unsigned build —
+#    xcodebuild fails with "Unable to open base configuration reference file"
+#    otherwise. The template's placeholder team id is fine here.
+cp Apps/iOS/OpenMDict-iOS/Local.xcconfig.template Apps/iOS/OpenMDict-iOS/Local.xcconfig
+xcodebuild -project Apps/iOS/OpenMDict-iOS/OpenMDict-iOS.xcodeproj \
+    -scheme OpenMDict-iOS -configuration Debug \
+    -destination 'generic/platform=iOS Simulator' \
+    CODE_SIGNING_ALLOWED=NO build
+```
+
+Step 3 only proves that the project compiles and that every referenced
+asset is in place; it does not produce a runnable app. The app resolves its
+App Group container at launch and traps if the entitlement is missing, so a
+build that actually runs in the simulator needs normal signing (see
+[Forking & signing](#forking--signing)): open the project in Xcode, select
+your team, pick a simulator and Run. Note also that an app installed into a
+simulator from an `xcodebuild` build cannot download its On-Demand
+Resources — the asset packs are served from the local Derived Data folder —
+so the preset dictionaries fail to download in such an install and only the
+dictionaries bundled inside the app are available. Runs started from Xcode,
+TestFlight and App Store builds are not affected.
+
+## Forking & signing
+
+The project file carries no team identifier. Every build configuration of
+every target uses `Apps/iOS/OpenMDict-iOS/Local.xcconfig` (git-ignored) as
+its base configuration:
+
+```bash
+cp Apps/iOS/OpenMDict-iOS/Local.xcconfig.template Apps/iOS/OpenMDict-iOS/Local.xcconfig
+# then set DEVELOPMENT_TEAM to your team identifier
+```
+
+To ship your own build you also have to replace the identifiers below with
+ones registered to your team — they all share the `io.github.naco-siren`
+prefix — and keep each one identical in every place it appears (paths are
+relative to `Apps/iOS/OpenMDict-iOS/`):
+
+| Identifier | Value in this repository | Where it lives |
+|---|---|---|
+| Bundle identifiers | `io.github.naco-siren.OpenMDict-iOS` (app), `io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension`, `io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension` | `PRODUCT_BUNDLE_IDENTIFIER` of the app and the two extension targets (Xcode ▸ Signing & Capabilities). The same prefix names the URL type, user-activity types and imported UTIs in `OpenMDict-iOS/Info.plist` and `OpenMDict-iOS/Data/Constants.swift`. |
+| App Group | `group.io.github.naco-siren.openmdict` | `OpenMDict-iOS/OpenMDict_iOS.entitlements`, `OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements`, `AppIdentifiers.appGroupIdentifier` in `OpenMDict-iOS/Data/Constants.swift` (consumed by `OpenMDict-iOS/Data/AppGroupPaths.swift`) |
+| iCloud container | `iCloud.io.github.naco-siren.OpenMDict-iOS` | `OpenMDict-iOS/OpenMDict_iOS.entitlements` (`com.apple.developer.icloud-container-identifiers`), `AppIdentifiers.cloudKitContainerID` in `OpenMDict-iOS/Data/Constants.swift` |
+| Push environment | `aps-environment` = `development` | `OpenMDict-iOS/OpenMDict_iOS.entitlements` — needed for CloudKit's silent change notifications; Xcode switches it to `production` when exporting for distribution |
+| Background task | `io.github.naco-siren.openmdict.articleindex` | `BGTaskSchedulerPermittedIdentifiers` in `OpenMDict-iOS/Info.plist`, `AppIdentifiers.articleIndexBGTaskID` in `OpenMDict-iOS/Data/Constants.swift` |
+
+The main app's App ID needs the **App Groups**, **iCloud (CloudKit)** and
+**Push Notifications** capabilities; the Action Extension's App ID needs
+**App Groups**; the Share Extension's App ID needs no capability. The app target also declares the *Remote notifications* and
+*Background processing* background modes in `Info.plist`, which require no
+App ID capability of their own. With automatic signing enabled, Xcode
+registers the App IDs, App Group and iCloud container for you once you select
+your team. The CloudKit schema is created on first use in the development
+environment and has to be deployed to production in the CloudKit Console
+before an App Store release.
+
+## Regenerating assets
+
+The preset dictionaries, the CoreML article-embedding model and the app icon
+families are generated artifacts with their own pipelines: `preset-dicts/`
+builds every `.mdx` from its upstream data (`make <name>`), `scripts/model/`
+converts the sentence-embedding model, and
+`Apps/iOS/OpenMDict-iOS/Resources/AppIcons/` holds the exported icon sets.
+`MAINTAINING.md` describes, for each kind of change (editing a dictionary,
+adding or removing one, swapping the model, adding an icon family), which
+files to touch, how the generated files are published to a GitHub Release and
+recorded in `preset-dicts/assets.lock.json`, and how to re-link the Xcode
+project so that it never references an absolute path.
+
 ## Project Structure
 
 ```
@@ -423,6 +516,7 @@ OpenMDict/
 │   │   │   ├── MDDParser.swift
 │   │   │   ├── MDictDescriptionParser.swift
 │   │   │   └── ResourceProvider.swift
+│   │   ├── Semantic/ArticleEmbed/    # Article-embedding index: tokenizer, encoder, reader/writer
 │   │   └── Utils/
 │   │       ├── BinaryReader.swift    # mmap-backed random access
 │   │       ├── SidecarIndex.swift    # Persistent index cache + write modes
@@ -436,11 +530,20 @@ OpenMDict/
 │   ├── CLI/                      # openmdict — general-purpose reader
 │   ├── Bench/                    # openmdict-bench — sidecar A/B benchmark
 │   └── iOS/                      # iOS/iPadOS app (UIKit, Swift 6)
+│       └── OpenMDict-iOS/
+│           ├── Local.xcconfig.template   # Copy to Local.xcconfig, set DEVELOPMENT_TEAM
+│           └── Resources/AppIcons/       # Committed app icon sets
+├── docs/                         # MDict format spec, CoreData + Swift 6 concurrency notes, article embeddings
+├── preset-dicts/                 # Preset dictionary pipeline: catalog, Makefile, scripts
+│                                 # (output/ is fetched by the bootstrap script, not committed)
+├── scripts/                      # bootstrap-assets.sh, relink-project-assets.rb, model conversion
 ├── Tests/
-│   └── OpenMDictTests/
-│       ├── MDictReaderTests.swift
-│       ├── SidecarRoundTripTests.swift
-│       └── Parsers/
+│   ├── Fixtures/                 # tiny.mdx / tiny.mdd + LZO1X known-answer vectors
+│   ├── OpenMDictTests/
+│   │   ├── MDictReaderTests.swift
+│   │   ├── SidecarRoundTripTests.swift
+│   │   └── Parsers/
+│   └── OpenMDictKitTests/
 └── Package.swift
 ```
 
