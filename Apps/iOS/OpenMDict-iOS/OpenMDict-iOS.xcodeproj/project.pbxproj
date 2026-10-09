@@ -10,31 +10,22 @@
 		04232A1162482BA22F54ADCD /* OpenMDict-East5-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = D49255EF2947430D2E9AF673 /* OpenMDict-East5-Dark-iPhone@3x.png */; };
 		04631F081E654DA01A3F516C /* OpenMDict-East4-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 78B7C5E1239E6F803C244DD6 /* OpenMDict-East4-iPhone@2x.png */; };
 		0ABFFAD45721BEA36D3FDC82 /* OpenMDict-East1-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 88408661E3B10AD1A3044381 /* OpenMDict-East1-iPhone@3x.png */; };
-		0AEED932115DB912913A036A /* ClassicMatte-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = BA59FDDEAD21CDEDB3A6AFF7 /* ClassicMatte-iPhone@3x.png */; };
 		1442E21CD04149F298882291 /* OpenMDict-Inverse-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2DE01CCBCB7DE9FC45803869 /* OpenMDict-Inverse-iPadPro@2x.png */; };
 		186D03CC502BB1E41FDD5A51 /* OpenMDict-East114514-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 019348BB6FE819E3EA440B39 /* OpenMDict-East114514-Dark-iPadPro@2x.png */; };
 		1A4F32900A2055D827B9FAD7 /* OpenMDict-East3-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CDFB13F13A88FEC45B8E2FC5 /* OpenMDict-East3-Dark-iPad@2x.png */; };
 		1DE946821826A5BDC4CD0CEB /* OpenMDict-East114514-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = EE2929C23C7C85ABD3A98890 /* OpenMDict-East114514-iPhone@3x.png */; };
-		1E8646C5F6878DD977783CD1 /* ClassicLiquidGlass-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 8093109F3BEAAE0FB8B91145 /* ClassicLiquidGlass-iPad@2x.png */; };
 		2013DD0ED2EB5F8DA7616AFB /* OpenMDict-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A2992C75712964CAAACEADB2 /* OpenMDict-Dark-iPhone@2x.png */; };
 		20305B887F613958FDF9D29A /* OpenMDict-East5-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3ED863B628B089B88AA48A29 /* OpenMDict-East5-iPadPro@2x.png */; };
 		215F0ABE88BD8AC4BAE96FA4 /* OpenMDict-East114514-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3FE18026033EDD734788CF5E /* OpenMDict-East114514-Dark-iPhone@2x.png */; };
 		26FAF7DE23A07F60E051C1F8 /* OpenMDict-East2-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = B993ED7D14ED25B5DF951D02 /* OpenMDict-East2-Dark-iPhone@3x.png */; };
-		28FD01E61C5405022F05417C /* ClassicMatte-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 969DE0E7490ED1DE12A803E1 /* ClassicMatte-Dark-iPhone@2x.png */; };
-		308E0E69AFF2FB40FFE4CBF6 /* ClassicLiquidGlass-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 44B2B075D3E9BB54A46530F5 /* ClassicLiquidGlass-iPhone@3x.png */; };
 		325396B6FA4B469FD0642D58 /* OpenMDict-East114514-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 038ED98E4ADFF95BF7E31AD8 /* OpenMDict-East114514-iPhone@2x.png */; };
 		339B46B27C78790CC4F2906A /* OpenMDict-East1-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5F5CCB4DB647BEE08A0ED69D /* OpenMDict-East1-iPhone@2x.png */; };
-		3509F9B74CAAF9D63FF9CF5A /* ClassicMatte-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 60EED1BF370A0CA8F4862852 /* ClassicMatte-Dark-iPadPro@2x.png */; };
 		370C764245FD77A385AB6A91 /* OpenMDict-East1-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 138521AEF70DCF8435697B29 /* OpenMDict-East1-Dark-iPhone@2x.png */; };
 		3B4DFD1A84A7A5539E2CF5A0 /* OpenMDict-East4-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = FC192E0BAD720D780202CB09 /* OpenMDict-East4-Dark-iPad@2x.png */; };
-		3BCF160344441619BB5F502F /* ClassicLiquidGlass-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = FD99C80C704706BE6F15D303 /* ClassicLiquidGlass-iPadPro@2x.png */; };
 		3C579AB79358DB418BC496F0 /* OpenMDict-East3-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 818F96C0A203F27EB8996053 /* OpenMDict-East3-Dark-iPadPro@2x.png */; };
-		3DE6950D43B3F5217F47C2B4 /* ClassicLiquidGlass-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6FE298415A1EADB19F805F23 /* ClassicLiquidGlass-Dark-iPhone@2x.png */; };
 		41D8A8A3F57ADA263157644B /* OpenMDict-West-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = F046768380B02202B9185771 /* OpenMDict-West-iPhone@2x.png */; };
-		478E0A67AD32EC333B3FB503 /* ClassicMatte-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = D2F3B8C0B7E862E1AD15F948 /* ClassicMatte-iPad@2x.png */; };
 		51C959D8871EC27BC9210FB6 /* OpenMDict-East4-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = AEE492060BA1E8E1FAE29774 /* OpenMDict-East4-iPad@2x.png */; };
 		538347E0F893C0FFA1AE8555 /* OpenMDict-West-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C6CDC6D92C25C9310DC7926B /* OpenMDict-West-Dark-iPadPro@2x.png */; };
-		5BEBE3AF922C29D9B9FE4D33 /* ClassicLiquidGlass-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E1FC00305C9A11EADF565BDD /* ClassicLiquidGlass-Dark-iPadPro@2x.png */; };
 		5D2AF4E7B2130C32BAD1736D /* OpenMDict-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */; };
 		632E33CFBD61A536298C5770 /* OpenMDict-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */; };
 		635D08838D31A1E26E1DCBDA /* OpenMDict-East114514-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6D6A5607DBD9E3D08479ACF2 /* OpenMDict-East114514-Dark-iPad@2x.png */; };
@@ -46,29 +37,21 @@
 		6B399CA9958FD66CCEAEEF0A /* OpenMDict-East114514-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 407D89CE21FC65D1C2856C8F /* OpenMDict-East114514-Dark-iPhone@3x.png */; };
 		6C6824A951CEC9604C08E952 /* OpenMDict-East5-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B035B727E3C0AAA99CCE0F5D /* OpenMDict-East5-Dark-iPhone@2x.png */; };
 		751C33480D682A60B6247539 /* OpenMDict-Inverse-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B9D4F9D19C1B976F8625AED9 /* OpenMDict-Inverse-iPad@2x.png */; };
-		80373892E858B37132696B2C /* ClassicLiquidGlass-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 566A034EA2A12D32C3CF2ADF /* ClassicLiquidGlass-iPhone@2x.png */; };
 		86A4148E0803C5AB7366C6FD /* OpenMDict-Inverse-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5237F230B86B63408C46A116 /* OpenMDict-Inverse-iPhone@2x.png */; };
 		86DEE5C29CE073491BBE166D /* OpenMDict-East2-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B8C98FC0052D76FDF533DDD /* OpenMDict-East2-Dark-iPhone@2x.png */; };
 		878D4E420A81AA21879D4345 /* OpenMDict-Inverse.icon in Resources */ = {isa = PBXBuildFile; fileRef = 20DB5197DE0EC5ED10D00DB9 /* OpenMDict-Inverse.icon */; };
-		8E70588DA7449E5B2BFE2C96 /* ClassicMatte-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = A5E6A555F4C357034246BBB5 /* ClassicMatte-Dark-iPhone@3x.png */; };
 		93304206C69FDFC9879574FE /* OpenMDict-East2-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D52A3686C3DB572AC57DC23 /* OpenMDict-East2-iPhone@2x.png */; };
 		94A08450A11D3F3AB0212B5D /* OpenMDict-East3-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = B26EB75A71A086FE00ED7378 /* OpenMDict-East3-iPhone@3x.png */; };
 		972E22D7452B7ACCD9C61BB0 /* OpenMDict-West-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3DB193BABBF49E8D212F407F /* OpenMDict-West-iPhone@3x.png */; };
 		97A57DFB9B01EB11A140DE00 /* OpenMDict-East4-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6D2B30DF7C22E8370384ABD7 /* OpenMDict-East4-Dark-iPadPro@2x.png */; };
-		97BC5A40F40B463C33164A31 /* ClassicMatte-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = C6CCCEBC790BD1E7AFEC165F /* ClassicMatte-iPadPro@2x.png */; };
 		9B4A50301589C7C8A4CC3EF9 /* OpenMDict-East5-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 69738DC6CF6987EE859E3F2D /* OpenMDict-East5-iPad@2x.png */; };
 		9E492F21B4D1D97D1DC29697 /* OpenMDict-East4-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A9F7CA7980F2CBCD25670E14 /* OpenMDict-East4-iPadPro@2x.png */; };
 		A14E9F3618137BFFE8208BF8 /* OpenMDict-East5-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3EEC683B2E478F305D1331F6 /* OpenMDict-East5-iPhone@2x.png */; };
-		A1B2C3D4E5F60001A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60011A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png */; };
-		A1B2C3D4E5F60002A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60012A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png */; };
-		A1B2C3D4E5F60003A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60013A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPad@2x.png */; };
-		A1B2C3D4E5F60004A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60014A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPadPro@2x.png */; };
 		A4F4F8C11054B1062D5E60AD /* OpenMDict-East3-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A70E02A5D65E4CFA6D18E4AE /* OpenMDict-East3-iPhone@2x.png */; };
 		A59FC56ADF630DA0F9AC07B2 /* OpenMDict-East3-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B46F45A968963651EBC8434E /* OpenMDict-East3-Dark-iPhone@2x.png */; };
 		A5C434FB550D06A45B929E7D /* OpenMDict-East3-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = A6456AF040DB31B09B74AB72 /* OpenMDict-East3-Dark-iPhone@3x.png */; };
 		A6F9E5A5AC3970DBB8E2BB39 /* OpenMDict-East2-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = AFDAE372C399D0F6FB970800 /* OpenMDict-East2-iPhone@3x.png */; };
 		A856AEEA3A96FC8034EE80D8 /* OpenMDict-East3-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1E3C49C26D27194B41064A76 /* OpenMDict-East3-iPadPro@2x.png */; };
-		AF684CC76F2E0B35E3B9F0BC /* ClassicMatte-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A125D3E3D80668A7CB48A8C /* ClassicMatte-Dark-iPad@2x.png */; };
 		B1E6AE8CCCC565DAB1A44F28 /* OpenMDict-Inverse-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 02EFCDE24998240871803560 /* OpenMDict-Inverse-iPhone@3x.png */; };
 		B260DEB2B53795652F2FC67B /* OpenMDict-East5-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 72D79C340C94B836B2B96AB9 /* OpenMDict-East5-Dark-iPadPro@2x.png */; };
 		B362B03DD10EB4B46796EA78 /* OpenMDict-East5-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1A956324CD763D34B8F77117 /* OpenMDict-East5-Dark-iPad@2x.png */; };
@@ -78,11 +61,8 @@
 		C8F6D06B3BBB22B70516B353 /* OpenMDict-East1-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B36FAD4E6C4522083FF12D6A /* OpenMDict-East1-Dark-iPadPro@2x.png */; };
 		C9EC5894276898F086B90A12 /* OpenMDict-East1-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 798AD3AE17C4C96EAAF5F9E9 /* OpenMDict-East1-iPadPro@2x.png */; };
 		CC2C6EA3ABFC02E663588BBB /* OpenMDict-East4-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5FC9178F5CDCFA16EAFB9D34 /* OpenMDict-East4-iPhone@3x.png */; };
-		D001A9C6D50F5A8238DFBC0F /* ClassicMatte-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2D9B818315A7454C01F033A3 /* ClassicMatte-iPhone@2x.png */; };
 		D10C0813E681FBF611B6FBF0 /* OpenMDict-East114514-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7CF076FE64F50B40B7155C6B /* OpenMDict-East114514-iPadPro@2x.png */; };
 		DCC4629BB7ED18B34C40CECB /* OpenMDict-East2-Dark-iPadPro@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3788ED1C48052F633F8FE9A5 /* OpenMDict-East2-Dark-iPadPro@2x.png */; };
-		E1263B43B130436A2F519079 /* ClassicLiquidGlass-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = ABF6F185CFE6EDB824E248A1 /* ClassicLiquidGlass-Dark-iPad@2x.png */; };
-		E134851CC16F1F6B2934960C /* ClassicLiquidGlass-Dark-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = EAAC7E7523E988CCE4EBD338 /* ClassicLiquidGlass-Dark-iPhone@3x.png */; };
 		E405E7E07D0E2462EBEBBE6B /* OpenMDict-East5-iPhone@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2C6C2AB62C32067386E611F2 /* OpenMDict-East5-iPhone@3x.png */; };
 		E8309F9DA035EE839AB46F48 /* OpenMDict-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CFBB3315B0F504DEB69A1CF5 /* OpenMDict-Dark-iPad@2x.png */; };
 		ED1DFF6B90EE749E4B59D56E /* OpenMDict-East4-Dark-iPhone@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E694EDE4F413399CB52452CE /* OpenMDict-East4-Dark-iPhone@2x.png */; };
@@ -90,7 +70,6 @@
 		F1D199F29C9E3A768150A436 /* OpenMDict-East1-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9FBE0B64EDD9E3A5FD45F0DF /* OpenMDict-East1-iPad@2x.png */; };
 		F71AFFE1DD9C90A04A29DC2D /* OpenMDict-East3-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 339200C5E2D1B8356E65ABAB /* OpenMDict-East3-iPad@2x.png */; };
 		F76A22F29E806420FAFCF2CD /* OpenMDict-West-Dark-iPad@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 944DCF33B27B3580B336D1E4 /* OpenMDict-West-Dark-iPad@2x.png */; };
-		F809F0842FC7ED7A00495787 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = F809EFE12FC7ED7A00495787 /* .gitignore */; };
 		F809F0852FC7ED7A00495787 /* vocab.txt in Resources */ = {isa = PBXBuildFile; fileRef = F809EFE32FC7ED7A00495787 /* vocab.txt */; settings = {ASSET_TAGS = ("article-embed-model", ); }; };
 		F809F09B2FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */; settings = {ASSET_TAGS = ("article-embed-model", ); }; };
 		F80DBF362F4A7B7700ED2985 /* WikDict-FR-RU.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF2A2F4A7B7700ED2985 /* WikDict-FR-RU.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-fr-ru", ); }; };
@@ -163,9 +142,6 @@
 		F8B101022F70AB0000B10102 /* OpenMDict-East1.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100022F70AB0000B10002 /* OpenMDict-East1.icon */; };
 		F8B101032F70AB0000B10103 /* OpenMDict-East2.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100032F70AB0000B10003 /* OpenMDict-East2.icon */; };
 		F8B101042F70AB0000B10104 /* OpenMDict-East3.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100042F70AB0000B10004 /* OpenMDict-East3.icon */; };
-		F8B101052F70AB0000B10105 /* ClassicLiquidGlass.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */; };
-		F8B101062F70AB0000B10106 /* ClassicMatte.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100062F70AB0000B10006 /* ClassicMatte.icon */; };
-		F8B101072F70AB0000B10107 /* ClassicLiquidGlass-Inverse.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100072F70AB0000B10007 /* ClassicLiquidGlass-Inverse.icon */; };
 		F8B102052F70AB0000B10205 /* OpenMDict-East4.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */; };
 		F8B103072F70AB0000B10307 /* OpenMDict-East5.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */; };
 		F8B104082F70AB0000B10408 /* OpenMDict-East114514.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */; };
@@ -213,176 +189,152 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		019348BB6FE819E3EA440B39 /* OpenMDict-East114514-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		02EFCDE24998240871803560 /* OpenMDict-Inverse-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Inverse-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Inverse-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		034C407D26BDAFE20C08438A /* OpenMDict-East4-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		038ED98E4ADFF95BF7E31AD8 /* OpenMDict-East114514-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		138521AEF70DCF8435697B29 /* OpenMDict-East1-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		1A956324CD763D34B8F77117 /* OpenMDict-East5-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		1E3C49C26D27194B41064A76 /* OpenMDict-East3-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		20DB5197DE0EC5ED10D00DB9 /* OpenMDict-Inverse.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.icon; name = "OpenMDict-Inverse.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Inverse.icon"; sourceTree = "<absolute>"; };
-		2C6C2AB62C32067386E611F2 /* OpenMDict-East5-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		2D9B818315A7454C01F033A3 /* ClassicMatte-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		2DE01CCBCB7DE9FC45803869 /* OpenMDict-Inverse-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Inverse-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Inverse-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		339200C5E2D1B8356E65ABAB /* OpenMDict-East3-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-iPad@2x.png"; sourceTree = "<absolute>"; };
-		3788ED1C48052F633F8FE9A5 /* OpenMDict-East2-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		3A125D3E3D80668A7CB48A8C /* ClassicMatte-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		3DB193BABBF49E8D212F407F /* OpenMDict-West-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		3ED863B628B089B88AA48A29 /* OpenMDict-East5-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		3EEC683B2E478F305D1331F6 /* OpenMDict-East5-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		3FE18026033EDD734788CF5E /* OpenMDict-East114514-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		407D89CE21FC65D1C2856C8F /* OpenMDict-East114514-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		44B2B075D3E9BB54A46530F5 /* ClassicLiquidGlass-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		456ACB3D3B622FBFB400AF73 /* OpenMDict-East2-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		4B8C98FC0052D76FDF533DDD /* OpenMDict-East2-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		4D52A3686C3DB572AC57DC23 /* OpenMDict-East2-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		5237F230B86B63408C46A116 /* OpenMDict-Inverse-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Inverse-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Inverse-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		566A034EA2A12D32C3CF2ADF /* ClassicLiquidGlass-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		5F5CCB4DB647BEE08A0ED69D /* OpenMDict-East1-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		5FC9178F5CDCFA16EAFB9D34 /* OpenMDict-East4-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		60EED1BF370A0CA8F4862852 /* ClassicMatte-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		68243D9D6D445BB177E27CA9 /* OpenMDict-West-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-iPad@2x.png"; sourceTree = "<absolute>"; };
-		69738DC6CF6987EE859E3F2D /* OpenMDict-East5-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-iPad@2x.png"; sourceTree = "<absolute>"; };
-		6D2B30DF7C22E8370384ABD7 /* OpenMDict-East4-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		6D6A5607DBD9E3D08479ACF2 /* OpenMDict-East114514-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		6FE298415A1EADB19F805F23 /* ClassicLiquidGlass-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		72D79C340C94B836B2B96AB9 /* OpenMDict-East5-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		78B7C5E1239E6F803C244DD6 /* OpenMDict-East4-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		7987B2362E84978900C02D5E /* OpenMDict-East114514-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPad@2x.png"; sourceTree = "<absolute>"; };
-		798AD3AE17C4C96EAAF5F9E9 /* OpenMDict-East1-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		7CF076FE64F50B40B7155C6B /* OpenMDict-East114514-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		8093109F3BEAAE0FB8B91145 /* ClassicLiquidGlass-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-iPad@2x.png"; sourceTree = "<absolute>"; };
-		818F96C0A203F27EB8996053 /* OpenMDict-East3-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		84DB8C05023B707931AAC338 /* OpenMDict-West-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		88408661E3B10AD1A3044381 /* OpenMDict-East1-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		8DC73079E6B478909C527777 /* OpenMDict-East1-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		944DCF33B27B3580B336D1E4 /* OpenMDict-West-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		969DE0E7490ED1DE12A803E1 /* ClassicMatte-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		97A4A415FE4EE5A3DF4C10B1 /* OpenMDict-East1-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		9FBE0B64EDD9E3A5FD45F0DF /* OpenMDict-East1-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-iPad@2x.png"; sourceTree = "<absolute>"; };
-		A1B2C3D4E5F60011A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		A1B2C3D4E5F60012A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		A1B2C3D4E5F60013A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPad@2x.png"; sourceTree = "<absolute>"; };
-		A1B2C3D4E5F60014A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Inverse-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		A2992C75712964CAAACEADB2 /* OpenMDict-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
+		019348BB6FE819E3EA440B39 /* OpenMDict-East114514-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		02EFCDE24998240871803560 /* OpenMDict-Inverse-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Inverse-iPhone@3x.png"; sourceTree = "<group>"; };
+		034C407D26BDAFE20C08438A /* OpenMDict-East4-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		038ED98E4ADFF95BF7E31AD8 /* OpenMDict-East114514-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-iPhone@2x.png"; sourceTree = "<group>"; };
+		138521AEF70DCF8435697B29 /* OpenMDict-East1-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		1A956324CD763D34B8F77117 /* OpenMDict-East5-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		1E3C49C26D27194B41064A76 /* OpenMDict-East3-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-iPadPro@2x.png"; sourceTree = "<group>"; };
+		20DB5197DE0EC5ED10D00DB9 /* OpenMDict-Inverse.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-Inverse.icon"; sourceTree = "<group>"; };
+		2C6C2AB62C32067386E611F2 /* OpenMDict-East5-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-iPhone@3x.png"; sourceTree = "<group>"; };
+		2DE01CCBCB7DE9FC45803869 /* OpenMDict-Inverse-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Inverse-iPadPro@2x.png"; sourceTree = "<group>"; };
+		339200C5E2D1B8356E65ABAB /* OpenMDict-East3-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-iPad@2x.png"; sourceTree = "<group>"; };
+		3788ED1C48052F633F8FE9A5 /* OpenMDict-East2-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		3DB193BABBF49E8D212F407F /* OpenMDict-West-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-iPhone@3x.png"; sourceTree = "<group>"; };
+		3ED863B628B089B88AA48A29 /* OpenMDict-East5-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-iPadPro@2x.png"; sourceTree = "<group>"; };
+		3EEC683B2E478F305D1331F6 /* OpenMDict-East5-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-iPhone@2x.png"; sourceTree = "<group>"; };
+		3FE18026033EDD734788CF5E /* OpenMDict-East114514-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		407D89CE21FC65D1C2856C8F /* OpenMDict-East114514-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		456ACB3D3B622FBFB400AF73 /* OpenMDict-East2-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-iPadPro@2x.png"; sourceTree = "<group>"; };
+		4B8C98FC0052D76FDF533DDD /* OpenMDict-East2-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		4D52A3686C3DB572AC57DC23 /* OpenMDict-East2-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-iPhone@2x.png"; sourceTree = "<group>"; };
+		5237F230B86B63408C46A116 /* OpenMDict-Inverse-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Inverse-iPhone@2x.png"; sourceTree = "<group>"; };
+		5F5CCB4DB647BEE08A0ED69D /* OpenMDict-East1-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-iPhone@2x.png"; sourceTree = "<group>"; };
+		5FC9178F5CDCFA16EAFB9D34 /* OpenMDict-East4-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-iPhone@3x.png"; sourceTree = "<group>"; };
+		68243D9D6D445BB177E27CA9 /* OpenMDict-West-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-iPad@2x.png"; sourceTree = "<group>"; };
+		69738DC6CF6987EE859E3F2D /* OpenMDict-East5-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-iPad@2x.png"; sourceTree = "<group>"; };
+		6D2B30DF7C22E8370384ABD7 /* OpenMDict-East4-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		6D6A5607DBD9E3D08479ACF2 /* OpenMDict-East114514-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		719DFBD7A62C99CCFF367932 /* Local.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = SOURCE_ROOT; };
+		72D79C340C94B836B2B96AB9 /* OpenMDict-East5-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		78B7C5E1239E6F803C244DD6 /* OpenMDict-East4-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-iPhone@2x.png"; sourceTree = "<group>"; };
+		7987B2362E84978900C02D5E /* OpenMDict-East114514-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-iPad@2x.png"; sourceTree = "<group>"; };
+		798AD3AE17C4C96EAAF5F9E9 /* OpenMDict-East1-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-iPadPro@2x.png"; sourceTree = "<group>"; };
+		7CF076FE64F50B40B7155C6B /* OpenMDict-East114514-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-iPadPro@2x.png"; sourceTree = "<group>"; };
+		818F96C0A203F27EB8996053 /* OpenMDict-East3-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		84DB8C05023B707931AAC338 /* OpenMDict-West-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-iPadPro@2x.png"; sourceTree = "<group>"; };
+		88408661E3B10AD1A3044381 /* OpenMDict-East1-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-iPhone@3x.png"; sourceTree = "<group>"; };
+		8DC73079E6B478909C527777 /* OpenMDict-East1-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		944DCF33B27B3580B336D1E4 /* OpenMDict-West-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		97A4A415FE4EE5A3DF4C10B1 /* OpenMDict-East1-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		9EB535BA18FDF1BFE41063DE /* OpenMDict-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		9FBE0B64EDD9E3A5FD45F0DF /* OpenMDict-East1-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-iPad@2x.png"; sourceTree = "<group>"; };
+		A2992C75712964CAAACEADB2 /* OpenMDict-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
 		A5AB7E382F0E15A000B554E0 /* OpenMDict-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OpenMDict-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A5E6A555F4C357034246BBB5 /* ClassicMatte-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		A6456AF040DB31B09B74AB72 /* OpenMDict-East3-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		A70E02A5D65E4CFA6D18E4AE /* OpenMDict-East3-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		A9E6F9399E96DFE9057F45F7 /* OpenMDict-West-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		A9F7CA7980F2CBCD25670E14 /* OpenMDict-East4-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		ABF6F185CFE6EDB824E248A1 /* ClassicLiquidGlass-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		AEE492060BA1E8E1FAE29774 /* OpenMDict-East4-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-iPad@2x.png"; sourceTree = "<absolute>"; };
-		AFDAE372C399D0F6FB970800 /* OpenMDict-East2-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		B035B727E3C0AAA99CCE0F5D /* OpenMDict-East5-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		B26EB75A71A086FE00ED7378 /* OpenMDict-East3-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		B36FAD4E6C4522083FF12D6A /* OpenMDict-East1-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East1-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		B46F45A968963651EBC8434E /* OpenMDict-East3-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		B993ED7D14ED25B5DF951D02 /* OpenMDict-East2-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		B9D4F9D19C1B976F8625AED9 /* OpenMDict-Inverse-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Inverse-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Inverse-iPad@2x.png"; sourceTree = "<absolute>"; };
-		BA59FDDEAD21CDEDB3A6AFF7 /* ClassicMatte-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		C6CCCEBC790BD1E7AFEC165F /* ClassicMatte-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		C6CDC6D92C25C9310DC7926B /* OpenMDict-West-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		CDF40071D2BD3242AE797B40 /* OpenMDict-East2-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-iPad@2x.png"; sourceTree = "<absolute>"; };
-		CDFB13F13A88FEC45B8E2FC5 /* OpenMDict-East3-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East3-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		CFBB3315B0F504DEB69A1CF5 /* OpenMDict-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		D1A5D62E0984ED48E1C1BD06 /* OpenMDict-East2-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East2-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		D2F3B8C0B7E862E1AD15F948 /* ClassicMatte-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicMatte-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte-iPad@2x.png"; sourceTree = "<absolute>"; };
-		D49255EF2947430D2E9AF673 /* OpenMDict-East5-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East5-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		E1FC00305C9A11EADF565BDD /* ClassicLiquidGlass-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Dark-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Dark-iPadPro@2x.png"; sourceTree = "<absolute>"; };
-		E694EDE4F413399CB52452CE /* OpenMDict-East4-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-Dark-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-Dark-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		EAAC7E7523E988CCE4EBD338 /* ClassicLiquidGlass-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		EE2929C23C7C85ABD3A98890 /* OpenMDict-East114514-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East114514-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		F046768380B02202B9185771 /* OpenMDict-West-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-iPhone@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-iPhone@2x.png"; sourceTree = "<absolute>"; };
-		F6C10ACA7B204C6F16810B36 /* OpenMDict-West-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-West-Dark-iPhone@3x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West-Dark-iPhone@3x.png"; sourceTree = "<absolute>"; };
-		F809EFE12FC7ED7A00495787 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
-		F809EFE22FC7ED7A00495787 /* all-MiniLM-L6-v2.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = "all-MiniLM-L6-v2.mlpackage"; sourceTree = "<group>"; };
+		A6456AF040DB31B09B74AB72 /* OpenMDict-East3-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		A70E02A5D65E4CFA6D18E4AE /* OpenMDict-East3-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-iPhone@2x.png"; sourceTree = "<group>"; };
+		A9E6F9399E96DFE9057F45F7 /* OpenMDict-West-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		A9F7CA7980F2CBCD25670E14 /* OpenMDict-East4-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-iPadPro@2x.png"; sourceTree = "<group>"; };
+		AEE492060BA1E8E1FAE29774 /* OpenMDict-East4-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-iPad@2x.png"; sourceTree = "<group>"; };
+		AFDAE372C399D0F6FB970800 /* OpenMDict-East2-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-iPhone@3x.png"; sourceTree = "<group>"; };
+		B035B727E3C0AAA99CCE0F5D /* OpenMDict-East5-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		B26EB75A71A086FE00ED7378 /* OpenMDict-East3-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-iPhone@3x.png"; sourceTree = "<group>"; };
+		B36FAD4E6C4522083FF12D6A /* OpenMDict-East1-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East1-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		B46F45A968963651EBC8434E /* OpenMDict-East3-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		B993ED7D14ED25B5DF951D02 /* OpenMDict-East2-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		B9D4F9D19C1B976F8625AED9 /* OpenMDict-Inverse-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Inverse-iPad@2x.png"; sourceTree = "<group>"; };
+		C6CDC6D92C25C9310DC7926B /* OpenMDict-West-Dark-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-Dark-iPadPro@2x.png"; sourceTree = "<group>"; };
+		CDF40071D2BD3242AE797B40 /* OpenMDict-East2-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-iPad@2x.png"; sourceTree = "<group>"; };
+		CDFB13F13A88FEC45B8E2FC5 /* OpenMDict-East3-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East3-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		CFBB3315B0F504DEB69A1CF5 /* OpenMDict-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		D1A5D62E0984ED48E1C1BD06 /* OpenMDict-East2-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East2-Dark-iPad@2x.png"; sourceTree = "<group>"; };
+		D49255EF2947430D2E9AF673 /* OpenMDict-East5-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East5-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
+		E694EDE4F413399CB52452CE /* OpenMDict-East4-Dark-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-Dark-iPhone@2x.png"; sourceTree = "<group>"; };
+		EE2929C23C7C85ABD3A98890 /* OpenMDict-East114514-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East114514-iPhone@3x.png"; sourceTree = "<group>"; };
+		F046768380B02202B9185771 /* OpenMDict-West-iPhone@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-iPhone@2x.png"; sourceTree = "<group>"; };
+		F6C10ACA7B204C6F16810B36 /* OpenMDict-West-Dark-iPhone@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-West-Dark-iPhone@3x.png"; sourceTree = "<group>"; };
 		F809EFE32FC7ED7A00495787 /* vocab.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = vocab.txt; sourceTree = "<group>"; };
 		F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.coreml-model-compiled"; path = "all-MiniLM-L6-v2.mlmodelc"; sourceTree = "<group>"; };
-		F80DBF272F4A7B7700ED2985 /* WikDict-ES-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-PT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-ES-PT/WikDict-ES-PT.mdx"; sourceTree = "<absolute>"; };
-		F80DBF282F4A7B7700ED2985 /* WikDict-FR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-EN/WikDict-FR-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF292F4A7B7700ED2985 /* WikDict-FR-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-ES/WikDict-FR-ES.mdx"; sourceTree = "<absolute>"; };
-		F80DBF2A2F4A7B7700ED2985 /* WikDict-FR-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-RU.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-FR-RU/WikDict-FR-RU.mdx"; sourceTree = "<absolute>"; };
-		F80DBF2B2F4A7B7700ED2985 /* WikDict-IT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-IT-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-IT-EN/WikDict-IT-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF2C2F4A7B7700ED2985 /* WikDict-LA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-LA-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-LA-EN/WikDict-LA-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF2D2F4A7B7700ED2985 /* WikDict-PT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-PT-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-PT-EN/WikDict-PT-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF2E2F4A7B7700ED2985 /* WikDict-PT-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-PT-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-PT-ES/WikDict-PT-ES.mdx"; sourceTree = "<absolute>"; };
-		F80DBF2F2F4A7B7700ED2985 /* WikDict-RU-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-RU-DE.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-RU-DE/WikDict-RU-DE.mdx"; sourceTree = "<absolute>"; };
-		F80DBF302F4A7B7700ED2985 /* WikDict-RU-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-RU-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-RU-EN/WikDict-RU-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF312F4A7B7700ED2985 /* WikDict-RU-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-RU-FR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-RU-FR/WikDict-RU-FR.mdx"; sourceTree = "<absolute>"; };
-		F80DBF322F4A7B7700ED2985 /* WikDict-TR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-TR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-TR-EN/WikDict-TR-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF332F4A7B7700ED2985 /* Wiktionary-AR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Wiktionary-AR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Wiktionary-AR-EN/Wiktionary-AR-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF342F4A7B7700ED2985 /* Wiktionary-KO-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Wiktionary-KO-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Wiktionary-KO-EN/Wiktionary-KO-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF352F4A7B7700ED2985 /* WordNet-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WordNet-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WordNet-EN/WordNet-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF452F4A7B9D00ED2985 /* Bible-Almeida-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Almeida-PT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Almeida-PT/Bible-Almeida-PT.mdx"; sourceTree = "<absolute>"; };
-		F80DBF462F4A7B9D00ED2985 /* Bible-Byzantine-GRC.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Byzantine-GRC.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Byzantine-GRC/Bible-Byzantine-GRC.mdx"; sourceTree = "<absolute>"; };
-		F80DBF472F4A7B9D00ED2985 /* Bible-CUV-ZH-Hans.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-CUV-ZH-Hans.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-CUV-ZH-Hans/Bible-CUV-ZH-Hans.mdx"; sourceTree = "<absolute>"; };
-		F80DBF482F4A7B9D00ED2985 /* Bible-CUV-ZH-Hant.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-CUV-ZH-Hant.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-CUV-ZH-Hant/Bible-CUV-ZH-Hant.mdx"; sourceTree = "<absolute>"; };
-		F80DBF492F4A7B9D00ED2985 /* Bible-Darby-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Darby-FR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Darby-FR/Bible-Darby-FR.mdx"; sourceTree = "<absolute>"; };
-		F80DBF4A2F4A7B9D00ED2985 /* Bible-Diodati-IT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Diodati-IT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Diodati-IT/Bible-Diodati-IT.mdx"; sourceTree = "<absolute>"; };
-		F80DBF4B2F4A7B9D00ED2985 /* Bible-KJV-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-KJV-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-KJV-EN/Bible-KJV-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF4C2F4A7B9D00ED2985 /* Bible-Korean-KO.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Korean-KO.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Korean-KO/Bible-Korean-KO.mdx"; sourceTree = "<absolute>"; };
-		F80DBF4D2F4A7B9D00ED2985 /* Bible-Kougo-JA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Kougo-JA.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Kougo-JA/Bible-Kougo-JA.mdx"; sourceTree = "<absolute>"; };
-		F80DBF4E2F4A7B9D00ED2985 /* Bible-Luther1912-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Luther1912-DE.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Luther1912-DE/Bible-Luther1912-DE.mdx"; sourceTree = "<absolute>"; };
-		F80DBF4F2F4A7B9D00ED2985 /* Bible-RV1909-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-RV1909-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-RV1909-ES/Bible-RV1909-ES.mdx"; sourceTree = "<absolute>"; };
-		F80DBF502F4A7B9D00ED2985 /* Bible-SVD-AR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-SVD-AR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-SVD-AR/Bible-SVD-AR.mdx"; sourceTree = "<absolute>"; };
-		F80DBF512F4A7B9D00ED2985 /* Bible-Synodal-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Synodal-RU.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Synodal-RU/Bible-Synodal-RU.mdx"; sourceTree = "<absolute>"; };
-		F80DBF532F4A7B9D00ED2985 /* Bible-Vulgate-LA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Vulgate-LA.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Bible-Vulgate-LA/Bible-Vulgate-LA.mdx"; sourceTree = "<absolute>"; };
-		F80DBF542F4A7B9D00ED2985 /* CC-Canto-YUE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CC-Canto-YUE-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/CC-Canto-YUE-EN/CC-Canto-YUE-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF552F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CEDICT-ZH-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF562F4A7B9D00ED2985 /* FreeDict-DE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "FreeDict-DE-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/FreeDict-DE-EN/FreeDict-DE-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF572F4A7B9D00ED2985 /* FreeDict-EN-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "FreeDict-EN-DE.mdx"; path = "/path/to/open-mdict/dicts/presets/output/FreeDict-EN-DE/FreeDict-EN-DE.mdx"; sourceTree = "<absolute>"; };
-		F80DBF582F4A7B9D00ED2985 /* GCIDE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GCIDE-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/GCIDE-EN/GCIDE-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF592F4A7B9D00ED2985 /* JMdict-JA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "JMdict-JA-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/JMdict-JA-EN/JMdict-JA-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF5A2F4A7B9D00ED2985 /* Kaikki-AR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-AR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-AR-EN/Kaikki-AR-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF5B2F4A7B9D00ED2985 /* Kaikki-EL-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-EL-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-EL-EN/Kaikki-EL-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF5C2F4A7B9D00ED2985 /* Kaikki-ES-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-ES-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-ES-EN/Kaikki-ES-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF5D2F4A7B9D00ED2985 /* Kaikki-FR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-FR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-FR-EN/Kaikki-FR-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF5E2F4A7B9D00ED2985 /* Kaikki-IT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-IT-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-IT-EN/Kaikki-IT-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF5F2F4A7B9D00ED2985 /* Kaikki-KO-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-KO-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-KO-EN/Kaikki-KO-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF602F4A7B9D00ED2985 /* Kaikki-LA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-LA-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-LA-EN/Kaikki-LA-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF612F4A7B9D00ED2985 /* Kaikki-PT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-PT-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-PT-EN/Kaikki-PT-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF622F4A7B9D00ED2985 /* Kaikki-RU-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-RU-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-RU-EN/Kaikki-RU-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF632F4A7B9D00ED2985 /* Kaikki-TR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-TR-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Kaikki-TR-EN/Kaikki-TR-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF642F4A7B9D00ED2985 /* KANJIDIC2-JA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "KANJIDIC2-JA.mdx"; path = "/path/to/open-mdict/dicts/presets/output/KANJIDIC2-JA/KANJIDIC2-JA.mdx"; sourceTree = "<absolute>"; };
-		F80DBF652F4A7B9D00ED2985 /* Lewis-Short-LA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Lewis-Short-LA-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Lewis-Short-LA-EN/Lewis-Short-LA-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF662F4A7B9D00ED2985 /* LSJ-GRC-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "LSJ-GRC-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/LSJ-GRC-EN/LSJ-GRC-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF672F4A7B9D00ED2985 /* preset-dictionaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "preset-dictionaries.json"; path = "/path/to/open-mdict/dicts/presets/preset-dictionaries.json"; sourceTree = "<absolute>"; };
-		F80DBF682F4A7B9D00ED2985 /* Moby-Thesaurus-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Moby-Thesaurus-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Moby-Thesaurus-EN/Moby-Thesaurus-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF692F4A7B9D00ED2985 /* Unihan-CJK.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Unihan-CJK.mdx"; path = "/path/to/open-mdict/dicts/presets/output/Unihan-CJK/Unihan-CJK.mdx"; sourceTree = "<absolute>"; };
-		F80DBF6A2F4A7B9D00ED2985 /* WikDict-DE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-DE-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-DE-EN/WikDict-DE-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF6B2F4A7B9D00ED2985 /* WikDict-DE-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-DE-RU.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-DE-RU/WikDict-DE-RU.mdx"; sourceTree = "<absolute>"; };
-		F80DBF6C2F4A7B9D00ED2985 /* WikDict-EL-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EL-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EL-EN/WikDict-EL-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF6D2F4A7B9D00ED2985 /* WikDict-EN-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-DE.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-DE/WikDict-EN-DE.mdx"; sourceTree = "<absolute>"; };
-		F80DBF6E2F4A7B9D00ED2985 /* WikDict-EN-EL.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-EL.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-EL/WikDict-EN-EL.mdx"; sourceTree = "<absolute>"; };
-		F80DBF6F2F4A7B9D00ED2985 /* WikDict-EN-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-ES.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-ES/WikDict-EN-ES.mdx"; sourceTree = "<absolute>"; };
-		F80DBF702F4A7B9D00ED2985 /* WikDict-EN-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-FR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-FR/WikDict-EN-FR.mdx"; sourceTree = "<absolute>"; };
-		F80DBF712F4A7B9D00ED2985 /* WikDict-EN-IT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-IT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-IT/WikDict-EN-IT.mdx"; sourceTree = "<absolute>"; };
-		F80DBF722F4A7B9D00ED2985 /* WikDict-EN-LA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-LA.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-LA/WikDict-EN-LA.mdx"; sourceTree = "<absolute>"; };
-		F80DBF732F4A7B9D00ED2985 /* WikDict-EN-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-PT.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-PT/WikDict-EN-PT.mdx"; sourceTree = "<absolute>"; };
-		F80DBF742F4A7B9D00ED2985 /* WikDict-EN-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-RU.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-RU/WikDict-EN-RU.mdx"; sourceTree = "<absolute>"; };
-		F80DBF752F4A7B9D00ED2985 /* WikDict-EN-TR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-TR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-EN-TR/WikDict-EN-TR.mdx"; sourceTree = "<absolute>"; };
-		F80DBF762F4A7B9D00ED2985 /* WikDict-ES-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-EN.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-ES-EN/WikDict-ES-EN.mdx"; sourceTree = "<absolute>"; };
-		F80DBF772F4A7B9D00ED2985 /* WikDict-ES-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-FR.mdx"; path = "/path/to/open-mdict/dicts/presets/output/WikDict-ES-FR/WikDict-ES-FR.mdx"; sourceTree = "<absolute>"; };
-		F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = OpenMDict.icon; path = "/path/to/open-mdict/resources/app-icon/OpenMDict.icon"; sourceTree = "<absolute>"; };
-		F8B100012F70AB0000B10001 /* OpenMDict-West.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-West.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-West.icon"; sourceTree = "<absolute>"; };
-		F8B100022F70AB0000B10002 /* OpenMDict-East1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East1.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East1.icon"; sourceTree = "<absolute>"; };
-		F8B100032F70AB0000B10003 /* OpenMDict-East2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East2.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East2.icon"; sourceTree = "<absolute>"; };
-		F8B100042F70AB0000B10004 /* OpenMDict-East3.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East3.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East3.icon"; sourceTree = "<absolute>"; };
-		F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = ClassicLiquidGlass.icon; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass.icon"; sourceTree = "<absolute>"; };
-		F8B100062F70AB0000B10006 /* ClassicMatte.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = ClassicMatte.icon; path = "/path/to/open-mdict/resources/app-icon/export/ClassicMatte.icon"; sourceTree = "<absolute>"; };
-		F8B100072F70AB0000B10007 /* ClassicLiquidGlass-Inverse.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "ClassicLiquidGlass-Inverse.icon"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-Inverse.icon"; sourceTree = "<absolute>"; };
-		F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East4.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4.icon"; sourceTree = "<absolute>"; };
-		F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East5.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East5.icon"; sourceTree = "<absolute>"; };
-		F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "OpenMDict-East114514.icon"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East114514.icon"; sourceTree = "<absolute>"; };
-		F8B105191926F70AB0000001 /* OpenMDict-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-Preview.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-Preview.png"; sourceTree = "<absolute>"; };
+		F80DBF272F4A7B7700ED2985 /* WikDict-ES-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-PT.mdx"; path = "../../../preset-dicts/output/WikDict-ES-PT/WikDict-ES-PT.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF282F4A7B7700ED2985 /* WikDict-FR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-EN.mdx"; path = "../../../preset-dicts/output/WikDict-FR-EN/WikDict-FR-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF292F4A7B7700ED2985 /* WikDict-FR-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-ES.mdx"; path = "../../../preset-dicts/output/WikDict-FR-ES/WikDict-FR-ES.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF2A2F4A7B7700ED2985 /* WikDict-FR-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-FR-RU.mdx"; path = "../../../preset-dicts/output/WikDict-FR-RU/WikDict-FR-RU.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF2B2F4A7B7700ED2985 /* WikDict-IT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-IT-EN.mdx"; path = "../../../preset-dicts/output/WikDict-IT-EN/WikDict-IT-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF2C2F4A7B7700ED2985 /* WikDict-LA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-LA-EN.mdx"; path = "../../../preset-dicts/output/WikDict-LA-EN/WikDict-LA-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF2D2F4A7B7700ED2985 /* WikDict-PT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-PT-EN.mdx"; path = "../../../preset-dicts/output/WikDict-PT-EN/WikDict-PT-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF2E2F4A7B7700ED2985 /* WikDict-PT-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-PT-ES.mdx"; path = "../../../preset-dicts/output/WikDict-PT-ES/WikDict-PT-ES.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF2F2F4A7B7700ED2985 /* WikDict-RU-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-RU-DE.mdx"; path = "../../../preset-dicts/output/WikDict-RU-DE/WikDict-RU-DE.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF302F4A7B7700ED2985 /* WikDict-RU-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-RU-EN.mdx"; path = "../../../preset-dicts/output/WikDict-RU-EN/WikDict-RU-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF312F4A7B7700ED2985 /* WikDict-RU-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-RU-FR.mdx"; path = "../../../preset-dicts/output/WikDict-RU-FR/WikDict-RU-FR.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF322F4A7B7700ED2985 /* WikDict-TR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-TR-EN.mdx"; path = "../../../preset-dicts/output/WikDict-TR-EN/WikDict-TR-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF332F4A7B7700ED2985 /* Wiktionary-AR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Wiktionary-AR-EN.mdx"; path = "../../../preset-dicts/output/Wiktionary-AR-EN/Wiktionary-AR-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF342F4A7B7700ED2985 /* Wiktionary-KO-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Wiktionary-KO-EN.mdx"; path = "../../../preset-dicts/output/Wiktionary-KO-EN/Wiktionary-KO-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF352F4A7B7700ED2985 /* WordNet-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WordNet-EN.mdx"; path = "../../../preset-dicts/output/WordNet-EN/WordNet-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF452F4A7B9D00ED2985 /* Bible-Almeida-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Almeida-PT.mdx"; path = "../../../preset-dicts/output/Bible-Almeida-PT/Bible-Almeida-PT.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF462F4A7B9D00ED2985 /* Bible-Byzantine-GRC.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Byzantine-GRC.mdx"; path = "../../../preset-dicts/output/Bible-Byzantine-GRC/Bible-Byzantine-GRC.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF472F4A7B9D00ED2985 /* Bible-CUV-ZH-Hans.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-CUV-ZH-Hans.mdx"; path = "../../../preset-dicts/output/Bible-CUV-ZH-Hans/Bible-CUV-ZH-Hans.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF482F4A7B9D00ED2985 /* Bible-CUV-ZH-Hant.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-CUV-ZH-Hant.mdx"; path = "../../../preset-dicts/output/Bible-CUV-ZH-Hant/Bible-CUV-ZH-Hant.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF492F4A7B9D00ED2985 /* Bible-Darby-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Darby-FR.mdx"; path = "../../../preset-dicts/output/Bible-Darby-FR/Bible-Darby-FR.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF4A2F4A7B9D00ED2985 /* Bible-Diodati-IT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Diodati-IT.mdx"; path = "../../../preset-dicts/output/Bible-Diodati-IT/Bible-Diodati-IT.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF4B2F4A7B9D00ED2985 /* Bible-KJV-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-KJV-EN.mdx"; path = "../../../preset-dicts/output/Bible-KJV-EN/Bible-KJV-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF4C2F4A7B9D00ED2985 /* Bible-Korean-KO.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Korean-KO.mdx"; path = "../../../preset-dicts/output/Bible-Korean-KO/Bible-Korean-KO.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF4D2F4A7B9D00ED2985 /* Bible-Kougo-JA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Kougo-JA.mdx"; path = "../../../preset-dicts/output/Bible-Kougo-JA/Bible-Kougo-JA.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF4E2F4A7B9D00ED2985 /* Bible-Luther1912-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Luther1912-DE.mdx"; path = "../../../preset-dicts/output/Bible-Luther1912-DE/Bible-Luther1912-DE.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF4F2F4A7B9D00ED2985 /* Bible-RV1909-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-RV1909-ES.mdx"; path = "../../../preset-dicts/output/Bible-RV1909-ES/Bible-RV1909-ES.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF502F4A7B9D00ED2985 /* Bible-SVD-AR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-SVD-AR.mdx"; path = "../../../preset-dicts/output/Bible-SVD-AR/Bible-SVD-AR.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF512F4A7B9D00ED2985 /* Bible-Synodal-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Synodal-RU.mdx"; path = "../../../preset-dicts/output/Bible-Synodal-RU/Bible-Synodal-RU.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF532F4A7B9D00ED2985 /* Bible-Vulgate-LA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Bible-Vulgate-LA.mdx"; path = "../../../preset-dicts/output/Bible-Vulgate-LA/Bible-Vulgate-LA.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF542F4A7B9D00ED2985 /* CC-Canto-YUE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CC-Canto-YUE-EN.mdx"; path = "../../../preset-dicts/output/CC-Canto-YUE-EN/CC-Canto-YUE-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF552F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CEDICT-ZH-EN.mdx"; path = "../../../preset-dicts/output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF562F4A7B9D00ED2985 /* FreeDict-DE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "FreeDict-DE-EN.mdx"; path = "../../../preset-dicts/output/FreeDict-DE-EN/FreeDict-DE-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF572F4A7B9D00ED2985 /* FreeDict-EN-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "FreeDict-EN-DE.mdx"; path = "../../../preset-dicts/output/FreeDict-EN-DE/FreeDict-EN-DE.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF582F4A7B9D00ED2985 /* GCIDE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GCIDE-EN.mdx"; path = "../../../preset-dicts/output/GCIDE-EN/GCIDE-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF592F4A7B9D00ED2985 /* JMdict-JA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "JMdict-JA-EN.mdx"; path = "../../../preset-dicts/output/JMdict-JA-EN/JMdict-JA-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF5A2F4A7B9D00ED2985 /* Kaikki-AR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-AR-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-AR-EN/Kaikki-AR-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF5B2F4A7B9D00ED2985 /* Kaikki-EL-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-EL-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-EL-EN/Kaikki-EL-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF5C2F4A7B9D00ED2985 /* Kaikki-ES-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-ES-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-ES-EN/Kaikki-ES-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF5D2F4A7B9D00ED2985 /* Kaikki-FR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-FR-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-FR-EN/Kaikki-FR-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF5E2F4A7B9D00ED2985 /* Kaikki-IT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-IT-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-IT-EN/Kaikki-IT-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF5F2F4A7B9D00ED2985 /* Kaikki-KO-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-KO-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-KO-EN/Kaikki-KO-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF602F4A7B9D00ED2985 /* Kaikki-LA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-LA-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-LA-EN/Kaikki-LA-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF612F4A7B9D00ED2985 /* Kaikki-PT-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-PT-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-PT-EN/Kaikki-PT-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF622F4A7B9D00ED2985 /* Kaikki-RU-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-RU-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-RU-EN/Kaikki-RU-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF632F4A7B9D00ED2985 /* Kaikki-TR-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Kaikki-TR-EN.mdx"; path = "../../../preset-dicts/output/Kaikki-TR-EN/Kaikki-TR-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF642F4A7B9D00ED2985 /* KANJIDIC2-JA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "KANJIDIC2-JA.mdx"; path = "../../../preset-dicts/output/KANJIDIC2-JA/KANJIDIC2-JA.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF652F4A7B9D00ED2985 /* Lewis-Short-LA-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Lewis-Short-LA-EN.mdx"; path = "../../../preset-dicts/output/Lewis-Short-LA-EN/Lewis-Short-LA-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF662F4A7B9D00ED2985 /* LSJ-GRC-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "LSJ-GRC-EN.mdx"; path = "../../../preset-dicts/output/LSJ-GRC-EN/LSJ-GRC-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF672F4A7B9D00ED2985 /* preset-dictionaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "preset-dictionaries.json"; path = "../../../preset-dicts/preset-dictionaries.json"; sourceTree = SOURCE_ROOT; };
+		F80DBF682F4A7B9D00ED2985 /* Moby-Thesaurus-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Moby-Thesaurus-EN.mdx"; path = "../../../preset-dicts/output/Moby-Thesaurus-EN/Moby-Thesaurus-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF692F4A7B9D00ED2985 /* Unihan-CJK.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Unihan-CJK.mdx"; path = "../../../preset-dicts/output/Unihan-CJK/Unihan-CJK.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF6A2F4A7B9D00ED2985 /* WikDict-DE-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-DE-EN.mdx"; path = "../../../preset-dicts/output/WikDict-DE-EN/WikDict-DE-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF6B2F4A7B9D00ED2985 /* WikDict-DE-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-DE-RU.mdx"; path = "../../../preset-dicts/output/WikDict-DE-RU/WikDict-DE-RU.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF6C2F4A7B9D00ED2985 /* WikDict-EL-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EL-EN.mdx"; path = "../../../preset-dicts/output/WikDict-EL-EN/WikDict-EL-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF6D2F4A7B9D00ED2985 /* WikDict-EN-DE.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-DE.mdx"; path = "../../../preset-dicts/output/WikDict-EN-DE/WikDict-EN-DE.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF6E2F4A7B9D00ED2985 /* WikDict-EN-EL.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-EL.mdx"; path = "../../../preset-dicts/output/WikDict-EN-EL/WikDict-EN-EL.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF6F2F4A7B9D00ED2985 /* WikDict-EN-ES.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-ES.mdx"; path = "../../../preset-dicts/output/WikDict-EN-ES/WikDict-EN-ES.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF702F4A7B9D00ED2985 /* WikDict-EN-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-FR.mdx"; path = "../../../preset-dicts/output/WikDict-EN-FR/WikDict-EN-FR.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF712F4A7B9D00ED2985 /* WikDict-EN-IT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-IT.mdx"; path = "../../../preset-dicts/output/WikDict-EN-IT/WikDict-EN-IT.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF722F4A7B9D00ED2985 /* WikDict-EN-LA.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-LA.mdx"; path = "../../../preset-dicts/output/WikDict-EN-LA/WikDict-EN-LA.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF732F4A7B9D00ED2985 /* WikDict-EN-PT.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-PT.mdx"; path = "../../../preset-dicts/output/WikDict-EN-PT/WikDict-EN-PT.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF742F4A7B9D00ED2985 /* WikDict-EN-RU.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-RU.mdx"; path = "../../../preset-dicts/output/WikDict-EN-RU/WikDict-EN-RU.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF752F4A7B9D00ED2985 /* WikDict-EN-TR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-EN-TR.mdx"; path = "../../../preset-dicts/output/WikDict-EN-TR/WikDict-EN-TR.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF762F4A7B9D00ED2985 /* WikDict-ES-EN.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-EN.mdx"; path = "../../../preset-dicts/output/WikDict-ES-EN/WikDict-ES-EN.mdx"; sourceTree = SOURCE_ROOT; };
+		F80DBF772F4A7B9D00ED2985 /* WikDict-ES-FR.mdx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "WikDict-ES-FR.mdx"; path = "../../../preset-dicts/output/WikDict-ES-FR/WikDict-ES-FR.mdx"; sourceTree = SOURCE_ROOT; };
+		F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = OpenMDict.icon; sourceTree = "<group>"; };
+		F8B100012F70AB0000B10001 /* OpenMDict-West.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-West.icon"; sourceTree = "<group>"; };
+		F8B100022F70AB0000B10002 /* OpenMDict-East1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-East1.icon"; sourceTree = "<group>"; };
+		F8B100032F70AB0000B10003 /* OpenMDict-East2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-East2.icon"; sourceTree = "<group>"; };
+		F8B100042F70AB0000B10004 /* OpenMDict-East3.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-East3.icon"; sourceTree = "<group>"; };
+		F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-East4.icon"; sourceTree = "<group>"; };
+		F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-East5.icon"; sourceTree = "<group>"; };
+		F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "OpenMDict-East114514.icon"; sourceTree = "<group>"; };
+		F8B105191926F70AB0000001 /* OpenMDict-Preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-Preview.png"; sourceTree = "<group>"; };
 		F8F7954F2F42C4D700D47B41 /* OpenMDict-ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ShareExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8F797362F42EBB600D47B41 /* OpenMDict-ActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "OpenMDict-ActionExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8F797372F42EBB600D47B41 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
-		FC192E0BAD720D780202CB09 /* OpenMDict-East4-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "OpenMDict-East4-Dark-iPad@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/OpenMDict-East4-Dark-iPad@2x.png"; sourceTree = "<absolute>"; };
-		FD99C80C704706BE6F15D303 /* ClassicLiquidGlass-iPadPro@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "ClassicLiquidGlass-iPadPro@2x.png"; path = "/path/to/open-mdict/resources/app-icon/export/ClassicLiquidGlass-iPadPro@2x.png"; sourceTree = "<absolute>"; };
+		FC192E0BAD720D780202CB09 /* OpenMDict-East4-Dark-iPad@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OpenMDict-East4-Dark-iPad@2x.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -514,6 +466,7 @@
 				F8F797392F42EBB700D47B41 /* OpenMDict-ActionExtension */,
 				F8E12D972F1CA93800D8E524 /* Frameworks */,
 				A5AB7E392F0E15A000B554E0 /* Products */,
+				719DFBD7A62C99CCFF367932 /* Local.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -530,8 +483,6 @@
 		F809F1542FCD251200495787 /* Article Embeddings */ = {
 			isa = PBXGroup;
 			children = (
-				F809EFE12FC7ED7A00495787 /* .gitignore */,
-				F809EFE22FC7ED7A00495787 /* all-MiniLM-L6-v2.mlpackage */,
 				F809EFE42FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc */,
 				F809EFE32FC7ED7A00495787 /* vocab.txt */,
 			);
@@ -550,29 +501,6 @@
 				F8B100252F70AB0000B10025 /* OpenMDict-East4.icon */,
 				F8B100272F70AB0000B10027 /* OpenMDict-East5.icon */,
 				F8B100282F70AB0000B10028 /* OpenMDict-East114514.icon */,
-				F8B100052F70AB0000B10005 /* ClassicLiquidGlass.icon */,
-				F8B100072F70AB0000B10007 /* ClassicLiquidGlass-Inverse.icon */,
-				F8B100062F70AB0000B10006 /* ClassicMatte.icon */,
-				ABF6F185CFE6EDB824E248A1 /* ClassicLiquidGlass-Dark-iPad@2x.png */,
-				E1FC00305C9A11EADF565BDD /* ClassicLiquidGlass-Dark-iPadPro@2x.png */,
-				6FE298415A1EADB19F805F23 /* ClassicLiquidGlass-Dark-iPhone@2x.png */,
-				EAAC7E7523E988CCE4EBD338 /* ClassicLiquidGlass-Dark-iPhone@3x.png */,
-				8093109F3BEAAE0FB8B91145 /* ClassicLiquidGlass-iPad@2x.png */,
-				FD99C80C704706BE6F15D303 /* ClassicLiquidGlass-iPadPro@2x.png */,
-				566A034EA2A12D32C3CF2ADF /* ClassicLiquidGlass-iPhone@2x.png */,
-				44B2B075D3E9BB54A46530F5 /* ClassicLiquidGlass-iPhone@3x.png */,
-				A1B2C3D4E5F60011A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png */,
-				A1B2C3D4E5F60012A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png */,
-				A1B2C3D4E5F60013A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPad@2x.png */,
-				A1B2C3D4E5F60014A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPadPro@2x.png */,
-				3A125D3E3D80668A7CB48A8C /* ClassicMatte-Dark-iPad@2x.png */,
-				60EED1BF370A0CA8F4862852 /* ClassicMatte-Dark-iPadPro@2x.png */,
-				969DE0E7490ED1DE12A803E1 /* ClassicMatte-Dark-iPhone@2x.png */,
-				A5E6A555F4C357034246BBB5 /* ClassicMatte-Dark-iPhone@3x.png */,
-				D2F3B8C0B7E862E1AD15F948 /* ClassicMatte-iPad@2x.png */,
-				C6CCCEBC790BD1E7AFEC165F /* ClassicMatte-iPadPro@2x.png */,
-				2D9B818315A7454C01F033A3 /* ClassicMatte-iPhone@2x.png */,
-				BA59FDDEAD21CDEDB3A6AFF7 /* ClassicMatte-iPhone@3x.png */,
 				CFBB3315B0F504DEB69A1CF5 /* OpenMDict-Dark-iPad@2x.png */,
 				6E61C1317FE1F40885777BEA /* OpenMDict-Dark-iPadPro@2x.png */,
 				A2992C75712964CAAACEADB2 /* OpenMDict-Dark-iPhone@2x.png */,
@@ -640,7 +568,8 @@
 				2DE01CCBCB7DE9FC45803869 /* OpenMDict-Inverse-iPadPro@2x.png */,
 			);
 			name = "App Icons";
-			sourceTree = "<group>";
+			path = Resources/AppIcons;
+			sourceTree = SOURCE_ROOT;
 		};
 		F8E12D972F1CA93800D8E524 /* Frameworks */ = {
 			isa = PBXGroup;
@@ -803,6 +732,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				KnownAssetTags = (
+					"article-embed-model",
 					"preset-dict-bible-almeida-pt",
 					"preset-dict-bible-byzantine-grc",
 					"preset-dict-bible-cuv-zh-hans",
@@ -902,7 +832,7 @@
 			mainGroup = A5AB7E2F2F0E15A000B554E0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */,
+				F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A5AB7E392F0E15A000B554E0 /* Products */;
@@ -926,9 +856,6 @@
 				F8B101022F70AB0000B10102 /* OpenMDict-East1.icon in Resources */,
 				F8B101032F70AB0000B10103 /* OpenMDict-East2.icon in Resources */,
 				F8B101042F70AB0000B10104 /* OpenMDict-East3.icon in Resources */,
-				F8B101052F70AB0000B10105 /* ClassicLiquidGlass.icon in Resources */,
-				F8B101072F70AB0000B10107 /* ClassicLiquidGlass-Inverse.icon in Resources */,
-				F8B101062F70AB0000B10106 /* ClassicMatte.icon in Resources */,
 				F8B102052F70AB0000B10205 /* OpenMDict-East4.icon in Resources */,
 				F8B103072F70AB0000B10307 /* OpenMDict-East5.icon in Resources */,
 				F8B104082F70AB0000B10408 /* OpenMDict-East114514.icon in Resources */,
@@ -937,26 +864,6 @@
 				B1E6AE8CCCC565DAB1A44F28 /* OpenMDict-Inverse-iPhone@3x.png in Resources */,
 				751C33480D682A60B6247539 /* OpenMDict-Inverse-iPad@2x.png in Resources */,
 				1442E21CD04149F298882291 /* OpenMDict-Inverse-iPadPro@2x.png in Resources */,
-				E1263B43B130436A2F519079 /* ClassicLiquidGlass-Dark-iPad@2x.png in Resources */,
-				5BEBE3AF922C29D9B9FE4D33 /* ClassicLiquidGlass-Dark-iPadPro@2x.png in Resources */,
-				3DE6950D43B3F5217F47C2B4 /* ClassicLiquidGlass-Dark-iPhone@2x.png in Resources */,
-				E134851CC16F1F6B2934960C /* ClassicLiquidGlass-Dark-iPhone@3x.png in Resources */,
-				1E8646C5F6878DD977783CD1 /* ClassicLiquidGlass-iPad@2x.png in Resources */,
-				3BCF160344441619BB5F502F /* ClassicLiquidGlass-iPadPro@2x.png in Resources */,
-				80373892E858B37132696B2C /* ClassicLiquidGlass-iPhone@2x.png in Resources */,
-				308E0E69AFF2FB40FFE4CBF6 /* ClassicLiquidGlass-iPhone@3x.png in Resources */,
-				A1B2C3D4E5F60001A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@2x.png in Resources */,
-				A1B2C3D4E5F60002A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPhone@3x.png in Resources */,
-				A1B2C3D4E5F60003A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPad@2x.png in Resources */,
-				A1B2C3D4E5F60004A1B2C3D4 /* ClassicLiquidGlass-Inverse-iPadPro@2x.png in Resources */,
-				AF684CC76F2E0B35E3B9F0BC /* ClassicMatte-Dark-iPad@2x.png in Resources */,
-				3509F9B74CAAF9D63FF9CF5A /* ClassicMatte-Dark-iPadPro@2x.png in Resources */,
-				28FD01E61C5405022F05417C /* ClassicMatte-Dark-iPhone@2x.png in Resources */,
-				8E70588DA7449E5B2BFE2C96 /* ClassicMatte-Dark-iPhone@3x.png in Resources */,
-				478E0A67AD32EC333B3FB503 /* ClassicMatte-iPad@2x.png in Resources */,
-				97BC5A40F40B463C33164A31 /* ClassicMatte-iPadPro@2x.png in Resources */,
-				D001A9C6D50F5A8238DFBC0F /* ClassicMatte-iPhone@2x.png in Resources */,
-				0AEED932115DB912913A036A /* ClassicMatte-iPhone@3x.png in Resources */,
 				E8309F9DA035EE839AB46F48 /* OpenMDict-Dark-iPad@2x.png in Resources */,
 				632E33CFBD61A536298C5770 /* OpenMDict-Dark-iPadPro@2x.png in Resources */,
 				2013DD0ED2EB5F8DA7616AFB /* OpenMDict-Dark-iPhone@2x.png in Resources */,
@@ -980,7 +887,6 @@
 				1DE946821826A5BDC4CD0CEB /* OpenMDict-East114514-iPhone@3x.png in Resources */,
 				6A39A8939C50E6EE833E6D77 /* OpenMDict-East2-Dark-iPad@2x.png in Resources */,
 				DCC4629BB7ED18B34C40CECB /* OpenMDict-East2-Dark-iPadPro@2x.png in Resources */,
-				F809F0842FC7ED7A00495787 /* .gitignore in Resources */,
 				F809F0852FC7ED7A00495787 /* vocab.txt in Resources */,
 				F809F09B2FC7ED7B00495787 /* all-MiniLM-L6-v2.mlmodelc in Resources */,
 				86DEE5C29CE073491BBE166D /* OpenMDict-East2-Dark-iPhone@2x.png in Resources */,
@@ -1145,6 +1051,7 @@
 /* Begin XCBuildConfiguration section */
 		A5AB7E502F0E15A200B554E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = OpenMDict;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1182,6 +1089,7 @@
 		};
 		A5AB7E512F0E15A200B554E0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = OpenMDict;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1219,6 +1127,7 @@
 		};
 		A5AB7E522F0E15A200B554E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -1269,7 +1178,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -1283,6 +1191,7 @@
 		};
 		A5AB7E532F0E15A200B554E0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -1327,7 +1236,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -1340,6 +1248,7 @@
 		};
 		F8E12DC82F1E04E100D8E524 /* Perf */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -1384,7 +1293,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -1398,6 +1306,7 @@
 		};
 		F8E12DC92F1E04E100D8E524 /* Perf */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = OpenMDict;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1438,6 +1347,7 @@
 		};
 		F8F7955B2F42C4D700D47B41 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
@@ -1468,6 +1378,7 @@
 		};
 		F8F7955C2F42C4D700D47B41 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
@@ -1498,6 +1409,7 @@
 		};
 		F8F7955D2F42C4D700D47B41 /* Perf */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
@@ -1528,6 +1440,7 @@
 		};
 		F8F797462F42EBB700D47B41 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -1560,6 +1473,7 @@
 		};
 		F8F797472F42EBB700D47B41 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -1592,6 +1506,7 @@
 		};
 		F8F797482F42EBB700D47B41 /* Perf */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -1668,26 +1583,26 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */ = {
+		F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../../OpenMDict;
+			relativePath = ../../..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		F8E12D982F1CA93800D8E524 /* OpenMDictKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference ".." */;
 			productName = OpenMDictKit;
 		};
 		F8E12D9A2F1CA97800D8E524 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference ".." */;
 			productName = OpenMDict;
 		};
 		F8F7974B2F42EBEE00D47B41 /* OpenMDict */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference "../../../../OpenMDict" */;
+			package = F8E12CC62F1C685F00D8E524 /* XCLocalSwiftPackageReference ".." */;
 			productName = OpenMDict;
 		};
 /* End XCSwiftPackageProductDependency section */
