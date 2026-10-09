@@ -1,0 +1,7 @@
+{
+  "_comment": "Policy decisions for preset dictionary catalog generation. Only contains fields that don't belong in individual build scripts.",
+  "bundle_assets": [
+    "WordNet-EN.mdx",
+    "Bible-KJV-EN.mdx"
+  ]
+}

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enhance Dark Mode — Algorithm Preview</title>
+<style>
+  /* ── Page chrome ── */
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #1c1c1e; color: #f5f5f7;
+    padding: 20px; line-height: 1.4;
+    transition: background 0.3s, color 0.3s;
+  }
+  body.light-mode {
+    background: #fff; color: #1d1d1f;
+  }
+
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8e8e93; margin-bottom: 16px; }
+
+  /* ── Controls ── */
+  .controls {
+    position: sticky; top: 0; z-index: 100;
+    background: #2c2c2e; border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 20px;
+    border: 1px solid #38383a;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  body.light-mode .controls {
+    background: #f2f2f7; border-color: #d1d1d6;
+  }
+  .controls h2 {
+    font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #f5f5f7;
+    transition: color 0.3s;
+  }
+  body.light-mode .controls h2 { color: #1d1d1f; }
+
+  .radio-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .radio-group label {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 13px; cursor: pointer;
+    padding: 4px 10px; border-radius: 6px; border: 1px solid #48484a;
+    transition: all 0.15s; color: #f5f5f7;
+  }
+  body.light-mode .radio-group label {
+    border-color: #c7c7cc; color: #1d1d1f;
+  }
+  .radio-group label:has(input:checked) {
+    background: #0a84ff; border-color: #0a84ff; color: #fff;
+  }
+  .radio-group input[type="radio"] { display: none; }
+
+  /* ── Color swatch strip ── */
+  .swatches {
+    display: flex; gap: 6px; align-items: center; margin-top: 8px;
+    font-size: 11px; color: #8e8e93; flex-wrap: wrap;
+  }
+  .swatch {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .swatch-box {
+    width: 48px; height: 28px; border-radius: 4px;
+    border: 1px solid #555;
+  }
+  .swatch-label { font-size: 10px; font-family: monospace; }
+
+  /* ── Entry panels ── */
+  .panel-grid {
+    display: grid; grid-template-columns: 1fr; gap: 16px;
+  }
+  @media (min-width: 900px) {
+    .panel-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 1400px) {
+    .panel-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  .panel {
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid #38383a;
+  }
+  .panel-header {
+    padding: 8px 12px; font-size: 12px; font-weight: 600;
+    background: #2c2c2e; color: #8e8e93;
+    border-bottom: 1px solid #38383a;
+  }
+  .panel-body {
+    background: #000;
+    padding: 12px;
+    transition: background 0.3s;
+  }
+  body.light-mode .panel-body {
+    background: #fff;
+  }
+
+  /* ── The entry content wrapper — filter target ── */
+  .entry-wrap {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* ── Algorithm explanation ── */
+  .algo-info {
+    margin-top: 12px; padding: 10px 14px;
+    background: #1c1c1e; border-radius: 8px;
+    border: 1px solid #38383a;
+    font-size: 12px; color: #98989d; line-height: 1.5;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  body.light-mode .algo-info {
+    background: #fff; border-color: #d1d1d6;
+  }
+  .algo-info code { color: #ff9f0a; font-size: 11px; }
+
+  /* ── SVG filter (hidden) ── */
+  .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+</style>
+</head>
+<body>
+
+<!-- Hidden SVG filter definitions -->
+<svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gamma-aware invert: linearize (gamma=2.2) -> invert -> re-encode (gamma=1/2.2) -->
+    <filter id="gamma-invert" color-interpolation-filters="sRGB">
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="" />
+        <feFuncG type="table" tableValues="" />
+        <feFuncB type="table" tableValues="" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
+
+<h1>Enhance Dark Mode — Algorithm Preview</h1>
+<p class="subtitle">Reproduces iOS WKWebView enhance behavior in browser. Compare algorithms side by side.</p>
+
+<div class="controls">
+  <h2>Mode</h2>
+  <div class="radio-group" id="algo-selector">
+    <label><input type="radio" name="algo" value="light"> Light</label>
+    <label><input type="radio" name="algo" value="native" checked> Dark: native CSS</label>
+    <label><input type="radio" name="algo" value="linear"> Dark: linear invert(1)</label>
+    <label><input type="radio" name="algo" value="gamma"> Dark: gamma-aware invert</label>
+  </div>
+
+  <div id="gamma-row" style="margin-top:8px;margin-bottom:8px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span>Gamma:</span>
+    <input type="range" id="gamma-slider" min="1.0" max="3.0" step="0.1" value="1.8"
+           style="width:160px;accent-color:#0a84ff;">
+    <span id="gamma-value" style="font-family:monospace;min-width:28px;">1.8</span>
+    <span style="color:#636366;font-size:11px;">(1.0 = linear, 2.2 = sRGB, higher = stronger)</span>
+  </div>
+
+  <div id="swatch-strip" class="swatches">
+    <span>Background levels:</span>
+    <div class="swatch"><div class="swatch-box" id="sw-body"></div><span class="swatch-label" id="sw-body-label"></span></div>
+    <div class="swatch"><div class="swatch-box" id="sw-sn1"></div><span class="swatch-label" id="sw-sn1-label"></span></div>
+    <div class="swatch"><div class="swatch-box" id="sw-sn2"></div><span class="swatch-label" id="sw-sn2-label"></span></div>
+    <div class="swatch"><div class="swatch-box" id="sw-sn3"></div><span class="swatch-label" id="sw-sn3-label"></span></div>
+    <span id="sw-delta" style="margin-left:8px;color:#ff9f0a"></span>
+  </div>
+
+  <div class="algo-info" id="algo-info"></div>
+</div>
+
+<div class="panel-grid" id="panels"></div>
+
+<script>
+// ── Gamma-aware invert table computation ──
+function computeGammaInvertTable(gamma, steps = 32) {
+  const invGamma = 1.0 / gamma;
+  const vals = [];
+  for (let i = 0; i <= steps; i++) {
+    const x = i / steps;
+    const linear = Math.pow(x, gamma);
+    const inverted = 1.0 - linear;
+    const output = Math.pow(Math.max(0, inverted), invGamma);
+    vals.push(output.toFixed(4));
+  }
+  return vals.join(' ');
+}
+
+function updateSVGFilter(gamma) {
+  const tableStr = computeGammaInvertTable(gamma, 32);
+  document.querySelectorAll('#gamma-invert feFuncR, #gamma-invert feFuncG, #gamma-invert feFuncB').forEach(el => {
+    el.setAttribute('tableValues', tableStr);
+  });
+}
+
+// Initialize with default gamma
+let currentGamma = 1.8;
+updateSVGFilter(currentGamma);
+
+function gammaInvertValue(srgb, gamma) {
+  const x = srgb / 255;
+  const linear = Math.pow(x, gamma);
+  const inverted = 1.0 - linear;
+  const output = Math.pow(Math.max(0, inverted), 1.0 / gamma);
+  return Math.round(output * 255);
+}
+
+// ── CSS definitions ──
+// Superset of all preset dict CSS (GCIDE + LSJ + JMdict + CEDICT + Unihan/KANJIDIC)
+const LIGHT_CSS = `
+.e{font-family:-apple-system,system-ui,sans-serif;max-width:600px;line-height:1.5;color:#1d1d1f;padding:0 12px}
+.dir{font-size:0.8em;font-weight:500;letter-spacing:0.05em;color:#8e8e93;display:block;margin:0 0 4px;padding:4px 0;border-bottom:1px solid #e5e5ea}
+.hw{font-size:1.7em;font-weight:600;display:block}
+.sn{margin:8px 0;padding:8px 10px;background:#f8f8fa;border-radius:6px;border:1px solid #e5e5ea}
+.sn+.sn{margin-top:6px}
+.sn-hd{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px}
+.pos{display:inline-block;font-size:0.85em;color:#fff;background:#aeaeb2;border-radius:3px;padding:0 5px}
+.mk{display:inline-block;font-size:0.75em;color:#636366;background:#e8e8ed;border-radius:3px;padding:0 5px}
+.sep{margin:10px 0;border:none;border-top:1px solid #e5e5ea}
+.pr{font-size:1.1em;color:#0071e3;font-style:italic;display:block;margin-top:2px}
+.et{font-size:0.85em;color:#6e6e73;margin:4px 0;line-height:1.4;display:block}
+.df{font-size:1.1em}
+.tr{font-weight:600}
+.ex{font-size:0.85em;color:#6e6e73;margin:4px 0 2px 10px;padding:4px 0 4px 10px;border-left:3px solid #d1d1d6;line-height:1.4}
+.ex-q{display:block;font-style:italic}
+.ex-a{display:block;text-align:right;color:#8e8e93}
+.syn{font-size:0.85em;color:#636366;margin:4px 0 0}
+.xr a{color:#0071e3;text-decoration:underline}
+.inf{font-size:0.95em;color:#6e6e73;display:block;margin-top:2px}
+.sn-num{font-size:0.85em;font-weight:700;color:#8e8e93;margin-right:4px}
+.grk{color:#636366}
+.sn .sn{margin:6px 0 0;background:#fff}
+.sn .sn .sn{background:#f8f8fa}
+.gl{font-size:1.15em}
+.d{margin:2px 0;padding-left:1.5em}ol,ul{padding-left:1.5em}
+.d li{margin:3px 0;font-size:1.15em}
+.d a{color:#0071e3;text-decoration:underline}
+.dm{display:inline-block;font-size:0.75em;color:#636366;background:#e8e8ed;border-radius:3px;padding:0 5px}
+.k{font-size:1.7em;font-weight:600;display:block}
+.r{font-size:1.25em;color:#6e6e73;display:block;margin-top:2px}
+.rm{font-size:1.15em;color:#0071e3;font-style:italic;display:block;margin-top:2px}
+.an{font-size:1.0em;color:#aeaeb2;margin-right:2px;font-style:normal}
+.ph{display:inline;border-top:2px solid #ff3b30;padding-top:1px}
+.phd{display:inline;border-top:2px solid #ff3b30;border-right:2px solid #ff3b30;padding-top:1px;padding-right:1px}
+.pl{display:inline;padding-top:3px}
+.at{font-size:0.85em;color:#ff3b30;margin:2px 0 0}
+.at a{color:#ff3b30;text-decoration:underline}
+.s{font-size:1.7em;font-weight:600;display:block}
+.t{font-size:1.25em;color:#6e6e73;display:block;margin-top:2px}
+.p{font-size:1.25em;color:#0071e3;font-style:italic;display:block;margin-top:2px}
+.ch{font-size:2.5em;font-weight:400;display:block;padding:8px 0}
+.ucp{font-size:0.8em;color:#8e8e93;display:block}
+.info{font-size:0.85em;color:#8e8e93;display:block;margin-bottom:2px}
+.info b{color:#1d1d1f;font-weight:600}
+.rd{margin:6px 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px}
+.rd-label{font-size:0.8em;color:#8e8e93;margin-right:4px;min-width:36px}
+.tag{display:inline-block;font-size:1.0em;border-radius:4px;padding:1px 8px;margin:2px}
+.tag-on{background:#e8f0fe;color:#1a73e8}
+.tag-kun{background:#e6f4ea;color:#137333}
+.tag-py{background:#fef3d0;color:#8e6e3a}
+.tag-ko{background:#f3e8fd;color:#7c3aed}
+.tag-vi{background:#fce8e6;color:#c5221f}
+.vr{font-size:0.9em;color:#636366;margin:4px 0}
+.vr a{color:#0071e3;text-decoration:underline}
+.h{margin-bottom:4px}
+`;
+
+const DARK_CSS = `
+.e{color:#f5f5f7}.dir{color:#8e8e93;border-color:#38383a}
+.sn{background:#2c2c2e;border-color:#38383a}
+.pos{background:#636366}
+.mk{color:#98989d;background:#3a3a3c}
+.sep{border-color:#38383a}
+.pr{color:#64d2ff}
+.et{color:#98989d}
+.ex{color:#98989d;border-color:#48484a}
+.syn{color:#98989d}
+.xr a{color:#64d2ff}
+.inf{color:#98989d}
+.sn-num{color:#636366}
+.grk{color:#98989d}
+.sn .sn{background:#1c1c1e}
+.sn .sn .sn{background:#2c2c2e}
+.d a{color:#64d2ff}
+.dm{color:#98989d;background:#3a3a3c}
+.r{color:#98989d}
+.rm{color:#64d2ff}
+.an{color:#636366}
+.at{color:#ff453a}.at a{color:#ff453a}
+.ph,.phd{border-color:#ff453a}
+.t{color:#98989d}
+.p{color:#64d2ff}
+.tag-on{background:#1e3a5f;color:#8ab4f8}
+.tag-kun{background:#1e3a2f;color:#81c995}
+.tag-py{background:#3a3520;color:#d4a94c}
+.tag-ko{background:#2d1b4e;color:#b794f4}
+.tag-vi{background:#3a1c1a;color:#f28b82}
+.ucp{color:#636366}
+.info{color:#636366}
+.info b{color:#f5f5f7}
+.vr{color:#98989d}
+.vr a{color:#64d2ff}
+`;
+
+// ── ENHANCE FILTER CSS (injected when invert modes are active) ──
+// Emoji fix: .dir contains flag emojis. Double-invert restores original colors.
+// Cost: ONE extra CSS rule, ZERO JS DOM mutation. Only .dir elements get a compositing layer.
+// body{color:#000} mirrors the iOS fix: ArticleHTMLRenderer bakes body color
+// as a static rgba() from the current trait collection.  In dark mode the baked
+// color is white — the filter inverts white→black → invisible on dark bg.
+// Forcing #000 ensures the filter produces white text.
+// Apple's secondarySystemGroupedBackground (light) = #F2F2F7.
+// Using this instead of pure #fff so the inverted background becomes a
+// comfortable dark gray (~#1C1C1E) rather than pure black (#000).
+const ENHANCE_BG = '#F2F2F7';
+const ENHANCE_BODY_FIX = `.entry-wrap{color:#000;background:${ENHANCE_BG}}`;
+const ENHANCE_LINEAR_CSS = `.dir{display:inline-block;filter:invert(1) hue-rotate(180deg)}`;
+const ENHANCE_GAMMA_CSS = `.dir{display:inline-block;filter:url(#gamma-invert) hue-rotate(180deg)}`;
+
+// ── Sample entries ──
+
+const GCIDE_ENTRY = `
+<div class="e">
+  <span class="dir">🇬🇧🇺🇸 English</span>
+  <span class="hw">Abandon</span>
+  <span class="pr">(ȧ*băn"dŭn)</span>
+  <span class="et">[OF. abandoner, F. abandonner; a (L. ad) + bandon permission, authority.]</span>
+  <div class="sn">
+    <div class="sn-hd"><span class="pos">v. t.</span><span class="mk">[Obs.]</span><span class="mk">1.</span></div>
+    <span class="df">To cast or drive out; to banish; to expel; to reject.</span>
+  </div>
+  <div class="sn">
+    <div class="sn-hd"><span class="mk">2.</span></div>
+    <span class="df">To give up absolutely; to forsake entirely; to renounce utterly; to relinquish all connection with or concern on; to desert.</span>
+  </div>
+  <div class="sn">
+    <div class="sn-hd"><span class="pos">n.</span></div>
+    <span class="df">A complete giving up to natural impulses; freedom from artificial constraint; careless freedom or ease.</span>
+  </div>
+  <div class="syn"><b>Syn.</b> <a href="#">yield</a>; <a href="#">forego</a>; <a href="#">cede</a>; <a href="#">surrender</a>; <a href="#">resign</a>; <a href="#">abdicate</a>; <a href="#">quit</a>; <a href="#">relinquish</a></div>
+  <div class="ex"><span class="ex-q">Hope was overthrown, yet could not be abandoned.</span><span class="ex-a">— I. Taylor.</span></div>
+</div>
+`;
+
+const LSJ_ENTRY = `
+<div class="e">
+  <span class="dir">🇬🇷 Ἑλληνικά → English 🇬🇧🇺🇸</span>
+  <span class="hw">λόγος</span>
+  <span class="inf">ὁ</span>
+  <div class="sn">
+    <div class="sn-hd"><span class="sn-num">A</span></div>
+    <span class="df">Word or that by which the inward thought is expressed.</span>
+    <div class="sn">
+      <div class="sn-hd"><span class="sn-num">I</span></div>
+      <span class="df">Word, <span class="grk">λόγον</span> or <span class="grk">λόγους λέγειν, εἰπεῖν</span>.</span>
+      <div class="sn">
+        <div class="sn-hd"><span class="sn-num">1</span></div>
+        <span class="df">Speech, in myth, personified as <span class="grk">Λόγος</span>.</span>
+      </div>
+      <div class="sn">
+        <div class="sn-hd"><span class="sn-num">2</span></div>
+        <span class="df">Allegory, allegation, plea.</span>
+      </div>
+    </div>
+    <div class="sn">
+      <div class="sn-hd"><span class="sn-num">II</span></div>
+      <span class="df">Common talk, report, tradition.</span>
+    </div>
+  </div>
+  <div class="sn">
+    <div class="sn-hd"><span class="sn-num">B</span></div>
+    <span class="df">That by which the inward thought is expressed, viz. <b>Reason</b>.</span>
+    <div class="sn">
+      <div class="sn-hd"><span class="sn-num">I</span></div>
+      <span class="df">Thinking, reasoning, reckoning, calculation.</span>
+    </div>
+    <div class="sn">
+      <div class="sn-hd"><span class="sn-num">II</span></div>
+      <span class="df">Relation, correspondence, proportion.</span>
+    </div>
+  </div>
+</div>
+`;
+
+const JMDICT_ENTRY = `
+<div class="e">
+  <span class="dir">🇯🇵 日本語 → English 🇬🇧🇺🇸</span>
+  <div class="h">
+    <span class="k">食べる</span>
+    <span class="r"><span class="an">②</span><span class="pl">た</span><span class="phd">べ</span><span class="pl">る</span></span>
+    <span class="rm"><span class="an">②</span><span class="pl">ta</span><span class="phd">be</span><span class="pl">ru</span></span>
+  </div>
+  <div class="sn">
+    <div class="sn-hd"><span class="pos">v1</span><span class="pos">vt</span></div>
+    <span class="gl">to eat</span>
+  </div>
+  <div class="sn">
+    <div class="sn-hd"><span class="pos">v1</span><span class="pos">vt</span></div>
+    <ol class="d"><li>to live on (e.g. a salary)</li><li>to live off</li><li>to subsist on</li></ol>
+  </div>
+</div>
+`;
+
+const CEDICT_ENTRY = `
+<div class="e">
+  <span class="dir">🇨🇳🇹🇼 中文 → English 🇬🇧🇺🇸</span>
+  <span class="s">电脑</span>
+  <span class="t">電腦</span>
+  <span class="p">diàn nǎo</span>
+  <div class="sn">
+    <ol class="d"><li>computer</li><li>CL:臺|台[tai2]</li></ol>
+  </div>
+</div>
+`;
+
+const UNIHAN_ENTRY = `
+<div class="e">
+  <span class="dir">🇨🇳🇹🇼🇭🇰🇯🇵🇰🇷 漢字</span>
+  <span class="ch">中</span>
+  <span class="ucp">U+4E2D</span>
+  <div class="rd"><span class="rd-label">拼音</span><span class="tag tag-py">zhōng</span></div>
+  <div class="rd"><span class="rd-label">粵拼</span><span class="tag tag-py">zung1</span></div>
+  <div class="rd"><span class="rd-label">音</span><span class="tag tag-on">チュウ chuu</span></div>
+  <div class="rd"><span class="rd-label">訓</span><span class="tag tag-kun">なか naka</span><span class="tag tag-kun">うち uchi</span><span class="tag tag-kun">あたる ataru</span></div>
+  <div class="rd"><span class="rd-label">한국</span><span class="tag tag-ko">중 cwung</span></div>
+  <div class="rd"><span class="rd-label">Việt</span><span class="tag tag-vi">trung</span></div>
+  <div class="sn"><span class="df">central; center, middle; in the midst of; hit (target); attain</span></div>
+</div>
+`;
+
+const KANJIDIC_ENTRY = `
+<div class="e">
+  <span class="dir">🇯🇵 漢字</span>
+  <span class="k">日</span>
+  <span class="info">G1 · N4 · #1</span>
+  <span class="info">4 strokes · radical 72</span>
+  <div class="rd"><span class="rd-label">音</span><span class="tag tag-on">ニチ nichi</span><span class="tag tag-on">ジツ jitsu</span></div>
+  <div class="rd"><span class="rd-label">訓</span><span class="tag tag-kun">ひ hi</span><span class="tag tag-kun">-び -bi</span><span class="tag tag-kun">-か -ka</span></div>
+  <div class="rd"><span class="rd-label">拼音</span><span class="tag tag-py">ri4</span></div>
+  <div class="rd"><span class="rd-label">한국</span><span class="tag tag-ko">일 il</span></div>
+  <div class="rd"><span class="rd-label">Việt</span><span class="tag tag-vi">Nhật</span></div>
+  <div class="sn"><span class="df">day; sun; Japan; counter for days</span></div>
+  <div class="rd"><span class="rd-label">名</span><span style="font-size:0.95em;color:#6e6e73">あ, あき, いる, く, くさ, こう, す, たち, に, にっ, につ, へ</span></div>
+</div>
+`;
+
+// ── Third-party dict entries (raw HTML, NO preset CSS) ──
+
+const RAW_FONT_ENTRY = `
+<b><font color=#008000>v.</font></b> (<b><font color=#008000>intr.</font></b>) to ~ through ('to read quickly') (she leafed through the catalogue in a minute)<br>
+`;
+
+const INLINE_STYLE_ENTRY = `
+<div style="font-family:serif">
+<b style="color:#8B0000">set aside</b> <i style="color:#555">phrasal verb</i><br>
+<span style="color:#333">1. to keep something for later use</span><br>
+<span style="color:#666; font-size:0.9em; margin-left:12px">▸ <i>We set aside an hour for questions.</i></span><br>
+<span style="color:#333">2. <font color=#8B0000>(law)</font> to cancel a decision</span><br>
+<span style="color:#666; font-size:0.9em; margin-left:12px">▸ <i>The court set the ruling aside.</i></span>
+</div>
+`;
+
+// ── Panel definitions ──
+const PANELS = [
+  { id: 'gcide', title: 'GCIDE — English monolingual (flat senses, Syn links)', html: GCIDE_ENTRY },
+  { id: 'lsj',   title: 'LSJ — Greek-English (3-level nested senses)', html: LSJ_ENTRY },
+  { id: 'rawfont', title: 'Third-party sample A (raw <font color>, NO CSS)', html: RAW_FONT_ENTRY, noPresetCSS: true },
+  { id: 'inline', title: 'Third-party sample B (inline style, <font color>)', html: INLINE_STYLE_ENTRY, noPresetCSS: true },
+  { id: 'jmdict', title: 'JMdict — Japanese-English (accent, pitch marks)', html: JMDICT_ENTRY },
+  { id: 'cedict', title: 'CEDICT — Chinese-English (pinyin, traditional)', html: CEDICT_ENTRY },
+  { id: 'unihan', title: 'Unihan — CJK (5 color-coded reading tags)', html: UNIHAN_ENTRY },
+  { id: 'kanjidic', title: 'KANJIDIC2 — Japanese kanji (readings, metadata)', html: KANJIDIC_ENTRY },
+];
+
+// ── Render panels ──
+const panelsContainer = document.getElementById('panels');
+PANELS.forEach(p => {
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.innerHTML = `
+    <div class="panel-header">${p.title}</div>
+    <div class="panel-body">
+      <div class="entry-wrap" id="wrap-${p.id}"></div>
+    </div>
+  `;
+  panelsContainer.appendChild(panel);
+});
+
+// ── Algorithm switching ──
+const algoInfo = document.getElementById('algo-info');
+
+function applyAlgorithm(algo) {
+  // Show/hide gamma slider row
+  document.getElementById('gamma-row').style.display = (algo === 'gamma') ? 'flex' : 'none';
+
+  PANELS.forEach(p => {
+    const wrap = document.getElementById(`wrap-${p.id}`);
+    const css = p.noPresetCSS ? '' : LIGHT_CSS;
+    const darkCss = p.noPresetCSS ? '' : DARK_CSS;
+    const enhLinear = p.noPresetCSS ? '' : ENHANCE_LINEAR_CSS;
+    const enhGamma = p.noPresetCSS ? '' : ENHANCE_GAMMA_CSS;
+
+    if (algo === 'light') {
+      wrap.innerHTML = `<style>${css}</style>${p.html}`;
+      wrap.style.filter = 'none';
+      wrap.style.background = '#fff';
+    } else if (algo === 'native') {
+      wrap.innerHTML = `<style>${css}@media(prefers-color-scheme:dark){${darkCss}}</style>${p.html}`;
+      wrap.style.filter = 'none';
+      wrap.style.background = '';
+    } else if (algo === 'linear') {
+      wrap.innerHTML = `<style>${css}${ENHANCE_BODY_FIX}${enhLinear}</style>${p.html}`;
+      wrap.style.filter = 'invert(1) hue-rotate(180deg)';
+      wrap.style.background = ENHANCE_BG;
+    } else if (algo === 'gamma') {
+      wrap.innerHTML = `<style>${css}${ENHANCE_BODY_FIX}${enhGamma}</style>${p.html}`;
+      wrap.style.filter = 'url(#gamma-invert) hue-rotate(180deg)';
+      wrap.style.background = ENHANCE_BG;
+    }
+  });
+
+  // Update page chrome
+  document.body.classList.toggle('light-mode', algo === 'light');
+
+  updateSwatches(algo);
+  updateAlgoDescription(algo);
+}
+
+// ── Color computation for swatches ──
+function linearInvert(r) { return 255 - r; }
+
+function hexOf(v) {
+  const h = Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return `#${h}${h}${h}`;
+}
+
+function updateSwatches(algo) {
+  let vals;
+  if (algo === 'light') {
+    vals = [255, 248, 255, 248];
+  } else if (algo === 'native') {
+    vals = [28, 44, 28, 44];
+  } else if (algo === 'linear') {
+    vals = [linearInvert(242), linearInvert(248), linearInvert(242), linearInvert(248)];
+  } else {
+    vals = [gammaInvertValue(242, currentGamma), gammaInvertValue(248, currentGamma),
+            gammaInvertValue(242, currentGamma), gammaInvertValue(248, currentGamma)];
+  }
+
+  const ids = ['body', 'sn1', 'sn2', 'sn3'];
+  ids.forEach((id, i) => {
+    document.getElementById(`sw-${id}`).style.background = hexOf(vals[i]);
+    document.getElementById(`sw-${id}-label`).textContent = Math.round(vals[i]);
+  });
+
+  const deltas = [];
+  for (let i = 1; i < vals.length; i++) {
+    deltas.push(Math.abs(vals[i] - vals[i-1]));
+  }
+  const maxDelta = Math.max(...deltas);
+  document.getElementById('sw-delta').textContent = `\u0394max = ${maxDelta}`;
+}
+
+function updateAlgoDescription(algo) {
+  const descs = {
+    light: `<b>Light Mode</b> — 原始亮色模式，所有颜色和层级关系的 baseline。<br>
+      背景层级：<code>#fff</code>(255) / <code>#f8f8fa</code>(248)。差值 <b>7</b>，亮色端人眼可辨。`,
+    native: `<b>Native Dark CSS</b> — preset dicts 自带的 <code>@media(prefers-color-scheme:dark)</code> 手调配色。<br>
+      背景层级：<code>#1c1c1e</code>(28) / <code>#2c2c2e</code>(44)。差值 <b>16</b>，暗色端手调层级清晰。`,
+    linear: `<b>Current iOS</b> — <code>overrideUserInterfaceStyle = .light</code> + <code>filter: invert(1) hue-rotate(180deg)</code>。<br>
+      线性反转 (gamma=1.0)：255→<b>0</b>，248→<b>7</b>。暗色端差值仅 <b>7</b>，人眼几乎无法区分。`,
+  };
+  if (algo === 'gamma') {
+    const v248 = gammaInvertValue(248, currentGamma);
+    algoInfo.innerHTML = `<b>Gamma-aware invert</b> — SVG <code>feComponentTransfer</code>，gamma=<b>${currentGamma.toFixed(1)}</b>。<br>
+      255→<b>0</b>，248→≈<b>${v248}</b>。暗色端差值 <b>${v248}</b>。<br>
+      <span style="color:#636366">gamma 越高，暗色端层级越分明，但中间色调偏移越大。1.5–2.0 是推荐区间。</span>`;
+  } else {
+    algoInfo.innerHTML = descs[algo] || '';
+  }
+}
+
+// ── Wire up controls ──
+function getSelectedAlgo() {
+  return document.querySelector('input[name="algo"]:checked')?.value || 'native';
+}
+
+document.querySelectorAll('input[name="algo"]').forEach(radio => {
+  radio.addEventListener('change', () => applyAlgorithm(radio.value));
+});
+
+const gammaSlider = document.getElementById('gamma-slider');
+const gammaLabel = document.getElementById('gamma-value');
+gammaSlider.addEventListener('input', () => {
+  currentGamma = parseFloat(gammaSlider.value);
+  gammaLabel.textContent = currentGamma.toFixed(1);
+  updateSVGFilter(currentGamma);
+  // Force re-render: SVG filter content changed but CSS filter reference is the same,
+  // so we need to toggle the filter to trigger repaint
+  PANELS.forEach(p => {
+    const wrap = document.getElementById(`wrap-${p.id}`);
+    wrap.style.filter = 'none';
+    // Force reflow
+    void wrap.offsetHeight;
+    wrap.style.filter = 'url(#gamma-invert) hue-rotate(180deg)';
+  });
+  updateSwatches('gamma');
+  updateAlgoDescription('gamma');
+});
+
+// ── Initial render ──
+applyAlgorithm('native');
+</script>
+</body>
+</html>

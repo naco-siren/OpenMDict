@@ -86,3 +86,15 @@ fastlane/test_output
 
 # Visual Studio Code
 .vscode/
+
+# --- public restructure (2026-10): pipeline inputs/outputs live outside git ---
+preset-dicts/data
+preset-dicts/output
+preset-dicts/export
+**/__pycache__/
+*.pyc
+models/
+.venv*/
+Apps/iOS/OpenMDict-iOS/Local.xcconfig
+.bootstrap/
+.claude/

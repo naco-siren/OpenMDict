@@ -1,0 +1,8 @@
+// Local.xcconfig — per-developer signing settings (NOT committed).
+//
+// Copy this file to Local.xcconfig next to it and fill in your values.
+// Every build configuration of every target uses Local.xcconfig as its
+// base configuration, so the project file itself carries no team id.
+//
+// Your Apple Developer team identifier (Xcode ▸ Settings ▸ Accounts).
+DEVELOPMENT_TEAM = YOURTEAMID
