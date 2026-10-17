@@ -184,10 +184,11 @@ download() { # <url> <out-file>
         # shellcheck disable=SC2086
         curl $opts -o "$out" "$url" || rc=$?
     fi
-    if [ "$rc" -eq 22 ] && [ -n "$GH_REPO" ] && command -v gh >/dev/null 2>&1 \
+    if [ "$rc" -ne 0 ] && [ -n "$GH_REPO" ] && command -v gh >/dev/null 2>&1 \
        && gh auth status >/dev/null 2>&1; then
-        # HTTP error from the default GitHub base: most likely a private
-        # repository. Use the logged-in GitHub CLI from now on.
+        # The default GitHub base refused the download (a private repository
+        # answers 404; with -C curl reports that as exit 56, not 22). Use the
+        # logged-in GitHub CLI for the rest of the run.
         rm -f "$out"
         log "  (unauthenticated download refused — private repository? switching to gh release download)"
         USE_GH=1
