@@ -26,6 +26,11 @@
 #                              and served by `python3 -m http.server` works
 #                              for dry runs.
 #
+# Private repositories: GitHub answers 404 to unauthenticated Release
+# downloads. When the default GitHub base is in use and a download returns
+# 404, the script switches to `gh release download` (GitHub CLI, logged in
+# with access to the repository) for the rest of the run.
+#
 # Up-to-date files are skipped without touching their mtime, so Xcode does not
 # re-copy 400 MB of dictionaries after every bootstrap. SHA-256 results are
 # cached in .bootstrap/<dest>.sha256 keyed by size+mtime (or, for the model
@@ -151,8 +156,22 @@ human_size() {
 
 # ── Download helpers ────────────────────────────────────────────────────────
 
+# Set once a 404 from GitHub has switched this run to the GitHub CLI.
+USE_GH=0
+GH_REPO=""
+
+gh_download() { # <url> <out-file>
+    local url=$1 out=$2 tag filename
+    filename=${url##*/}
+    tag=${url%/*}; tag=${tag##*/}
+    rm -f "$out"
+    gh release download "$tag" --repo "$GH_REPO" --pattern "$filename" --output "$out" \
+        || { rm -f "$out"; die "gh release download failed: $tag/$filename ($GH_REPO)"; }
+}
+
 download() { # <url> <out-file>
     local url=$1 out=$2 rc=0
+    if [ "$USE_GH" -eq 1 ]; then gh_download "$url" "$out"; return; fi
     local opts="-fL --retry 5 --retry-delay 2"
     if [ -t 1 ] && [ "$QUIET" -eq 0 ]; then opts="$opts --progress-bar"; else opts="$opts -sS"; fi
     mkdir -p "$(dirname "$out")"
@@ -164,6 +183,16 @@ download() { # <url> <out-file>
         rc=0
         # shellcheck disable=SC2086
         curl $opts -o "$out" "$url" || rc=$?
+    fi
+    if [ "$rc" -eq 22 ] && [ -n "$GH_REPO" ] && command -v gh >/dev/null 2>&1 \
+       && gh auth status >/dev/null 2>&1; then
+        # HTTP error from the default GitHub base: most likely a private
+        # repository. Use the logged-in GitHub CLI from now on.
+        rm -f "$out"
+        log "  (unauthenticated download refused — private repository? switching to gh release download)"
+        USE_GH=1
+        gh_download "$url" "$out"
+        return
     fi
     [ "$rc" -eq 0 ] || { rm -f "$out"; die "download failed (curl exit $rc): $url"; }
 }
@@ -226,6 +255,11 @@ fetch_model() { # <url> <dest-dir> <zip-sha> <tree-sha>
 BASE_URL=${OPENMDICT_ASSETS_BASE_URL:-$(jq -r '.tag_base_url_default // empty' "$LOCK")}
 BASE_URL=${BASE_URL%/}
 [ -n "$BASE_URL" ] || die "no download base URL (lock has no tag_base_url_default)"
+# owner/name when the base is GitHub Releases (enables the gh fallback).
+case "$BASE_URL" in
+    https://github.com/*/*/releases/download)
+        GH_REPO=$(printf '%s' "$BASE_URL" | sed -E 's#^https://github\.com/([^/]+/[^/]+)/releases/download$#\1#') ;;
+esac
 
 # In a fresh checkout preset-dicts/output does not exist (it is gitignored). A
 # dangling symlink left over from a workspace that keeps the pipeline output

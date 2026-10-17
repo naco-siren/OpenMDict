@@ -563,10 +563,66 @@
       "kind": "notice"
     },
     {
+      "filename": "LICENSE-Apache-2.0.txt",
+      "dest": null,
+      "size": 10280,
+      "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
+      "filename": "LICENSE-CC-BY-4.0.txt",
+      "dest": null,
+      "size": 17023,
+      "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
+      "filename": "LICENSE-CC-BY-SA-3.0.txt",
+      "dest": null,
+      "size": 22240,
+      "sha256": "3f941b3b89cf7b8370ceb83cc76d2120d471b58735d8ca60238a751a48d7f72f",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
+      "filename": "LICENSE-CC-BY-SA-4.0.txt",
+      "dest": null,
+      "size": 18375,
+      "sha256": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
+      "filename": "LICENSE-GFDL-1.3-or-later.txt",
+      "dest": null,
+      "size": 22791,
+      "sha256": "d024962f1f4966c102b40d9fd9cc834a3f0b3c1397b41444b7cd7925640dc929",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
+      "filename": "LICENSE-GPL-3.0-or-later.txt",
+      "dest": null,
+      "size": 34674,
+      "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
       "filename": "LICENSE-LicenseRef-WordNet-3.0.txt",
       "dest": null,
       "size": 1567,
       "sha256": "e95e845ba95cedf3fb62c96f656ab2d71e4404f3aa84741f1ec2862741965c98",
+      "tag": "assets-2026.10",
+      "kind": "notice"
+    },
+    {
+      "filename": "LICENSE-Unicode-3.0.txt",
+      "dest": null,
+      "size": 1995,
+      "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
       "tag": "assets-2026.10",
       "kind": "notice"
     }

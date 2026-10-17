@@ -428,6 +428,8 @@ git clone https://github.com/naco-siren/OpenMDict.git
 cd OpenMDict
 
 # 1. Fetch the preset dictionaries + CoreML model listed in the lock file
+#    (for a private fork, log in with `gh auth login` first: unauthenticated
+#    Release downloads are refused and the script falls back to the GitHub CLI)
 scripts/bootstrap-assets.sh
 
 # 2. Library, CLI tools and tests (no Xcode project involved)
