@@ -236,10 +236,11 @@ fetch_bible() {
 fetch_perseus() {
     green "=== Perseus Digital Library ==="
     echo "  Source: https://github.com/PerseusDL"
-    echo "  License: CC-BY-SA 3.0"
+    echo "  License: CC BY-SA 4.0 (credit line in scripts/build_perseus_mdx.py)"
     mkdir -p "$DATA/perseus"
-    # LSJ (Liddell-Scott-Jones Greek-English Lexicon)
-    dl "https://raw.githubusercontent.com/gcelano/LSJ_GreekUnicode/master/grc.lsj.perseus-eng6.xml" \
+    # LSJ (Liddell-Scott-Jones Greek-English Lexicon). Upstream splits LSJ into
+    # grc.lsj.perseus-eng1..27.xml; the preset is currently built from part 1.
+    dl "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/pdllex/grc/lsj/grc.lsj.perseus-eng1.xml" \
        "$DATA/perseus/lsj.xml"
     # Lewis & Short (Latin-English Dictionary)
     dl "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/pdllex/lat/ls/lat.ls.perseus-eng1.xml" \

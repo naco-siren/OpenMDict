@@ -611,6 +611,24 @@ def _generate_preview(output_dir: Path, prefix: str, name: str, entries: dict,
     _shared_preview(entries_html, preview_path, f'{name} — preview')
 
 
+# ── Attribution required by PerseusDL/lexica (CC BY-SA 4.0) ──────
+# The lexica README asks for this exact credit, the access date, an intact
+# availability statement, and that modifications be offered back to Perseus
+# (our only modifications are the beta-code → Unicode conversion and the
+# HTML rendering in this script, which is public).
+PERSEUS_ACCESS_DATE = "2026-02-20"
+PERSEUS_CREDIT_HTML = (
+    "<p>Text provided under a "
+    "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA</a> license "
+    "by Perseus Digital Library, "
+    "<a href='http://www.perseus.tufts.edu'>http://www.perseus.tufts.edu</a>, "
+    "with funding from The National Endowment for the Humanities. "
+    "Data accessed from "
+    "<a href='https://github.com/PerseusDL/lexica/'>https://github.com/PerseusDL/lexica/</a> "
+    f"[{PERSEUS_ACCESS_DATE}].</p>"
+)
+
+
 # ── Main ───────────────────────────────────────────────────────
 
 DICTS = [
@@ -622,9 +640,7 @@ DICTS = [
             "<p><b>A Greek-English Lexicon (Liddell-Scott-Jones)</b></p>"
             "<p>The standard comprehensive Ancient Greek-English lexicon. "
             "9th edition (1940), revised by Henry Stuart Jones and Roderick McKenzie.</p>"
-            "<p>Perseus Digital Library. Licensed under "
-            "<a href='https://creativecommons.org/licenses/by-sa/3.0/'>CC BY-SA 3.0</a>.</p>"
-            "<p>Source: <a href='https://github.com/PerseusDL/lexica'>github.com/PerseusDL/lexica</a></p>"
+            + PERSEUS_CREDIT_HTML
         ),
         'dir_label': f'{FLAG_GRC} Ἑλληνικά → English {FLAG_EN}',
         'is_greek': True,
@@ -632,7 +648,7 @@ DICTS = [
         'catalog_display_name': 'LSJ Greek-English Lexicon',
         'catalog_description': 'Liddell-Scott-Jones: the standard comprehensive Ancient Greek-English lexicon (9th ed., 1940).',
         'catalog_direction': {'src': 'EL', 'dest': ['EN']},
-        'catalog_license': 'CC BY-SA 3.0',
+        'catalog_license': 'CC-BY-SA-4.0',
         'catalog_data_source': 'Perseus Digital Library',
         'catalog_flag': '🏺',
     },
@@ -644,9 +660,7 @@ DICTS = [
             "<p><b>A Latin Dictionary (Lewis & Short)</b></p>"
             "<p>The standard Latin-English dictionary. Founded on Andrews' edition "
             "of Freund's Latin dictionary. Oxford: Clarendon Press, 1879.</p>"
-            "<p>Perseus Digital Library. Licensed under "
-            "<a href='https://creativecommons.org/licenses/by-sa/3.0/'>CC BY-SA 3.0</a>.</p>"
-            "<p>Source: <a href='https://github.com/PerseusDL/lexica'>github.com/PerseusDL/lexica</a></p>"
+            + PERSEUS_CREDIT_HTML
         ),
         'dir_label': f'{FLAG_LA} Latina → English {FLAG_EN}',
         'is_greek': False,
@@ -654,7 +668,7 @@ DICTS = [
         'catalog_display_name': 'Lewis & Short Latin Dictionary',
         'catalog_description': 'The standard Latin-English dictionary (Lewis & Short, 1879). 50K entries with etymologies, citations, and cross-references.',
         'catalog_direction': {'src': 'LA', 'dest': ['EN']},
-        'catalog_license': 'CC BY-SA 3.0',
+        'catalog_license': 'CC-BY-SA-4.0',
         'catalog_data_source': 'Perseus Digital Library',
     },
 ]

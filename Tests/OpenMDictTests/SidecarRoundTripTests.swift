@@ -103,7 +103,7 @@ struct SidecarRoundTripTests {
         // Wait for the background sidecar write to flush to disk. The write
         // is dispatched on DispatchQueue.global(.utility); 2 s is
         // comfortably longer than any realistic serialization for test
-        // MDXs in the dicts/ folder (a ~5 MB sidecar takes < 50 ms).
+        // MDXs in the dicts/ folder (a ~5 MB sidecar loads in < 50 ms).
         Thread.sleep(forTimeInterval: 2.0)
 
         let sidecarFiles = (try? FileManager.default.contentsOfDirectory(atPath: sidecarDir.path)) ?? []

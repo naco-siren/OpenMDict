@@ -44,6 +44,11 @@
 #                        when that directory exists. LicenseRef-* texts (e.g. the
 #                        WordNet license) can only come from here.
 #   --repo <owner/name>  GitHub repository (default: derived from the lock's base URL)
+#   --amend-unpublished  the tag is already referenced by the committed lock but
+#                        has never been published (no release yet, or still a
+#                        draft): allow changing its assets, and upload every
+#                        asset that points at it, not only new/changed ones.
+#                        Publishing verifies the release is absent or a draft.
 #
 # Requires bash 3.2+, jq, shasum, ditto, curl; gh (authenticated) unless
 # --dry-run/--stage-only.
@@ -82,6 +87,7 @@ TAG=""
 MODE=publish
 STAGING="$REPO_ROOT/.bootstrap/publish"
 OFFLINE=0
+AMEND=0
 LICENSES_DIR=""
 GH_REPO=""
 
@@ -94,6 +100,7 @@ while [ $# -gt 0 ]; do
         --stage-only) MODE=stage-only ;;
         --staging) STAGING=${2:-}; shift ;;
         --offline) OFFLINE=1 ;;
+        --amend-unpublished) AMEND=1 ;;
         --licenses-dir) LICENSES_DIR=${2:-}; shift ;;
         --repo) GH_REPO=${2:-}; shift ;;
         -h|--help) usage; exit 0 ;;
@@ -370,10 +377,14 @@ comm -23 "$WORK/old.names" "$WORK/new.names" > "$WORK/removed.names"
 n_removed=$(wc -l < "$WORK/removed.names" | tr -d ' ')
 
 n_upload=$((n_new + n_changed))
+if [ "$AMEND" -eq 1 ] && [ -n "$TAG" ]; then
+    # Unpublished tag: everything pointing at it still has to be uploaded.
+    n_upload=$(awk -F "$US" -v t="$TAG" '$8 == t' "$WORK/plan.tsv" | wc -l | tr -d ' ')
+fi
 if [ "$n_upload" -gt 0 ]; then
     [ -n "$TAG" ] || die "$n_upload asset(s) are new or changed; pass --tag assets-YYYY.MM[.N] (a tag not yet referenced by the committed lock)"
-    if grep -qx "$TAG" "$WORK/committed.tags"; then
-        die "tag $TAG is already referenced by the committed lock; assets published under it must not change — pick a new tag"
+    if grep -qx "$TAG" "$WORK/committed.tags" && [ "$AMEND" -eq 0 ]; then
+        die "tag $TAG is already referenced by the committed lock; assets published under it must not change — pick a new tag (if it was never published, pass --amend-unpublished)"
     fi
 fi
 
@@ -401,7 +412,9 @@ while IFS=$US read -r status kind filename dest size sha tree tag src; do
     dir="$STAGING/$tag"
     out="$dir/$filename"
     mkdir -p "$dir"
-    if [ "$kind" = model ] && [ "$status" != unchanged ]; then
+    if [ "$kind" = model ] && { [ "$status" != unchanged ] || { [ "$AMEND" -eq 1 ] && [ "$tag" = "$TAG" ] && [ ! -f "$out" ]; }; }; then
+        # (Amending an unpublished tag whose staged zip is gone: zips are not
+        # byte-reproducible, so re-zip and record the new hash.)
         log "→ Zipping $MODEL_NAME.mlpackage…"
         make_model_zip "$src" "$out"
         size=$(file_size "$out")
@@ -487,7 +500,7 @@ fi
 upload_files=()
 while IFS=$US read -r status kind filename dest size sha tree tag out; do
     [ "$tag" = "$TAG" ] || continue
-    [ "$status" != unchanged ] || continue
+    [ "$status" != unchanged ] || [ "$AMEND" -eq 1 ] || continue
     [ -f "$out" ] || die "staged file missing: $out"
     existing_size=$(awk -F "$US" -v n="$filename" '$1 == n { print $2; exit }' "$WORK/existing.tsv")
     if [ -n "$existing_size" ]; then

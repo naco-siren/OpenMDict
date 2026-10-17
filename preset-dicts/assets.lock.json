@@ -252,16 +252,16 @@
     {
       "filename": "LSJ-GRC-EN.mdx",
       "dest": "preset-dicts/output/LSJ-GRC-EN/LSJ-GRC-EN.mdx",
-      "size": 3013667,
-      "sha256": "5e453f5ba0d1232bcb6788a8c47e878d0ad01cda1ec4e08585eb6081d054bb77",
+      "size": 3014041,
+      "sha256": "49cff1ae92b4583736f7687cb00f70cabb1915a9d30246390c7408fecb22e4de",
       "tag": "assets-2026.10",
       "kind": "mdx"
     },
     {
       "filename": "Lewis-Short-LA-EN.mdx",
       "dest": "preset-dicts/output/Lewis-Short-LA-EN/Lewis-Short-LA-EN.mdx",
-      "size": 11570592,
-      "sha256": "f80557793ca4e49102e752d6439003ba26d240c75a43692bd2c733cf964f0083",
+      "size": 11570966,
+      "sha256": "4c6a58218031fb9ffa4aeb4c85f0b56537536c063d7481606187bca1dd6c9a07",
       "tag": "assets-2026.10",
       "kind": "mdx"
     },
@@ -517,7 +517,7 @@
       "filename": "all-MiniLM-L6-v2.mlpackage.zip",
       "dest": "Apps/iOS/OpenMDict-iOS/Article Embeddings/all-MiniLM-L6-v2.mlpackage",
       "size": 41442630,
-      "sha256": "8efc82ad305c3cc91dbc822d8eec051284a1c019e897ab5b38d599656c0b7368",
+      "sha256": "027424dcd5b58e671a48cd4e1b5732b1be41ea2b2b9018363808bded514e57e2",
       "tag": "assets-2026.10",
       "kind": "model",
       "tree_sha256": "d1214f65259ea745677a1946fd739eb5672806b1c258b8c75c4ad74b828783b2"
@@ -533,8 +533,8 @@
     {
       "filename": "THIRD-PARTY-NOTICES.md",
       "dest": null,
-      "size": 14498,
-      "sha256": "ccdbbd0fe856c36cfcb4f185c5cbda7bbcef25309d3283dd2819ad959937ad7b",
+      "size": 15044,
+      "sha256": "3d36a9f86c29a438665a08ca1b43757f07d7eda2065206794f9715280b9e1e94",
       "tag": "assets-2026.10",
       "kind": "notice"
     },
