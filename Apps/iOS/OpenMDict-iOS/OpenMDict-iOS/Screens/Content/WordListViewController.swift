@@ -218,6 +218,11 @@ class WordListViewController: UIViewController {
         sc.delegate = self
         sc.obscuresBackgroundDuringPresentation = false
         sc.searchBar.placeholder = L10n.WordList.searchPlaceholder
+        // Dictionary keys use straight quotes and hyphens; Smart Punctuation
+        // would turn "o'clock" into "o’clock" (the lookup also falls back to
+        // the other apostrophe, but prefix search reads better without it).
+        sc.searchBar.searchTextField.smartQuotesType = .no
+        sc.searchBar.searchTextField.smartDashesType = .no
         // M15: scope bar swaps between spelling and semantic
         // (NLEmbedding) search. We own searchBar.delegate to receive scope
         // changes — UISearchController still handles text via searchResultsUpdater.

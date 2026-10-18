@@ -673,6 +673,8 @@ class DetailContainerViewController: UIViewController {
         searchController.delegate = self
         searchController.searchResultsUpdater = self
         searchController.searchBar.autocapitalizationType = .none
+        searchController.searchBar.searchTextField.smartQuotesType = .no
+        searchController.searchBar.searchTextField.smartDashesType = .no
         searchController.searchBar.placeholder = placeholder
 
         navigationItem.searchController = searchController

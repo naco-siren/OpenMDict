@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import OpenMDict
 
 /// Rewrites resource paths in HTML to use mdict:// scheme for WKWebView loading.
 nonisolated enum HTMLResourceRewriter {
@@ -104,8 +105,10 @@ nonisolated enum HTMLResourceRewriter {
         var result = html
         let matches = regex.matches(in: result, range: NSRange(result.startIndex..., in: result)).reversed()
 
-        var allowed = CharacterSet.urlPathAllowed
-        allowed.insert("%")  // don't re-encode existing %XX sequences
+        // urlPathAllowed minus "/", ":", "?", "@", ";" (they would end the
+        // URL host WebKit parses the target into), plus "%" so existing
+        // %XX sequences are not encoded twice.
+        let allowed = EntryLink.targetAllowedCharacters
 
         for match in matches {
             guard let fullRange = Range(match.range, in: result),
@@ -116,9 +119,12 @@ nonisolated enum HTMLResourceRewriter {
             }
             let raw = String(result[pathRange])
 
-            // Skip pure ASCII (no spaces, no non-ASCII) — nothing for WebKit
-            // to mojibake, no encoding needed.
-            let needsEncoding = raw.unicodeScalars.contains { $0.value > 0x7F || $0.value == 0x20 }
+            // Skip targets WebKit takes as they are: ASCII without spaces and
+            // without the characters that end a host ("9/11" must not become
+            // a link to "9").
+            let needsEncoding = raw.unicodeScalars.contains {
+                $0.value > 0x7F || $0.value == 0x20 || "/:?@;".unicodeScalars.contains($0)
+            }
             guard needsEncoding else { continue }
 
             // Split on first `#` to encode word and fragment separately,

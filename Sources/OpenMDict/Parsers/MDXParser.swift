@@ -187,6 +187,74 @@ internal final class MDXParser {
         return lookupWithRedirect(keyword, depth: 0)
     }
 
+    /// Every record stored under `keyword`, with `@@@LINK=` redirects
+    /// followed and duplicates (several keys redirecting to one article)
+    /// removed.
+    ///
+    /// MDX files may hold several records with the same key — homographs
+    /// written as separate articles, an article plus a redirect for an
+    /// inflected form — and, in case-insensitive dictionaries, keys that
+    /// differ only in case ("turkey" / "Turkey", "Arm" / "arm"). A lookup
+    /// returns all of them: exact-case matches first, then the other case
+    /// variants, each group in dictionary order.
+    ///
+    /// When nothing matches and the query contains an apostrophe, the same
+    /// lookup is tried with the other apostrophe: iOS Smart Punctuation types
+    /// U+2019 where nearly every dictionary key has U+0027 (and the reverse
+    /// for a hardware keyboard and a dictionary with typographic keys).
+    func lookupAllWithIndex(_ keyword: String) -> [(String, String, Int)] {
+        for query in ApostropheVariants.of(keyword) {
+            let results = lookupAll(query)
+            if !results.isEmpty { return results }
+        }
+        return []
+    }
+
+    private func lookupAll(_ query: String) -> [(String, String, Int)] {
+        var results: [(String, String, Int)] = []
+        var seen = Set<Int>()
+        for idx in findKeywordIndices(query) {
+            guard let definition = try? loadRecord(keywords[idx]),
+                  let resolved = resolveRedirect(keyword: keywords[idx].keyword,
+                                                 definition: definition, index: idx, depth: 0) else {
+                continue
+            }
+            if seen.insert(resolved.2).inserted {
+                results.append(resolved)
+            }
+        }
+        return results
+    }
+
+    /// Indices of every keyword equal to `query`: exact-case matches first,
+    /// then — unless the dictionary is case-sensitive — the keys that are
+    /// equal ignoring case. Each group in dictionary (index) order.
+    private func findKeywordIndices(_ query: String) -> [Int] {
+        let loweredQuery = query.lowercased()
+        var lo = 0
+        var hi = sortedIndices.count
+        while lo < hi {
+            let mid = (lo + hi) >> 1
+            let mk = keywords[Int(sortedIndices[mid])].keyword.lowercased()
+            if mk < loweredQuery { lo = mid + 1 } else { hi = mid }
+        }
+        var exact: [Int] = []
+        var others: [Int] = []
+        var i = lo
+        while i < sortedIndices.count {
+            let idx = Int(sortedIndices[i])
+            let kw = keywords[idx].keyword
+            if kw.lowercased() != loweredQuery { break }
+            if kw == query {
+                exact.append(idx)
+            } else if !header.keyCaseSensitive {
+                others.append(idx)
+            }
+            i += 1
+        }
+        return exact.sorted() + others.sorted()
+    }
+
     /// Internal lookup with redirect following.
     ///
     /// Uses binary search over `sortedIndices` (which is sorted by lowercased
@@ -318,6 +386,14 @@ internal final class MDXParser {
     ///   - limit: Maximum results (default 20)
     /// - Returns: Array of matching keywords (original case preserved)
     func search(prefix: String, limit: Int = 20) -> [String] {
+        for variant in ApostropheVariants.of(prefix) {
+            let results = searchExact(prefix: variant, limit: limit)
+            if !results.isEmpty { return results }
+        }
+        return []
+    }
+
+    private func searchExact(prefix: String, limit: Int) -> [String] {
         guard !prefix.isEmpty else { return [] }
         let loweredPrefix = prefix.lowercased()
 
@@ -826,3 +902,23 @@ func encodingFromString(_ str: String) -> String.Encoding {
     default: return .utf8
     }
 }
+
+// MARK: - Apostrophes
+
+/// The forms of a query to try, in order: as typed, then with the other
+/// kind of apostrophe. Dictionary keys almost always use U+0027, while iOS
+/// Smart Punctuation (on by default) types U+2019 and some keyboards U+02BC.
+enum ApostropheVariants {
+    static let typographic: Set<Character> = ["\u{2019}", "\u{2018}", "\u{02BC}", "\u{FF07}"]
+
+    static func of(_ query: String) -> [String] {
+        if query.contains(where: { typographic.contains($0) }) {
+            return [query, String(query.map { typographic.contains($0) ? "'" : $0 })]
+        }
+        if query.contains("'") {
+            return [query, query.replacingOccurrences(of: "'", with: "\u{2019}")]
+        }
+        return [query]
+    }
+}
+

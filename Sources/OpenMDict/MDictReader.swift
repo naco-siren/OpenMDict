@@ -334,19 +334,42 @@ public final class MDictReader: @unchecked Sendable {
     
     // MARK: - Lookup API
     
-    /// Look up a word by key
+    /// Look up a word by key.
+    ///
+    /// When the dictionary holds several records for the word — homographs
+    /// stored as separate articles, an article plus a redirect, or (in a
+    /// case-insensitive dictionary) keys that differ only in case — their
+    /// articles are joined into one, exact-case match first, separated by
+    /// `homographSeparator`. `key` and `index` are those of the first one.
     /// - Parameter key: The word to look up
     /// - Returns: Entry with article content, or nil if not found
     public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        guard let (originalKey, definition, index) = parser.lookupWithIndex(key) else {
-            return nil
-        }
+        let matches = lookupAll(key)
+        guard let first = matches.first else { return nil }
+        guard matches.count > 1 else { return first }
         return MDictWordEntry(
-            key: originalKey,  // Use original key from dictionary
-            article: MDictWordArticle(html: definition),
-            index: index
+            key: first.key,
+            article: MDictWordArticle(
+                html: matches.map(\.article.html).joined(separator: Self.homographSeparator)
+            ),
+            index: first.index
         )
     }
+
+    /// Every record for a word, separately (see `lookup(_:)`).
+    public func lookupAll(_ key: MDictWordKey) -> [MDictWordEntry] {
+        parser.lookupAllWithIndex(key).map { originalKey, definition, index in
+            MDictWordEntry(
+                key: originalKey,  // Use original key from dictionary
+                article: MDictWordArticle(html: definition),
+                index: index
+            )
+        }
+    }
+
+    /// Placed between the articles of a word that has several records.
+    /// The app styles `hr.omdict-homograph-separator`.
+    public static let homographSeparator = "\n<hr class=\"omdict-homograph-separator\">\n"
     
     /// Access entry by index
     /// - Parameter index: Index in keyword list

@@ -85,8 +85,46 @@ def main() -> None:
                         "-a", str(tmp / "tiny.txt"), str(HERE / "tiny.mdx")], check=True)
         subprocess.run(["mdict", "-a", str(res), str(HERE / "tiny.mdd")], check=True)
 
-    for f in ("tiny.mdx", "tiny.mdd"):
+    make_homographs()
+
+    for f in ("tiny.mdx", "tiny.mdd", "homographs.mdx"):
         print(f"{f}: {os.path.getsize(HERE / f)} bytes")
+
+
+# Records sharing a key, keys differing only in case, an article plus a
+# redirect under one key, and apostrophe keys — for the lookup that returns
+# every matching record (MDXParser.lookupAllWithIndex).
+HOMOGRAPHS = [
+    ("bank", "<p>bank (1): the side of a river</p>"),
+    ("bank", "<p>bank (2): an institution that keeps money</p>"),
+    ("turkey", "<p>turkey: a large bird</p>"),
+    ("Turkey", "<p>Turkey: a country</p>"),
+    ("essere", "<p>essere: to be</p>"),
+    ("sono", "<p>sono: alternative form of suono</p>"),
+    ("sono", "@@@LINK=essere"),
+    ("am", "@@@LINK=be"),
+    ("Am", "@@@LINK=be"),
+    ("be", "<p>be: to exist</p>"),
+    ("o'clock", "<p>o'clock: of the clock</p>"),
+    ("rock \u2019n\u2019 roll", "<p>rock \u2019n\u2019 roll: a genre</p>"),
+    ("single", "<p>single: one only</p>"),
+]
+
+
+def make_homographs() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        lines = []
+        for key, body in HOMOGRAPHS:
+            lines += [key, body, "</>"]
+        (tmp / "h.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (tmp / "title.html").write_text("OpenMDict Homograph Fixture", encoding="utf-8")
+        (tmp / "desc.html").write_text(
+            "Synthetic records with shared keys, used by the OpenMDict test suite.", encoding="utf-8")
+        (HERE / "homographs.mdx").unlink(missing_ok=True)
+        subprocess.run(["mdict", "--title", str(tmp / "title.html"),
+                        "--description", str(tmp / "desc.html"),
+                        "-a", str(tmp / "h.txt"), str(HERE / "homographs.mdx")], check=True)
 
 
 if __name__ == "__main__":
