@@ -7,6 +7,11 @@ ran — not necessarily the .mdx that is checked in / shipped.  This script
 makes the catalog describe the files on disk:
 
   * sizeBytes  <- os.path.getsize(output/<Name>/<Name>.mdx)
+  * sha256     <- SHA-256 of that file. The app uses the whole-file hash as
+                  the dictionary's ID, so a different value tells an
+                  installed copy that an updated preset is available.
+  * previousSha256 <- gains the hash being replaced (every build that ever
+                  shipped; the app updates only builds listed here).
   * entries    <- key count reported by the `openmdict` CLI (optional,
                   pass --openmdict /path/to/openmdict)
 
@@ -18,6 +23,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -34,6 +40,31 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 def mdx_path(filename: str) -> Path:
     return OUTPUT_DIR / Path(filename).stem / filename
+
+
+def sha256_of(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def record_previous_build(entry: dict, digest: str) -> None:
+    """Make `digest` the entry's sha256 and remember the build it replaces.
+
+    The app offers an update only for an installed build whose ID is listed
+    in `previousSha256`. A build that is not listed (a user's own import of
+    a file with the same name, or a newer build synced from a device running
+    a newer app) is left alone, so the list must name every build that ever
+    shipped. Returning to an earlier build drops that build from the list.
+    """
+    previous = entry.setdefault("previousSha256", [])
+    old = entry.get("sha256")
+    if old and old != digest and old not in previous:
+        previous.append(old)
+    entry["previousSha256"] = [h for h in previous if h != digest]
+    entry["sha256"] = digest
 
 
 def count_entries(openmdict: Path, mdx: Path) -> int:
@@ -71,6 +102,10 @@ def main() -> int:
         if d.get("sizeBytes") != size:
             changes.append((d["filename"], "sizeBytes", d.get("sizeBytes"), size))
             d["sizeBytes"] = size
+        digest = sha256_of(mdx)
+        if d.get("sha256") != digest:
+            changes.append((d["filename"], "sha256", (d.get("sha256") or "-")[:12], digest[:12]))
+            record_previous_build(d, digest)
         if args.openmdict:
             n = count_entries(args.openmdict, mdx)
             if d.get("entries") != n:

@@ -8,6 +8,7 @@ Usage:
     python scripts/generate_preset_catalog.py
 """
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -38,6 +39,20 @@ def normalize_license(raw: str) -> str:
     return LICENSE_SPDX.get(raw.strip(), raw.strip())
 
 
+def load_existing_builds() -> dict:
+    """sha256 / previousSha256 from the current catalog, keyed by id.
+
+    previousSha256 lists every build that ever shipped (the app updates only
+    those), so it is carried over and gains the hash a rebuild replaces.
+    """
+    if not CATALOG_PATH.exists():
+        return {}
+    with open(CATALOG_PATH, encoding='utf-8') as f:
+        current = json.load(f)
+    return {d["id"]: (d.get("sha256"), list(d.get("previousSha256", [])))
+            for d in current.get("dictionaries", [])}
+
+
 def load_existing_notes() -> dict:
     """licenseNote values from the current catalog, keyed by id (hand-maintained, kept across regenerations)."""
     if not CATALOG_PATH.exists():
@@ -45,6 +60,14 @@ def load_existing_notes() -> dict:
     with open(CATALOG_PATH, encoding='utf-8') as f:
         current = json.load(f)
     return {d["id"]: d["licenseNote"] for d in current.get("dictionaries", []) if d.get("licenseNote")}
+
+
+def _sha256_of(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def derive_id(filename: str) -> str:
@@ -81,6 +104,7 @@ def build_catalog(sidecars: list[dict], policy: dict) -> dict:
     """Build the v3 catalog from sidecars and policy."""
     bundle_set = set(policy.get("bundle_assets", []))
     existing_notes = load_existing_notes()
+    existing_builds = load_existing_builds()
     dictionaries = []
     warnings = []
 
@@ -98,10 +122,19 @@ def build_catalog(sidecars: list[dict], policy: dict) -> dict:
             "flag": meta["flag"],
             "entries": meta["entries"],
             "sizeBytes": meta["sizeBytes"],
+            # Whole-file SHA-256 = the dictionary ID the app derives; a new
+            # value is how installed copies learn that an update exists.
+            "sha256": _sha256_of(OUTPUT_DIR / Path(filename).stem / filename),
+            "previousSha256": [],
             "license": normalize_license(meta["license"]),
             "dataSource": meta["dataSource"],
             "source": "bundle" if is_bundle else "odr",
         }
+
+        old_sha, previous = existing_builds.get(dict_id, (None, []))
+        if old_sha and old_sha != entry["sha256"] and old_sha not in previous:
+            previous.append(old_sha)
+        entry["previousSha256"] = [h for h in previous if h != entry["sha256"]]
 
         if dict_id in existing_notes:
             entry["licenseNote"] = existing_notes[dict_id]
