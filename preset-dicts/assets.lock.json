@@ -252,16 +252,16 @@
     {
       "filename": "LSJ-GRC-EN.mdx",
       "dest": "preset-dicts/output/LSJ-GRC-EN/LSJ-GRC-EN.mdx",
-      "size": 3014041,
-      "sha256": "49cff1ae92b4583736f7687cb00f70cabb1915a9d30246390c7408fecb22e4de",
+      "size": 19744905,
+      "sha256": "a3e223c5d495476721ffe6a9316b1027ac67d4c2108901cb78ea85f9a0f0e9e0",
       "tag": "assets-2026.10",
       "kind": "mdx"
     },
     {
       "filename": "Lewis-Short-LA-EN.mdx",
       "dest": "preset-dicts/output/Lewis-Short-LA-EN/Lewis-Short-LA-EN.mdx",
-      "size": 11570966,
-      "sha256": "4c6a58218031fb9ffa4aeb4c85f0b56537536c063d7481606187bca1dd6c9a07",
+      "size": 11939113,
+      "sha256": "69f177502ca5baa8a668b64b49a27a12d2aa458aa609f0c7903ef8a23f1bdcef",
       "tag": "assets-2026.10",
       "kind": "mdx"
     },
@@ -533,8 +533,8 @@
     {
       "filename": "THIRD-PARTY-NOTICES.md",
       "dest": null,
-      "size": 15044,
-      "sha256": "3d36a9f86c29a438665a08ca1b43757f07d7eda2065206794f9715280b9e1e94",
+      "size": 15131,
+      "sha256": "82c540127fe8f7e3a531635271263bdb13804d9351266fbb7050b44ecd6ca101",
       "tag": "assets-2026.10",
       "kind": "notice"
     },

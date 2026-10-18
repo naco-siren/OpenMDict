@@ -238,10 +238,15 @@ fetch_perseus() {
     echo "  Source: https://github.com/PerseusDL"
     echo "  License: CC BY-SA 4.0 (credit line in scripts/build_perseus_mdx.py)"
     mkdir -p "$DATA/perseus"
-    # LSJ (Liddell-Scott-Jones Greek-English Lexicon). Upstream splits LSJ into
-    # grc.lsj.perseus-eng1..27.xml; the preset is currently built from part 1.
-    dl "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/pdllex/grc/lsj/grc.lsj.perseus-eng1.xml" \
-       "$DATA/perseus/lsj.xml"
+    # LSJ (Liddell-Scott-Jones Greek-English Lexicon). Upstream splits the
+    # lexicon by initial letter into grc.lsj.perseus-eng1..27.xml (1 = α,
+    # 2 = β, …); all 27 parts are needed.
+    mkdir -p "$DATA/perseus/lsj"
+    local i
+    for i in $(seq 1 27); do
+        dl "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/pdllex/grc/lsj/grc.lsj.perseus-eng$i.xml" \
+           "$DATA/perseus/lsj/grc.lsj.perseus-eng$i.xml"
+    done
     # Lewis & Short (Latin-English Dictionary)
     dl "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/pdllex/lat/ls/lat.ls.perseus-eng1.xml" \
        "$DATA/perseus/lewis-short.xml"

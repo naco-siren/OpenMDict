@@ -44,11 +44,15 @@
 #                        when that directory exists. LicenseRef-* texts (e.g. the
 #                        WordNet license) can only come from here.
 #   --repo <owner/name>  GitHub repository (default: derived from the lock's base URL)
-#   --amend-unpublished  the tag is already referenced by the committed lock but
-#                        has never been published (no release yet, or still a
-#                        draft): allow changing its assets, and upload every
-#                        asset that points at it, not only new/changed ones.
-#                        Publishing verifies the release is absent or a draft.
+#   --amend              revise an existing tag in place (alias:
+#                        --amend-unpublished): the tag may already be referenced
+#                        by the committed lock and its release may already be
+#                        published. Every asset that points at the tag is made
+#                        to match the lock: identical files (by SHA-256 digest)
+#                        are skipped, changed ones are deleted and re-uploaded.
+#                        Only sensible before the project is announced; clones
+#                        that bootstrapped the old files pick up the new ones on
+#                        their next scripts/bootstrap-assets.sh run.
 #
 # Requires bash 3.2+, jq, shasum, ditto, curl; gh (authenticated) unless
 # --dry-run/--stage-only.
@@ -88,6 +92,7 @@ MODE=publish
 STAGING="$REPO_ROOT/.bootstrap/publish"
 OFFLINE=0
 AMEND=0
+RELEASE_STATE=""
 LICENSES_DIR=""
 GH_REPO=""
 
@@ -100,7 +105,7 @@ while [ $# -gt 0 ]; do
         --stage-only) MODE=stage-only ;;
         --staging) STAGING=${2:-}; shift ;;
         --offline) OFFLINE=1 ;;
-        --amend-unpublished) AMEND=1 ;;
+        --amend|--amend-unpublished) AMEND=1 ;;
         --licenses-dir) LICENSES_DIR=${2:-}; shift ;;
         --repo) GH_REPO=${2:-}; shift ;;
         -h|--help) usage; exit 0 ;;
@@ -384,7 +389,7 @@ fi
 if [ "$n_upload" -gt 0 ]; then
     [ -n "$TAG" ] || die "$n_upload asset(s) are new or changed; pass --tag assets-YYYY.MM[.N] (a tag not yet referenced by the committed lock)"
     if grep -qx "$TAG" "$WORK/committed.tags" && [ "$AMEND" -eq 0 ]; then
-        die "tag $TAG is already referenced by the committed lock; assets published under it must not change — pick a new tag (if it was never published, pass --amend-unpublished)"
+        die "tag $TAG is already referenced by the committed lock; pick a new tag, or pass --amend to revise it in place"
     fi
 fi
 
@@ -485,12 +490,17 @@ fi
 gh auth status >/dev/null 2>&1 || die "gh is not authenticated (gh auth login)"
 
 if gh release view "$TAG" --repo "$GH_REPO" --json isDraft,assets > "$WORK/release.json" 2>/dev/null; then
-    if [ "$(jq -r '.isDraft' "$WORK/release.json")" != true ]; then
-        die "release $TAG already exists and is published; its assets are immutable — pick a new --tag"
+    if [ "$(jq -r '.isDraft' "$WORK/release.json")" != true ] && [ "$AMEND" -eq 0 ]; then
+        die "release $TAG already exists and is published — pick a new --tag, or pass --amend to revise it in place"
     fi
-    log "→ Reusing existing draft release $TAG"
-    jq -r '.assets[] | [.name, .size] | map(. // "" | tostring) | join("\u001f")' "$WORK/release.json" > "$WORK/existing.tsv"
+    RELEASE_STATE=$(jq -r 'if .isDraft then "draft" else "published" end' "$WORK/release.json")
+    log "→ Reusing existing release $TAG ($RELEASE_STATE)"
+    jq -r '.assets[] | [.name, .size, (.digest // "")] | map(. // "" | tostring) | join("\u001f")' "$WORK/release.json" > "$WORK/existing.tsv"
+    if [ "$AMEND" -eq 1 ] && [ -f "$STAGING/$TAG/RELEASE-NOTES.md" ]; then
+        gh release edit "$TAG" --repo "$GH_REPO" --notes-file "$STAGING/$TAG/RELEASE-NOTES.md" >/dev/null
+    fi
 else
+    RELEASE_STATE=new
     log "→ Creating draft pre-release $TAG on $GH_REPO"
     gh release create "$TAG" --repo "$GH_REPO" --prerelease --draft \
         --title "Build assets $TAG" --notes-file "$STAGING/$TAG/RELEASE-NOTES.md" >/dev/null
@@ -503,12 +513,15 @@ while IFS=$US read -r status kind filename dest size sha tree tag out; do
     [ "$status" != unchanged ] || [ "$AMEND" -eq 1 ] || continue
     [ -f "$out" ] || die "staged file missing: $out"
     existing_size=$(awk -F "$US" -v n="$filename" '$1 == n { print $2; exit }' "$WORK/existing.tsv")
+    existing_digest=$(awk -F "$US" -v n="$filename" '$1 == n { print $3; exit }' "$WORK/existing.tsv")
     if [ -n "$existing_size" ]; then
-        if [ "$existing_size" = "$size" ]; then
-            log "  already on draft: $filename"
+        if [ "$existing_digest" = "sha256:$sha" ] || { [ -z "$existing_digest" ] && [ "$existing_size" = "$size" ]; }; then
+            log "  already on release: $filename"
             continue
         fi
-        die "$filename already exists on draft $TAG with a different size; remove it first (gh release delete-asset $TAG $filename) — assets are never clobbered"
+        [ "$AMEND" -eq 1 ] || die "$filename already exists on $TAG with different content; pass --amend to replace it"
+        log "  replacing on release: $filename"
+        gh release delete-asset "$TAG" "$filename" --repo "$GH_REPO" --yes >/dev/null
     fi
     upload_files+=("$out")
 done < "$WORK/plan2.tsv"
@@ -520,8 +533,13 @@ fi
 
 cp "$WORK/lock.json" "$LOCK"
 log ""
-log "✓ Draft pre-release $TAG holds $n_upload new/changed asset(s); ${LOCK#"$REPO_ROOT"/} rewritten."
-log "Next:"
-log "  1. gh release view $TAG --repo $GH_REPO --web      # review the draft"
-log "  2. gh release edit $TAG --repo $GH_REPO --draft=false"
-log "  3. scripts/check-assets.sh && git add preset-dicts/assets.lock.json && git commit"
+if [ "$RELEASE_STATE" = published ]; then
+    log "✓ Published release $TAG revised: ${#upload_files[@]} asset(s) replaced or added; ${LOCK#"$REPO_ROOT"/} rewritten."
+    log "Next: scripts/check-assets.sh && git add preset-dicts/assets.lock.json && git commit"
+else
+    log "✓ Draft pre-release $TAG holds ${#upload_files[@]} uploaded asset(s); ${LOCK#"$REPO_ROOT"/} rewritten."
+    log "Next:"
+    log "  1. gh release view $TAG --repo $GH_REPO --web      # review the draft"
+    log "  2. gh release edit $TAG --repo $GH_REPO --draft=false"
+    log "  3. scripts/check-assets.sh && git add preset-dicts/assets.lock.json && git commit"
+fi

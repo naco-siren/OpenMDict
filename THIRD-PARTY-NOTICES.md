@@ -74,12 +74,13 @@ Dictionary) — required credit, reproduced as the upstream
 > Text provided under a CC BY-SA license by Perseus Digital Library,
 > http://www.perseus.tufts.edu, with funding from The National Endowment for
 > the Humanities. Data accessed from https://github.com/PerseusDL/lexica/
-> [2026-02-20].
+> [LSJ: 2026-10-17; Lewis & Short: 2026-02-20].
 
 The upstream TEI headers are kept in the source files; the only
-modifications (beta-code → Unicode Greek conversion and HTML rendering) are
-the public `preset-dicts/scripts/build_perseus_mdx.py`, which is how they are
-offered back to Perseus.
+modifications (beta-code → Unicode Greek conversion, lookup keys taken from
+the upstream `key` attributes, and HTML rendering) are the public
+`preset-dicts/scripts/build_perseus_mdx.py`, which is how they are offered
+back to Perseus.
 
 <!-- BEGIN GENERATED: preset dictionaries -->
 

@@ -6,7 +6,8 @@ from Perseus Digital Library TEI P4 XML.
 Usage:
     python build_perseus_mdx.py
 
-Input:  ../data/perseus/lsj.xml, ../data/perseus/lewis-short.xml
+Input:  ../data/perseus/lsj/grc.lsj.perseus-eng1..27.xml (all 27 parts),
+        ../data/perseus/lewis-short.xml
 Output: ../output/LSJ-GRC-EN/LSJ-GRC-EN.mdx
         ../output/Lewis-Short-LA-EN/Lewis-Short-LA-EN.mdx
 """
@@ -319,10 +320,44 @@ def parse_senses(entry_elem, is_latin_dict: bool = False,
     return senses
 
 
+# ── Headwords ──────────────────────────────────────────────────
+# Each entry has two spellings upstream:
+#   key="yuxh/"          the plain lemma (homographs carry a trailing digit)
+#   <orth>yu_x-h/</orth>  the printed form, with vowel-quantity marks (^ short,
+#                         _ long) and the word-formation hyphens LSJ/L&S print.
+# The printed form is what readers expect to see, but nobody can type it, so
+# it is NOT a usable lookup key (70% of LSJ headwords contained ^ _ - : etc.).
+# Lookup keys come from `key`; the printed form is shown inside the article.
+
+def _clean_key(key: str) -> str:
+    """Strip homograph digits and editorial marks from an upstream key."""
+    key = re.sub(r'\d+$', '', key.strip())
+    key = key.replace('aelig;', 'ae').replace('oelig;', 'oe')
+    key = re.sub(r'[\[\]<>^_]', '', key)
+    return key.strip()
+
+
+def greek_lookup_key(key: str) -> str:
+    return unicodedata.normalize('NFC', beta_to_unicode(_clean_key(key))).strip()
+
+
+def latin_lookup_key(key: str) -> str:
+    # Keys are plain ASCII (no macrons/breves); a stray accent slash appears twice.
+    return _clean_key(key).replace('/', '').strip()
+
+
+def display_form(printed: str) -> str:
+    """Render the printed headword: ^/_ become combining breve/macron on the
+    preceding vowel; trailing punctuation from the source markup is dropped."""
+    text = printed.replace('^', '\u0306').replace('_', '\u0304')
+    text = text.strip().rstrip(',:;.').strip()
+    return unicodedata.normalize('NFC', text)
+
+
 def parse_perseus_xml(filepath: Path, is_greek: bool):
     """Parse a Perseus TEI P4 XML dictionary file.
 
-    Yields: (headword, pos, gen, itype, senses) tuples.
+    Yields: (lookup_key, display_headword, pos, gen, itype, senses) tuples.
     """
     is_latin_dict = not is_greek
     print(f"  Parsing {filepath.name}...")
@@ -343,16 +378,19 @@ def parse_perseus_xml(filepath: Path, is_greek: bool):
         else:
             orth_text = key
 
-        # For Greek: convert beta code to Unicode
+        # Lookup key from `key`; printed form from <orth> (see "Headwords").
         if is_greek:
-            headword = beta_to_unicode(orth_text) if orth_text else beta_to_unicode(key)
-            # Clean up: remove trailing commas, whitespace
-            headword = headword.strip().rstrip(',').strip()
+            lookup = greek_lookup_key(key) if key else ''
+            printed = beta_to_unicode(orth_text) if orth_text else lookup
         else:
-            # Latin: use orth text, strip trailing numbers from key
-            headword = orth_text.strip() if orth_text else re.sub(r'\d+$', '', key).strip()
+            lookup = latin_lookup_key(key) if key else ''
+            printed = orth_text or lookup
+        if not lookup:
+            # No usable key: fall back to the printed form without markup.
+            lookup = unicodedata.normalize('NFC', re.sub(r'[\^_:,.\-\[\]<>]', '', printed)).strip()
+        headword = display_form(printed) or lookup
 
-        if not headword:
+        if not lookup:
             elem.clear()
             continue
 
@@ -389,14 +427,14 @@ def parse_perseus_xml(filepath: Path, is_greek: bool):
                                      is_greek_dict=is_greek_dict)
             full_html = re.sub(r'\s+', ' ', full_html).strip()
             if full_html and len(full_html) > 10:
-                senses = [{'num': '', 'html': full_html[:800],
+                senses = [{'num': '', 'html': full_html,
                            'translations': []}]
 
         if not senses:
             elem.clear()
             continue
 
-        yield headword, pos_text, gen_text, itype_text, senses
+        yield lookup, headword, pos_text, gen_text, itype_text, senses
         count += 1
 
         if count % 10000 == 0:
@@ -482,9 +520,11 @@ def _render_sense_tree(nodes: list[dict]) -> str:
 # ── HTML builder ───────────────────────────────────────────────
 
 def build_html(headword: str, pos: str, gen: str, itype: str,
-               senses: list[dict], dir_label: str) -> str:
-    """Build HTML for a single dictionary entry."""
-    parts = [f'<span class="dir">{dir_label}</span>']
+               senses: list[dict], dir_label: str, first: bool = True) -> str:
+    """Build HTML for one upstream entry. Homographs that share a lookup key
+    are rendered as consecutive blocks; only the first carries the CSS and
+    the direction label."""
+    parts = [f'<span class="dir">{dir_label}</span>'] if first else []
     parts.append(f'<span class="hw">{esc(headword)}</span>')
 
     # POS badge (if available)
@@ -500,11 +540,21 @@ def build_html(headword: str, pos: str, gen: str, itype: str,
     if inf_parts:
         parts.append(f'<span class="inf">{esc(", ".join(inf_parts))}</span>')
 
-    # Build nested sense tree and render (limit to 20 senses)
-    sense_tree = _build_sense_tree(senses[:20])
+    # Build nested sense tree and render (all senses — the big entries such as
+    # ἐπί or volo have up to ~230 and are the ones readers need most)
+    sense_tree = _build_sense_tree(senses)
     parts.append(_render_sense_tree(sense_tree))
 
-    return f'{CSS}<div class="e">{"".join(parts)}</div>'
+    body = f'<div class="e">{"".join(parts)}</div>'
+    return f'{CSS}{body}' if first else body
+
+
+def build_article(readings: list, dir_label: str) -> str:
+    """One article per lookup key: each upstream entry as its own block."""
+    return ''.join(
+        build_html(hw, pos, gen, itype, senses, dir_label, first=(i == 0))
+        for i, (hw, pos, gen, itype, senses) in enumerate(readings)
+    )
 
 
 # ── Build one dictionary ──────────────────────────────────────
@@ -512,7 +562,7 @@ def build_html(headword: str, pos: str, gen: str, itype: str,
 def build_dictionary(config: dict):
     """Build a single MDX dictionary."""
     name = config['name']
-    xml_path = config['xml']
+    xml_paths = config['xml'] if isinstance(config['xml'], list) else [config['xml']]
     is_greek = config['is_greek']
     dir_label = config['dir_label']
     output_dir = OUTPUT_BASE / name
@@ -523,11 +573,25 @@ def build_dictionary(config: dict):
     print(f"{'='*60}")
 
     # Parse XML
-    entries = defaultdict(list)  # headword → [(pos, gen, itype, senses)]
-    for headword, pos, gen, itype, senses in parse_perseus_xml(xml_path, is_greek):
-        entries[headword].append((pos, gen, itype, senses))
+    entries = defaultdict(list)  # lookup key → [(display hw, pos, gen, itype, senses)]
+    for xml_path in xml_paths:
+        for lookup, headword, pos, gen, itype, senses in parse_perseus_xml(xml_path, is_greek):
+            entries[lookup].append((headword, pos, gen, itype, senses))
 
-    print(f"  {len(entries)} unique headwords")
+    print(f"  {len(entries)} unique headwords from {len(xml_paths)} file(s)")
+
+    expected = config.get('expect_initials')
+    if expected:
+        def initial(word: str) -> str:
+            base = ''.join(ch for ch in unicodedata.normalize('NFD', word)
+                           if not unicodedata.combining(ch))
+            return base[:1].lower().replace('ς', 'σ')
+        seen = {initial(hw) for hw in entries}
+        missing = sorted(expected - seen)
+        if missing:
+            raise SystemExit(f"  ✗ {name}: no headwords for initial(s) {' '.join(missing)} "
+                             f"— incomplete input?")
+        print(f"  all {len(expected)} expected initial letters present")
 
     # Write MDict source
     prefix = name.lower().replace('-', '_')
@@ -537,25 +601,7 @@ def build_dictionary(config: dict):
     count = 0
     with open(txt_path, 'w', encoding='utf-8') as f:
         for hw in sorted(entries.keys()):
-            readings = entries[hw]
-            # Merge all readings into one article
-            if len(readings) == 1:
-                pos, gen, itype, senses = readings[0]
-                html = build_html(hw, pos, gen, itype, senses, dir_label)
-            else:
-                # Multiple entries for same headword — combine senses
-                all_senses = []
-                first_pos, first_gen, first_itype = '', '', ''
-                for pos, gen, itype, senses in readings:
-                    if pos and not first_pos:
-                        first_pos = pos
-                    if gen and not first_gen:
-                        first_gen = gen
-                    if itype and not first_itype:
-                        first_itype = itype
-                    all_senses.extend(senses)
-                html = build_html(hw, first_pos, first_gen, first_itype,
-                                  all_senses, dir_label)
+            html = build_article(entries[hw], dir_label)
             f.write(f"{hw}\n{html}\n</>\n")
             count += 1
 
@@ -588,24 +634,13 @@ def build_dictionary(config: dict):
 def _generate_preview(output_dir: Path, prefix: str, name: str, entries: dict,
                      dir_label: str, sample_words: list):
     entries_html = []
+    missing = [hw for hw in sample_words if hw not in entries]
+    if missing:
+        # Samples are typed the way a reader would type them; if they do not
+        # resolve, lookups are broken for real users too.
+        raise SystemExit(f"  ✗ {name}: sample word(s) not found as lookup keys: {', '.join(missing)}")
     for hw in sample_words:
-        if hw in entries:
-            readings = entries[hw]
-            all_senses = []
-            first_pos, first_gen, first_itype = '', '', ''
-            for pos, gen, itype, senses in readings:
-                if pos and not first_pos:
-                    first_pos = pos
-                if gen and not first_gen:
-                    first_gen = gen
-                if itype and not first_itype:
-                    first_itype = itype
-                all_senses.extend(senses)
-            html = build_html(hw, first_pos, first_gen, first_itype,
-                              all_senses, dir_label)
-            entries_html.append(html)
-        else:
-            print(f"  ⚠ Sample word '{hw}' not found in entries")
+        entries_html.append(build_article(entries[hw], dir_label))
 
     preview_path = output_dir / f"{prefix}_preview.html"
     _shared_preview(entries_html, preview_path, f'{name} — preview')
@@ -616,17 +651,24 @@ def _generate_preview(output_dir: Path, prefix: str, name: str, entries: dict,
 # availability statement, and that modifications be offered back to Perseus
 # (our only modifications are the beta-code → Unicode conversion and the
 # HTML rendering in this script, which is public).
-PERSEUS_ACCESS_DATE = "2026-02-20"
-PERSEUS_CREDIT_HTML = (
-    "<p>Text provided under a "
-    "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA</a> license "
-    "by Perseus Digital Library, "
-    "<a href='http://www.perseus.tufts.edu'>http://www.perseus.tufts.edu</a>, "
-    "with funding from The National Endowment for the Humanities. "
-    "Data accessed from "
-    "<a href='https://github.com/PerseusDL/lexica/'>https://github.com/PerseusDL/lexica/</a> "
-    f"[{PERSEUS_ACCESS_DATE}].</p>"
-)
+def perseus_credit_html(access_date: str) -> str:
+    return (
+        "<p>Text provided under a "
+        "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA</a> license "
+        "by Perseus Digital Library, "
+        "<a href='http://www.perseus.tufts.edu'>http://www.perseus.tufts.edu</a>, "
+        "with funding from The National Endowment for the Humanities. "
+        "Data accessed from "
+        "<a href='https://github.com/PerseusDL/lexica/'>https://github.com/PerseusDL/lexica/</a> "
+        f"[{access_date}].</p>"
+    )
+
+
+# Upstream splits LSJ by initial letter into 27 parts; all of them are needed.
+LSJ_PARTS = [DATA_DIR / 'lsj' / f'grc.lsj.perseus-eng{i}.xml' for i in range(1, 28)]
+# Every initial letter must be represented (guards against a partial download,
+# which is how the preset once shipped with only α).
+GREEK_INITIALS = set('αβγδεζηθικλμνξοπρστυφχψω')
 
 
 # ── Main ───────────────────────────────────────────────────────
@@ -634,17 +676,18 @@ PERSEUS_CREDIT_HTML = (
 DICTS = [
     {
         'name': 'LSJ-GRC-EN',
-        'xml': DATA_DIR / 'lsj.xml',
+        'xml': LSJ_PARTS,
+        'expect_initials': GREEK_INITIALS,
         'title': 'LSJ — Greek-English Lexicon',
         'desc': (
             "<p><b>A Greek-English Lexicon (Liddell-Scott-Jones)</b></p>"
             "<p>The standard comprehensive Ancient Greek-English lexicon. "
             "9th edition (1940), revised by Henry Stuart Jones and Roderick McKenzie.</p>"
-            + PERSEUS_CREDIT_HTML
+            + perseus_credit_html('2026-10-17')
         ),
         'dir_label': f'{FLAG_GRC} Ἑλληνικά → English {FLAG_EN}',
         'is_greek': True,
-        'samples': ['ἀνήρ', 'ἀρχή', 'ἄνθρωπος', 'ἀρετή', 'ἀγορά', 'ἁρμονία'],
+        'samples': ['ἀρχή', 'βίος', 'ἐπί', 'θεός', 'λόγος', 'ὕδωρ', 'ψυχή'],
         'catalog_display_name': 'LSJ Greek-English Lexicon',
         'catalog_description': 'Liddell-Scott-Jones: the standard comprehensive Ancient Greek-English lexicon (9th ed., 1940).',
         'catalog_direction': {'src': 'EL', 'dest': ['EN']},
@@ -660,11 +703,11 @@ DICTS = [
             "<p><b>A Latin Dictionary (Lewis & Short)</b></p>"
             "<p>The standard Latin-English dictionary. Founded on Andrews' edition "
             "of Freund's Latin dictionary. Oxford: Clarendon Press, 1879.</p>"
-            + PERSEUS_CREDIT_HTML
+            + perseus_credit_html('2026-02-20')
         ),
         'dir_label': f'{FLAG_LA} Latina → English {FLAG_EN}',
         'is_greek': False,
-        'samples': ['ămo', 'ăqua', 'bellum', 'dĕus', 'rex', 'vĭr'],
+        'samples': ['amo', 'aqua', 'bellum', 'deus', 'rex', 'vir', 'volo'],
         'catalog_display_name': 'Lewis & Short Latin Dictionary',
         'catalog_description': 'The standard Latin-English dictionary (Lewis & Short, 1879). 50K entries with etymologies, citations, and cross-references.',
         'catalog_direction': {'src': 'LA', 'dest': ['EN']},
@@ -675,11 +718,21 @@ DICTS = [
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1] if __doc__ else None)
+    parser.add_argument('--only', choices=[c['name'] for c in DICTS],
+                        help='build just this dictionary')
+    args = parser.parse_args()
     for config in DICTS:
-        if config['xml'].exists():
-            build_dictionary(config)
-        else:
-            print(f"Warning: {config['xml']} not found, skipping {config['name']}")
+        if args.only and config['name'] != args.only:
+            continue
+        paths = config['xml'] if isinstance(config['xml'], list) else [config['xml']]
+        missing = [p for p in paths if not p.exists()]
+        if missing:
+            print(f"Warning: {len(missing)} input file(s) missing for {config['name']} "
+                  f"(first: {missing[0]}); run scripts/fetch_data.sh perseus — skipping")
+            continue
+        build_dictionary(config)
 
 
 if __name__ == '__main__':
