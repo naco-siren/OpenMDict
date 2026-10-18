@@ -128,6 +128,16 @@ final class DictionaryService: ObservableObject {
     /// CloudKit mirroring reset is in flight and inserts are refused.
     private var groupsNeedBootstrap = false
 
+    /// Failed downloads per dictionary in this process, and when the next
+    /// attempt may start. A failure does not mark the shared metadata row,
+    /// so remote-change passes retry — with backoff (30 s doubling up to
+    /// 30 min) rather than on every pass or never again after a few
+    /// transient failures.
+    private var downloadFailures: [String: (count: Int, retryAfter: Date)] = [:]
+
+    /// Presets whose MDX is being replaced right now (see updatePresetFile).
+    private var presetFileUpdatesInFlight = Set<String>()
+
     private init() {}
 
     // MARK: - Sidecar Index Cache Bootstrap
@@ -218,6 +228,7 @@ final class DictionaryService: ObservableObject {
         remoteDeleteVerifiedAfter.removeAll()
         loggedUnrecoverable.removeAll()
         resourceReconcileAttempts.removeAll()
+        downloadFailures.removeAll()
         groupsNeedBootstrap = false
 
         allDictionaries.removeAll()
@@ -269,12 +280,19 @@ final class DictionaryService: ObservableObject {
     /// If no metadata exists (fresh install), dictionaries will be empty until
     /// SetupViewController imports preset dictionaries.
     func setup() {
+        // 0. A preset update killed between its two file renames leaves the
+        //    MDX under a temporary name; put it back before anything opens it.
+        storage.recoverInterruptedMDXReplacements()
+
         // 1. Load dictionaries from CoreData metadata + per-dict manifests
         loadUserDictionaries()
         rememberSyncStatuses(DictMetadataService.shared.loadAll())
 
         // 2. Setup groups from CoreData (or create defaults)
         setupGroups()
+
+        // Preset updates: compare installed presets with the builds this app ships.
+        PresetDictionaryService.shared.startTrackingUpdates()
 
         // 3. Background loading
         Task {
@@ -283,10 +301,15 @@ final class DictionaryService: ObservableObject {
             await loadAllDictionaries()
             SpotlightIndexingService.shared.indexAllDictionaries()
 
+            // Which build each installed preset's MDX is (hashed once per file).
+            await PresetDictionaryService.shared.recordInstalledBuilds()
+
             // 4. Catch-up upload: any locally-present dictionaries that were never
-            // uploaded to CloudKit (e.g. presets imported before file-sync was added).
+            // uploaded to CloudKit (e.g. presets imported before file-sync was added),
+            // and CloudKit deletions that could not be sent at the time.
             if SyncModeService.shared.isCloudSyncEnabled {
                 await uploadPendingDictionaries()
+                await DictionaryFileSyncService.shared.retryPendingCloudDeletions()
             }
         }
 
@@ -345,13 +368,24 @@ final class DictionaryService: ObservableObject {
         }
     }
 
-    /// Upload dictionaries whose `cloudSyncStatus` is still `.pending`.
+    /// Upload dictionaries whose `cloudSyncStatus` is still `.pending`, or
+    /// `.error` (a failed upload), or `.tooLarge` although the MDX is within
+    /// the cap (older builds marked a whole dictionary too large for one big
+    /// resource file; resources above the cap now simply stay local).
     /// This covers presets that were imported before file-sync was added,
     /// or any dict whose upload was interrupted.  Runs once at launch.
     private func uploadPendingDictionaries() async {
         let allMetadata = DictMetadataService.shared.loadAll()
         let pending = allMetadata.filter {
-            CloudSyncStatus(rawValue: $0.cloudSyncStatus) == .pending
+            switch CloudSyncStatus(rawValue: $0.cloudSyncStatus) {
+            case .pending, .error:
+                return true
+            case .tooLarge:
+                guard let manifest = storage.loadDictManifest(id: $0.dictId) else { return false }
+                return manifest.mdx.sizeBytes <= ManifestSyncRules.maxSyncableBytes
+            default:
+                return false
+            }
         }
 
         guard !pending.isEmpty else { return }
@@ -416,7 +450,20 @@ final class DictionaryService: ObservableObject {
         let missingIds = metadataIds.subtracting(loadedIds)
         for dictId in missingIds {
             let dictDir = storage.dictionaryDirectoryURL(id: dictId)
-            let hasLocalFiles = FileManager.default.fileExists(atPath: dictDir.path)
+            var hasLocalFiles = FileManager.default.fileExists(atPath: dictDir.path)
+            if hasLocalFiles && !storage.hasCompleteDictionary(id: dictId) {
+                // A folder without a manifest or MDX (an import killed half
+                // way) would count as "installed" forever and block the
+                // download. Remove it once it is clearly abandoned.
+                if storage.isAbandonedIncompleteFolder(id: dictId) {
+                    debugLog("🧹 Removing an incomplete folder for \(dictId.prefix(16)) so it can be downloaded")
+                    try? FileManager.default.removeItem(at: dictDir)
+                    storage.invalidateDictManifestCache(id: dictId)
+                    hasLocalFiles = false
+                } else {
+                    continue
+                }
+            }
 
             if hasLocalFiles {
                 // Files exist but MDict not loaded (race on launch, or the
@@ -437,6 +484,7 @@ final class DictionaryService: ObservableObject {
                     continue
                 }
                 guard !DictionaryFileSyncService.shared.isDownloading(dictId) else { continue }
+                if let failure = downloadFailures[dictId], failure.retryAfter > Date() { continue }
 
                 // Files not on device → download from CloudKit
                 DictMetadataService.shared.markDownloading(dictId)
@@ -444,7 +492,12 @@ final class DictionaryService: ObservableObject {
                     .downloadDictionary(dictId: dictId)
                 DictMetadataService.shared.clearDownloading(dictId)
                 if downloaded {
+                    downloadFailures.removeValue(forKey: dictId)
                     await refreshAfterImport(dictId)
+                } else {
+                    let count = (downloadFailures[dictId]?.count ?? 0) + 1
+                    let delay = min(30 * pow(2, Double(count - 1)), 1800)
+                    downloadFailures[dictId] = (count, Date().addingTimeInterval(delay))
                 }
             }
         }
@@ -1002,6 +1055,148 @@ final class DictionaryService: ObservableObject {
         return dictId
     }
 
+    // MARK: - Preset Updates
+
+    struct PresetUpdateError: LocalizedError {
+        enum Kind { case notReady, wrongBuild, copyFailed, doesNotOpen }
+        let kind: Kind
+        let underlying: Error?
+        var errorDescription: String? {
+            switch kind {
+            case .notReady: return L10n.PresetUpdate.errorNotReady
+            case .wrongBuild, .copyFailed, .doesNotOpen: return L10n.PresetUpdate.errorFailed
+            }
+        }
+    }
+
+    /// Whether the MDX of installed dictionary `dictId` can be replaced now:
+    /// it is in the library, its file is on this device, and nothing else is
+    /// writing to its folder (an iCloud download, another update). It need
+    /// not have finished loading — the update waits for that.
+    func canUpdatePresetFile(_ dictId: String) -> Bool {
+        guard dict(id: dictId) != nil,
+              !presetFileUpdatesInFlight.contains(dictId),
+              !DictionaryFileSyncService.shared.isDownloading(dictId),
+              !DictMetadataService.shared.downloadingDictIds.contains(dictId),
+              let manifest = storage.loadDictManifest(id: dictId) else { return false }
+        return FileManager.default.fileExists(atPath: storage.mdxURL(id: dictId, fileName: manifest.mdx.fileName).path)
+    }
+
+    /// Replace the MDX of an installed preset with the build this app ships,
+    /// in place. The dictionary keeps its ID, folder and file name, so its
+    /// bookmarks, history, groups, settings, the user's own resources and its
+    /// iCloud records all stay as they are. Only this device's copy changes:
+    /// the iCloud records are not touched, and other devices update their own
+    /// copy when their app ships the build.
+    ///
+    /// The new file is copied next to the old one and checked against
+    /// `expectedSha256` before anything changes. Then two renames swap it in
+    /// (the old file is kept until the new one has opened; readers that have
+    /// the old file open keep using it). If the new file does not open, the
+    /// old one is put back. A kill between the renames is repaired at the
+    /// next launch (`recoverInterruptedMDXReplacements`).
+    func updatePresetFile(dictId: String, from sourceURL: URL, expectedSha256: String) async throws {
+        guard canUpdatePresetFile(dictId), let dict = dict(id: dictId),
+              let manifest = storage.loadDictManifest(id: dictId) else {
+            throw PresetUpdateError(kind: .notReady, underlying: nil)
+        }
+        presetFileUpdatesInFlight.insert(dictId)
+        defer { presetFileUpdatesInFlight.remove(dictId) }
+
+        let fileName = manifest.mdx.fileName
+        let mdxURL = storage.mdxURL(id: dictId, fileName: fileName)
+        let expected = expectedSha256.lowercased()
+        debugLog("🔄 Updating preset file \(fileName) (\(dictId.prefix(16))) to \(expected.prefix(16))")
+
+        // Let a launch-time load finish first; reloading over it would race.
+        if dict.state != .loaded {
+            await dict.loadMetadata()
+            try? await dict.load()
+            if dict.state != .loaded {
+                for await state in dict.$state.values where state == .loaded || state.isError { break }
+            }
+        }
+        let oldHeaderSHA = dict.metadata?.headerSHA256
+
+        // 1. Copy and verify (off the main actor)
+        let staged: URL
+        do {
+            staged = try await DictionaryStorageService.stageReplacement(for: mdxURL, from: sourceURL)
+        } catch {
+            throw PresetUpdateError(kind: .copyFailed, underlying: error)
+        }
+        let actual: String
+        do {
+            actual = try await Task.detached(priority: .userInitiated) {
+                try PresetDictionaryService.fileSHA256(staged)
+            }.value
+        } catch {
+            try? FileManager.default.removeItem(at: staged)
+            throw PresetUpdateError(kind: .copyFailed, underlying: error)
+        }
+        guard actual == expected else {
+            try? FileManager.default.removeItem(at: staged)
+            debugLog("⚠️ Shipped file is \(actual.prefix(16)), the catalog names \(expected.prefix(16)) — not installed")
+            throw PresetUpdateError(kind: .wrongBuild, underlying: nil)
+        }
+        // Deleted (here or by another device) while the file was copied.
+        guard self.dict(id: dictId) === dict else {
+            try? FileManager.default.removeItem(at: staged)
+            throw PresetUpdateError(kind: .notReady, underlying: nil)
+        }
+
+        // 2. Reset the article index BEFORE the swap: a rebuilt preset keeps
+        //    its header hash, so an index of the old content would still
+        //    validate if the app were killed after the swap.
+        ArticleIndexCoordinator.shared.prepareForContentReplacement(dictId)
+
+        // 3. Swap the files
+        do {
+            try await DictionaryStorageService.swapInReplacement(staged, for: mdxURL)
+        } catch {
+            try? FileManager.default.removeItem(at: staged)
+            ArticleIndexCoordinator.shared.handleDictImported(dictId)
+            throw PresetUpdateError(kind: .copyFailed, underlying: error)
+        }
+        storage.recordMDXSha256(expected, id: dictId)
+        // Local size of the MDX; re-read so resource changes made meanwhile
+        // (e.g. an iCloud resource sync) are kept. Not synced: the size is
+        // this device's.
+        if let size = DictionaryStorageService.fileStamp(mdxURL)?.size {
+            try? storage.updateDictManifest(id: dictId, syncCountsToMetadata: false) {
+                $0.mdx = DictManifest.MDXEntry(fileName: fileName, sizeBytes: size)
+            }
+        }
+
+        // 4. Open the new file; put the old one back if it does not open
+        do {
+            try await dict.reloadFromDisk()
+        } catch {
+            debugLog("❌ Updated \(fileName) does not open (\(error)); restoring the previous file")
+            await DictionaryStorageService.restoreReplaced(mdxURL)
+            if let size = DictionaryStorageService.fileStamp(mdxURL)?.size {
+                try? storage.updateDictManifest(id: dictId, syncCountsToMetadata: false) {
+                    $0.mdx = DictManifest.MDXEntry(fileName: fileName, sizeBytes: size)
+                }
+            }
+            try? await dict.reloadFromDisk()
+            ArticleIndexCoordinator.shared.handleDictImported(dictId)
+            throw PresetUpdateError(kind: .doesNotOpen, underlying: error)
+        }
+        await DictionaryStorageService.discardReplaced(mdxURL)
+
+        // 5. Bookkeeping for the new content — unless the dictionary was
+        //    deleted meanwhile.
+        guard self.dict(id: dictId) === dict else { return }
+        if let oldHeaderSHA, oldHeaderSHA != dict.metadata?.headerSHA256 {
+            MDictReader.removeSidecarCache(forHeaderSHA256: oldHeaderSHA)
+        }
+        ArticleIndexCoordinator.shared.handleDictImported(dictId)
+        SpotlightIndexingService.shared.indexDictionary(dict)
+        displayNameRevision += 1
+        debugLog("✅ Preset file updated: \(fileName) (\(dictId.prefix(16)))")
+    }
+
     /// Delete a dictionary
     /// - Parameter dictId: Dictionary ID to delete
     func deleteDictionary(dictId: String) throws {
@@ -1175,7 +1370,15 @@ final class DictionaryService: ObservableObject {
     }
     
     /// Persist current group configuration to CoreData.
+    ///
+    /// Group entries of dictionaries this device knows about (metadata row)
+    /// but has not loaded — typically one another device just imported whose
+    /// files are still on their way — are kept as they are: the in-memory
+    /// groups cannot contain them, and dropping them here would remove them
+    /// from the groups on every device.
     func persistGroups() {
+        let loaded = Set(allDictionaries.map(\.id))
+        let preserved = Set(DictMetadataService.shared.loadAll().map(\.dictId)).subtracting(loaded)
         let savedGroups = groups.map { group in
             GroupPersistenceService.SavedGroup(
                 groupId: group.id,
@@ -1186,7 +1389,8 @@ final class DictionaryService: ObservableObject {
                 dictionaryIds: group.dictionaryIds
             )
         }
-        if groupPersistence.saveAllGroups(savedGroups, allowBootstrapInsert: groupsNeedBootstrap) {
+        if groupPersistence.saveAllGroups(savedGroups, preserving: preserved,
+                                          allowBootstrapInsert: groupsNeedBootstrap) {
             groupsNeedBootstrap = false
         }
     }

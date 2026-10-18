@@ -31,7 +31,9 @@
 //    Resource add/remove → upload single file + manifest → remote diffs + fetches
 //    Delete → remove all CKRecords for dictionary
 //
-//  Size guard: individual files > 500 MB are marked "too large".
+//  Size guard: an MDX above 500 MB makes the dictionary "too large" (local
+//  only). Resource files above it are simply not uploaded; the cloud
+//  manifest does not list them (ManifestSyncRules).
 //
 
 import CloudKit
@@ -106,6 +108,9 @@ final class DictionaryFileSyncService {
     func cancelAllOperations() {
         syncProgress.removeAll()
         inFlightDownloads.removeAll()
+        // Queued deletions belong to the data that was just wiped (and maybe
+        // to another iCloud account).
+        UserDefaults.standard.removeObject(forKey: Self.pendingDeletionsKey)
     }
 
     /// Whether a download for this dictionary is currently in progress.
@@ -290,16 +295,26 @@ final class DictionaryFileSyncService {
 
         syncProgress[dictId] = .uploading(fractionCompleted: 0)
 
-        // Enumerate and size-check
-        let allFiles = enumerateFiles(dictId: dictId, manifest: manifest)
+        // A (re-)import supersedes a deletion of the same ID still queued.
+        removePendingCloudDeletion(dictId)
 
-        // Check if any individual file is too large
-        let tooLargeFile = allFiles.first { $0.fileSizeBytes > maxAssetBytes }
-        if let oversized = tooLargeFile {
-            debugLog("☁️↑ File too large: \(oversized.fileName) (\(oversized.fileSizeBytes / 1024 / 1024) MB) — \(dictId.prefix(16))")
+        // Enumerate and size-check
+        let enumerated = enumerateFiles(dictId: dictId, manifest: manifest)
+
+        // Only an MDX above the cap makes the dictionary unsyncable. A
+        // resource above it stays on this device, like one added later
+        // (uploadSingleFile), and the cloud manifest does not list it
+        // (`ManifestSyncRules`); marking the whole dictionary `.tooLarge`
+        // would keep every other device from ever downloading it.
+        if manifest.mdx.sizeBytes > maxAssetBytes {
+            debugLog("☁️↑ MDX too large: \(manifest.mdx.fileName) (\(manifest.mdx.sizeBytes / 1024 / 1024) MB) — \(dictId.prefix(16))")
             updateSyncStatus(dictId: dictId, status: .tooLarge)
             syncProgress.removeValue(forKey: dictId)
             return
+        }
+        let allFiles = enumerated.filter { $0.fileSizeBytes <= maxAssetBytes }
+        if allFiles.count < enumerated.count {
+            debugLog("☁️↑ \(enumerated.count - allFiles.count) resource file(s) above the upload cap stay local — \(dictId.prefix(16))")
         }
 
         // Build CKRecords
@@ -470,7 +485,6 @@ final class DictionaryFileSyncService {
         // 1. Fetch manifest
         guard let remoteManifest = await fetchRemoteManifest(dictId: dictId) else {
             debugLog("❌ No manifest in CloudKit for \(dictId.prefix(16))")
-            updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
@@ -491,7 +505,6 @@ final class DictionaryFileSyncService {
         } catch {
             debugLog("❌ Failed to create dirs for \(dictId.prefix(16)): \(error)")
             await Self.removeItem(at: stagingDir)
-            updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
@@ -538,7 +551,6 @@ final class DictionaryFileSyncService {
             } catch {
                 debugLog("❌ Batch fetch failed for \(dictId.prefix(16)): \(error)")
                 await Self.removeItem(at: stagingDir)
-                updateSyncStatus(dictId: dictId, status: .error)
                 syncProgress.removeValue(forKey: dictId)
                 return false
             }
@@ -573,7 +585,6 @@ final class DictionaryFileSyncService {
         if downloaded < totalFiles {
             debugLog("❌ Incomplete download: \(downloaded)/\(totalFiles) files — cleaning up \(dictId.prefix(16))")
             await Self.removeItem(at: stagingDir)
-            updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
@@ -583,13 +594,21 @@ final class DictionaryFileSyncService {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // The same dictionary may have been installed meanwhile on this
+        // device (e.g. the same preset picked in the preset list while its
+        // iCloud copy was downloading). That copy is complete; keep it.
+        if FileManager.default.fileExists(atPath: dictDir.path) {
+            debugLog("☁️↓ \(dictId.prefix(16)) was installed locally during the download — keeping that copy")
+            await Self.removeItem(at: stagingDir)
+            syncProgress.removeValue(forKey: dictId)
+            return true
+        }
         do {
             let data = try encoder.encode(manifest)
             try await Self.publish(staging: stagingDir, to: dictDir, manifestData: data)
         } catch {
             debugLog("❌ Failed to publish download for \(dictId.prefix(16)): \(error)")
             await Self.removeItem(at: stagingDir)
-            updateSyncStatus(dictId: dictId, status: .error)
             syncProgress.removeValue(forKey: dictId)
             return false
         }
@@ -638,6 +657,30 @@ final class DictionaryFileSyncService {
         } catch {
             debugLog("❌ Manifest decode failed for \(dictId.prefix(16)): \(error)")
             return nil
+        }
+    }
+
+    /// The remote manifest, nil when there is none; a failure when CloudKit
+    /// could not be asked or the manifest could not be read.
+    private func fetchRemoteManifestResult(dictId: String) async -> Result<DictManifest?, Error> {
+        let recordID = CKRecord.ID(recordName: manifestRecordName(dictId: dictId))
+        let record: CKRecord
+        do {
+            record = try await database.record(for: recordID)
+        } catch let error as CKError where error.code == .unknownItem {
+            return .success(nil)
+        } catch {
+            return .failure(error)
+        }
+        guard let asset = record["fileAsset"] as? CKAsset, let url = asset.fileURL else {
+            return .failure(CKError(.assetFileNotFound))
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return .success(try decoder.decode(DictManifest.self, from: Data(contentsOf: url)))
+        } catch {
+            return .failure(error)
         }
     }
 
@@ -757,11 +800,84 @@ final class DictionaryFileSyncService {
 
     // MARK: - Delete (All Records for Dictionary)
 
+    /// Dictionaries whose CloudKit records still have to be deleted. Kept
+    /// across launches: a deletion that cannot be sent (offline, iCloud
+    /// unavailable, a failed batch) is retried at the next launch instead of
+    /// leaving records behind — which other devices would read as "the
+    /// dictionary still exists" and keep their copy forever.
+    private static let pendingDeletionsKey = "pendingCloudDeletions.v1"
+
+    /// dictId → when the deletion was requested (seconds since 1970).
+    private var pendingCloudDeletions: [String: Double] {
+        get { UserDefaults.standard.dictionary(forKey: Self.pendingDeletionsKey) as? [String: Double] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: Self.pendingDeletionsKey) }
+    }
+
+    private func removePendingCloudDeletion(_ dictId: String) {
+        var pending = pendingCloudDeletions
+        if pending.removeValue(forKey: dictId) != nil { pendingCloudDeletions = pending }
+    }
+
+    /// Send the CloudKit deletions that failed earlier. Skipped, and
+    /// forgotten, when the dictionary exists again: it has a metadata row,
+    /// or its manifest record was written after the deletion was requested
+    /// (the same file imported again, on any device).
+    func retryPendingCloudDeletions() async {
+        guard SyncModeService.shared.isCloudSyncEnabled, await isCloudAvailable() else { return }
+        for (dictId, requestedAt) in pendingCloudDeletions.sorted(by: { $0.key < $1.key }) {
+            if DictMetadataService.shared.find(dictId: dictId) != nil {
+                removePendingCloudDeletion(dictId)
+                continue
+            }
+            switch await manifestModificationDate(dictId: dictId) {
+            case .failure:
+                continue   // try again at the next launch
+            case .success(let modified?) where modified.timeIntervalSince1970 > requestedAt:
+                debugLog("☁️ Queued deletion of \(dictId.prefix(16)) dropped — it was uploaded again afterwards")
+                removePendingCloudDeletion(dictId)
+            case .success:
+                await deleteCloudRecords(dictId: dictId)
+            }
+        }
+    }
+
+    /// When the dictionary's manifest record was last written; nil when there
+    /// is none.
+    private func manifestModificationDate(dictId: String) async -> Result<Date?, Error> {
+        let recordID = CKRecord.ID(recordName: manifestRecordName(dictId: dictId))
+        do {
+            let results = try await database.records(for: [recordID], desiredKeys: ["dictId"])
+            switch results[recordID] {
+            case .success(let record)?:
+                return .success(record.modificationDate ?? .distantFuture)
+            case .failure(let error as CKError)? where error.code == .unknownItem:
+                return .success(nil)
+            case .failure(let error)?:
+                return .failure(error)
+            case nil:
+                return .success(nil)
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            return .success(nil)
+        } catch {
+            return .failure(error)
+        }
+    }
+
     /// Delete all CloudKit records for a dictionary.
     /// Call when the user deletes a dictionary locally.
-    func deleteCloudRecords(dictId: String) async {
-        guard SyncModeService.shared.isCloudSyncEnabled else { return }
-        guard await isCloudAvailable() else { return }
+    ///
+    /// - Returns: `true` when every record is gone (or never existed). On
+    ///   `false` the deletion stays queued and is retried at the next launch.
+    @discardableResult
+    func deleteCloudRecords(dictId: String) async -> Bool {
+        guard SyncModeService.shared.isCloudSyncEnabled else { return true }
+        var pending = pendingCloudDeletions
+        if pending[dictId] == nil {
+            pending[dictId] = Date().timeIntervalSince1970
+            pendingCloudDeletions = pending
+        }
+        guard await isCloudAvailable() else { return false }
 
         var recordIDsToDelete: [CKRecord.ID] = []
 
@@ -770,7 +886,15 @@ final class DictionaryFileSyncService {
         // that permanently consume the user's iCloud quota).
         var manifest: DictManifest? = storage.loadDictManifest(id: dictId)
         if manifest == nil {
-            manifest = await fetchRemoteManifest(dictId: dictId)
+            switch await fetchRemoteManifestResult(dictId: dictId) {
+            case .success(let remote):
+                manifest = remote
+            case .failure(let error):
+                // Without a manifest only the manifest record could be
+                // deleted, orphaning the file records for good. Retry later.
+                debugLog("⚠️ Cloud delete of \(dictId.prefix(16)) postponed — manifest unavailable: \(error)")
+                return false
+            }
         }
 
         // Manifest record itself
@@ -812,33 +936,51 @@ final class DictionaryFileSyncService {
         }
 
         // Batch delete
+        var allDeleted = true
         for batchStart in stride(from: 0, to: recordIDsToDelete.count, by: maxBatchSize) {
             let batchEnd = min(batchStart + maxBatchSize, recordIDsToDelete.count)
             let batch = Array(recordIDsToDelete[batchStart..<batchEnd])
 
-            let operation = CKModifyRecordsOperation(
-                recordsToSave: nil,
-                recordIDsToDelete: batch
-            )
-            operation.qualityOfService = .utility
-
             do {
-                try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-                    operation.modifyRecordsResultBlock = { result in
-                        switch result {
-                        case .success:  cont.resume()
-                        case .failure(let error): cont.resume(throwing: error)
+                try await withCloudKitRetry {
+                    let operation = CKModifyRecordsOperation(
+                        recordsToSave: nil,
+                        recordIDsToDelete: batch
+                    )
+                    operation.qualityOfService = .utility
+                    try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                        operation.modifyRecordsResultBlock = { result in
+                            switch result {
+                            case .success:  cont.resume()
+                            case .failure(let error): cont.resume(throwing: error)
+                            }
                         }
+                        self.database.add(operation)
                     }
-                    self.database.add(operation)
                 }
+            } catch let error as CKError where Self.onlyMissingRecords(error) {
+                // Records that are already gone count as deleted.
+                continue
             } catch {
-                // Not fatal — orphaned CKRecords are harmless
-                debugLog("⚠️ Cloud records delete failed for \(dictId.prefix(16)): \(error)")
+                allDeleted = false
+                debugLog("⚠️ Cloud records delete failed for \(dictId.prefix(16)) (retried at next launch): \(error)")
             }
         }
 
-        debugLog("☁️✕ Deleted \(recordIDsToDelete.count) cloud records for \(dictId.prefix(16))")
+        if allDeleted {
+            removePendingCloudDeletion(dictId)
+            debugLog("☁️✕ Deleted \(recordIDsToDelete.count) cloud records for \(dictId.prefix(16))")
+        }
+        return allDeleted
+    }
+
+    /// A partial failure in which every failed record simply did not exist.
+    private static func onlyMissingRecords(_ error: CKError) -> Bool {
+        if error.code == .unknownItem { return true }
+        guard error.code == .partialFailure, let perItem = error.partialErrorsByItemID, !perItem.isEmpty else {
+            return false
+        }
+        return perItem.values.allSatisfy { ($0 as? CKError)?.code == .unknownItem }
     }
 
     // MARK: - Helpers
