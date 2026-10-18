@@ -37,7 +37,7 @@ the four is caught before it reaches `main`.
 
 | Script | Purpose |
 |---|---|
-| `scripts/bootstrap-assets.sh [--check\|--force]` | Download every asset in the lock into place (`preset-dicts/output/<Name>/<Name>.mdx`, `Apps/iOS/OpenMDict-iOS/Article Embeddings/`), verify SHA-256, unzip the model and run the precompile step when the model changed. Files that already match the lock are skipped without touching their mtime. `--check` only reports drift (non-zero exit) and is what CI and the Xcode "Check bootstrapped assets" run-script use. `--force` overwrites local files whose hash differs from the lock (for example a dictionary you rebuilt locally); without it the script refuses and tells you which files differ. `OPENMDICT_ASSETS_BASE_URL` overrides the download base (default: this repository's Releases) so a staging directory served with `python3 -m http.server` can be used for dry runs. While the repository is private, unauthenticated Release downloads return 404 and the script switches to `gh release download` (requires `gh auth login`). |
+| `scripts/bootstrap-assets.sh [--check\|--force]` | Download every asset in the lock into place (`preset-dicts/output/<Name>/<Name>.mdx`, `Apps/iOS/OpenMDict-iOS/Article Embeddings/`), verify SHA-256, unzip the model and run the precompile step when the model changed. Files that already match the lock are skipped without touching their mtime. `--check` only reports drift (non-zero exit) and is what CI and the Xcode "Check bootstrapped assets" run-script use. Files it downloaded (or verified) earlier are replaced automatically when the lock moves on. `--force` also overwrites local files whose hash differs from the lock and that were never published (for example a dictionary you rebuilt locally); without it the script refuses and tells you which files differ. `OPENMDICT_ASSETS_BASE_URL` overrides the download base (default: this repository's Releases) so a staging directory served with `python3 -m http.server` can be used for dry runs. While the repository is private, unauthenticated Release downloads return 404 and the script switches to `gh release download` (requires `gh auth login`). |
 | `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` | Hash the local assets, upload only the ones whose hash is not yet in the lock to a **draft** pre-release under the given (new) tag, rewrite the lock, and stage the compliance payload: the committed `THIRD-PARTY-NOTICES.md` (regenerate it first — the script copies, it does not generate), `LICENSE-<SPDX>.txt` texts (SPDX ids are fetched; `LicenseRef-*` texts such as the WordNet license are taken from `preset-dicts/licenses/`) and the GPL source archives. Review the draft, then `gh release edit <tag> --draft=false` and commit the lock. `--dry-run` / `--stage-only` need no `gh`. |
 | `scripts/check-assets.sh` | Consistency gate: every catalog entry has a pbxproj reference with the right `ASSET_TAGS`, every `odrTag` is in `KnownAssetTags`, every file is in the lock, and nothing in the lock is orphaned. Exit non-zero on drift. Runs in CI. |
 | `scripts/relink-project-assets.rb [--sync] [--dry-run] [--project PATH]` | Rewrite the pbxproj (defaults to the iOS app project) so every asset reference is relative (`SOURCE_ROOT`), never absolute. `--sync` additionally adds/removes `.mdx` references and `ASSET_TAGS` to match the catalog and merges `KnownAssetTags`. `--dry-run` prints what would change. Idempotent. |
@@ -178,11 +178,16 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
 - Each lock entry carries its own tag; a partial update uploads only the
   changed files to a new tag and leaves the other entries pointing at the
   old one.
-- `publish-assets.sh` always creates a **draft**; review it, publish with
-  `gh release edit <tag> --draft=false`, then commit the rewritten lock.
-- **Never delete or `--clobber` an asset that a committed lock references.**
-  Publish a new tag instead. If Immutable Releases are enabled, tag names
-  are permanently reserved — do not experiment with real tag names.
+- `publish-assets.sh` creates a **draft** for a new tag; review it, publish
+  with `gh release edit <tag> --draft=false`, then commit the rewritten lock.
+- `--amend` revises an existing tag in place (changed files are compared by
+  SHA-256 digest, deleted and re-uploaded). Once other people build from the repository, prefer a new
+  tag, because an amended file changes under clones that pinned the old lock.
+  Clones recover on their own: `bootstrap-assets.sh` replaces files it
+  downloaded earlier when the lock moves on, and only refuses to overwrite
+  files that look like local builds.
+- If Immutable Releases are enabled, assets and tag names are permanently
+  fixed — `--amend` then fails and a new tag is the only option.
 - The Release payload also carries `THIRD-PARTY-NOTICES.md`, the license
   texts (SPDX texts are fetched; `LicenseRef-*` texts such as the WordNet
   license come from `preset-dicts/licenses/`), and the GPL source archives (`freedict-eng-deu.src.tar.xz`,

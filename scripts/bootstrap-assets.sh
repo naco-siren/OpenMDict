@@ -10,9 +10,12 @@
 # compiled copy is missing or stale (see precompile-article-embed-model.sh).
 #
 # Usage: scripts/bootstrap-assets.sh [--check | --force] [--skip-precompile] [--quiet]
-#   (default)         download whatever is missing. A file that exists but
-#                     differs from the lock is a local build and is NOT
-#                     replaced; the script reports it and exits 2.
+#   (default)         download whatever is missing or outdated. A file this
+#                     script downloaded (or verified) earlier and that the lock
+#                     has since moved on from is simply replaced. A file that
+#                     differs from the lock and was never published is treated
+#                     as a local build and is NOT replaced; the script reports
+#                     it and exits 2.
 #   --check           report drift and exit 1; never downloads or writes
 #                     (CI gate, and the Xcode "Check bootstrapped assets" phase).
 #   --force           also replace files whose content differs from the lock.
@@ -105,6 +108,16 @@ tree_key() {
 }
 
 cache_path() { printf '%s/%s.sha256\n' "$CACHE_ROOT" "${1#"$REPO_ROOT"/}"; }
+
+# Content hash of the published asset last placed at <dest> (downloaded, or
+# found already matching the lock). Lets a later lock update replace it
+# without mistaking it for a local build.
+published_path() { printf '%s/published/%s.sha256\n' "$CACHE_ROOT" "${1#"$REPO_ROOT"/}"; }
+mark_published() { # <dest-abs> <hash>
+    mkdir -p "$(dirname "$(published_path "$1")")"
+    printf '%s\n' "$2" > "$(published_path "$1")"
+}
+published_hash() { local f; f=$(published_path "$1"); [ -f "$f" ] && cat "$f"; return 0; }
 
 # Print the cached hash if its key still matches; print nothing on a miss.
 cached_hash() { # <cache-file> <current-key>
@@ -220,6 +233,7 @@ fetch_file() { # <url> <dest> <sha> <size>
     fi
     mv -f "$part" "$dest"
     write_cache "$(cache_path "$dest")" "$sha" "$(file_key "$dest")"
+    mark_published "$dest" "$sha"
     [ "$(file_size "$dest")" = "$size" ] || warn "$(basename "$dest"): size differs from lock (lock says $size)"
 }
 
@@ -247,6 +261,7 @@ fetch_model() { # <url> <dest-dir> <zip-sha> <tree-sha>
     rm -rf "$dest"
     mv "$extracted" "$dest"
     write_cache "$(cache_path "$dest")" "$tree" "$(tree_key "$dest")"
+    mark_published "$dest" "$tree"
     rm -rf "$tmp"
     trap - EXIT
 }
@@ -275,7 +290,7 @@ if [ -L "$OUTPUT_DIR" ] && [ ! -e "$OUTPUT_DIR" ]; then
     fi
 fi
 
-n_ok=0; n_fetched=0; n_missing=0; n_differs=0; n_refused=0; bytes_fetched=0
+n_ok=0; n_fetched=0; n_missing=0; n_outdated=0; n_differs=0; n_refused=0; bytes_fetched=0
 model_dest_abs=""; model_tree=""; model_drift=0
 
 while IFS=$US read -r filename dest size sha tag kind tree; do
@@ -305,13 +320,24 @@ while IFS=$US read -r filename dest size sha tag kind tree; do
     if [ "$have" = "$want" ]; then
         n_ok=$((n_ok + 1))
         log "  ok        $dest"
+        if [ "$MODE" != check ] && [ "$(published_hash "$dest_abs")" != "$want" ]; then
+            mark_published "$dest_abs" "$want"
+        fi
         continue
     fi
 
     if [ -z "$have" ]; then
         state=missing; n_missing=$((n_missing + 1))
     else
-        state=differs; n_differs=$((n_differs + 1))
+        state=differs
+        prev=$(published_hash "$dest_abs")
+        if [ -n "$prev" ]; then
+            cur=$have
+            [ "$cur" = size-mismatch ] && cur=$(file_sha_cached "$dest_abs")
+            # Unchanged since we placed it: an outdated download, not a local build.
+            [ "$cur" = "$prev" ] && state=outdated
+        fi
+        if [ "$state" = outdated ]; then n_outdated=$((n_outdated + 1)); else n_differs=$((n_differs + 1)); fi
     fi
 
     if [ "$MODE" = check ]; then
@@ -375,7 +401,7 @@ fi
 # ── Summary ─────────────────────────────────────────────────────────────────
 
 if [ "$MODE" = check ]; then
-    drift=$((n_missing + n_differs + precompile_drift))
+    drift=$((n_missing + n_outdated + n_differs + precompile_drift))
     if [ "$drift" -gt 0 ]; then
         hint="run scripts/bootstrap-assets.sh"
         [ "$n_differs" -gt 0 ] && hint="$hint (add --force to replace local builds that differ from the lock)"
