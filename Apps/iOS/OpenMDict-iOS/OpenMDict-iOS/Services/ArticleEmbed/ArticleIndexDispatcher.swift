@@ -690,6 +690,24 @@ final class ArticleIndexDispatcher {
         let result = await buildTask.result
         runningBuildTask = nil
 
+        // The dictionary's MDX was replaced while this ran (a preset updated
+        // in place): what was built describes the old content. The header
+        // hash cannot tell — a rebuilt preset keeps its header — so compare
+        // the reader itself, discard the output and start over.
+        if DictionaryService.shared.dict(id: dictId)?.reader !== reader {
+            try? FileManager.default.removeItem(at: outURL)
+            ArticleIndexService.shared.setState(.notIndexed, for: dictId, indexedThrough: 0)
+            // `enqueue` ignores the id that is still running; queue it
+            // directly — the running task's continuation starts it next.
+            if UserDefaults.standard.articleSearchEnabled,
+               !ArticleIndexService.shared.snapshot(for: dictId).userExcluded,
+               !queue.contains(where: { $0.dictId == dictId }) {
+                queue.append(PendingJob(dictId: dictId, priority: .background))
+            }
+            debugLog("executeJob(\(dictId)): content replaced during the build; discarded")
+            return
+        }
+
         // 7. Handle the outcome.
         switch result {
         case .success(.completed(let header)):

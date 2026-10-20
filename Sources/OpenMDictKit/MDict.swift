@@ -12,7 +12,7 @@ public enum MDictLoadState: Sendable, Equatable {
     case loaded
     case error(String)
     
-    var isError: Bool {
+    public var isError: Bool {
         if case .error = self { return true }
         return false
     }
@@ -230,6 +230,26 @@ public final class MDict: ObservableObject, Identifiable {
         self.state = .metadataLoaded
     }
     
+    /// Re-open the dictionary after its MDX file was replaced on disk at the
+    /// same path (a preset updated in place). The current reader keeps
+    /// serving lookups until the new one has loaded — readers map the file
+    /// they opened, so the replaced file stays valid for them — and on
+    /// failure it stays in place and the error is thrown.
+    public func reloadFromDisk() async throws {
+        let paths = mddPaths
+        let result = try await performFullLoad(path: path, mddPaths: paths)
+        // MDD files added or removed while the new reader was opening.
+        if mddPaths != paths, let current = mddPaths {
+            result.reader.reloadResources(mddPaths: current)
+        }
+        self._reader = result.reader
+        self.metadata = result.reader.metadata
+        self.cleanedDescription = result.cleanedDescription
+        self.extractedTitle = result.extractedTitle
+        self.extractedAuthor = result.extractedAuthor
+        self.state = .loaded
+    }
+
     /// Unload the dictionary to free memory
     public func unload() {
         _reader = nil

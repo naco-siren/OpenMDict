@@ -20,6 +20,9 @@ from pathlib import Path
 # preset-dicts/ (this file lives in preset-dicts/scripts/shared/)
 PIPELINE_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PIPELINE_ROOT / "data"
+# CreationDate per MDX file name, recorded by the first build (see
+# resolve_creation_date). Checked in, so a rebuild anywhere reproduces it.
+PINS_PATH = PIPELINE_ROOT / "build-pins.json"
 
 
 # ── Default flag lookup (matches iOS flagEmoji logic) ───────────
@@ -82,7 +85,7 @@ def pack_mdx(entries_txt: Path, title: str, description: str,
 
     # mdict-utils stamps CreationDate="<today>" into the header, which
     # makes every rebuild a different file. Pin it for determinism.
-    date_str = resolve_creation_date(creation_date, inputs)
+    date_str = resolve_creation_date(creation_date, inputs, name=output_path.name)
     set_mdx_creation_date(output_path, date_str)
     print(f"  CreationDate pinned to {date_str}")
 
@@ -133,22 +136,52 @@ def _utc_date(ts: float) -> str:
     return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).date().isoformat()
 
 
+_PIN_DATE_RE = re.compile(r"^\d{4}-\d{1,2}-\d{1,2}$")
+
+
+def load_creation_date_pins() -> dict[str, str]:
+    """``build-pins.json``: ``{"<Name>.mdx": {"creationDate": "..."}}``."""
+    if not PINS_PATH.exists():
+        return {}
+    data = json.loads(PINS_PATH.read_text(encoding="utf-8"))
+    return {name: v["creationDate"] for name, v in data.items()
+            if isinstance(v, dict) and v.get("creationDate")}
+
+
+def record_creation_date_pin(name: str, date_str: str) -> None:
+    data = {}
+    if PINS_PATH.exists():
+        data = json.loads(PINS_PATH.read_text(encoding="utf-8"))
+    data.setdefault(name, {})["creationDate"] = date_str
+    PINS_PATH.write_text(json.dumps(data, indent=2, sort_keys=True,
+                                    ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 def resolve_creation_date(explicit: "str | datetime.date | None" = None,
-                          inputs: "Iterable[Path] | None" = None) -> str:
+                          inputs: "Iterable[Path] | None" = None, *,
+                          name: "str | None" = None) -> str:
     """Pick the ``CreationDate`` to stamp into an MDX header.
+
+    The date is part of the header bytes, so it is part of the file's
+    SHA-256, which is the dictionary ID the app derives for a preset. A
+    rebuild with unchanged content must therefore produce the same date,
+    or every installed copy would be offered an "update" that changes
+    nothing (and moves the user's state to a new ID).
 
     Resolution order (first hit wins):
 
     1. ``explicit`` -- a ``datetime.date`` or a ``YYYY-MM-DD`` string.
     2. ``SOURCE_DATE_EPOCH`` environment variable (reproducible-builds
        convention; UNIX seconds, interpreted in UTC).
-    3. Newest mtime among ``inputs`` (files or directories).
-    4. Newest mtime of any file under ``preset-dicts/data/`` -- stable
-       as long as the fetched source data is unchanged. Note that
-       re-fetching *any* source moves this date for every dictionary
-       built afterwards; pass ``inputs`` or set ``SOURCE_DATE_EPOCH``
-       to avoid that.
-    5. Today (UTC) -- not reproducible; a warning is printed.
+    3. The pin for ``name`` in ``build-pins.json`` (kept verbatim, so an
+       unpadded date written by mdict-utils reproduces the shipped
+       header byte for byte).
+    4. Newest mtime among ``inputs`` (files or directories).
+    5. Newest mtime of any file under ``preset-dicts/data/``.
+    6. Today (UTC) -- a warning is printed.
+
+    When ``name`` has no pin, the date chosen by 4-6 is recorded as its
+    pin, so later builds reproduce it. 1 and 2 never touch the pins.
     """
     if explicit is not None:
         if isinstance(explicit, datetime.date):
@@ -161,18 +194,33 @@ def resolve_creation_date(explicit: "str | datetime.date | None" = None,
     if epoch:
         return _utc_date(int(epoch))
 
+    if name is not None:
+        pinned = load_creation_date_pins().get(name)
+        if pinned is not None:
+            if not _PIN_DATE_RE.match(pinned):
+                raise ValueError(f"{PINS_PATH.name}: bad creationDate {pinned!r} for {name}")
+            return pinned
+
+    date_str = None
     if inputs is not None:
         newest = _newest_mtime(inputs)
         if newest is not None:
-            return _utc_date(newest)
+            date_str = _utc_date(newest)
 
-    newest = _newest_mtime([DATA_DIR])
-    if newest is not None:
-        return _utc_date(newest)
+    if date_str is None:
+        newest = _newest_mtime([DATA_DIR])
+        if newest is not None:
+            date_str = _utc_date(newest)
 
-    print("  WARNING: no SOURCE_DATE_EPOCH / inputs / data/ found; "
-          "CreationDate falls back to today (not reproducible)")
-    return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+    if date_str is None:
+        print("  WARNING: no SOURCE_DATE_EPOCH / pin / inputs / data/ found; "
+              "CreationDate falls back to today")
+        date_str = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+
+    if name is not None:
+        record_creation_date_pin(name, date_str)
+        print(f"  CreationDate for {name} recorded in {PINS_PATH.name}")
+    return date_str
 
 
 def read_mdx_header(mdx_path: Path) -> tuple[str, bytes]:

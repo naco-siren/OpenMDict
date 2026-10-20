@@ -11,6 +11,9 @@
 #   * catalog names == lock .mdx entries == .mdx file references in the pbxproj
 #   * lock dests are preset-dicts/output/<Name>/<Name>.mdx; sizes match the
 #     catalog's sizeBytes; exactly one model and one vocab entry
+#   * the catalog's sha256 equals the lock's; previousSha256 never lists the
+#     current hash or a duplicate; every catalog name has a CreationDate pin
+#     in preset-dicts/build-pins.json (a rebuild must reproduce the file)
 #   * every ODR dictionary's PBXBuildFile carries ASSET_TAGS = (<odrTag>) and
 #     every bundled one carries none
 #   * KnownAssetTags ⊇ catalog odrTags
@@ -32,6 +35,7 @@ REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 CATALOG="$REPO_ROOT/preset-dicts/preset-dictionaries.json"
 LOCK="$REPO_ROOT/preset-dicts/assets.lock.json"
 PBXPROJ="$REPO_ROOT/Apps/iOS/OpenMDict-iOS/OpenMDict-iOS.xcodeproj/project.pbxproj"
+PINS="$REPO_ROOT/preset-dicts/build-pins.json"
 MODEL_DEST="Apps/iOS/OpenMDict-iOS/Article Embeddings/all-MiniLM-L6-v2.mlpackage"
 VOCAB_DEST="Apps/iOS/OpenMDict-iOS/Article Embeddings/vocab.txt"
 
@@ -162,6 +166,41 @@ join -t "$US" "$WORK/catalog.sizes" "$WORK/lock.sizes" | awk -F "$US" '$2 != $3 
 while IFS=$US read -r n a b; do
     fail "$n.mdx: catalog sizeBytes $a != lock size $b (regenerate the catalog sizes or the lock)"
 done < "$WORK/size.diff"
+
+# The catalog's sha256 is what the app compares with an installed preset's
+# dictionary ID to offer an update, so it must be the published file's hash.
+jq -r '.dictionaries[] | [(.filename | sub("\\.mdx$"; "")), (.sha256 // "")] | join("\u001f")' "$CATALOG" | sort > "$WORK/catalog.sha"
+jq -r '.assets[] | select(.kind == "mdx") | [(.filename | sub("\\.mdx$"; "")), .sha256] | join("\u001f")' "$LOCK" | sort > "$WORK/lock.sha"
+join -t "$US" "$WORK/catalog.sha" "$WORK/lock.sha" | awk -F "$US" '$2 != $3 { print $1 "\037" $2 "\037" $3 }' > "$WORK/sha.diff"
+while IFS=$US read -r n a b; do
+    if [ -z "$a" ]; then
+        fail "$n.mdx: catalog has no sha256 (run preset-dicts/scripts/sync_catalog_with_output.py)"
+    else
+        fail "$n.mdx: catalog sha256 ${a:0:12}… != lock ${b:0:12}… (installed copies would be offered the wrong update)"
+    fi
+done < "$WORK/sha.diff"
+
+# previousSha256 is the list of builds the app may replace; listing the
+# current build would make it "update" to itself.
+jq -r '.dictionaries[] | . as $d | ($d.previousSha256 // []) as $p
+      | select(($p | index($d.sha256)) != null or ($p | length) != ($p | unique | length))
+      | $d.filename' "$CATALOG" > "$WORK/prev.bad"
+while IFS= read -r n; do
+    fail "$n: previousSha256 lists the current sha256 or a duplicate"
+done < "$WORK/prev.bad"
+
+# CreationDate is part of the file hash; without a pin a rebuild of
+# unchanged content gets a new hash and every install is offered an update.
+if [ -f "$PINS" ]; then
+    jq -r '.dictionaries[].filename' "$CATALOG" | sort > "$WORK/catalog.names"
+    jq -r 'keys[]' "$PINS" | sort > "$WORK/pins.names"
+    comm -23 "$WORK/catalog.names" "$WORK/pins.names" > "$WORK/pins.missing"
+    while IFS= read -r n; do
+        fail "$n: no CreationDate pin in preset-dicts/build-pins.json (a rebuild would change its hash)"
+    done < "$WORK/pins.missing"
+else
+    fail "missing preset-dicts/build-pins.json (CreationDate pins)"
+fi
 
 # ── pbxproj: file references ────────────────────────────────────────────────
 

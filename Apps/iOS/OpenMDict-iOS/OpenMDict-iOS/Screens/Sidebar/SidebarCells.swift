@@ -671,6 +671,16 @@ final class ManagementActionCell: UICollectionViewListCell {
     
     var item: SidebarItem?
     weak var stateProvider: SidebarStateProvider?
+
+    /// Small count badge (e.g. preset dictionaries with an update). Its text
+    /// follows Dynamic Type; the pill grows with it instead of clipping.
+    static func badgeAccessory(count: Int, isActive: Bool, isDisabled: Bool = false) -> UICellAccessory {
+        UICellAccessory.customView(configuration: .init(
+            customView: CountBadgeView(count: count, isActive: isActive, isDisabled: isDisabled),
+            placement: .trailing(displayed: .always),
+            reservedLayoutWidth: .actual
+        ))
+    }
     
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
@@ -682,6 +692,7 @@ final class ManagementActionCell: UICollectionViewListCell {
         // Import Dictionary and Add Group (edit-mode versions) are always enabled.
         // Management section items are disabled during edit mode.
         let isDisabled = isEditing && item != .importDictionary && item != .addGroup
+        var updateCount = 0
         
         var content = UIListContentConfiguration.sidebarCell()
         var bg = UIBackgroundConfiguration.listSidebarCell()
@@ -708,6 +719,7 @@ final class ManagementActionCell: UICollectionViewListCell {
         case .managePresets:
             content.text = L10n.Sidebar.downloadPresets
             content.image = UIImage(systemName: "icloud.and.arrow.down")
+            updateCount = PresetDictionaryService.shared.updatablePresets.count
         case .newUserGuide:
             content.text = L10n.Tutorial.title
             content.image = UIImage(systemName: "graduationcap")
@@ -757,6 +769,50 @@ final class ManagementActionCell: UICollectionViewListCell {
         contentConfiguration = content
         backgroundConfiguration = bg
         
-        accessories = []
+        accessories = updateCount > 0
+            ? [Self.badgeAccessory(count: updateCount, isActive: isActive, isDisabled: isDisabled)]
+            : []
+    }
+}
+
+// MARK: - Count Badge
+
+/// A rounded count pill for list rows ("2" on "Download Presets").
+final class CountBadgeView: UIView {
+
+    private let label = UILabel()
+
+    init(count: Int, isActive: Bool, isDisabled: Bool = false) {
+        super.init(frame: .zero)
+        label.text = "\(count)"
+        let base = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        label.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(for: base)
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = isActive ? .systemBlue : .white
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        backgroundColor = isActive ? .white : (isDisabled ? .systemGray3 : .systemBlue)
+        layer.masksToBounds = true
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            widthAnchor.constraint(greaterThanOrEqualTo: heightAnchor),
+        ])
+        setContentHuggingPriority(.required, for: .horizontal)
+        setContentCompressionResistancePriority(.required, for: .horizontal)
+        isAccessibilityElement = true
+        accessibilityLabel = L10n.PresetUpdate.badgeAccessibilityLabel(count)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.cornerRadius = bounds.height / 2
     }
 }

@@ -26,6 +26,10 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     let mode: Mode
 
+    /// Pre-select only the presets that have an update (management mode,
+    /// opened from the update prompt). Set before the view loads.
+    var preselectUpdatesOnly = false
+
     // MARK: - Callbacks
 
     /// Called when user taps "Continue" with the selected presets
@@ -216,6 +220,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     private func computePreSelection() {
         let preferredLangs = Self.preferredLanguageCodes()
+
+        // Installed presets with a newer build are offered pre-selected, so
+        // "Continue" updates them (their language groups expand as a result).
+        if mode == .management {
+            for preset in PresetDictionaryService.shared.updatablePresets {
+                selectedIds.insert(preset.id)
+            }
+            if preselectUpdatesOnly { return }
+        }
 
         for regionGroup in regionGroups {
             for langGroup in regionGroup.languages {
@@ -413,6 +426,15 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
         // Accessories
         var accessories: [UICellAccessory] = []
+
+        if PresetDictionaryService.shared.isUpdateAvailable(preset.id) {
+            accessories.append(.label(
+                text: L10n.Picker.updateAvailable,
+                displayed: .always,
+                options: .init(tintColor: .systemBlue,
+                               font: .preferredFont(forTextStyle: .footnote))
+            ))
+        }
 
         if isLocked {
             let lockImage = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))

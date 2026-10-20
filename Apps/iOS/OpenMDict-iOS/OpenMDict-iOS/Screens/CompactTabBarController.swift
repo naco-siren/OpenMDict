@@ -155,6 +155,11 @@ class CompactTabBarController: UITabBarController {
     /// Lookup tab (where the sidebar lives) instead of staying in Management.
     private var managementOpenedFromSidebar = false
 
+    @objc private func updateManagementTabBadge() {
+        let count = PresetDictionaryService.shared.updatablePresets.count
+        managementNav.tabBarItem.badgeValue = count > 0 ? "\(count)" : nil
+    }
+
     // MARK: - Management VCs (lazily created, pushed onto managementNav)
 
     private(set) lazy var dictInfoVC = DictInfoViewController()
@@ -188,6 +193,14 @@ class CompactTabBarController: UITabBarController {
         setupHistoryCallbacks()
         setupSidebarCallbacks()
         setupManagementCallbacks()
+
+        // Preset updates: badge the Management tab (its "Download Presets"
+        // row shows the same count).
+        updateManagementTabBadge()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(updateManagementTabBadge),
+            name: PresetDictionaryService.updatesDidChangeNotification, object: nil
+        )
 
         // Apply deferred tab selection from transferStateIn (called before viewDidLoad
         // on iPad's first collapse, where compactTabBarController's view wasn't loaded).
@@ -879,8 +892,11 @@ class CompactTabBarController: UITabBarController {
     }
 
     /// Present the preset dictionary picker as a modal.
-    private func presentPresetManager() {
+    /// - Parameter preselectingUpdatesOnly: Pre-select only the presets
+    ///   with an update (from the update prompt).
+    func presentPresetManager(preselectingUpdatesOnly: Bool = false) {
         let setupVC = SetupViewController(mode: .management)
+        setupVC.preselectUpdatesOnly = preselectingUpdatesOnly
         setupVC.modalPresentationStyle = .pageSheet
 
         setupVC.onComplete = { }

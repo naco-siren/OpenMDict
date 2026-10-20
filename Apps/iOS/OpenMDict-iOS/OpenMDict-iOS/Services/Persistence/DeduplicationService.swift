@@ -31,6 +31,7 @@
 //
 
 import CoreData
+import OpenMDictKit
 import Foundation
 
 final class DeduplicationService {
@@ -228,13 +229,22 @@ final class DeduplicationService {
                 // or updated resource counts.
                 let winnerUpdated = winner.value(forKey: "updatedAt") as? Date ?? Date.distantPast
                 let loserUpdated = record.value(forKey: "updatedAt") as? Date ?? Date.distantPast
+                let winnerStatus = winner.value(forKey: "cloudSyncStatus") as? Int16 ?? CloudSyncStatusMerge.pending
+                let loserStatus = record.value(forKey: "cloudSyncStatus") as? Int16 ?? CloudSyncStatusMerge.pending
                 if loserUpdated > winnerUpdated {
                     for key in ["displayName", "updatedAt",
                                 "mddCount", "cssCount", "jsCount", "fontsCount",
-                                "totalSizeKB", "cloudSyncStatus",
+                                "totalSizeKB",
                                 "enhanceDarkMode", "enhanceDarkModeStrength"] {
                         winner.setValue(record.value(forKey: key), forKey: key)
                     }
+                }
+                // Not "newest wins": a device that installed the same build
+                // later (e.g. offline) must not reset `.synced` to `.pending`,
+                // which would stop every other device from downloading it.
+                let mergedStatus = CloudSyncStatusMerge.best(winnerStatus, loserStatus)
+                if mergedStatus != winnerStatus {
+                    winner.setValue(mergedStatus, forKey: "cloudSyncStatus")
                 }
                 ctx.delete(record)
                 deleted += 1

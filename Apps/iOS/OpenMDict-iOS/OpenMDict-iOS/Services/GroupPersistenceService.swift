@@ -22,6 +22,7 @@
 
 import CoreData
 import Foundation
+import OpenMDictKit
 
 // MARK: - Loaded Group DTO
 
@@ -118,10 +119,14 @@ final class GroupPersistenceService {
     ///   delegate is resetting (it purges every mirrored row before
     ///   re-importing the zone); inserting then mints new CKRecords for the
     ///   same groups and lets dedup delete the originals on every device.
+    /// - Parameter preserving: Dictionary IDs whose existing entries are kept
+    ///   even though `groups` does not list them (known but not loaded on
+    ///   this device; see `GroupOrder.merge`).
     /// - Returns: `true` when the groups were saved (or nothing changed),
     ///   `false` when the save was refused or failed.
     @discardableResult
-    func saveAllGroups(_ groups: [SavedGroup], allowBootstrapInsert: Bool = false) -> Bool {
+    func saveAllGroups(_ groups: [SavedGroup], preserving: Set<String> = [],
+                       allowBootstrapInsert: Bool = false) -> Bool {
         let ctx = stack.viewContext
 
         // 1. Fetch all existing group records → index by groupId
@@ -191,11 +196,14 @@ final class GroupPersistenceService {
             }
 
             // Diff entries for this group
+            let existing = (existingEntries[group.groupId] ?? []).sorted { $0.sortOrder < $1.sortOrder }
             diffEntries(
                 ctx: ctx,
                 groupId: group.groupId,
-                incoming: group.dictionaryIds,
-                existing: existingEntries[group.groupId] ?? []
+                incoming: GroupOrder.merge(incoming: group.dictionaryIds,
+                                           existing: existing.map(\.dictId),
+                                           preserved: preserving),
+                existing: existing
             )
         }
 

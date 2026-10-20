@@ -21,7 +21,7 @@ public struct DictManifest: Codable, Equatable, Sendable {
     public let id: String
     
     /// MDX file entry (exactly one)
-    public let mdx: MDXEntry
+    public var mdx: MDXEntry
     
     /// MDD resource files (0-N)
     public var mdd: [ResourceEntry]

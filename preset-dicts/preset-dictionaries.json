@@ -18,7 +18,11 @@
       "license": "CC-BY-4.0 AND LicenseRef-WordNet-3.0",
       "dataSource": "Open English WordNet 2025",
       "source": "bundle",
-      "tier": 0
+      "tier": 0,
+      "sha256": "1bde9ce8439f764a154935a052c7df6207582aedb1e2283827afd603366cf8f5",
+      "previousSha256": [
+        "74d116179a25142ecb93dc3a8df3b219cd4e4a31ba69db1d79f847ebc41dc6c8"
+      ]
     },
     {
       "id": "gcide-en",
@@ -38,7 +42,11 @@
       "dataSource": "GCIDE 0.53 (GNU Project)",
       "source": "odr",
       "odrTag": "preset-dict-gcide-en",
-      "tier": 1
+      "tier": 1,
+      "sha256": "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a",
+      "previousSha256": [
+        "015cf5f036a00d095f6b8c32e852123522e0608ca16c4e04f650e18e7c286fe8"
+      ]
     },
     {
       "id": "bible-darby-fr",
@@ -58,7 +66,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-darby-fr",
-      "tier": 2
+      "tier": 2,
+      "sha256": "4bec3f0bd57066954b3334dd5888e6d6382d006b76ed548a7af5d0013f5603d8",
+      "previousSha256": [
+        "9fb00d4f45c2207ceebce7b9b511cb8f5cc11d31b373cb220ba6d11716b5a9a4"
+      ]
     },
     {
       "id": "bible-kjv-en",
@@ -77,7 +89,11 @@
       "license": "LicenseRef-Public-Domain",
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "bundle",
-      "tier": 2
+      "tier": 2,
+      "sha256": "a742abe2e2872506d4d72b4e0c470924c0a160c23564ca5fbee4e4772853a87a",
+      "previousSha256": [
+        "365acb8b3e57e9d807d6d6c10d1ce8127dfddfcf086f99e57f30691522ed2840"
+      ]
     },
     {
       "id": "bible-vulgate-la",
@@ -97,7 +113,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-vulgate-la",
-      "tier": 2
+      "tier": 2,
+      "sha256": "b7a059dbab1fc25260f506814a44a1bac298d059a7b3c5637c1d2102bd0549f1",
+      "previousSha256": [
+        "1172b0a1956332b8067355bd44b066ff96b1c54849898496aacdf254aba2ac43"
+      ]
     },
     {
       "id": "bible-almeida-pt",
@@ -117,7 +137,11 @@
       "dataSource": "Open Bibles (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-almeida-pt",
-      "tier": 2
+      "tier": 2,
+      "sha256": "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa",
+      "previousSha256": [
+        "58ef46264af40fc3debf05fd0e1ae6ffb911e3f2e31506847e7b947e4feb0480"
+      ]
     },
     {
       "id": "cedict-zh-en",
@@ -137,7 +161,11 @@
       "dataSource": "CC-CEDICT",
       "source": "odr",
       "odrTag": "preset-dict-cedict-zh-en",
-      "tier": 2
+      "tier": 2,
+      "sha256": "045adcb59119066a04f4ac70607fb26783aac842e954d6f446155761b042902f",
+      "previousSha256": [
+        "a210e7bb4a234c3a5ed5bd160495383e0adf3c3db77b19fadf7a7d37ae937a0c"
+      ]
     },
     {
       "id": "cc-canto-yue-en",
@@ -157,7 +185,9 @@
       "dataSource": "CC-Canto (Pleco Inc.)",
       "source": "odr",
       "odrTag": "preset-dict-cc-canto-yue-en",
-      "tier": 2
+      "tier": 2,
+      "sha256": "b74398d12e064691ec801ff90f7b82073a1bef065b190b621238a532bccc0acd",
+      "previousSha256": []
     },
     {
       "id": "jmdict-ja-en",
@@ -177,7 +207,11 @@
       "dataSource": "JMdict + Kanjium pitch accent",
       "source": "odr",
       "odrTag": "preset-dict-jmdict-ja-en",
-      "tier": 2
+      "tier": 2,
+      "sha256": "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f",
+      "previousSha256": [
+        "cd129c12f5cf94f897a8c56a6f4442d8a4c2c6cd2bb08d7a76592f1f8223211d"
+      ]
     },
     {
       "id": "kanjidic2-ja",
@@ -197,7 +231,9 @@
       "dataSource": "KANJIDIC2 (EDRDG)",
       "source": "odr",
       "odrTag": "preset-dict-kanjidic2-ja",
-      "tier": 2
+      "tier": 2,
+      "sha256": "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a",
+      "previousSha256": []
     },
     {
       "id": "bible-diodati-it",
@@ -217,7 +253,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-diodati-it",
-      "tier": 2
+      "tier": 2,
+      "sha256": "00dbab7fc6d431fb7a2a90e4c1274cdfbf52747450dce9499a8b1ab6f594b0d8",
+      "previousSha256": [
+        "7cf6b9a49908b4a41fcb392c7fde19f9a37176bdbf5e301c34d4a97e98af72bc"
+      ]
     },
     {
       "id": "bible-luther1912-de",
@@ -237,7 +277,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-luther1912-de",
-      "tier": 2
+      "tier": 2,
+      "sha256": "8b47bdb9a41bb79cfdd578936e687d6b7a23170c257ea297f967a74c811a1aa7",
+      "previousSha256": [
+        "29c50594e2387a6a199618bf9701190895665b1d4b0b3d0a781c9c74ffb8f503"
+      ]
     },
     {
       "id": "bible-rv1909-es",
@@ -257,7 +301,11 @@
       "dataSource": "Open Bibles (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-rv1909-es",
-      "tier": 2
+      "tier": 2,
+      "sha256": "9e8fa4ea46f44f4f6122d7c87f29d13b5724dd4ce87e84c1c4729eb20e6c2694",
+      "previousSha256": [
+        "a86fa119c3951b1ba3142b44aaffe840aa24c9bf1705d4a57b8bf238b0eaf1b0"
+      ]
     },
     {
       "id": "bible-synodal-ru",
@@ -277,7 +325,11 @@
       "dataSource": "Open Bibles (Zefania XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-synodal-ru",
-      "tier": 2
+      "tier": 2,
+      "sha256": "2acf6a7763af7a037de50ca54fce70c457ac5fe2e95028c20f494fb639c3bad0",
+      "previousSha256": [
+        "1b02940d4d94010675cd7afb7716c6c22426f7e0a3cfbbd1f3feac97eb27a1fc"
+      ]
     },
     {
       "id": "bible-svd-ar",
@@ -297,7 +349,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-svd-ar",
-      "tier": 2
+      "tier": 2,
+      "sha256": "76377fc2c736ecd434b93ad39c082961f8fe1b2548384a5add090bfdae826062",
+      "previousSha256": [
+        "5681e6318db3a2044c0379f49318506a509fa64efb931e0aff9a89e2c1f327f8"
+      ]
     },
     {
       "id": "bible-byzantine-grc",
@@ -317,7 +373,11 @@
       "dataSource": "eBible.org (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-byzantine-grc",
-      "tier": 2
+      "tier": 2,
+      "sha256": "3bdb30587a5af7464aec554d6bedc0b92941a8e331eb0356fefec9b6624125f3",
+      "previousSha256": [
+        "b7fe19c9e97d3ef287e4f9ff39c28795583823d3e87cfb09895258707609cf3f"
+      ]
     },
     {
       "id": "bible-kougo-ja",
@@ -337,7 +397,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-kougo-ja",
-      "tier": 2
+      "tier": 2,
+      "sha256": "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3",
+      "previousSha256": [
+        "305fc6d325c9f5f2795a38aee30576887b0704d5534c2128370607bd1b5e4abc"
+      ]
     },
     {
       "id": "bible-cuv-zh-hans",
@@ -357,7 +421,11 @@
       "dataSource": "Open Bibles (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-cuv-zh-hans",
-      "tier": 2
+      "tier": 2,
+      "sha256": "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96",
+      "previousSha256": [
+        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d"
+      ]
     },
     {
       "id": "bible-cuv-zh-hant",
@@ -377,7 +445,11 @@
       "dataSource": "Open Bibles (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-cuv-zh-hant",
-      "tier": 2
+      "tier": 2,
+      "sha256": "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c",
+      "previousSha256": [
+        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19"
+      ]
     },
     {
       "id": "bible-korean-ko",
@@ -397,7 +469,11 @@
       "dataSource": "Open Bibles (OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-korean-ko",
-      "tier": 2
+      "tier": 2,
+      "sha256": "ccf24b60e144d1537859a5f1c36532175a54780da6a79a94ceee2e4ab250a20d",
+      "previousSha256": [
+        "c92e3d91045519060673190c4b1fff04b379bf93d38c76431b367990caa195ed"
+      ]
     },
     {
       "id": "freedict-en-de",
@@ -417,7 +493,11 @@
       "dataSource": "FreeDict (eng-deu TEI P5)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-en-de",
-      "tier": 3
+      "tier": 3,
+      "sha256": "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330",
+      "previousSha256": [
+        "b4cacb4bcf20f15e0ba753b68957a2077f2e7a39534096a542afe5e38f20a453"
+      ]
     },
     {
       "id": "freedict-de-en",
@@ -437,7 +517,11 @@
       "dataSource": "FreeDict (deu-eng TEI P5)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-de-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be",
+      "previousSha256": [
+        "f74478c225e7d2b968026750489a5c8bfaf9ad4386bc4828af6e85a380919525"
+      ]
     },
     {
       "id": "kaikki-ar-en",
@@ -457,7 +541,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ar-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "98c4c55ca6ea454878399a0aeb2d191e5ea7218789b4c73fe4da450aaba9f230",
+      "previousSha256": [
+        "8df5148e152b07cc4f85128e79e0bbf6e330adac739663b888dd4d0a408eb088",
+        "fdb991667cbe2acacd813bddd3b3a11526c90f4639cc8c2d25778811f3bbbdae"
+      ]
     },
     {
       "id": "kaikki-fr-en",
@@ -477,7 +566,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-fr-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "52b8183f2a7868ea569057484189b39157ce708f287af0bbc0c1c1c4066cac3d",
+      "previousSha256": [
+        "155dd2f9c82d6890bcbf6da65a4a651934757beccd298b38241e3df8812dce44",
+        "8f6d88c31b79845a1afbe0f4dee4837545a678f6e9419d97268a6ad8520edc3d"
+      ]
     },
     {
       "id": "kaikki-el-en",
@@ -497,7 +591,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-el-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "6f459973b781b4ec3cdf59aad35e18625a91b9d87058d063d3d1f5f1c935412d",
+      "previousSha256": [
+        "2578340d187bb6269f3c985448ccb04c37f162037842f22c7794250bd82c3685",
+        "3445e001f1089b5c9d4e575570d0454a894291595e3fee600400b4a79680dd91"
+      ]
     },
     {
       "id": "kaikki-it-en",
@@ -517,7 +616,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-it-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "58a4de3004bf681cb0ace11c086d24296c420aef3e53625f3837b9388d16cbbe",
+      "previousSha256": [
+        "1583bc74573f813b5b0ccc01269755182f81c3a2b47b54516328861e71c48be4",
+        "8d03acbfb9cdf6b4c7b1bbeb47d6c4b2b8bbc730b23664bb9ac9cce4c9ca9b78"
+      ]
     },
     {
       "id": "kaikki-ko-en",
@@ -537,7 +641,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ko-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "f3d805c4db4412f8966473f03b42ac291a4b037ebbf4463a1ab890adcb7e346b",
+      "previousSha256": [
+        "c0a431d2b93fdf3184cbf3f65429fe119361cef2b77edee9a01fe6645597af22",
+        "c5e4d5a0a5a4870e08f362dcd840b717fda25a3133eba36e701154b3e93ad14f"
+      ]
     },
     {
       "id": "kaikki-la-en",
@@ -557,7 +666,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-la-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "ec222d54c10a3c86174a3d58c602d80d17ad57bf0dec6ec31fb7ff041d06c6ba",
+      "previousSha256": [
+        "8589681d1b5ee62b5aace69d249bf16337384544c8bc37aa7d9eac12cef4400c",
+        "b0d9a414611b217c3d192793b9b353a3ba5f3168bab6211b4650eb2687feca94"
+      ]
     },
     {
       "id": "kaikki-pt-en",
@@ -577,7 +691,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-pt-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "a20442a66a652b962cd0b3915866945592e55aea97e5ae594abaddd433f3acf4",
+      "previousSha256": [
+        "3d92863f9eaae5b28dc217586e24d00cb16a6b668b1d0192a4e4888b15480194",
+        "4822ddf1a76a540e31cfb7bf71878b86d1bb15b613efe1f72003d0bc3b861831"
+      ]
     },
     {
       "id": "kaikki-ru-en",
@@ -597,7 +716,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ru-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "ce877a62afd5b9d59e96c953c8f8c06de3e2af00d989b141616a48dc56eddbb2",
+      "previousSha256": [
+        "60b01b43167aee21497b13a0e5e40910475ebfa1b0d90e0c713e1df21ca9dd6b",
+        "e0e11c90d1d0a3685e444c75b277dbdaad18685f561c2d563b2a4b0566cf2b69"
+      ]
     },
     {
       "id": "kaikki-es-en",
@@ -617,7 +741,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-es-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "fc3e1db023777ecad8ab2d4029f05607048b1f6dd4ee1e977d829c67dce08c2c",
+      "previousSha256": [
+        "a4be9641c1ea31b632441997636e337f01836e6807a769be87a8a16ac363f520",
+        "e2e483671bc18cd8bb7d34c6422b1204cadef492519fe20a7d1cae9f559ef98c"
+      ]
     },
     {
       "id": "kaikki-tr-en",
@@ -637,7 +766,12 @@
       "dataSource": "Kaikki.org (English Wiktionary extract)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-tr-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "bd347bff329a92d88c6d7969e5fbe91d1ad3c0623b08fdc2e127a43c4a683068",
+      "previousSha256": [
+        "5afa2876a4ceb53ac6caf8c89d5e25785ae164da2b2dcb1d1a7a06c59ac6d0b1",
+        "83e4f7e3158aa9a6c42b4178e958f30ebfaa8ca44e0b24244bbd62899b25f16e"
+      ]
     },
     {
       "id": "lsj-grc-en",
@@ -657,7 +791,12 @@
       "dataSource": "Perseus Digital Library",
       "source": "odr",
       "odrTag": "preset-dict-lsj-grc-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "a3e223c5d495476721ffe6a9316b1027ac67d4c2108901cb78ea85f9a0f0e9e0",
+      "previousSha256": [
+        "49cff1ae92b4583736f7687cb00f70cabb1915a9d30246390c7408fecb22e4de",
+        "5e453f5ba0d1232bcb6788a8c47e878d0ad01cda1ec4e08585eb6081d054bb77"
+      ]
     },
     {
       "id": "lewis-short-la-en",
@@ -677,7 +816,12 @@
       "dataSource": "Perseus Digital Library",
       "source": "odr",
       "odrTag": "preset-dict-lewis-short-la-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "69f177502ca5baa8a668b64b49a27a12d2aa458aa609f0c7903ef8a23f1bdcef",
+      "previousSha256": [
+        "4c6a58218031fb9ffa4aeb4c85f0b56537536c063d7481606187bca1dd6c9a07",
+        "f80557793ca4e49102e752d6439003ba26d240c75a43692bd2c733cf964f0083"
+      ]
     },
     {
       "id": "moby-thesaurus-en",
@@ -697,7 +841,11 @@
       "dataSource": "Moby Thesaurus II (Grady Ward)",
       "source": "odr",
       "odrTag": "preset-dict-moby-thesaurus-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "386499d70d24166ee4c59c02a2e53743f1e425484ec255dfe26fda2db3f02b22",
+      "previousSha256": [
+        "7d1b8c99796b31d33103dd1e0ae95bda54305d8dfac814523e1e8cf92ed88054"
+      ]
     },
     {
       "id": "unihan-cjk",
@@ -717,7 +865,9 @@
       "dataSource": "Unicode Unihan Database",
       "source": "odr",
       "odrTag": "preset-dict-unihan-cjk",
-      "tier": 3
+      "tier": 3,
+      "sha256": "7cde6eb6b08420141a9759cd3763db757131f4eefab910c9b71936cd73a6a52b",
+      "previousSha256": []
     },
     {
       "id": "wikdict-en-fr",
@@ -737,7 +887,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-fr",
-      "tier": 3
+      "tier": 3,
+      "sha256": "e608e49092ef832f2f0a65022854a8d345837e6e3a893dd582ab24be4e617a6f",
+      "previousSha256": [
+        "cc12f4e50c641f4f73910b2b94392868bed4ad6d8711508efa34dedb70b99717"
+      ]
     },
     {
       "id": "wikdict-en-de",
@@ -757,7 +911,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-de",
-      "tier": 3
+      "tier": 3,
+      "sha256": "a75462d4d23d0b64e541977ede2fbaad62060faedbaed5811ab90e36c6e580c9",
+      "previousSha256": [
+        "85b2560115ec7ced5322e4ee4d534938cdf6688f80980d6dcca86095ee7a9e68"
+      ]
     },
     {
       "id": "wikdict-en-el",
@@ -777,7 +935,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-el",
-      "tier": 3
+      "tier": 3,
+      "sha256": "f33792253d2373b5d5112465a991432b5ab65f8147fbb2f9a1407483630c5a7d",
+      "previousSha256": [
+        "39e33da6fdd09b5b4da1d11104abbccd581452cc647e74f64714fbf5a873b77e"
+      ]
     },
     {
       "id": "wikdict-en-it",
@@ -797,7 +959,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-it",
-      "tier": 3
+      "tier": 3,
+      "sha256": "c2142c11c1b123a3b203dc390450491a6a68ff5d1e2163b1d9a6b902cc288801",
+      "previousSha256": [
+        "b4408fd6e613082db4d7245a5a5764d0451ed42f98d62823d4c5899a158f197e"
+      ]
     },
     {
       "id": "wikdict-en-la",
@@ -817,7 +983,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-la",
-      "tier": 3
+      "tier": 3,
+      "sha256": "d4187c2c60a887ae02fcdb360052f95a3d6419eb0856dd3292b423698cacf133",
+      "previousSha256": [
+        "2a74c3940858742d1b226e48d8cb224ae9335ae5358ec95e82215aa42019bcaa"
+      ]
     },
     {
       "id": "wikdict-en-pt",
@@ -837,7 +1007,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-pt",
-      "tier": 3
+      "tier": 3,
+      "sha256": "d7224722624e722af445de779547f2fcccebc394515866c8a7fb69b19ee99eac",
+      "previousSha256": [
+        "868f032daebccba663811154846ce5ad98725558fb4d6749534e9809466e0bd3"
+      ]
     },
     {
       "id": "wikdict-en-ru",
@@ -857,7 +1031,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-ru",
-      "tier": 3
+      "tier": 3,
+      "sha256": "76268b561ec7de3d9332f944e3c154c1d52eda79d1df777bc8d4160d47e9bb1f",
+      "previousSha256": [
+        "f8a63d1100b5bd00a09df9cd7f79fa30fa80e336919cbe80fdcc9d600fa8da3e"
+      ]
     },
     {
       "id": "wikdict-en-es",
@@ -877,7 +1055,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-es",
-      "tier": 3
+      "tier": 3,
+      "sha256": "9d02c957502d082157597df244774507a22b24b933ed9c24d7ec9e58f33eda9c",
+      "previousSha256": [
+        "d67c94d663ba6040149ee28e1a19af360661402e1212e443daf4683f799d56a9"
+      ]
     },
     {
       "id": "wikdict-en-tr",
@@ -897,7 +1079,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-tr",
-      "tier": 3
+      "tier": 3,
+      "sha256": "98d38caf1e22e8d7756f66f1459bc173f34534fd9b0a72197caf8f1073254580",
+      "previousSha256": [
+        "7199302d29fa6b6774199971a59ba44d410e2dc2bcb0392070db6dbd74c0569c"
+      ]
     },
     {
       "id": "wikdict-fr-en",
@@ -917,7 +1103,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "0f8b95d1512b5f3be82b805f6e04590d742cdd57a771121a7f4d982e50bda1ca",
+      "previousSha256": [
+        "7abf1b81b5a694017d56eb25c921d31047dcb4de93111850e34c009c4865959f"
+      ]
     },
     {
       "id": "wikdict-fr-ru",
@@ -937,7 +1127,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-ru",
-      "tier": 3
+      "tier": 3,
+      "sha256": "a9ad758bac8e2f43e1572252fbba19cc74323f788365ee6655c0a4d3c628f2ae",
+      "previousSha256": [
+        "4f4328f434e1da87b2e90450f3ba2aa06b0fce6c011775a76c59fd20d1bc07e7"
+      ]
     },
     {
       "id": "wikdict-fr-es",
@@ -957,7 +1151,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-es",
-      "tier": 3
+      "tier": 3,
+      "sha256": "c1bdf8672e2031291a0bf46abe356749aa4831584dd4a8dc8325c87a5da398f6",
+      "previousSha256": [
+        "887271368eec7e833fc21af25e38eb2896d263ee3e709a696d10ad27f81be11e"
+      ]
     },
     {
       "id": "wikdict-de-en",
@@ -977,7 +1175,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-de-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "e819ac958cae37f6fbf7a15b3035f6ab09c358d807f81547085710e2d12e9b1f",
+      "previousSha256": [
+        "c144320d664f928180cfe30c443662c1fe08fcaf47a60878705f6cebd4175073"
+      ]
     },
     {
       "id": "wikdict-de-ru",
@@ -997,7 +1199,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-de-ru",
-      "tier": 3
+      "tier": 3,
+      "sha256": "4d1d94a8c212450a3e7089920487a7cbbb5957678395ccae4ab992acd3cdd175",
+      "previousSha256": [
+        "2cdf69dea426df82fc521a960701c576b2a49c3a1f5921b8f0fd0ebba79c467b"
+      ]
     },
     {
       "id": "wikdict-el-en",
@@ -1017,7 +1223,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-el-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "76abd559a60ee1132fd7adbfebe30f4cf2f35dc70108f986a7b2d9c12c9da01b",
+      "previousSha256": [
+        "45f188600ab866a219da6ab8d39f4da062a9ebeb80db85faffcf1f3c07046c45"
+      ]
     },
     {
       "id": "wikdict-it-en",
@@ -1037,7 +1247,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-it-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "7c3b85ffaff7d917d791fd9c2db0fd11dc1253851c9da4920a4cf4aa4a94d7d4",
+      "previousSha256": [
+        "8bc5bae4c7afa528391befe819e9b83d0550b5b83fad3a5b1f351e6a5ba4d24a"
+      ]
     },
     {
       "id": "wikdict-la-en",
@@ -1057,7 +1271,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-la-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "861cfde377238380e992ba68a3960728073f22b4bedae617458089dde70bdf95",
+      "previousSha256": [
+        "27313913b40c6b9cc6543022703ead5bd68acf590d5ff6a2a2dacf1fef56656c"
+      ]
     },
     {
       "id": "wikdict-pt-en",
@@ -1077,7 +1295,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-pt-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "0e3fdbed5dcc7350eb9144aa0c706ce5b7125dfd42bb794a5e5f249f9209c22a",
+      "previousSha256": [
+        "1fbaac33fcdf214c61543ede16513ab6e2ec924affd13355e62feac53427c759"
+      ]
     },
     {
       "id": "wikdict-pt-es",
@@ -1097,7 +1319,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-pt-es",
-      "tier": 3
+      "tier": 3,
+      "sha256": "fc12a88ceaa019d9f8fbbbb6081963d79514455c1c974a1d8744990dfaaeffff",
+      "previousSha256": [
+        "692604b9a4219df2eb850bed4c6b46a8cb3a0b6681d4bf1a9421a2f66cc85233"
+      ]
     },
     {
       "id": "wikdict-ru-en",
@@ -1117,7 +1343,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "9cc035570be2d54c23df73359687ae6afde39ec9d57db856886350291949e09e",
+      "previousSha256": [
+        "b4e5bb03d63610924086a5acca9ba87bc2ac7c2b52ac3ee748797d9b2261d6db"
+      ]
     },
     {
       "id": "wikdict-ru-fr",
@@ -1137,7 +1367,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-fr",
-      "tier": 3
+      "tier": 3,
+      "sha256": "10fff5578e81433c02c8bf71f6a61f4167d3534d30dd82fec3ef6ee305dbf787",
+      "previousSha256": [
+        "2b065ed5f4543b1569f30d231e4290767f440e9ec9ed17ea8d018428aebd90de"
+      ]
     },
     {
       "id": "wikdict-ru-de",
@@ -1157,7 +1391,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-de",
-      "tier": 3
+      "tier": 3,
+      "sha256": "b5259d7dc25a43a3b42a70403f6a8f748e72c3f9e082a2802c9bdd808bf6e694",
+      "previousSha256": [
+        "4b7f58eb0e8f0f3329ad53a7cfccf77b5cf72a1d88c1a2c44f9a97ff976c1d2e"
+      ]
     },
     {
       "id": "wikdict-es-en",
@@ -1177,7 +1415,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "46a3c00c2efeeca23071f488b77e648260d2b1a680013208b137590a0a7b1ec8",
+      "previousSha256": [
+        "8c865b7e93230833c11d865544f887fc5d38fc153f7b3dcb12b1c5c48e74613d"
+      ]
     },
     {
       "id": "wikdict-es-fr",
@@ -1197,7 +1439,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-fr",
-      "tier": 3
+      "tier": 3,
+      "sha256": "021d1454d41fef776eaf89e0464cfe2d7e93ec29a9743c8f38a8b56a5e622834",
+      "previousSha256": [
+        "b0084f134ad8f43701eac1f2a9935fc67fba088c49328ff6d0464ed2424f5a75"
+      ]
     },
     {
       "id": "wikdict-es-pt",
@@ -1217,7 +1463,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-pt",
-      "tier": 3
+      "tier": 3,
+      "sha256": "323c137d3eeb67d5a1863e61f89f43a9bec7f47cac1e55e880dee94a9b5a51d7",
+      "previousSha256": [
+        "6219f0ccc095e0dc925f8d619bb331bf1b4a93a2d198b2c6452a225420293e5d"
+      ]
     },
     {
       "id": "wikdict-tr-en",
@@ -1237,7 +1487,11 @@
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-tr-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "ef48c3d5ea0ac5f1fd07cf3e8fc17fa07844810f8899cb7e8d75f0c9f4864861",
+      "previousSha256": [
+        "036b2b97a18762f6764ed894bfa639232d9ae792e32dda938d5e75d391fbfb0e"
+      ]
     },
     {
       "id": "wiktionary-ar-en",
@@ -1257,7 +1511,9 @@
       "dataSource": "Wiktionary (English edition)",
       "source": "odr",
       "odrTag": "preset-dict-wiktionary-ar-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "4fd52a962f97ca46bbf06dc5541943d7c72b476c2ba1b1815bf40ce852999844",
+      "previousSha256": []
     },
     {
       "id": "wiktionary-ko-en",
@@ -1277,7 +1533,11 @@
       "dataSource": "English Wiktionary",
       "source": "odr",
       "odrTag": "preset-dict-wiktionary-ko-en",
-      "tier": 3
+      "tier": 3,
+      "sha256": "9e6fbabcd22bf959aee7c4a046d8a527b7dcaccec5f7ed1f0af9e5b77130d010",
+      "previousSha256": [
+        "655ecebae10a6927de55af41f91cb31de4ab8c04e1306bcf0b79972a3090e96c"
+      ]
     }
   ]
 }
