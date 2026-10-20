@@ -79,4 +79,41 @@ struct HomographLookupTests {
         #expect(reader.search(prefix: "o\u{2019}cl") == ["o'clock"])
         #expect(reader.lookup("nothing'here") == nil)
     }
+
+    @Test("Prefix search and lookup find keys written with either apostrophe")
+    func mixedApostrophes() throws {
+        let reader = try Self.reader()
+        #expect(reader.search(prefix: "rapport d'") == ["rapport d'activité", "rapport d\u{2019}étape"])
+        #expect(reader.search(prefix: "rapport d\u{2019}") == ["rapport d'activité", "rapport d\u{2019}étape"])
+        #expect(reader.lookup("rapport d'étape")?.key == "rapport d\u{2019}étape")
+    }
+
+    @Test("One lookup returns at most maxRecordsPerLookup records")
+    func cap() throws {
+        let reader = try Self.reader()
+        #expect(reader.lookupAll("many").count == MDXParser.maxRecordsPerLookup)
+        #expect(Self.text(reader.lookupAll("many")[0].article.html) == "<p>many #0</p>")
+    }
+
+    @Test("Joined records keep a repeated script or stylesheet only once")
+    func scriptsOnce() throws {
+        let html = try #require(try Self.reader().lookup("toggle")).article.html
+        #expect(html.components(separatedBy: "<script src=\"t.js\"></script>").count == 2)
+        #expect(html.components(separatedBy: "<link rel=\"stylesheet\" href=\"t.css\">").count == 2)
+        #expect(html.contains("toggle (1)") && html.contains("toggle (2)"))
+    }
+
+    @Test("contains() checks keys without loading records; article(at:) reads one record")
+    func containsAndPosition() throws {
+        let reader = try Self.reader()
+        #expect(reader.contains("BANK"))
+        #expect(reader.contains("o\u{2019}clock"))
+        #expect(!reader.contains("nope"))
+        // Every row resolves to exactly one record (a redirect to its target).
+        for i in 0..<reader.entryCount {
+            let entry = try #require(reader.article(at: i))
+            #expect(!entry.article.html.contains(MDictReader.homographSeparator))
+            #expect(!entry.article.html.hasPrefix("@@@LINK="))
+        }
+    }
 }

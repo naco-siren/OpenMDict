@@ -41,13 +41,18 @@ public enum EntryLink {
 
     /// Characters left unencoded in an entry link's target when the app
     /// rewrites article HTML: the URL path set without the characters that
-    /// end or change a host or authority ("/", ":", "?", "@", ";") — WebKit
+    /// end or change a host or authority ("/", ":", "?", "@") — WebKit
     /// would otherwise split `entry://Capital: Critique` at the colon — and
-    /// with "%" kept so existing escapes are not encoded twice.
+    /// with "%" kept so existing escapes are not encoded twice. ";" stays:
+    /// the target is raw attribute text, where it ends HTML character
+    /// references such as `&amp;` and `&#39;`.
     public static let targetAllowedCharacters: CharacterSet = {
         var set = CharacterSet.urlPathAllowed
-        set.remove(charactersIn: "/:?@;")
+        set.remove(charactersIn: "/:?@")
         set.insert("%")
         return set
     }()
+
+    /// Characters that make a pure-ASCII target need encoding.
+    public static let hostEndingCharacters: Set<Unicode.Scalar> = ["/", ":", "?", "@"]
 }

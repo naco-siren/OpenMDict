@@ -349,11 +349,49 @@ public final class MDictReader: @unchecked Sendable {
         guard matches.count > 1 else { return first }
         return MDictWordEntry(
             key: first.key,
-            article: MDictWordArticle(
-                html: matches.map(\.article.html).joined(separator: Self.homographSeparator)
-            ),
+            article: MDictWordArticle(html: Self.joinArticles(matches.map(\.article.html))),
             index: first.index
         )
+    }
+
+    /// Whether the dictionary has the word (ignoring case, any apostrophe),
+    /// without loading any record.
+    public func contains(_ key: MDictWordKey) -> Bool {
+        parser.containsKeyword(key)
+    }
+
+    /// The record at `index`, with a redirect followed — one record, for
+    /// callers that walk the dictionary by position.
+    public func article(at index: Int) -> MDictWordEntry? {
+        guard let (key, definition, resolvedIndex) = parser.resolvedEntry(at: index) else { return nil }
+        return MDictWordEntry(key: key, article: MDictWordArticle(html: definition), index: resolvedIndex)
+    }
+
+    /// Join the articles of one word. Records of a dictionary usually repeat
+    /// the same `<script src>`, inline `<script>` and stylesheet `<link>`;
+    /// running a script once per record binds its handlers twice (a toggle
+    /// then toggles back) and re-declaring `const`/`let` throws. Such a tag
+    /// is kept only where it first appears.
+    static func joinArticles(_ articles: [String]) -> String {
+        var seen = Set<String>()
+        let pattern = #"<script\b[^>]*>[\s\S]*?</script\s*>|<link\b[^>]*>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return articles.joined(separator: homographSeparator)
+        }
+        let deduped = articles.map { html -> String in
+            let ns = html as NSString
+            var result = ""
+            var last = 0
+            for match in regex.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
+                let tag = ns.substring(with: match.range)
+                result += ns.substring(with: NSRange(location: last, length: match.range.location - last))
+                if seen.insert(tag).inserted { result += tag }
+                last = match.range.location + match.range.length
+            }
+            result += ns.substring(from: last)
+            return result
+        }
+        return deduped.joined(separator: homographSeparator)
     }
 
     /// Every record for a word, separately (see `lookup(_:)`).

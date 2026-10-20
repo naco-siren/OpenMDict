@@ -105,9 +105,9 @@ nonisolated enum HTMLResourceRewriter {
         var result = html
         let matches = regex.matches(in: result, range: NSRange(result.startIndex..., in: result)).reversed()
 
-        // urlPathAllowed minus "/", ":", "?", "@", ";" (they would end the
-        // URL host WebKit parses the target into), plus "%" so existing
-        // %XX sequences are not encoded twice.
+        // urlPathAllowed minus "/", ":", "?", "@" (they would end the URL
+        // host WebKit parses the target into), plus "%" so existing %XX
+        // sequences are not encoded twice.
         let allowed = EntryLink.targetAllowedCharacters
 
         for match in matches {
@@ -123,7 +123,7 @@ nonisolated enum HTMLResourceRewriter {
             // without the characters that end a host ("9/11" must not become
             // a link to "9").
             let needsEncoding = raw.unicodeScalars.contains {
-                $0.value > 0x7F || $0.value == 0x20 || "/:?@;".unicodeScalars.contains($0)
+                $0.value > 0x7F || $0.value == 0x20 || EntryLink.hostEndingCharacters.contains($0)
             }
             guard needsEncoding else { continue }
 

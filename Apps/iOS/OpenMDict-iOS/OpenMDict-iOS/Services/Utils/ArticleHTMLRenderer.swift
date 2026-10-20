@@ -77,7 +77,13 @@ enum ArticleHTMLRenderer {
                 // 3. Find matches in content, wrap in invisible marks
                 var escaped = keyword.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
                 var regex = new RegExp('(' + escaped + ')', 'gi');
-                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null);
+                // Text inside <style>/<script> is code, not article text.
+                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+                    acceptNode: function(n) {
+                        var tag = n.parentNode && n.parentNode.nodeName;
+                        return (tag === 'STYLE' || tag === 'SCRIPT') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+                    }
+                });
                 var nodes = [];
                 while (walker.nextNode()) nodes.push(walker.currentNode);
 

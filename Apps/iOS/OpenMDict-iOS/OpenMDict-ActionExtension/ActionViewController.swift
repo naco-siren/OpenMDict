@@ -867,29 +867,18 @@ class ActionViewController: UIViewController {
                         continue
                     }
 
-                    // Stage 1: Exact match
-                    let candidates = reader.search(prefix: word, limit: 10)
-                    let exactMatches = candidates.filter {
-                        $0.caseInsensitiveCompare(word) == .orderedSame
-                    }
-
-                    for keyword in exactMatches {
-                        if let entry = reader.lookup(keyword) {
-                            articleHTMLs.append((keyword: keyword, html: entry.article.html, resolvedFrom: nil))
-                        }
+                    // Stage 1: Exact match — every record of the word (case
+                    // variants and homographs, one card each), with the
+                    // apostrophe fallback.
+                    for entry in reader.lookupAll(word) {
+                        articleHTMLs.append((keyword: entry.key, html: entry.article.html, resolvedFrom: nil))
                     }
 
                     // Stage 2: Lemma candidates (only if exact match found nothing)
                     if articleHTMLs.isEmpty && !lemmaCandidates.isEmpty {
                         for lemma in lemmaCandidates {
-                            let lemmaCands = reader.search(prefix: lemma, limit: 10)
-                            let lemmaMatches = lemmaCands.filter {
-                                $0.caseInsensitiveCompare(lemma) == .orderedSame
-                            }
-                            for keyword in lemmaMatches {
-                                if let entry = reader.lookup(keyword) {
-                                    articleHTMLs.append((keyword: keyword, html: entry.article.html, resolvedFrom: word))
-                                }
+                            for entry in reader.lookupAll(lemma) {
+                                articleHTMLs.append((keyword: entry.key, html: entry.article.html, resolvedFrom: word))
                             }
                             if !articleHTMLs.isEmpty { break }
                         }
@@ -1343,17 +1332,12 @@ class ActionViewController: UIViewController {
             }
 
             // 2. Exact match lookup, with lemma fallback
-            let candidates = reader.search(prefix: trimmed, limit: 10)
-            let exactMatches = candidates.filter {
-                $0.caseInsensitiveCompare(trimmed) == .orderedSame
-            }
-
             var foundKeyword: String?
             var foundHTML: String?
             var resolvedFrom: String?
 
-            if let keyword = exactMatches.first, let entry = reader.lookup(keyword) {
-                foundKeyword = keyword
+            if let entry = reader.lookup(trimmed) {
+                foundKeyword = entry.key
                 foundHTML = entry.article.html
             } else {
                 // Lemma fallback
@@ -1367,10 +1351,8 @@ class ActionViewController: UIViewController {
                 lemmaCands.subtract([normalized])
 
                 for lemma in lemmaCands {
-                    let lCands = reader.search(prefix: lemma, limit: 10)
-                    let lMatches = lCands.filter { $0.caseInsensitiveCompare(lemma) == .orderedSame }
-                    if let keyword = lMatches.first, let entry = reader.lookup(keyword) {
-                        foundKeyword = keyword
+                    if let entry = reader.lookup(lemma) {
+                        foundKeyword = entry.key
                         foundHTML = entry.article.html
                         resolvedFrom = trimmed
                         break

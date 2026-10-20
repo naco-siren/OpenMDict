@@ -202,28 +202,47 @@ internal final class MDXParser {
     /// lookup is tried with the other apostrophe: iOS Smart Punctuation types
     /// U+2019 where nearly every dictionary key has U+0027 (and the reverse
     /// for a hardware keyboard and a dictionary with typographic keys).
-    func lookupAllWithIndex(_ keyword: String) -> [(String, String, Int)] {
-        for query in ApostropheVariants.of(keyword) {
-            let results = lookupAll(query)
-            if !results.isEmpty { return results }
-        }
-        return []
-    }
-
-    private func lookupAll(_ query: String) -> [(String, String, Int)] {
+    func lookupAllWithIndex(_ keyword: String, limit: Int = MDXParser.maxRecordsPerLookup) -> [(String, String, Int)] {
+        let cache = BlockCache()
         var results: [(String, String, Int)] = []
         var seen = Set<Int>()
-        for idx in findKeywordIndices(query) {
-            guard let definition = try? loadRecord(keywords[idx]),
-                  let resolved = resolveRedirect(keyword: keywords[idx].keyword,
-                                                 definition: definition, index: idx, depth: 0) else {
-                continue
-            }
-            if seen.insert(resolved.2).inserted {
-                results.append(resolved)
+        // Every apostrophe form: a dictionary may store some keys with ' and
+        // others with ’ (WikDict-FR-EN does both).
+        for query in ApostropheVariants.of(keyword) {
+            for idx in findKeywordIndices(query) {
+                guard results.count < limit else { return results }
+                guard let definition = try? loadRecord(keywords[idx], cache: cache),
+                      let resolved = resolveRedirect(keyword: keywords[idx].keyword, definition: definition,
+                                                     index: idx, depth: 0, cache: cache) else {
+                    continue
+                }
+                if seen.insert(resolved.2).inserted {
+                    results.append(resolved)
+                }
             }
         }
         return results
+    }
+
+    /// The most records one lookup returns. A few dictionaries (example
+    /// sentence collections, pinyin-keyed lists) put thousands of records
+    /// under one key; joining them all would hand the article view
+    /// megabytes of HTML.
+    static let maxRecordsPerLookup = 50
+
+    /// Whether any key equals `keyword` (ignoring case, any apostrophe),
+    /// without loading a record.
+    func containsKeyword(_ keyword: String) -> Bool {
+        ApostropheVariants.of(keyword).contains { !findKeywordIndices($0).isEmpty }
+    }
+
+    /// The record at `index`, with an `@@@LINK=` redirect followed to its
+    /// target (the target's best match). For index-based callers (article
+    /// indexing): one record per row.
+    func resolvedEntry(at index: Int) -> (String, String, Int)? {
+        guard index >= 0, index < keywords.count,
+              let definition = try? loadRecord(keywords[index]) else { return nil }
+        return resolveRedirect(keyword: keywords[index].keyword, definition: definition, index: index, depth: 0)
     }
 
     /// Indices of every keyword equal to `query`: exact-case matches first,
@@ -266,7 +285,7 @@ internal final class MDXParser {
     ///   - keyword: The word to look up
     ///   - depth: Current redirect depth (to prevent infinite loops)
     /// - Returns: Tuple of (original keyword, definition, index) or nil if not found
-    private func lookupWithRedirect(_ keyword: String, depth: Int) -> (String, String, Int)? {
+    private func lookupWithRedirect(_ keyword: String, depth: Int, cache: BlockCache? = nil) -> (String, String, Int)? {
         // Prevent infinite redirect loops (MDict spec: max 1 redirect; allow 2 for safety)
         guard depth < 2 else {
             print("⚠️ MDXParser: Max redirect depth reached for '\(keyword)'")
@@ -274,14 +293,15 @@ internal final class MDXParser {
         }
 
         guard let idx = findKeywordIndex(keyword) else { return nil }
-        guard let definition = try? loadRecord(keywords[idx]) else {
+        guard let definition = try? loadRecord(keywords[idx], cache: cache) else {
             return nil
         }
         return resolveRedirect(
             keyword: keywords[idx].keyword,
             definition: definition,
             index: idx,
-            depth: depth
+            depth: depth,
+            cache: cache
         )
     }
 
@@ -333,7 +353,8 @@ internal final class MDXParser {
     ///   - index: Original index
     ///   - depth: Current redirect depth
     /// - Returns: Final resolved entry or original if not a redirect
-    private func resolveRedirect(keyword: String, definition: String, index: Int, depth: Int) -> (String, String, Int)? {
+    private func resolveRedirect(keyword: String, definition: String, index: Int, depth: Int,
+                                 cache: BlockCache? = nil) -> (String, String, Int)? {
         let trimmed = definition.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Check for @@@LINK= prefix (case-insensitive)
@@ -351,7 +372,7 @@ internal final class MDXParser {
         }
 
         // Follow redirect
-        return lookupWithRedirect(target, depth: depth + 1)
+        return lookupWithRedirect(target, depth: depth + 1, cache: cache)
     }
 
     /// Get entry at specific index
@@ -386,11 +407,14 @@ internal final class MDXParser {
     ///   - limit: Maximum results (default 20)
     /// - Returns: Array of matching keywords (original case preserved)
     func search(prefix: String, limit: Int = 20) -> [String] {
-        for variant in ApostropheVariants.of(prefix) {
-            let results = searchExact(prefix: variant, limit: limit)
-            if !results.isEmpty { return results }
-        }
-        return []
+        let variants = ApostropheVariants.of(prefix)
+        guard variants.count > 1 else { return searchExact(prefix: prefix, limit: limit) }
+        // Keys may use either apostrophe: merge, in key order.
+        var seen = Set<String>()
+        let merged = variants.flatMap { searchExact(prefix: $0, limit: limit) }
+            .filter { seen.insert($0).inserted }
+            .sorted { $0.lowercased() < $1.lowercased() }
+        return Array(merged.prefix(limit))
     }
 
     private func searchExact(prefix: String, limit: Int) -> [String] {
@@ -485,8 +509,25 @@ internal final class MDXParser {
     
     // MARK: - Private: Record Loading
     
-    private func loadRecord(_ entry: KeywordEntry) throws -> String {
-        let blockInfo = recordBlocks[entry.recordBlockIndex]
+    /// Decompressed record blocks, for the records of one lookup (they are
+    /// almost always in the same block).
+    final class BlockCache {
+        var blocks: [Int: Data] = [:]
+    }
+
+    private func loadRecord(_ entry: KeywordEntry, cache: BlockCache? = nil) throws -> String {
+        let decompressedBlock: Data
+        if let cached = cache?.blocks[entry.recordBlockIndex] {
+            decompressedBlock = cached
+        } else {
+            decompressedBlock = try decompressBlock(entry.recordBlockIndex)
+            cache?.blocks[entry.recordBlockIndex] = decompressedBlock
+        }
+        return try recordText(entry, in: decompressedBlock)
+    }
+
+    private func decompressBlock(_ index: Int) throws -> Data {
+        let blockInfo = recordBlocks[index]
 
         // Atomic seek+read: thread-safe for concurrent loadRecord calls
         let compressedData = try reader.atomicRead(
@@ -502,17 +543,17 @@ internal final class MDXParser {
             throw MDictError.invalidFormat("Unknown compression type: \(compType)")
         }
         
-        let decompressedBlock: Data
         if compression != .none {
-            decompressedBlock = try Decompressor.decompress(
+            return try Decompressor.decompress(
                 Data(compressedData.dropFirst(8)),
                 type: compression,
                 decompressedSize: Int(blockInfo.decompressedSize)
             )
-        } else {
-            decompressedBlock = Data(compressedData.dropFirst(8))
         }
-        
+        return Data(compressedData.dropFirst(8))
+    }
+
+    private func recordText(_ entry: KeywordEntry, in decompressedBlock: Data) throws -> String {
         let recordStart = Int(entry.recordOffset)
         let recordEnd = recordStart + entry.recordSize
         
@@ -912,13 +953,15 @@ enum ApostropheVariants {
     static let typographic: Set<Character> = ["\u{2019}", "\u{2018}", "\u{02BC}", "\u{FF07}"]
 
     static func of(_ query: String) -> [String] {
-        if query.contains(where: { typographic.contains($0) }) {
-            return [query, String(query.map { typographic.contains($0) ? "'" : $0 })]
+        guard query.contains(where: { $0 == "'" || typographic.contains($0) }) else { return [query] }
+        func with(_ apostrophe: Character) -> String {
+            String(query.map { $0 == "'" || typographic.contains($0) ? apostrophe : $0 })
         }
-        if query.contains("'") {
-            return [query, query.replacingOccurrences(of: "'", with: "\u{2019}")]
+        var variants = [query]
+        for form in [with("'"), with("\u{2019}"), with("\u{02BC}")] where !variants.contains(form) {
+            variants.append(form)
         }
-        return [query]
+        return variants
     }
 }
 

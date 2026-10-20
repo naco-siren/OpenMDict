@@ -184,11 +184,11 @@ final class SemanticSearchService {
 
                 var found = false
                 for ref in dicts {
-                    if ref.reader.lookup(word) != nil {
+                    if ref.reader.contains(word) {
                         found = true; break
                     }
                     // Try lowercased too — some dicts index lowercased, some preserve case.
-                    if word != lower, ref.reader.lookup(lower) != nil {
+                    if word != lower, ref.reader.contains(lower) {
                         found = true; break
                     }
                 }

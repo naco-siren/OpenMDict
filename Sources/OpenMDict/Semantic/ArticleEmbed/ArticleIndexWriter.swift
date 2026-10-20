@@ -238,7 +238,9 @@ public struct ArticleIndexWriter {
                 let key = allKeys[i]
                 let bits: [UInt16]
                 let actualDim: Int
-                if let entry = reader.lookup(key) {
+                // By position: row i is record i (a key lookup would return
+                // every record of the word, joined).
+                if let entry = reader.article(at: i) {
                     let plain = Self.stripHTML(entry.article.html)
                     let vec: [Float]
                     do {

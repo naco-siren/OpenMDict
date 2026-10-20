@@ -108,7 +108,13 @@ HOMOGRAPHS = [
     ("o'clock", "<p>o'clock: of the clock</p>"),
     ("rock \u2019n\u2019 roll", "<p>rock \u2019n\u2019 roll: a genre</p>"),
     ("single", "<p>single: one only</p>"),
-]
+    # Keys that use different apostrophes in one dictionary.
+    ("rapport d'activité", "<p>rapport d'activité: activity report</p>"),
+    ("rapport d\u2019étape", "<p>rapport d\u2019étape: progress report</p>"),
+    # Records that repeat the same script and stylesheet.
+    ("toggle", '<link rel="stylesheet" href="t.css"><script src="t.js"></script><p>toggle (1)</p>'),
+    ("toggle", '<link rel="stylesheet" href="t.css"><script src="t.js"></script><p>toggle (2)</p>'),
+] + [("many", f"<p>many #{i}</p>") for i in range(60)]
 
 
 def make_homographs() -> None:
