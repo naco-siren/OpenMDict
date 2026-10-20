@@ -156,6 +156,10 @@ public struct ArticleIndexWriter {
         // 2. Resume detection. If a valid partial for THIS (model, MDX)
         // already sits at outputURL, pick up where it left off; else
         // start fresh by writing an initial header (article_count = 0).
+        //
+        // Learn the output dimension up front: alias rows are skipped
+        // without an encode (see the loop), so row 0 may not be one.
+        if encoder.dimension == 0 { _ = try? encoder.encode(" ") }
         let fallbackDim = encoder.dimension > 0 ? encoder.dimension : 384
         var poolPtr: Int
         var detectedDim: Int
@@ -236,27 +240,30 @@ public struct ArticleIndexWriter {
             // return (the textbook autorelease-accumulation signature).
             let writeDim: Int = try autoreleasepool { () throws -> Int in
                 let key = allKeys[i]
-                let bits: [UInt16]
-                let actualDim: Int
-                // By position: row i is record i (a key lookup would return
-                // every record of the word, joined).
-                if let entry = reader.article(at: i) {
-                    let plain = Self.stripHTML(entry.article.html)
-                    let vec: [Float]
-                    do {
-                        vec = try encoder.encode(plain)
-                    } catch {
-                        throw ArticleIndexWriterError.encodeFailed(article: i, key: key, underlying: error)
-                    }
-                    actualDim = vec.count
-                    var b = [UInt16](repeating: 0, count: actualDim)
-                    for d in 0..<actualDim { b[d] = float16Bits(from: vec[d]) }
-                    bits = b
-                } else {
-                    // Missing article — zero row keeps positional alignment.
-                    actualDim = detectedDim
-                    bits = [UInt16](repeating: 0, count: detectedDim)
+                // Row i embeds the record stored at index i: `reader[i]`
+                // does not follow redirects and keeps homograph records
+                // (equal keys) apart. A `@@@LINK=` alias would only
+                // re-embed its target, so alias-heavy dictionaries (a
+                // Bible keeps ~60 verse-reference aliases per chapter)
+                // would multiply the encode time and fill query results
+                // with copies of one article. Aliases and missing records
+                // get an all-zero row instead: it keeps the positional
+                // alignment with `allKeys`, `ArticleIndexReader.query`
+                // never returns it, and it is skipped over, not written.
+                guard let entry = reader[i], !Self.isRedirect(entry.article.html) else {
+                    try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + (i + 1) * detectedDim * 2))
+                    return detectedDim
                 }
+                let plain = Self.stripHTML(entry.article.html)
+                let vec: [Float]
+                do {
+                    vec = try encoder.encode(plain)
+                } catch {
+                    throw ArticleIndexWriterError.encodeFailed(article: i, key: key, underlying: error)
+                }
+                let actualDim = vec.count
+                var bits = [UInt16](repeating: 0, count: actualDim)
+                for d in 0..<actualDim { bits[d] = float16Bits(from: vec[d]) }
                 try bits.withUnsafeBufferPointer { buf in
                     try handle.write(contentsOf: Data(buffer: buf))
                 }
@@ -404,6 +411,12 @@ public struct ArticleIndexWriter {
     }
 
     // MARK: - Helpers
+
+    /// True for an MDX alias record (`@@@LINK=target`, the form
+    /// `MDXParser` follows on lookup). Looks only at the first bytes.
+    static func isRedirect(_ record: String) -> Bool {
+        record.drop(while: { $0.isWhitespace }).prefix(8).uppercased() == "@@@LINK="
+    }
 
     /// SHA256 of the model's serialized graph for sidecar invalidation.
     /// `.mlpackage` is a directory, so we hash the inner protobuf at
