@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OpenMDict
 
 /// Represents a parsed MDict URL
 struct MDictURL {
@@ -105,11 +106,12 @@ struct MDictURL {
     /// Examples:
     ///   `entry://stomach`             → ("stomach", nil)
     ///   `entry://take#take-up`    → ("take", "take-up")
+    ///   `entry://9/11`                → ("9/11", nil)   (not the host "9")
     private static func parseEntryURL(_ url: URL) -> (word: String, fragment: String?) {
+        if let parsed = EntryLink.parse(url.absoluteString) {
+            return parsed
+        }
         let word = url.host ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        // url.fragment is the part after `#`, already percent-decoded.  Treat
-        // empty strings as no fragment so downstream code can short-circuit
-        // on a single `nil` check.
         let frag = url.fragment
         return (word, (frag?.isEmpty ?? true) ? nil : frag)
     }

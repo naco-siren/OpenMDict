@@ -15,6 +15,7 @@
 //
 
 import UIKit
+import OpenMDict
 import WebKit
 
 // MARK: - ArticlePageView
@@ -931,6 +932,11 @@ extension ArticlePageView: WKNavigationDelegate {
     ///
     /// Returns ("", nil) when there's nothing parseable after `entry://`.
     static func parseEntryNavigation(_ url: URL) -> (word: String, fragment: String?) {
+        // Split at "#" first, then decode each part (a target may contain
+        // an encoded "#").
+        if let parsed = EntryLink.parse(url.absoluteString) {
+            return parsed
+        }
         let raw = url.absoluteString
         let stripped: String = {
             if raw.lowercased().hasPrefix("entry://") {

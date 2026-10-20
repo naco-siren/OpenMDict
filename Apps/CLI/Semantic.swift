@@ -151,7 +151,7 @@ private func runSemanticProbe(dict: MDictReader, word: String, lang: NLLanguage,
         print(colored("Top \(limit) NLEmbedding-vocab neighbors:", .cyan), "(\(String(format: "%.1f", ms)) ms)")
         print(colored("  (cos-dist; lower = closer.  ✓ = in this dict)", .dim))
         for (i, (nWord, dist)) in neighbors.enumerated() {
-            let inDict = dict.lookup(nWord) != nil
+            let inDict = dict.contains(nWord)
             let mark = inDict ? colored("✓", .green) : " "
             print("  \(String(format: "%2d", i + 1)). \(mark) \(nWord)  \(colored(String(format: "(%.4f)", dist), .dim))")
         }
