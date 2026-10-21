@@ -109,8 +109,11 @@ def pack_mdx(entries_txt: Path, title: str, description: str,
 #   ...              key block info (no absolute offsets follow, so the
 #                    header may change length)
 #
-# The app hashes the raw header bytes to identify a dictionary, so a
-# stable CreationDate also keeps the dictId stable across rebuilds.
+# A preset's dictionary ID is the SHA-256 of the whole MDX file
+# (PresetDictionaryService.importMDXFile -> PresetDictionaryService
+# .fileSHA256 hashes the file in 1 MB chunks). CreationDate is part of
+# those bytes, so a stable CreationDate keeps the ID stable across rebuilds
+# of unchanged content. (The header-only hash is just the sidecar cache key.)
 
 _CREATION_DATE_RE = re.compile(r'CreationDate="[^"]*"')
 

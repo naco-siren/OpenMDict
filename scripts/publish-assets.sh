@@ -17,6 +17,13 @@
 #   * Every lock entry carries its own tag. Only assets whose content changed
 #     are uploaded, to the tag given with --tag, which must be a NEW tag;
 #     unchanged assets keep the tag they were first published under.
+#   * Exception: the compliance payload travels with every new tag. When
+#     anything is uploaded to --tag, the unchanged notices, LICENSE-*.txt texts
+#     and GPL source tarballs are attached to it as well ("carried"; their lock
+#     entries move to --tag). Every Release that hosts dictionary assets then
+#     carries THIRD-PARTY-NOTICES.md, the license texts and the corresponding
+#     source of its GPL .mdx files, as THIRD-PARTY-NOTICES.md states and GPLv3
+#     section 6 requires.
 #   * An asset referenced by a committed lock is never replaced: `--clobber`
 #     is never used, and a --tag already present in the committed lock is
 #     refused. Changed content always means a new tag.
@@ -199,13 +206,14 @@ spdx_for_token() {
     case "$raw" in
         LicenseRef-*) printf '%s\n' "$raw"; return 0 ;;
     esac
-    if printf '%s' "$raw" | grep -Eq '^(CC-BY(-SA|-NC|-NC-SA|-ND|-NC-ND)?-[0-9]\.[0-9]|GPL-[23]\.0(-only|-or-later)?|LGPL-[23]\.[01](-only|-or-later)?|GFDL-1\.[123](-no-invariants|-invariants)?(-only|-or-later)?|Apache-2\.0|MIT|BSD-[23]-Clause|Unicode-3\.0|Unicode-DFS-20[0-9]{2})$'; then
+    if printf '%s' "$raw" | grep -Eq '^(CC-BY(-SA|-NC|-NC-SA|-ND|-NC-ND)?-[0-9]\.[0-9]|A?GPL-[23]\.0(-only|-or-later)?|LGPL-[23]\.[01](-only|-or-later)?|GFDL-1\.[123](-no-invariants|-invariants)?(-only|-or-later)?|Apache-2\.0|MIT|BSD-[23]-Clause|Unicode-3\.0|Unicode-DFS-20[0-9]{2})$'; then
         printf '%s\n' "$raw"
         return 0
     fi
     t=$(printf '%s' "$raw" | tr '[:lower:]' '[:upper:]')
     case "$t" in
         "PUBLIC DOMAIN"|PD|CC0*) ;;
+        AGPL*3*) echo "AGPL-3.0-or-later" ;;
         GPL*3*) echo "GPL-3.0-or-later" ;;
         GPL*2*) echo "GPL-2.0-or-later" ;;
         LGPL*) echo "LGPL-3.0-or-later" ;;
@@ -349,13 +357,17 @@ while IFS= read -r spdx; do
 done < "$WORK/spdx.ids"
 
 # ── Plan ────────────────────────────────────────────────────────────────────
-# plan.tsv: status  kind  filename  dest  size  sha256  tree_sha256  tag  src
-#   status: new | changed | unchanged
+# plan.tsv: status  kind  filename  dest  size  sha256  tree_sha256  tag  src  from_tag
+#   status: new | changed | unchanged | carried (unchanged payload re-attached
+#           to --tag, see Rules)
+#   from_tag: the Release a previously published copy can be downloaded from
+#           when src is not available locally (unchanged and carried rows)
 
 : > "$WORK/plan.tsv"
-n_new=0; n_changed=0; n_unchanged=0
+n_new=0; n_changed=0; n_unchanged=0; n_carried=0
 while IFS=$US read -r kind filename dest size sha tree src; do
     old_kind=$(old_field "$filename" 2)
+    from_tag=""
     status=new
     if [ -n "$old_kind" ]; then
         if [ "$kind" = model ]; then
@@ -368,20 +380,34 @@ while IFS=$US read -r kind filename dest size sha tree src; do
         unchanged)
             n_unchanged=$((n_unchanged + 1))
             tag=$(old_field "$filename" 5)
+            from_tag=$tag
             [ "$kind" = model ] && { size=$(old_field "$filename" 6); sha=$(old_field "$filename" 3); }
             ;;
         new) n_new=$((n_new + 1)); tag=$TAG ;;
         changed) n_changed=$((n_changed + 1)); tag=$TAG ;;
     esac
-    printf '%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\n' "$status" "$kind" "$filename" "$dest" "$size" "$sha" "$tree" "$tag" "$src" >> "$WORK/plan.tsv"
+    printf '%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\n' "$status" "$kind" "$filename" "$dest" "$size" "$sha" "$tree" "$tag" "$src" "$from_tag" >> "$WORK/plan.tsv"
 done < "$WORK/inv.tsv"
+
+# Carry the compliance payload: if anything ends up on --tag (new or changed
+# assets, or, with --amend, assets already pointing at it), every unchanged
+# payload file (kind notice) that lives on another tag is attached to --tag
+# too, so the new Release is self-contained (see Rules).
+if [ -n "$TAG" ] && awk -F "$US" -v t="$TAG" '$8 == t { found = 1 } END { exit !found }' "$WORK/plan.tsv"; then
+    awk -F "$US" -v OFS="$US" -v t="$TAG" \
+        '$1 == "unchanged" && $2 == "notice" && $8 != t { $1 = "carried"; $8 = t } { print }' \
+        "$WORK/plan.tsv" > "$WORK/plan.carry"
+    mv "$WORK/plan.carry" "$WORK/plan.tsv"
+    n_carried=$(awk -F "$US" '$1 == "carried"' "$WORK/plan.tsv" | wc -l | tr -d ' ')
+    n_unchanged=$((n_unchanged - n_carried))
+fi
 
 cut -d "$US" -f1 "$WORK/old.tsv" | sort > "$WORK/old.names"
 cut -d "$US" -f3 "$WORK/plan.tsv" | sort > "$WORK/new.names"
 comm -23 "$WORK/old.names" "$WORK/new.names" > "$WORK/removed.names"
 n_removed=$(wc -l < "$WORK/removed.names" | tr -d ' ')
 
-n_upload=$((n_new + n_changed))
+n_upload=$((n_new + n_changed + n_carried))
 if [ "$AMEND" -eq 1 ] && [ -n "$TAG" ]; then
     # Unpublished tag: everything pointing at it still has to be uploaded.
     n_upload=$(awk -F "$US" -v t="$TAG" '$8 == t' "$WORK/plan.tsv" | wc -l | tr -d ' ')
@@ -396,7 +422,7 @@ fi
 log ""
 log "Plan ($n_mdx dictionaries + model + vocab + payload):"
 awk -F "$US" '{ printf "  %-9s %-6s %s\n", $1, $2, $3 }' "$WORK/plan.tsv" | grep -v '^  unchanged' || true
-log "  unchanged $n_unchanged, new $n_new, changed $n_changed, removed from lock $n_removed"
+log "  unchanged $n_unchanged, new $n_new, changed $n_changed, carried $n_carried (unchanged payload re-attached to ${TAG:-the new tag}), removed from lock $n_removed"
 while IFS= read -r n; do log "  removed   $n (its Release stays as is)"; done < "$WORK/removed.names"
 log ""
 
@@ -413,7 +439,7 @@ fi
 mkdir -p "$STAGING"
 : > "$WORK/plan2.tsv"
 bytes_total=0
-while IFS=$US read -r status kind filename dest size sha tree tag src; do
+while IFS=$US read -r status kind filename dest size sha tree tag src from_tag; do
     dir="$STAGING/$tag"
     out="$dir/$filename"
     mkdir -p "$dir"
@@ -431,9 +457,14 @@ while IFS=$US read -r status kind filename dest size sha tree tag src; do
         fi
     fi
     if [ ! -f "$out" ] || [ "$(sha256_of "$out")" != "$sha" ]; then
-        # Previously published content that is not available locally.
+        # Previously published content that is not available locally: take
+        # it from the staged copy of its earlier tag, else from that Release.
         rm -f "$out"
-        if [ "$OFFLINE" -eq 0 ] && curl -fsSL --retry 3 -o "$out" "$BASE_URL/$tag/$filename" \
+        prev=${from_tag:-$tag}
+        if [ "$prev" != "$tag" ] && [ -f "$STAGING/$prev/$filename" ] \
+           && [ "$(sha256_of "$STAGING/$prev/$filename")" = "$sha" ]; then
+            clone_file "$STAGING/$prev/$filename" "$out"
+        elif [ "$OFFLINE" -eq 0 ] && curl -fsSL --retry 3 -o "$out" "$BASE_URL/$prev/$filename" \
            && [ "$(sha256_of "$out")" = "$sha" ]; then
             :
         else
@@ -461,6 +492,7 @@ if [ "$n_upload" -gt 0 ]; then
         printf '# Build assets %s\n\n' "$TAG"
         printf 'Large build inputs for OpenMDict, fetched by `scripts/bootstrap-assets.sh` according to `preset-dicts/assets.lock.json`. '
         printf 'Dictionaries are built by the pipeline in `preset-dicts/`; see THIRD-PARTY-NOTICES.md and the LICENSE-*.txt files for their terms. '
+        printf 'Every Release of this kind carries the complete compliance payload (THIRD-PARTY-NOTICES.md, the license texts and the corresponding source archives of the GPL dictionaries), including files unchanged since an earlier tag. '
         printf 'Pre-release: not an app release.\n\n'
         printf '| Asset | Size | SHA-256 |\n|---|---|---|\n'
         awk -F "$US" -v tag="$TAG" '$8 == tag { printf "| %s | %s | `%s` |\n", $3, $5, $6 }' "$WORK/plan2.tsv"

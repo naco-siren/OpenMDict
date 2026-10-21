@@ -38,12 +38,14 @@ the four is caught before it reaches `main`.
 | Script | Purpose |
 |---|---|
 | `scripts/bootstrap-assets.sh [--check\|--force]` | Download every asset in the lock into place (`preset-dicts/output/<Name>/<Name>.mdx`, `Apps/iOS/OpenMDict-iOS/Article Embeddings/`), verify SHA-256, unzip the model and run the precompile step when the model changed. Files that already match the lock are skipped without touching their mtime. `--check` only reports drift (non-zero exit) and is what CI and the Xcode "Check bootstrapped assets" run-script use. Files it downloaded (or verified) earlier are replaced automatically when the lock moves on. `--force` also overwrites local files whose hash differs from the lock and that were never published (for example a dictionary you rebuilt locally); without it the script refuses and tells you which files differ. `OPENMDICT_ASSETS_BASE_URL` overrides the download base (default: this repository's Releases) so a staging directory served with `python3 -m http.server` can be used for dry runs. While the repository is private, unauthenticated Release downloads return 404 and the script switches to `gh release download` (requires `gh auth login`). |
-| `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` | Hash the local assets, upload only the ones whose hash is not yet in the lock to a **draft** pre-release under the given (new) tag, rewrite the lock, and stage the compliance payload: the committed `THIRD-PARTY-NOTICES.md` (regenerate it first — the script copies, it does not generate), `LICENSE-<SPDX>.txt` texts (SPDX ids are fetched; `LicenseRef-*` texts such as the WordNet license are taken from `preset-dicts/licenses/`) and the GPL source archives. Review the draft, then `gh release edit <tag> --draft=false` and commit the lock. `--dry-run` / `--stage-only` need no `gh`. |
+| `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` | Hash the local assets, upload only the ones whose hash is not yet in the lock to a **draft** pre-release under the given (new) tag, rewrite the lock, and stage the compliance payload: the committed `THIRD-PARTY-NOTICES.md` (regenerate it first — the script copies, it does not generate), `LICENSE-<SPDX>.txt` texts (SPDX ids are fetched; `LicenseRef-*` texts such as the WordNet license are taken from `preset-dicts/licenses/`) and the GPL source archives, all of which are attached to every new tag even when unchanged. Review the draft, then `gh release edit <tag> --draft=false` and commit the lock. `--dry-run` / `--stage-only` need no `gh`. |
 | `scripts/check-assets.sh` | Consistency gate: every catalog entry has a pbxproj reference with the right `ASSET_TAGS`, every `odrTag` is in `KnownAssetTags`, every file is in the lock, and nothing in the lock is orphaned. Exit non-zero on drift. Runs in CI. |
 | `scripts/relink-project-assets.rb [--sync] [--dry-run] [--project PATH]` | Rewrite the pbxproj (defaults to the iOS app project) so every asset reference is relative (`SOURCE_ROOT`), never absolute. `--sync` additionally adds/removes `.mdx` references and `ASSET_TAGS` to match the catalog and merges `KnownAssetTags`. `--dry-run` prints what would change. Idempotent. |
 | `scripts/precompile-article-embed-model.sh` | `.mlpackage → .mlmodelc` with `xcrun coremlcompiler` (invoked by bootstrap when needed). |
-| `preset-dicts/scripts/gen_third_party_notices.py [--check]` | Regenerate the dictionary table in `THIRD-PARTY-NOTICES.md` from the catalog. |
-| `preset-dicts/scripts/sync_catalog_with_output.py [--check]` | Make the catalog's `sizeBytes` (and, with `--openmdict`, `entries`) match the `.mdx` files on disk. |
+| `preset-dicts/scripts/fetch_data.sh [--refresh] [source…]` | Download the source data into `preset-dicts/data/`. Every input is pinned to a versioned URL or commit and its SHA-256; a mismatch is an error, except for the upstreams that only serve their latest release (warning). One failing source does not stop the others. `--refresh` also downloads the current JMdict / KANJIDIC2 releases. |
+| `preset-dicts/scripts/generate_preset_catalog.py [--check]` (`make catalog` / `make check-catalog`) | Regenerate the catalog: descriptive fields from the `.meta.json` sidecars, `sha256` / `sizeBytes` / `entries` measured from the `.mdx` files, `licenseNote` and the `previousSha256` history kept. Prints the diff field by field; `--check` exits 1 on any drift instead of writing. |
+| `preset-dicts/scripts/gen_third_party_notices.py [--check]` (`make notices`) | Regenerate the preset-dictionary part of `THIRD-PARTY-NOTICES.md` (table, license notes, per-source notices, license list) from the catalog. |
+| `preset-dicts/scripts/sync_catalog_with_output.py [--check] [--openmdict PATH]` | Make the catalog's `sha256` (recording the replaced hash in `previousSha256`), `sizeBytes` and, with `--openmdict`, `entries` match the `.mdx` files on disk without the sidecars (for example after `bootstrap-assets.sh`); also refreshes `output/manifest.json`. |
 
 Read each script's header comment for the full option list.
 
@@ -51,9 +53,10 @@ Read each script's header comment for the full option list.
 
 | You changed… | Then run… | Commit |
 |---|---|---|
-| **Dictionary content** (a build script, source data, `FORMATTING_STANDARD.md`) | `make -C preset-dicts <target>` → check the output → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → publish the draft | updated lock (+ catalog if size/entries changed) |
+| **Dictionary content** (a build script, source data, `FORMATTING_STANDARD.md`) | `make -C preset-dicts <target>` → check the output → `make -C preset-dicts catalog notices` (review the printed diff) → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → `scripts/check-assets.sh --strict` → publish the draft | catalog, notices, lock |
 | **Added or removed a dictionary** | add/remove the build script + Makefile target + catalog entry (+ `bundle_assets` in `catalog-policy.json` if bundled) → `make -C preset-dicts <target>` → `ruby scripts/relink-project-assets.rb --sync` → `python3 preset-dicts/scripts/gen_third_party_notices.py` → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → `scripts/check-assets.sh` | catalog, pbxproj, lock, `THIRD-PARTY-NOTICES.md` |
-| **Catalog metadata only** (description, tier, license) | edit `preset-dictionaries.json` → `python3 preset-dicts/scripts/gen_third_party_notices.py` → `scripts/check-assets.sh` | catalog, notices |
+| **Catalog metadata only** (description, display name, tier, license) | change the `write_catalog_metadata(...)` call in the build script and rebuild (hand edits of these fields are overwritten by `make catalog`; only `licenseNote` is maintained by hand in `preset-dictionaries.json`) → `make -C preset-dicts catalog notices` → `scripts/check-assets.sh` | catalog, notices (+ lock if the `.mdx` changed) |
+| **Source data refresh** (new upstream release) | update the URL / SHA-256 in `fetch_data.sh` and the pin in the build script → `fetch_data.sh <source>` → rebuild → as for dictionary content. JMdict and KANJIDIC2: see "Refreshing the EDRDG data" | `fetch_data.sh`, build script, catalog, notices, lock |
 | **Embedding model** | rebuild (see below) → `scripts/precompile-article-embed-model.sh` → `scripts/publish-assets.sh --tag …` (it zips the `.mlpackage` itself) → update the model section of `THIRD-PARTY-NOTICES.md` if the model or its license changed | lock, notices |
 | **App icon family** | drop the PNGs / `.icon` bundle into `Apps/iOS/OpenMDict-iOS/Resources/AppIcons/` → add them to the "App Icons" group in Xcode → `CFBundleAlternateIcons` in `Info.plist` → the `AppIcon` enum → `ruby scripts/relink-project-assets.rb --dry-run` must report no absolute references | icons, pbxproj, Info.plist, Swift |
 | **Anything in the pbxproj via Xcode's "Add Files…"** | `ruby scripts/relink-project-assets.rb --dry-run` (Xcode happily writes `<absolute>` references) | pbxproj |
@@ -67,62 +70,112 @@ the four sources of truth drifted.
 
 ```bash
 cd preset-dicts
-./scripts/fetch_data.sh cedict      # once; idempotent
+./scripts/fetch_data.sh cedict      # once; checks every pinned file
 make cedict                         # output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx + .meta.json
 open output/CEDICT-ZH-EN/cedict_preview.html
+make catalog notices                # prints the catalog diff; review it
+make check-catalog                  # must pass before you publish
 cd ..
 scripts/publish-assets.sh --tag assets-2026.11   # uploads only what changed to a NEW tag, rewrites the lock
+scripts/check-assets.sh --strict
 gh release edit assets-2026.11 --draft=false     # after reviewing the draft
 ```
 
-**Reproducible output.** mdict-utils stamps today's date into the MDX
-header (`CreationDate`), which would make every rebuild a new file and force
-a re-upload of everything. `preset-dicts/scripts/shared/build.py` therefore
-rewrites the header after packing and recomputes its adler32, so an
-unchanged input produces a byte-identical `.mdx`. The date is taken from,
-in order: an explicit `creation_date=` argument, `SOURCE_DATE_EPOCH`, the
-newest mtime of the `inputs=` passed by the build script, or the newest
-mtime of any file under `preset-dicts/data/`. Fetching new data for *one*
-source therefore moves the default date for every dictionary rebuilt
-afterwards; when you want a rebuilt dictionary to match a published one
-exactly, pin the date:
+`make all` builds every dictionary and then runs `make check-catalog`; it
+never rewrites the catalog. When the rebuilt files differ from the
+committed catalog it fails and lists the fields; run `make catalog notices`
+and review the result.
+
+**Reproducible output and dictionary IDs.** The app's ID for a preset is
+the SHA-256 of the whole `.mdx` file (`PresetDictionaryService.fileSHA256`),
+so a rebuild of unchanged content must produce the same bytes, or every
+installed copy is offered an update that changes nothing. mdict-utils
+stamps today's date into the MDX header (`CreationDate`);
+`preset-dicts/scripts/shared/build.py` rewrites it after packing (and
+recomputes the header adler32) with the date pinned for that file in
+`preset-dicts/build-pins.json`, verbatim. A new dictionary gets the newest
+mtime of its inputs, which is then recorded as its pin. Bump a pin only
+together with a content change. `SOURCE_DATE_EPOCH` overrides the pins, so
+never set it for a build you publish.
+
+**Shipping a changed dictionary.** A new `sha256` is how installed copies
+learn that an update exists: the app offers it only when the installed ID
+is listed in the entry's `previousSha256`. `make catalog` (and
+`sync_catalog_with_output.py`) append the replaced hash automatically and
+never drop an earlier one; `scripts/check-assets.sh` verifies that the
+catalog's `sha256` equals the lock's and that `previousSha256` holds
+neither the current hash nor duplicates.
+
+**`make catalog`** rebuilds `preset-dictionaries.json` from the
+`.meta.json` sidecars (display name, description, direction, flag, SPDX
+license, data source, tier) and from the `.mdx` files (`sha256`,
+`sizeBytes`, `entries` = the key count in the MDX header, the same number
+the `openmdict` CLI prints). It keeps `licenseNote` and `previousSha256`,
+refuses to drop a dictionary that has no sidecar, and fails on a license
+id or `dataSource` that `gen_third_party_notices.py` cannot attribute. Rows
+marked `!` in its diff (filename, flag, source, odrTag, tier, licenseNote)
+change how the app identifies or offers a preset; review them before
+committing.
+
+### Refreshing the EDRDG data (JMdict, KANJIDIC2)
+
+The EDRDG licence (section 4) requires a procedure for updating JMdict and
+KANJIDIC2 regularly from the current releases; the builds warn once their
+pinned release is more than 31 days old. Refresh both about once a month
+and before every release that ships presets:
 
 ```bash
-# -u: the epoch is interpreted in UTC when it is turned back into a date
-SOURCE_DATE_EPOCH=$(date -ju -f %Y-%m-%d 2026-02-21 +%s) make cedict
+cd preset-dicts
+./scripts/fetch_data.sh --refresh jmdict kanjidic2
+#   files the current releases under data/jmdict/<created>/JMdict_e.gz and
+#   data/kanjidic2-<database_version>/kanjidic2.xml.gz, and prints their
+#   date / version and SHA-256
+# set JMDICT_RELEASE / JMDICT_SHA256 in scripts/build_jmdict_mdx.py and
+# KANJIDIC2_DB_VERSION / KANJIDIC2_SHA256 in scripts/build_kanjidic2_mdx.py,
+# and the same four values at the top of the matching fetch_data.sh sections
+make jmdict kanjidic2
+make catalog notices                # new sha256, old one moves to previousSha256
+cd ..
+scripts/publish-assets.sh --tag assets-YYYY.MM[.N] && scripts/check-assets.sh --strict
 ```
 
-The app identifies a dictionary by the SHA-256 of its raw header, so a
-stable `CreationDate` also keeps the dictionary id stable across rebuilds.
-
-**`make catalog`** regenerates `preset-dictionaries.json` from the
-`.meta.json` sidecars, i.e. from whatever the build scripts emitted. The
-committed catalog carries SPDX license ids and sizes that match the
-*published* files; after regenerating, diff the result, restore the SPDX
-spellings if a build script still emits the old ones, and run
-`scripts/sync_catalog_with_output.py --check`.
+EDRDG keeps no older releases, so the pinned `.gz` files in `data/` are the
+only copies of the inputs of the published dictionaries; keep them (or
+attach them to the asset Release).
 
 ### Adding or removing a dictionary
 
 1. Source data: add a `fetch_<source>()` to `preset-dicts/scripts/fetch_data.sh`
-   and record the license. Only openly licensed or public-domain data;
-   anything "non-commercial" or "personal use" cannot ship.
+   (a versioned URL or commit plus its SHA-256, via `fetch_pinned`; add it to
+   `ALL_SOURCES`) and record the license. Only openly licensed or
+   public-domain data; anything "non-commercial" or "personal use" cannot
+   ship.
 2. `preset-dicts/scripts/build_<name>_mdx.py` following an existing script
    and `FORMATTING_STANDARD.md`; call `write_catalog_metadata(...)` with an
    SPDX license id.
 3. Makefile target; `make <target>`.
 4. Catalog entry (`make catalog`, then review the diff) — `bundle` assets are
-   listed in `catalog-policy.json`, everything else gets an `odrTag`.
+   listed in `catalog-policy.json`, everything else gets an `odrTag`. It
+   fails until `gen_third_party_notices.py` has an attribution row for the
+   new `dataSource` and knows its license ids.
 5. `ruby scripts/relink-project-assets.rb --sync` adds the `.mdx`
    reference, its `ASSET_TAGS` and the `KnownAssetTags` entry (or removes
    them). Never add preset `.mdx` files through Xcode's file dialog.
-6. `python3 preset-dicts/scripts/gen_third_party_notices.py` (it fails if
-   the new `dataSource` or license id has no row — add one), then
+6. `make -C preset-dicts notices` (add a `SOURCE_NOTICES` entry in
+   `gen_third_party_notices.py` when the license asks for a credit line or
+   copyright notice that does not fit in the table), then
    `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` and publish the
    draft. For a `LicenseRef-*` license, put its text in
-   `preset-dicts/licenses/LICENSE-<id>.txt` so the script can attach it.
-7. `scripts/check-assets.sh` must pass. For a GPL-licensed source, attach
-   the corresponding source archive to the same Release.
+   `preset-dicts/licenses/LICENSE-<id>.txt` so the script can attach it
+   (texts there also replace the SPDX download, as for Unicode-3.0, whose
+   copyright line matches the Unihan release in use: 1991-2025 for 17.0.0;
+   update it together with the Unihan pin).
+7. `scripts/check-assets.sh` must pass. For a GPL-licensed source, keep its
+   corresponding source archive in `preset-dicts/data/` and map the catalog
+   id to it in `gpl_source_for` in `scripts/publish-assets.sh` (the script
+   refuses to publish a GPL dictionary without one) and list it in the GPL
+   paragraph of `gen_third_party_notices.py`. The script attaches it to
+   every new Release.
 
 ### Rebuilding the embedding model
 
@@ -177,7 +230,11 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
   marked **pre-release** so they never become "Latest".
 - Each lock entry carries its own tag; a partial update uploads only the
   changed files to a new tag and leaves the other entries pointing at the
-  old one.
+  old one. The compliance payload is the exception: whenever a new tag
+  receives anything, the unchanged notices, license texts and GPL source
+  archives are re-attached to it too (`carried` in the plan) and their lock
+  entries move to the new tag, so every Release that hosts dictionary
+  assets is self-contained, as `THIRD-PARTY-NOTICES.md` states.
 - `publish-assets.sh` creates a **draft** for a new tag; review it, publish
   with `gh release edit <tag> --draft=false`, then commit the rewritten lock.
 - `--amend` revises an existing tag in place (changed files are compared by
@@ -189,10 +246,13 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
 - If Immutable Releases are enabled, assets and tag names are permanently
   fixed — `--amend` then fails and a new tag is the only option.
 - The Release payload also carries `THIRD-PARTY-NOTICES.md`, the license
-  texts (SPDX texts are fetched; `LicenseRef-*` texts such as the WordNet
-  license come from `preset-dicts/licenses/`), and the GPL source archives (`freedict-eng-deu.src.tar.xz`,
-  `freedict-deu-eng.src.tar.xz`, `gcide-0.53.tar.xz`) so the compiled
-  dictionaries satisfy GPLv3 §6.
+  texts (taken from `preset-dicts/licenses/` when present: the WordNet and
+  Unicode licenses; the other SPDX texts, including AGPL-3.0-or-later for
+  FreeDict, are fetched), and the GPL source archives
+  (`freedict-eng-deu.src.tar.xz`, `freedict-deu-eng.src.tar.xz`,
+  `gcide-0.53.tar.xz`, kept in `preset-dicts/data/` by `fetch_data.sh`) so
+  the compiled dictionaries satisfy GPLv3 §6. Older Releases keep their own
+  copies: assets are never deleted from a published Release.
 
 ### Verifying a clean clone
 
@@ -218,7 +278,9 @@ directories (or the symlinks, which is harmless, but a real directory is
 gone for good). Prefer `git clean -fd` (no `-x`), run `git clean -n` first,
 and keep a backup of `data/`. `bootstrap-assets.sh` can restore `output/`
 from the published assets; nothing restores `data/` except
-`fetch_data.sh` (and some Bible sources are manual downloads).
+`fetch_data.sh`, and it cannot bring back the pinned release of the
+upstreams that serve only their latest one (CC-CEDICT, Kaikki.org,
+JMdict, KANJIDIC2, CrossWire KorRV, eBible.org grcbyz).
 
 ## Documentation map
 

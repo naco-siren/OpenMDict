@@ -109,9 +109,11 @@ offset  size      field
 Nothing after the header stores an absolute file offset, so the header may
 be rewritten with a different length as long as `N` and the adler32 are
 updated (this is how `preset-dicts/scripts/shared/build.py` pins
-`CreationDate`). OpenMDict hashes the raw header bytes (SHA-256) to derive
-the stable dictionary id used by the iOS app, so any header change produces
-a new id.
+`CreationDate`). The iOS app's dictionary id is the SHA-256 of the whole
+`.mdx` file (`PresetDictionaryService.fileSHA256`), so any byte change,
+including a header change, produces a new id. The SHA-256 of the raw header
+bytes keys the sidecar index cache (validated together with file size and
+mtime).
 
 ### 2.4 Key block info (V2)
 
