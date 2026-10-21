@@ -412,7 +412,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
         let srcFlag = preset.flag
         let destFlags = preset.direction.dest.map { PresetDictionary.flagEmoji(for: $0) }.joined(separator: " ")
         let directionLabel = "\(srcFlag) \u{2192} \(destFlags)"
-        content.secondaryText = "\(directionLabel) \u{00B7} \(L10n.entryCount(preset.entries)) \u{00B7} \(size)"
+        content.secondaryText = "\(directionLabel) \u{00B7} \(L10n.entryCount(preset.headwords ?? preset.entries)) \u{00B7} \(size)"
         content.secondaryTextProperties.color = .secondaryLabel
 
         // Bold for tier 0/1
