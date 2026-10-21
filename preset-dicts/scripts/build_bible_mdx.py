@@ -1,109 +1,209 @@
 #!/usr/bin/env python3
 """
-Build Bible MDX dictionaries from OSIS XML, USFX XML, and Zefania XML source files.
+Build the 14 Bible MDX dictionaries from OSIS, USFX, Zefania and SWORD sources.
 
-Supports 14 public-domain Bible translations in 11 languages:
-  EN, ZH-Hans, ZH-Hant, JA, ES, FR, DE, PT, RU, KO, AR, IT, TR, LA
+  File                 Translation                              Source (data/bible/…)
+  Bible-KJV-EN         King James Version, 1769 text            open-bibles eng-kjv           kjv.osis.xml
+  Bible-CUV-ZH-Hans    新标点和合本 (simplified)                open-bibles chi-cuv-simp      cuv-simp.usfx.xml
+  Bible-CUV-ZH-Hant    新標點和合本 (traditional)               open-bibles chi-cuv           cuv-trad.usfx.xml
+  Bible-Kougo-JA       口語訳 (1954/1955)                       open-bibles jpn-kougo         kougo.osis.xml
+  Bible-RV1909-ES      Reina-Valera 1909                        open-bibles spa-rv1909        spa-rv1909.usfx.xml
+  Bible-Darby-FR       J. N. Darby (French)                     gratis-bible fr/frdarb        fra-darby.osis.xml
+  Bible-Luther1912-DE  Luther 1912                              open-bibles deu-luther1912    deu-luther1912.osis.xml
+  Bible-Almeida-PT     Almeida                                  open-bibles por-almeida       open-bibles-f257a35/por-almeida.usfx.xml
+  Bible-Synodal-RU     Synodal (1876)                           open-bibles rus-synodal       rus-synodal.zefania.xml
+  Bible-Korean-KO      개역한글 (1952/1961)                     CrossWire KorRV 2.0.1         crosswire/KorRV-2.0.1.zip
+  Bible-SVD-AR         Smith–Van Dyck (1865)                    gratis-bible ar/arasvd        ar-svd.osis.xml
+  Bible-Diodati-IT     Diodati (revised text)                   gratis-bible it/itadio        it-diodati.osis.xml
+  Bible-Vulgate-LA     Clementine Vulgate (73 books)            open-bibles lat-clementine    open-bibles-f257a35/lat-clementine.usfx.xml
+  Bible-Byzantine-GRC  1904 Patriarchal Greek NT                eBible.org grcbyz             grc-byzantine.usfx.xml
 
 Entry structure:
-  - Chapter-level entries: "Genesis 1" → all verses in the chapter
-  - Local-name aliases:    "创世记 1"   → @@@LINK=Genesis 1
+  - One entry per chapter, keyed by the English name: "Genesis 1". (The
+    Vulgate's Psalms are keyed by their own, LXX number: "Psalmi 22".)
+  - @@@LINK aliases → that chapter: local names ("创世记 1"), common
+    alternative names and abbreviations ("Gen 1", "约3", "요 3장", "Пс 22"),
+    forms users type without marks (monotonic/unaccented Greek, Latin names
+    without accents, Arabic without hamza, Arabic-Indic digits), and verse
+    references that open the chapter ("John 3:16", "约3:16", "Joh 3,16",
+    "Jn 3:16", "ヨハネ3:16", "Пс 22:1" in the Synodal psalm numbering).
 
-Display layout:
-  - Latin-script Bibles: headword = "Exodus 10", subtitle = Hebrew/Greek original
-  - CJK/non-Latin Bibles: headword = "出埃及记 10", subtitle = "Exodus 10"
+Parsing walks every source document in order (milestone and containment
+verses, text inside child elements, notes, psalm superscriptions), so no text
+is lost at element or read-buffer boundaries. Build gates stop the build when
+a source book is not mapped, a book or chapter is missing, a chapter count
+differs from the expected versification, a chapter holds far more or fewer
+verses than the KJV table (a mislabelled or overlaid chapter), the parsed
+verse count differs from an independent count of the source, a verse is
+empty, or a local or legacy alias collides with another chapter's key.
 
 Usage:
-    python3 build_bible_mdx.py
+    python3 build_bible_mdx.py [Bible-Name ...]
 
-Input:  ../data/bible/*.xml
+Input:  ../data/bible/…   (see scripts/fetch_data.sh, fetch_bible)
 Output: ../output/Bible-*/Bible-*.mdx
 """
 
 import re
+import struct
+from collections import Counter
 import sys
+import unicodedata
 import xml.etree.ElementTree as ET
+import zipfile
+import zlib
 from pathlib import Path
-from collections import OrderedDict
 
 # ── Shared infrastructure ─────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from shared.theme import get_css, SENSE_NUMBER_INLINE
-from shared.html import esc
-from shared.build import pack_mdx as _shared_pack_mdx, generate_preview as _shared_preview, write_mdict_source, write_catalog_metadata
+from shared.theme import get_css, SENSE_NUMBER_INLINE, TEXT_SECONDARY, TEXT_LINK
+from shared.html import esc, esc_attr, dir_attr, wrap_entry, strip_bidi_controls
+from shared.build import (pack_mdx as _shared_pack_mdx, generate_preview as _shared_preview,
+                          write_mdict_source, write_catalog_metadata)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data" / "bible"
 OUTPUT_BASE = SCRIPT_DIR.parent / "output"
 
-# ── OSIS book ID → canonical English name ────────────────────
-OSIS_BOOK_NAMES = {
-    # Old Testament
-    "Gen": "Genesis", "Exod": "Exodus", "Lev": "Leviticus", "Num": "Numbers",
-    "Deut": "Deuteronomy", "Josh": "Joshua", "Judg": "Judges", "Ruth": "Ruth",
-    "1Sam": "1 Samuel", "2Sam": "2 Samuel", "1Kgs": "1 Kings", "2Kgs": "2 Kings",
-    "1Chr": "1 Chronicles", "2Chr": "2 Chronicles", "Ezra": "Ezra", "Neh": "Nehemiah",
-    "Esth": "Esther", "Job": "Job", "Ps": "Psalms", "Prov": "Proverbs",
-    "Eccl": "Ecclesiastes", "Song": "Song of Solomon", "Isa": "Isaiah", "Jer": "Jeremiah",
-    "Lam": "Lamentations", "Ezek": "Ezekiel", "Dan": "Daniel", "Hos": "Hosea",
-    "Joel": "Joel", "Amos": "Amos", "Obad": "Obadiah", "Jonah": "Jonah",
-    "Mic": "Micah", "Nah": "Nahum", "Hab": "Habakkuk", "Zeph": "Zephaniah",
-    "Hag": "Haggai", "Zech": "Zechariah", "Mal": "Malachi",
-    # New Testament
-    "Matt": "Matthew", "Mark": "Mark", "Luke": "Luke", "John": "John",
-    "Acts": "Acts", "Rom": "Romans", "1Cor": "1 Corinthians", "2Cor": "2 Corinthians",
-    "Gal": "Galatians", "Eph": "Ephesians", "Phil": "Philippians", "Col": "Colossians",
-    "1Thess": "1 Thessalonians", "2Thess": "2 Thessalonians",
-    "1Tim": "1 Timothy", "2Tim": "2 Timothy", "Titus": "Titus", "Phlm": "Philemon",
-    "Heb": "Hebrews", "Jas": "James", "1Pet": "1 Peter", "2Pet": "2 Peter",
-    "1John": "1 John", "2John": "2 John", "3John": "3 John",
-    "Jude": "Jude", "Rev": "Revelation",
-}
 
-# USFX uses 3-letter codes
-USFX_BOOK_NAMES = {
-    "GEN": "Genesis", "EXO": "Exodus", "LEV": "Leviticus", "NUM": "Numbers",
-    "DEU": "Deuteronomy", "JOS": "Joshua", "JDG": "Judges", "RUT": "Ruth",
-    "1SA": "1 Samuel", "2SA": "2 Samuel", "1KI": "1 Kings", "2KI": "2 Kings",
-    "1CH": "1 Chronicles", "2CH": "2 Chronicles", "EZR": "Ezra", "NEH": "Nehemiah",
-    "EST": "Esther", "JOB": "Job", "PSA": "Psalms", "PRO": "Proverbs",
-    "ECC": "Ecclesiastes", "SNG": "Song of Solomon", "ISA": "Isaiah", "JER": "Jeremiah",
-    "LAM": "Lamentations", "EZK": "Ezekiel", "DAN": "Daniel", "HOS": "Hosea",
-    "JOL": "Joel", "AMO": "Amos", "OBA": "Obadiah", "JON": "Jonah",
-    "MIC": "Micah", "NAM": "Nahum", "HAB": "Habakkuk", "ZEP": "Zephaniah",
-    "HAG": "Haggai", "ZEC": "Zechariah", "MAL": "Malachi",
-    "MAT": "Matthew", "MRK": "Mark", "LUK": "Luke", "JHN": "John",
-    "ACT": "Acts", "ROM": "Romans", "1CO": "1 Corinthians", "2CO": "2 Corinthians",
-    "GAL": "Galatians", "EPH": "Ephesians", "PHP": "Philippians", "COL": "Colossians",
-    "1TH": "1 Thessalonians", "2TH": "2 Thessalonians",
-    "1TI": "1 Timothy", "2TI": "2 Timothy", "TIT": "Titus", "PHM": "Philemon",
-    "HEB": "Hebrews", "JAS": "James", "1PE": "1 Peter", "2PE": "2 Peter",
-    "1JN": "1 John", "2JN": "2 John", "3JN": "3 John",
-    "JUD": "Jude", "REV": "Revelation",
-}
+class BuildError(Exception):
+    """A build gate failed: the dictionary is not written."""
 
-# Zefania bnumber → canonical English name (1-based)
-ZEFANIA_BOOK_ORDER = [
-    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-    "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
-    "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
-    "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
-    "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah",
-    "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
-    "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
-    "Haggai", "Zechariah", "Malachi",
-    "Matthew", "Mark", "Luke", "John", "Acts",
-    "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
-    "Ephesians", "Philippians", "Colossians",
-    "1 Thessalonians", "2 Thessalonians",
-    "1 Timothy", "2 Timothy", "Titus", "Philemon",
-    "Hebrews", "James", "1 Peter", "2 Peter",
-    "1 John", "2 John", "3 John", "Jude", "Revelation",
+
+# ── Canon ─────────────────────────────────────────────────────
+# (OSIS code, USFX code, English name). Order = canonical Protestant order.
+
+CANON = [
+    ("Gen", "GEN", "Genesis"), ("Exod", "EXO", "Exodus"), ("Lev", "LEV", "Leviticus"),
+    ("Num", "NUM", "Numbers"), ("Deut", "DEU", "Deuteronomy"), ("Josh", "JOS", "Joshua"),
+    ("Judg", "JDG", "Judges"), ("Ruth", "RUT", "Ruth"), ("1Sam", "1SA", "1 Samuel"),
+    ("2Sam", "2SA", "2 Samuel"), ("1Kgs", "1KI", "1 Kings"), ("2Kgs", "2KI", "2 Kings"),
+    ("1Chr", "1CH", "1 Chronicles"), ("2Chr", "2CH", "2 Chronicles"), ("Ezra", "EZR", "Ezra"),
+    ("Neh", "NEH", "Nehemiah"), ("Esth", "EST", "Esther"), ("Job", "JOB", "Job"),
+    ("Ps", "PSA", "Psalms"), ("Prov", "PRO", "Proverbs"), ("Eccl", "ECC", "Ecclesiastes"),
+    ("Song", "SNG", "Song of Solomon"), ("Isa", "ISA", "Isaiah"), ("Jer", "JER", "Jeremiah"),
+    ("Lam", "LAM", "Lamentations"), ("Ezek", "EZK", "Ezekiel"), ("Dan", "DAN", "Daniel"),
+    ("Hos", "HOS", "Hosea"), ("Joel", "JOL", "Joel"), ("Amos", "AMO", "Amos"),
+    ("Obad", "OBA", "Obadiah"), ("Jonah", "JON", "Jonah"), ("Mic", "MIC", "Micah"),
+    ("Nah", "NAM", "Nahum"), ("Hab", "HAB", "Habakkuk"), ("Zeph", "ZEP", "Zephaniah"),
+    ("Hag", "HAG", "Haggai"), ("Zech", "ZEC", "Zechariah"), ("Mal", "MAL", "Malachi"),
+    ("Matt", "MAT", "Matthew"), ("Mark", "MRK", "Mark"), ("Luke", "LUK", "Luke"),
+    ("John", "JHN", "John"), ("Acts", "ACT", "Acts"), ("Rom", "ROM", "Romans"),
+    ("1Cor", "1CO", "1 Corinthians"), ("2Cor", "2CO", "2 Corinthians"), ("Gal", "GAL", "Galatians"),
+    ("Eph", "EPH", "Ephesians"), ("Phil", "PHP", "Philippians"), ("Col", "COL", "Colossians"),
+    ("1Thess", "1TH", "1 Thessalonians"), ("2Thess", "2TH", "2 Thessalonians"),
+    ("1Tim", "1TI", "1 Timothy"), ("2Tim", "2TI", "2 Timothy"), ("Titus", "TIT", "Titus"),
+    ("Phlm", "PHM", "Philemon"), ("Heb", "HEB", "Hebrews"), ("Jas", "JAS", "James"),
+    ("1Pet", "1PE", "1 Peter"), ("2Pet", "2PE", "2 Peter"), ("1John", "1JN", "1 John"),
+    ("2John", "2JN", "2 John"), ("3John", "3JN", "3 John"), ("Jude", "JUD", "Jude"),
+    ("Rev", "REV", "Revelation"),
 ]
 
-# ── Local book name maps ─────────────────────────────────────
+# Deuterocanonical books of the Vulgate (kept only where a config asks for them).
+DEUTERO = [
+    ("Tob", "TOB", "Tobit"), ("Jdt", "JDT", "Judith"), ("Wis", "WIS", "Wisdom"),
+    ("Sir", "SIR", "Sirach"), ("Bar", "BAR", "Baruch"),
+    ("1Macc", "1MA", "1 Maccabees"), ("2Macc", "2MA", "2 Maccabees"),
+]
+
+OSIS_BOOK_NAMES = {o: e for o, _, e in CANON + DEUTERO}
+USFX_BOOK_NAMES = {u: e for _, u, e in CANON + DEUTERO}
+BOOK_ORDER = [e for _, _, e in CANON]
+BOOK_ORDER_CATHOLIC = [  # Clementine order
+    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
+    "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra",
+    "Nehemiah", "Tobit", "Judith", "Esther", "Job", "Psalms", "Proverbs", "Ecclesiastes",
+    "Song of Solomon", "Wisdom", "Sirach", "Isaiah", "Jeremiah", "Lamentations", "Baruch",
+    "Ezekiel", "Daniel", "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum",
+    "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi", "1 Maccabees", "2 Maccabees",
+] + BOOK_ORDER[39:]
+NT_BOOKS = frozenset(BOOK_ORDER[39:])
+# Zefania bnumber (1-based) → English name
+ZEFANIA_BOOK_ORDER = BOOK_ORDER
+
+# KJV versification: verses per chapter for the 66 books (31,102 verses,
+# 1,189 chapters). Used for the chapter-count gate and to index the SWORD
+# KorRV module (NRSV versification = KJV + 3 John 1:15 and Rev 12:18).
+_KJV_VERSES = """
+GEN 31,25,24,26,32,22,24,22,29,32,32,20,18,24,21,16,27,33,38,18,34,24,20,67,34,35,46,22,35,43,55,32,20,31,29,43,36,30,23,23,57,38,34,34,28,34,31,22,33,26
+EXO 22,25,22,31,23,30,25,32,35,29,10,51,22,31,27,36,16,27,25,26,36,31,33,18,40,37,21,43,46,38,18,35,23,35,35,38,29,31,43,38
+LEV 17,16,17,35,19,30,38,36,24,20,47,8,59,57,33,34,16,30,37,27,24,33,44,23,55,46,34
+NUM 54,34,51,49,31,27,89,26,23,36,35,16,33,45,41,50,13,32,22,29,35,41,30,25,18,65,23,31,40,16,54,42,56,29,34,13
+DEU 46,37,29,49,33,25,26,20,29,22,32,32,18,29,23,22,20,22,21,20,23,30,25,22,19,19,26,68,29,20,30,52,29,12
+JOS 18,24,17,24,15,27,26,35,27,43,23,24,33,15,63,10,18,28,51,9,45,34,16,33
+JDG 36,23,31,24,31,40,25,35,57,18,40,15,25,20,20,31,13,31,30,48,25
+RUT 22,23,18,22
+1SA 28,36,21,22,12,21,17,22,27,27,15,25,23,52,35,23,58,30,24,42,15,23,29,22,44,25,12,25,11,31,13
+2SA 27,32,39,12,25,23,29,18,13,19,27,31,39,33,37,23,29,33,43,26,22,51,39,25
+1KI 53,46,28,34,18,38,51,66,28,29,43,33,34,31,34,34,24,46,21,43,29,53
+2KI 18,25,27,44,27,33,20,29,37,36,21,21,25,29,38,20,41,37,37,21,26,20,37,20,30
+1CH 54,55,24,43,26,81,40,40,44,14,47,40,14,17,29,43,27,17,19,8,30,19,32,31,31,32,34,21,30
+2CH 17,18,17,22,14,42,22,18,31,19,23,16,22,15,19,14,19,34,11,37,20,12,21,27,28,23,9,27,36,27,21,33,25,33,27,23
+EZR 11,70,13,24,17,22,28,36,15,44
+NEH 11,20,32,23,19,19,73,18,38,39,36,47,31
+EST 22,23,15,17,14,14,10,17,32,3
+JOB 22,13,26,21,27,30,21,22,35,22,20,25,28,22,35,22,16,21,29,29,34,30,17,25,6,14,23,28,25,31,40,22,33,37,16,33,24,41,30,24,34,17
+PSA 6,12,8,8,12,10,17,9,20,18,7,8,6,7,5,11,15,50,14,9,13,31,6,10,22,12,14,9,11,12,24,11,22,22,28,12,40,22,13,17,13,11,5,26,17,11,9,14,20,23,19,9,6,7,23,13,11,11,17,12,8,12,11,10,13,20,7,35,36,5,24,20,28,23,10,12,20,72,13,19,16,8,18,12,13,17,7,18,52,17,16,15,5,23,11,13,12,9,9,5,8,28,22,35,45,48,43,13,31,7,10,10,9,8,18,19,2,29,176,7,8,9,4,8,5,6,5,6,8,8,3,18,3,3,21,26,9,8,24,13,10,7,12,15,21,10,20,14,9,6
+PRO 33,22,35,27,23,35,27,36,18,32,31,28,25,35,33,33,28,24,29,30,31,29,35,34,28,28,27,28,27,33,31
+ECC 18,26,22,16,20,12,29,17,18,20,10,14
+SNG 17,17,11,16,16,13,13,14
+ISA 31,22,26,6,30,13,25,22,21,34,16,6,22,32,9,14,14,7,25,6,17,25,18,23,12,21,13,29,24,33,9,20,24,17,10,22,38,22,8,31,29,25,28,28,25,13,15,22,26,11,23,15,12,17,13,12,21,14,21,22,11,12,19,12,25,24
+JER 19,37,25,31,31,30,34,22,26,25,23,17,27,22,21,21,27,23,15,18,14,30,40,10,38,24,22,17,32,24,40,44,26,22,19,32,21,28,18,16,18,22,13,30,5,28,7,47,39,46,64,34
+LAM 22,22,66,22,22
+EZK 28,10,27,17,17,14,27,18,11,22,25,28,23,23,8,63,24,32,14,49,32,31,49,27,17,21,36,26,21,26,18,32,33,31,15,38,28,23,29,49,26,20,27,31,25,24,23,35
+DAN 21,49,30,37,31,28,28,27,27,21,45,13
+HOS 11,23,5,19,15,11,16,14,17,15,12,14,16,9
+JOL 20,32,21
+AMO 15,16,15,13,27,14,17,14,15
+OBA 21
+JON 17,10,10,11
+MIC 16,13,12,13,15,16,20
+NAM 15,13,19
+HAB 17,20,19
+ZEP 18,15,20
+HAG 15,23
+ZEC 21,13,10,14,11,15,14,23,17,12,17,14,9,21
+MAL 14,17,18,6
+MAT 25,23,17,25,48,34,29,34,38,42,30,50,58,36,39,28,27,35,30,34,46,46,39,51,46,75,66,20
+MRK 45,28,35,41,43,56,37,38,50,52,33,44,37,72,47,20
+LUK 80,52,38,44,39,49,50,56,62,42,54,59,35,35,32,31,37,43,48,47,38,71,56,53
+JHN 51,25,36,54,47,71,53,59,41,42,57,50,38,31,27,33,26,40,42,31,25
+ACT 26,47,26,37,42,15,60,40,43,48,30,25,52,28,41,40,34,28,41,38,40,30,35,27,27,32,44,31
+ROM 32,29,31,25,21,23,25,39,33,21,36,21,14,23,33,27
+1CO 31,16,23,21,13,20,40,13,27,33,34,31,13,40,58,24
+2CO 24,17,18,18,21,18,16,24,15,18,33,21,14
+GAL 24,21,29,31,26,18
+EPH 23,22,21,32,33,24
+PHP 30,30,21,23
+COL 29,23,25,18
+1TH 10,20,13,18,28
+2TH 12,17,18
+1TI 20,15,16,16,25,21
+2TI 18,26,17,22
+TIT 16,15,15
+PHM 25
+HEB 14,18,19,16,14,20,28,13,28,39,40,29,25
+JAS 27,26,18,17,20
+1PE 25,25,22,19,14
+2PE 21,22,18
+1JN 10,29,24,21,21
+2JN 13
+3JN 14
+JUD 25
+REV 20,29,22,11,14,17,17,13,21,11,19,17,18,20,8,21,18,24,21,15,27,21
+"""
+KJV_VERSES = {}   # English name → [verses in chapter 1, 2, …]
+for _line in _KJV_VERSES.strip().splitlines():
+    _code, _counts = _line.split()
+    KJV_VERSES[USFX_BOOK_NAMES[_code]] = [int(n) for n in _counts.split(',')]
+assert sum(map(sum, KJV_VERSES.values())) == 31102 and len(KJV_VERSES) == 66
+# Chapters per deuterocanonical book (Vulgate)
+DEUTERO_CHAPTERS = {"Tobit": 14, "Judith": 16, "Wisdom": 19, "Sirach": 51,
+                    "Baruch": 6, "1 Maccabees": 16, "2 Maccabees": 15}
+
+# ── Local book name maps (display names) ──────────────────────
 
 ZH_HANS_BOOK_NAMES = {
     "Genesis": "创世记", "Exodus": "出埃及记", "Leviticus": "利未记",
@@ -298,7 +398,7 @@ RU_BOOK_NAMES = {
     "1 Chronicles": "1 Паралипоменон", "2 Chronicles": "2 Паралипоменон", "Ezra": "Ездра",
     "Nehemiah": "Неемия", "Esther": "Есфирь", "Job": "Иов",
     "Psalms": "Псалтирь", "Proverbs": "Притчи", "Ecclesiastes": "Екклесиаст",
-    "Song of Solomon": "Песня Песней", "Isaiah": "Исаия", "Jeremiah": "Иеремия",
+    "Song of Solomon": "Песнь Песней", "Isaiah": "Исаия", "Jeremiah": "Иеремия",
     "Lamentations": "Плач Иеремии", "Ezekiel": "Иезекииль", "Daniel": "Даниил",
     "Hosea": "Осия", "Joel": "Иоиль", "Amos": "Амос",
     "Obadiah": "Авдий", "Jonah": "Иона", "Micah": "Михей",
@@ -316,6 +416,7 @@ RU_BOOK_NAMES = {
     "3 John": "3 Иоанна", "Jude": "Иуды", "Revelation": "Откровение",
 }
 
+# 개역한글 book names (1 John = 요한일서; 개역개정's 요한1서 is an alias)
 KO_BOOK_NAMES = {
     "Genesis": "창세기", "Exodus": "출애굽기", "Leviticus": "레위기",
     "Numbers": "민수기", "Deuteronomy": "신명기", "Joshua": "여호수아",
@@ -338,8 +439,8 @@ KO_BOOK_NAMES = {
     "2 Thessalonians": "데살로니가후서", "1 Timothy": "디모데전서",
     "2 Timothy": "디모데후서", "Titus": "디도서", "Philemon": "빌레몬서",
     "Hebrews": "히브리서", "James": "야고보서", "1 Peter": "베드로전서",
-    "2 Peter": "베드로후서", "1 John": "요한1서", "2 John": "요한2서",
-    "3 John": "요한3서", "Jude": "유다서", "Revelation": "요한계시록",
+    "2 Peter": "베드로후서", "1 John": "요한일서", "2 John": "요한이서",
+    "3 John": "요한삼서", "Jude": "유다서", "Revelation": "요한계시록",
 }
 
 AR_BOOK_NAMES = {
@@ -394,38 +495,38 @@ IT_BOOK_NAMES = {
     "3 John": "3 Giovanni", "Jude": "Giuda", "Revelation": "Apocalisse",
 }
 
+# Clementine Vulgate book names (as in the edition: I–IV Regum = 1–2 Samuel,
+# 1–2 Kings). Nova Vulgata spellings (I Samuelis, Iosue, …) are aliases.
 LA_BOOK_NAMES = {
     "Genesis": "Genesis", "Exodus": "Exodus", "Leviticus": "Leviticus",
-    "Numbers": "Numeri", "Deuteronomy": "Deuteronomium", "Joshua": "Iosue",
-    "Judges": "Iudicum", "Ruth": "Ruth", "1 Samuel": "I Samuelis",
-    "2 Samuel": "II Samuelis", "1 Kings": "I Regum", "2 Kings": "II Regum",
-    "1 Chronicles": "I Paralipomenon", "2 Chronicles": "II Paralipomenon", "Ezra": "Esdrae",
-    "Nehemiah": "Nehemiae", "Esther": "Esther", "Job": "Iob",
-    "Psalms": "Psalmi", "Proverbs": "Proverbia", "Ecclesiastes": "Ecclesiastes",
-    "Song of Solomon": "Canticum Canticorum", "Isaiah": "Isaias", "Jeremiah": "Ieremias",
-    "Lamentations": "Lamentationes", "Ezekiel": "Ezechiel", "Daniel": "Daniel",
-    "Hosea": "Osee", "Joel": "Ioel", "Amos": "Amos",
-    "Obadiah": "Abdias", "Jonah": "Ionas", "Micah": "Michaeas",
+    "Numbers": "Numeri", "Deuteronomy": "Deuteronomium", "Joshua": "Josue",
+    "Judges": "Judicum", "Ruth": "Ruth", "1 Samuel": "I Regum",
+    "2 Samuel": "II Regum", "1 Kings": "III Regum", "2 Kings": "IV Regum",
+    "1 Chronicles": "I Paralipomenon", "2 Chronicles": "II Paralipomenon", "Ezra": "Esdræ",
+    "Nehemiah": "Nehemiæ", "Tobit": "Tobiæ", "Judith": "Judith", "Esther": "Esther",
+    "Job": "Job", "Psalms": "Psalmi", "Proverbs": "Proverbia", "Ecclesiastes": "Ecclesiastes",
+    "Song of Solomon": "Canticum Canticorum", "Wisdom": "Sapientia",
+    "Sirach": "Ecclesiasticus", "Isaiah": "Isaias", "Jeremiah": "Jeremias",
+    "Lamentations": "Lamentationes", "Baruch": "Baruch", "Ezekiel": "Ezechiel",
+    "Daniel": "Daniel", "Hosea": "Osee", "Joel": "Joël", "Amos": "Amos",
+    "Obadiah": "Abdias", "Jonah": "Jonas", "Micah": "Michæa",
     "Nahum": "Nahum", "Habakkuk": "Habacuc", "Zephaniah": "Sophonias",
-    "Haggai": "Aggaeus", "Zechariah": "Zacharias", "Malachi": "Malachias",
-    "Matthew": "Matthaeus", "Mark": "Marcus", "Luke": "Lucas",
-    "John": "Ioannes", "Acts": "Actus Apostolorum", "Romans": "Romanos",
+    "Haggai": "Aggæus", "Zechariah": "Zacharias", "Malachi": "Malachias",
+    "1 Maccabees": "I Machabæorum", "2 Maccabees": "II Machabæorum",
+    "Matthew": "Matthæus", "Mark": "Marcus", "Luke": "Lucas",
+    "John": "Joannes", "Acts": "Actus Apostolorum", "Romans": "Romanos",
     "1 Corinthians": "I Corinthios", "2 Corinthians": "II Corinthios",
     "Galatians": "Galatas", "Ephesians": "Ephesios", "Philippians": "Philippenses",
     "Colossians": "Colossenses", "1 Thessalonians": "I Thessalonicenses",
     "2 Thessalonians": "II Thessalonicenses", "1 Timothy": "I Timotheum",
     "2 Timothy": "II Timotheum", "Titus": "Titum", "Philemon": "Philemonem",
-    "Hebrews": "Hebraeos", "James": "Iacobi", "1 Peter": "I Petri",
-    "2 Peter": "II Petri", "1 John": "I Ioannis", "2 John": "II Ioannis",
-    "3 John": "III Ioannis", "Jude": "Iudae", "Revelation": "Apocalypsis",
+    "Hebrews": "Hebræos", "James": "Jacobi", "1 Peter": "I Petri",
+    "2 Peter": "II Petri", "1 John": "I Joannis", "2 John": "II Joannis",
+    "3 John": "III Joannis", "Jude": "Judæ", "Revelation": "Apocalypsis",
 }
 
-# Canonical OT/NT book order (same as ZEFANIA_BOOK_ORDER)
-BOOK_ORDER = ZEFANIA_BOOK_ORDER
-
-# ── Original-language book names ─────────────────────────────
-# OT: Hebrew (Masoretic) with vowel points
-# NT: Greek (Koine) — Gospels use "Κατὰ X" form, Epistles use traditional titles
+# ── Original-language book names (subtitle of Latin-script Bibles) ───
+# OT: Hebrew (Masoretic) with vowel points; NT and deuterocanon: Greek.
 
 HEBREW_BOOK_NAMES = {
     "Genesis": "בְּרֵאשִׁית", "Exodus": "שְׁמוֹת", "Leviticus": "וַיִּקְרָא",
@@ -459,641 +560,2651 @@ GREEK_BOOK_NAMES = {
     "Jude": "Ἰούδα", "Revelation": "Ἀποκάλυψις Ἰωάννου",
 }
 
+# Septuagint names for the deuterocanon and the Greek chapters of Esther and Daniel
+GREEK_DEUTERO_NAMES = {
+    "Tobit": "Τωβίτ", "Judith": "Ἰουδίθ", "Wisdom": "Σοφία Σαλωμῶνος",
+    "Sirach": "Σοφία Σειράχ", "Baruch": "Βαρούχ",
+    "1 Maccabees": "Μακκαβαίων Αʹ", "2 Maccabees": "Μακκαβαίων Βʹ",
+    "Esther": "Ἐσθήρ", "Daniel": "Δανιήλ",
+}
 
-def get_original_name(book_name: str) -> str:
-    """Get the Hebrew (OT) or Greek (NT) original name for a Bible book."""
-    return HEBREW_BOOK_NAMES.get(book_name) or GREEK_BOOK_NAMES.get(book_name, '')
 
-# ── CSS ────────────────────────────────────────────────────────
+def original_name(book: str, chap: int) -> tuple[str, str]:
+    """(Hebrew or Greek name, lang) of a book for the subtitle line."""
+    if book == "Esther" and chap > 10 or book == "Daniel" and chap > 12:
+        return GREEK_DEUTERO_NAMES[book], 'grc'
+    if book in HEBREW_BOOK_NAMES:
+        return HEBREW_BOOK_NAMES[book], 'he'
+    if book in GREEK_BOOK_NAMES:
+        return GREEK_BOOK_NAMES[book], 'grc'
+    if book in GREEK_DEUTERO_NAMES:
+        return GREEK_DEUTERO_NAMES[book], 'grc'
+    return '', ''
+
+
+# ── Psalm numbering: Hebrew (KJV) ↔ Vulgate/Septuagint ─────────
+
+def lxx_to_hebrew(n: int) -> list[int]:
+    """Hebrew psalm number(s) whose text Vulgate psalm n contains."""
+    if n <= 8 or n >= 148:
+        return [n]
+    if n == 9:
+        return [9, 10]
+    if n <= 112:
+        return [n + 1]
+    if n == 113:
+        return [114, 115]
+    if n in (114, 115):
+        return [116]
+    if n <= 145:
+        return [n + 1]
+    return [147]            # 146, 147
+
+
+def hebrew_to_lxx(h: int) -> list[int]:
+    return [n for n in range(1, 151) if h in lxx_to_hebrew(n)]
+
+
+# ═════════════════════════════════════════════════════════════
+# Text model
+# ═════════════════════════════════════════════════════════════
+#
+# A verse is a list of [kind, text] runs: 't' plain text, 'i' italic (KJV /
+# RV1909 supplied words, Byzantine OT quotations), 's' letter-spaced emphasis
+# (Byzantine), 'n' editorial note (Luther). BRK marks an element boundary
+# (line, paragraph, quotation): it becomes a space, or nothing between two
+# CJK characters or before closing punctuation.
+
+BRK = '\x00'
+_WIDE = re.compile(r'[⺀-⿿　-ヿ㄀-鿿豈-﫿︰-﹏＀-￯\u2014\u2015\u2026]')   # CJK, plus dashes and ellipsis inside CJK text
+_CLOSE_PUNCT = frozenset('.,;:!?)]”’،؛؟')
+
+
+class Text:
+    __slots__ = ('parts',)
+
+    def __init__(self):
+        self.parts: list[list[str]] = []
+
+    def add(self, kind: str, s: str):
+        if not s:
+            return
+        if self.parts and self.parts[-1][0] == kind:
+            self.parts[-1][1] += s
+        else:
+            self.parts.append([kind, s])
+
+    def plain(self, notes: bool = False) -> str:
+        return ''.join(s for k, s in self.parts if notes or k != 'n')
+
+    def empty(self) -> bool:
+        return not self.plain(notes=True).replace(BRK, '').strip()
+
+    def normalize(self):
+        """Collapse whitespace across runs, resolve BRK, trim, keep spaces at
+        the edges of italic/note runs outside them."""
+        chars = [(k, ch) for k, s in self.parts for ch in s]
+        out: list[tuple[str, str]] = []
+        i, n = 0, len(chars)
+        while i < n:
+            k, ch = chars[i]
+            if ch == BRK or ch.isspace():
+                j, real, newline = i, False, False
+                while j < n and (chars[j][1] == BRK or chars[j][1].isspace()):
+                    if chars[j][1] != BRK:
+                        real = True
+                        newline |= chars[j][1] in '\n\r'
+                    j += 1
+                if out and j < n:
+                    prev, nxt = out[-1], chars[j]
+                    # Layout whitespace between two CJK characters is not text,
+                    # and a bare element boundary before "." is not a space
+                    if (not real or newline) and _WIDE.match(prev[1]) and _WIDE.match(nxt[1]):
+                        pass
+                    elif not real and nxt[1] in _CLOSE_PUNCT:
+                        pass
+                    else:
+                        out.append((prev[0] if prev[0] == nxt[0] else 't', ' '))
+                i = j
+            else:
+                out.append((k, ch))
+                i += 1
+        self.parts = []
+        for k, ch in out:
+            self.add(k, ch)
+
+    def map_text(self, fn):
+        """Apply fn to each run's text (e.g. clean-ups)."""
+        for p in self.parts:
+            p[1] = fn(p[1])
+        self.parts = [p for p in self.parts if p[1]]
+
+    def html(self) -> str:
+        out = []
+        for k, s in self.parts:
+            e = esc(s)
+            if k == 'i':
+                out.append(f'<i>{e}</i>')
+            elif k == 's':
+                out.append(f'<span class="sp">{e}</span>')
+            elif k == 'n':
+                out.append(f'<span class="nt">[{e}]</span>')
+            else:
+                out.append(e)
+        return ''.join(out)
+
+
+class Verse:
+    __slots__ = ('text', 'title', 'label', 'covers')
+
+    def __init__(self):
+        self.text = Text()
+        self.title: Text | None = None    # psalm superscription shown before the verse
+        self.label: str | None = None     # e.g. "9–10" for a merged verse
+        self.covers: list[int] = []       # other verse numbers merged into this one
+
+
+class Bible:
+    """{book: {chapter: {verse: Verse}}} plus parse statistics."""
+
+    def __init__(self):
+        self.books: dict[str, dict[int, dict[int, Verse]]] = {}
+        self.skipped_books: dict[str, int] = {}
+
+    def verse(self, book: str, chap: int, vnum: int) -> tuple[Verse, bool]:
+        chs = self.books.setdefault(book, {})
+        vs = chs.setdefault(chap, {})
+        if vnum in vs:
+            return vs[vnum], False
+        v = Verse()
+        vs[vnum] = v
+        return v, True
+
+    def refs(self) -> set[tuple[str, int, int]]:
+        out = set()
+        for b, chs in self.books.items():
+            for c, vs in chs.items():
+                for n, v in vs.items():
+                    out.add((b, c, n))
+                    out.update((b, c, m) for m in v.covers)
+        return out
+
+    def all_verses(self):
+        for b, chs in self.books.items():
+            for c, vs in chs.items():
+                for n, v in vs.items():
+                    yield b, c, n, v
+
+
+def _local(tag) -> str:
+    return tag.rsplit('}', 1)[-1] if isinstance(tag, str) else ''
+
+
+def _vnum(s: str) -> int | None:
+    m = re.match(r'\d+', s or '')
+    return int(m.group()) if m else None
+
+
+# ═════════════════════════════════════════════════════════════
+# OSIS
+# ═════════════════════════════════════════════════════════════
+
+OSIS_NS = 'http://www.bibletechnologies.net/2003/OSIS/namespace'
+OSIS_BLOCKS = frozenset({'p', 'l', 'lg', 'lb', 'list', 'item', 'q', 'speech', 'speaker'})
+OSIS_SKIP = frozenset({'header', 'figure', 'index', 'rdg'})
+
+
+class OsisWalker:
+    """Document-order OSIS reader. Handles containment verses
+    (<verse osisID>…</verse>), milestone verses (<verse sID/> … <verse eID/>,
+    text in tails and in later siblings), multi-reference IDs
+    ("Rom.1.9 Rom.1.10"), sub-verses ("3!a"), canonical psalm titles,
+    <transChange type="added"> (italic) and <note> (skipped or inline)."""
+
+    def __init__(self, cfg: dict, bible: Bible, log: list):
+        self.cfg, self.bible, self.log = cfg, bible, log
+        self.books = allowed_books(cfg)
+        self.override = cfg.get('div_book_override', {})
+        self.notes = cfg.get('notes', 'skip')
+        self.div_ordinal = 0
+        self.div_book: str | None = None     # book of the current <div type="book">
+        self.target: Text | None = None      # where character data goes
+        self.verse: Verse | None = None
+        self.pending_title: Text | None = None
+        self.kind = ['t']
+        self.title_in_verse = 0
+
+    # character data
+    def add(self, s):
+        if s and self.target is not None:
+            self.target.add(self.kind[-1], s)
+
+    def brk(self):
+        if self.target is not None:
+            self.target.add('t', BRK)
+
+    def children(self, e):
+        self.add(e.text)
+        for ch in e:
+            self.walk(ch)
+            self.add(ch.tail)
+
+    # verses
+    def open_verse(self, refs: list[str]):
+        self.close_verse()
+        parsed = []
+        for r in refs:
+            parts = r.split('.')
+            if len(parts) < 3:
+                self.log.append(f'unparsed osisID {r!r}')
+                continue
+            parsed.append((parts[0], int(parts[1]), parts[2]))
+        if not parsed:
+            return
+        code, chap, vstr = parsed[0]
+        book = self.div_book if self.override else OSIS_BOOK_NAMES.get(code)
+        if book is None or book not in self.books:
+            self.bible.skipped_books[code] = self.bible.skipped_books.get(code, 0) + len(parsed)
+            return
+        vnum = _vnum(vstr)
+        if vnum is None:
+            self.log.append(f'unparsed verse number {refs!r}')
+            return
+        v, new = self.bible.verse(book, chap, vnum)
+        if not new:
+            v.text.add('t', BRK)               # sub-verse ("3!b") continues the verse
+        others = [_vnum(p[2]) for p in parsed[1:] if p[1] == chap and p[0] == code]
+        if len(others) != len(parsed) - 1:
+            raise BuildError(f'merged verse across chapters/books: {refs}')
+        if others:
+            v.covers = sorted(set(others) - {vnum})
+            nums = sorted([vnum] + v.covers)
+            if nums != list(range(nums[0], nums[-1] + 1)):
+                raise BuildError(f'non-contiguous merged verse {refs}')
+            v.label = f'{nums[0]}–{nums[-1]}'
+        if new and self.pending_title is not None:
+            v.title, self.pending_title = self.pending_title, None
+        self.verse, self.target = v, v.text
+
+    def close_verse(self):
+        self.verse = None
+        self.target = None
+
+    def walk(self, e):
+        tag = _local(e.tag)
+        if tag in OSIS_SKIP:
+            return
+        if tag == 'div' and e.get('type') == 'book' and not (e.get('sID') or e.get('eID')):
+            self.close_verse()
+            self.div_ordinal += 1
+            code = e.get('osisID', '')
+            if self.override:
+                want = self.override.get(self.div_ordinal)
+                if want is None:
+                    want = code
+                elif want[0] != code:
+                    raise BuildError(f'div #{self.div_ordinal} is {code!r}, expected {want[0]!r} '
+                                     '(upstream changed: review div_book_override)')
+                else:
+                    want = want[1]
+                self.div_book = OSIS_BOOK_NAMES.get(want)
+            else:
+                self.div_book = OSIS_BOOK_NAMES.get(code)
+            if self.div_book is None or self.div_book not in self.books:
+                n = sum(1 for v in e.iter(f'{{{OSIS_NS}}}verse') if not v.get('eID'))
+                self.bible.skipped_books[code] = self.bible.skipped_books.get(code, 0) + n
+                self.div_book = None
+                return
+            self.children(e)
+            self.close_verse()
+            self.div_book = None
+            return
+        if tag == 'chapter':
+            if e.get('sID') or e.get('eID'):
+                self.pending_title = None
+                return
+            self.pending_title = None
+            self.children(e)
+            self.close_verse()
+            return
+        if tag == 'verse':
+            if e.get('eID'):
+                self.close_verse()
+                return
+            refs = (e.get('osisID') or '').split()
+            if not refs:
+                self.children(e)
+                return
+            self.open_verse(refs)
+            if e.get('sID'):
+                return                      # milestone: text follows in tails
+            self.children(e)                # containment
+            self.close_verse()
+            return
+        if tag == 'note':
+            if self.notes == 'inline' and self.target is not None:
+                self.kind.append('n')
+                self.add(''.join(e.itertext()))
+                self.kind.pop()
+            return
+        if tag == 'title':
+            if e.get('type') == 'psalm' or (e.get('canonical') == 'true' and e.get('type') not in ('main', 'chapter', 'sub')):
+                buf = Text()
+                saved = self.target
+                self.target = buf
+                self.children(e)
+                self.target = saved
+                if self.verse is not None and self.verse.text.empty() and self.verse.title is None:
+                    self.verse.title = buf          # title inside verse 1 (SWORD)
+                elif self.verse is not None:
+                    self.title_in_verse += 1
+                    self.verse.text.add('t', BRK)   # keep it as verse text
+                    for k, s in buf.parts:
+                        self.verse.text.add(k, s)
+                elif self.pending_title is None:
+                    self.pending_title = buf
+                else:
+                    self.pending_title.add('t', BRK)
+                    for k, s in buf.parts:
+                        self.pending_title.add(k, s)
+            return
+        if tag == 'transChange' and e.get('type', 'added') == 'added':
+            self.kind.append('i')
+            self.children(e)
+            self.kind.pop()
+            return
+        if tag in OSIS_BLOCKS:
+            self.brk()
+            self.children(e)
+            self.brk()
+            return
+        self.children(e)                    # w, seg, divineName, hi, foreign, …
+
+
+def parse_osis(xml_path: Path, cfg: dict, log: list) -> Bible:
+    bible = Bible()
+    w = OsisWalker(cfg, bible, log)
+    w.walk(ET.parse(xml_path).getroot())
+    if w.title_in_verse:
+        log.append(f'{w.title_in_verse} psalm titles inside verse text kept in place')
+    return bible
+
+
+def count_osis_source(xml_path: Path, cfg: dict) -> int:
+    """Independent count: distinct verse references in <verse> start tags of
+    the included books (regex over the raw file, not the parser)."""
+    raw = xml_path.read_text(encoding='utf-8')
+    books = allowed_books(cfg)
+    codes = {o for o, e in OSIS_BOOK_NAMES.items() if e in books}
+    if cfg.get('div_book_override'):
+        codes |= {old for old, _ in cfg['div_book_override'].values()}
+    seen = set()
+    for m in re.finditer(r'<verse\b([^>]*)>', raw):
+        attrs = m.group(1)
+        if re.search(r'\beID\s*=', attrs):
+            continue
+        idm = re.search(r'\bosisID\s*=\s*["\']([^"\']+)', attrs)
+        if not idm:
+            continue
+        for ref in idm.group(1).split():
+            b, c, v = (ref.split('.') + ['', ''])[:3]
+            if b in codes and _vnum(v) is not None:
+                seen.add((b, int(c), _vnum(v), m.start() if cfg.get('div_book_override') else 0))
+    if cfg.get('div_book_override'):
+        # duplicate osisIDs live in different (relabelled) divs: count tags
+        return len({(b, c, v, pos) for b, c, v, pos in seen})
+    return len(seen)
+
+
+# ═════════════════════════════════════════════════════════════
+# USFX
+# ═════════════════════════════════════════════════════════════
+
+USFX_SKIP = frozenset({'f', 'fe', 'x', 'h', 'toc', 'id', 'rem', 's', 'cl', 'fig', 'languageCode',
+                       'ndx', 'rq', 'ef', 'ex', 'periph', 'restore', 'cp', 'ca', 'va', 'vp'})
+USFX_ITALIC = frozenset({'add'})
+USFX_BLOCKS = frozenset({'p', 'q', 'b', 'li', 'qc', 'qr', 'qm', 'pi', 'm', 'nb', 'mi', 'lh', 'lf'})
+_USFX_HEADING_STYLE = re.compile(r'^(?:mt|ms|mr|mte|s\d*$|sr|sp|r$|d$|cl|i[a-z]+|rem|toc)')
+
+
+class UsfxWalker:
+    """Document-order USFX reader: a verse runs from <v> to <ve/> (or the next
+    <v>, <c> or <book>); all character data in between counts, except
+    footnotes, cross-references, headings and other non-text markup."""
+
+    def __init__(self, cfg: dict, bible: Bible, log: list):
+        self.cfg, self.bible, self.log = cfg, bible, log
+        self.books = allowed_books(cfg)
+        self.italic = USFX_ITALIC | frozenset(cfg.get('usfx_italic', ()))
+        self.spaced = frozenset(cfg.get('usfx_spaced', ()))
+        self.book: str | None = None
+        self.chap: int | None = None
+        self.target: Text | None = None
+        self.verse: Verse | None = None
+        self.pending_title: Text | None = None
+        self.kind = ['t']
+        self.unknown: dict[str, int] = {}
+
+    add = OsisWalker.add
+    brk = OsisWalker.brk
+    children = OsisWalker.children
+
+    def close_verse(self):
+        self.verse = None
+        self.target = None
+
+    def open_verse(self, vid: str):
+        self.close_verse()
+        if self.book is None or self.chap is None:
+            return
+        nums = [int(x) for x in re.findall(r'\d+', vid or '')]
+        if not nums:
+            self.log.append(f'unparsed <v id={vid!r}>')
+            return
+        v, new = self.bible.verse(self.book, self.chap, nums[0])
+        if not new:
+            v.text.add('t', BRK)
+        if len(nums) > 1 and nums[-1] > nums[0]:
+            v.covers = list(range(nums[0] + 1, nums[-1] + 1))
+            v.label = f'{nums[0]}–{nums[-1]}'
+        if new and self.pending_title is not None:
+            v.title, self.pending_title = self.pending_title, None
+        self.verse, self.target = v, v.text
+
+    def title(self, e):
+        buf = Text()
+        saved, self.target = self.target, buf
+        self.children(e)
+        self.target = saved
+        if self.verse is not None and self.verse.text.empty() and self.verse.title is None:
+            self.verse.title = buf
+        elif self.verse is None:
+            self.pending_title = buf
+
+    def walk(self, e):
+        tag = _local(e.tag)
+        if tag == 'book':
+            self.close_verse()
+            code = (e.get('id') or '').upper()
+            book = USFX_BOOK_NAMES.get(code)
+            if book is None or book not in self.books:
+                n = sum(1 for _ in e.iter('v'))
+                if n:
+                    self.bible.skipped_books[code] = self.bible.skipped_books.get(code, 0) + n
+                return
+            self.book, self.chap = book, None
+            self.children(e)
+            self.close_verse()
+            self.book = None
+            return
+        if tag == 'c':
+            self.close_verse()
+            self.chap = _vnum(e.get('id'))
+            self.pending_title = None
+            return
+        if tag == 'v':
+            self.open_verse(e.get('id'))
+            return
+        if tag == 've':
+            self.close_verse()
+            return
+        if tag in USFX_SKIP:
+            return
+        if tag == 'd':
+            self.title(e)
+            return
+        if tag == 'p':
+            style = e.get('sfm') or e.get('style') or ''
+            if style == 'd':
+                self.title(e)
+                return
+            if style and _USFX_HEADING_STYLE.match(style):
+                return
+        if tag in self.italic or tag in self.spaced:
+            self.kind.append('i' if tag in self.italic else 's')
+            self.children(e)
+            self.kind.pop()
+            return
+        if tag in USFX_BLOCKS:
+            self.brk()
+            self.children(e)
+            self.brk()
+            return
+        if tag not in ('usfx', 'w', 'wj', 'nd', 'bd', 'it', 'bdit', 'em', 'sc', 'k', 'qt', 'tl',
+                       'sup', 'sig', 'pn', 'ord', 'no', 'qs', 'qac'):
+            self.unknown[tag] = self.unknown.get(tag, 0) + 1
+        self.children(e)
+
+
+def parse_usfx(xml_path: Path, cfg: dict, log: list) -> Bible:
+    bible = Bible()
+    w = UsfxWalker(cfg, bible, log)
+    w.walk(ET.parse(xml_path).getroot())
+    if w.unknown:
+        log.append(f'USFX tags read as plain text: {w.unknown}')
+    return bible
+
+
+def count_usfx_source(xml_path: Path, cfg: dict) -> int:
+    """Independent count of distinct (book, chapter, verse) <v> markers."""
+    raw = xml_path.read_text(encoding='utf-8')
+    books = allowed_books(cfg)
+    seen, book, chap = set(), None, None
+    for m in re.finditer(r'<(book|c|v)\b[^>]*?\bid\s*=\s*"([^"]*)"', raw):
+        tag, val = m.groups()
+        if tag == 'book':
+            book, chap = USFX_BOOK_NAMES.get(val.upper()), None
+            if book not in books:
+                book = None
+        elif tag == 'c':
+            chap = _vnum(val)
+        elif book and chap is not None:
+            nums = [int(x) for x in re.findall(r'\d+', val)]
+            for n in range(nums[0], nums[-1] + 1):
+                seen.add((book, chap, n))
+    return len(seen)
+
+
+# ═════════════════════════════════════════════════════════════
+# Zefania
+# ═════════════════════════════════════════════════════════════
+
+def parse_zefania(xml_path: Path, cfg: dict, log: list) -> Bible:
+    """<XMLBIBLE><BIBLEBOOK bnumber><CHAPTER cnumber><VERS vnumber>text</VERS>"""
+    bible = Bible()
+    books = allowed_books(cfg)
+    for book_elem in ET.parse(xml_path).getroot().iter('BIBLEBOOK'):
+        bnum = int(book_elem.get('bnumber', '0'))
+        if not 1 <= bnum <= len(ZEFANIA_BOOK_ORDER) or ZEFANIA_BOOK_ORDER[bnum - 1] not in books:
+            bible.skipped_books[str(bnum)] = sum(1 for _ in book_elem.iter('VERS'))
+            continue
+        book = ZEFANIA_BOOK_ORDER[bnum - 1]
+        for chap_elem in book_elem.iter('CHAPTER'):
+            chap = int(chap_elem.get('cnumber'))
+            for vers in chap_elem.iter('VERS'):
+                v, new = bible.verse(book, chap, int(vers.get('vnumber')))
+                if not new:
+                    v.text.add('t', BRK)
+                for frag in vers.itertext():
+                    v.text.add('t', frag)
+    return bible
+
+
+def count_zefania_source(xml_path: Path, cfg: dict) -> int:
+    raw = xml_path.read_text(encoding='utf-8')
+    books = allowed_books(cfg)
+    seen, book, chap = set(), None, None
+    for m in re.finditer(r'<(BIBLEBOOK|CHAPTER|VERS)\b[^>]*?\b(bnumber|cnumber|vnumber)="(\d+)"', raw):
+        tag, _, val = m.groups()
+        if tag == 'BIBLEBOOK':
+            n = int(val)
+            book = ZEFANIA_BOOK_ORDER[n - 1] if 1 <= n <= 66 else None
+            book = book if book in books else None
+        elif tag == 'CHAPTER':
+            chap = int(val)
+        elif book:
+            seen.add((book, chap, int(val)))
+    return len(seen)
+
+
+# ═════════════════════════════════════════════════════════════
+# SWORD zText module (CrossWire), e.g. KorRV
+# ═════════════════════════════════════════════════════════════
+#
+# Per testament: <t>.bzs = block index (u32 offset, u32 compressed size,
+# u32 size), <t>.bzz = zlib blocks, <t>.bzv = one 10-byte entry per
+# versification slot (u32 block, u32 offset, u16 size). Slot 0 is the module
+# heading, 1 the testament heading, then per book a book-heading slot and per
+# chapter a chapter-heading slot followed by its verses.
+
+def sword_versification(name: str) -> list[tuple[str, list[int]]]:
+    v11n = [(b, list(KJV_VERSES[b])) for b in BOOK_ORDER]
+    if name == 'NRSV':
+        d = dict(v11n)
+        d['3 John'][0] = 15
+        d['Revelation'][11] = 18
+    elif name != 'KJV':
+        raise BuildError(f'unsupported SWORD versification {name}')
+    return v11n
+
+
+def read_sword_ztext(zip_path: Path, cfg: dict):
+    """Yield (book, chapter, verse, OSIS fragment) for every non-empty slot,
+    checking that the book headings match the versification table."""
+    z = zipfile.ZipFile(zip_path)
+    conf_name = next(n for n in z.namelist() if n.startswith('mods.d/') and n.endswith('.conf'))
+    conf = dict(line.split('=', 1) for line in z.read(conf_name).decode('utf-8').splitlines() if '=' in line)
+    if conf.get('ModDrv') != 'zText' or conf.get('CompressType') != 'ZIP':
+        raise BuildError(f'{zip_path.name}: unsupported module driver {conf.get("ModDrv")}')
+    data_path = conf['DataPath'].lstrip('./')
+    v11n = sword_versification(conf.get('Versification', 'KJV'))
+    testaments = [('ot', v11n[:39]), ('nt', v11n[39:])]
+    for t, books in testaments:
+        bzs = z.read(data_path + t + '.bzs')
+        bzv = z.read(data_path + t + '.bzv')
+        bzz = z.read(data_path + t + '.bzz')
+        blocks = [struct.unpack('<III', bzs[i:i + 12]) for i in range(0, len(bzs), 12)]
+        cache: dict[int, bytes] = {}
+
+        def slot(i):
+            b, o, s = struct.unpack('<IIH', bzv[i * 10:i * 10 + 10])
+            if not s:
+                return ''
+            if b not in cache:
+                off, csize, _ = blocks[b]
+                cache[b] = zlib.decompress(bzz[off:off + csize])
+            return cache[b][o:o + s].decode('utf-8')
+
+        expected = 2 + sum(1 + len(vs) + sum(vs) for _, vs in books)
+        if expected != len(bzv) // 10:
+            raise BuildError(f'{zip_path.name} {t}: {len(bzv) // 10} slots, versification expects {expected}')
+        i = 2
+        for book, vs in books:
+            head = slot(i)
+            osis = next(o for o, e in OSIS_BOOK_NAMES.items() if e == book)
+            if f'osisID="{osis}"' not in head:
+                raise BuildError(f'{zip_path.name}: slot {i} is {head[:60]!r}, expected book {osis}')
+            i += 1
+            for c, n in enumerate(vs, 1):
+                i += 1                        # chapter heading
+                for v in range(1, n + 1):
+                    txt = slot(i)
+                    i += 1
+                    yield book, c, v, txt
+
+
+def parse_sword(zip_path: Path, cfg: dict, log: list) -> Bible:
+    bible = Bible()
+    w = OsisWalker(cfg, bible, log)
+    empty = []
+    for book, c, vnum, frag in read_sword_ztext(zip_path, cfg):
+        root = ET.fromstring(f'<r xmlns="{OSIS_NS}">{frag}</r>')
+        v, _ = bible.verse(book, c, vnum)
+        w.verse, w.target = v, v.text
+        w.children(root)
+        w.close_verse()
+        if v.text.empty():
+            empty.append((book, c, vnum))
+    bible.sword_empty = empty
+    return bible
+
+
+def count_sword_source(zip_path: Path, cfg: dict) -> int:
+    return sum(1 for _ in read_sword_ztext(zip_path, cfg))
+
+
+# ═════════════════════════════════════════════════════════════
+# Per-source repairs
+# ═════════════════════════════════════════════════════════════
+
+def _letter_end(s: str) -> bool:
+    s = s.rstrip()
+    return bool(s) and unicodedata.category(s[-1])[0] in 'LM'
+
+
+def append_final_period(bible: Bible, log: list, what: str):
+    """Chapter-final verses of some ZefToOsis conversions lost their final
+    full stop (Diodati 96 %, SVD 99 % of chapters, against ~0 % elsewhere)."""
+    n = 0
+    for book, chs in bible.books.items():
+        for c, vs in chs.items():
+            last = vs[max(vs)]
+            if _letter_end(last.text.plain()) and last.text.parts:
+                last.text.parts[-1][1] = last.text.parts[-1][1].rstrip() + '.'
+                n += 1
+    log.append(f'{what}: restored the final full stop of {n} chapters')
+
+
+def fix_svd(bible: Bible, log: list):
+    # The upstream file labels 1 Chronicles as '2Chr' and 2 Chronicles as
+    # 'Ezra' (handled by div_book_override); the rest is text clean-up.
+    n_bidi = n_star = 0
+    junk = re.compile(r'\(\s*\[\s*\((?:I|II|III) [A-Za-z]+ \d+:\d+\)\s*\)\s*(.*?)\s*\]\s*$')
+    for b, c, n, v in bible.all_verses():
+        before = v.text.plain(notes=True)
+
+        def clean(s):
+            # A mark between two letters stands for a lost space (e.g. 1 Cor 12:15)
+            s = re.sub(r'(?<=\w)[\u200e\u200f](?=\w)', ' ', s)
+            s = strip_bidi_controls(s)
+            s = re.sub(r'\s*\*{3,}\s*', ' … ', s)
+            # "كثيرا ‎." → "كثيرا." once the mark between space and stop is gone;
+            # a lone tanween after a space ("خيمته ً.") is a stray mark upstream
+            s = re.sub(r'\s+[\u064b-\u0652]+(?=[.،؛]|$)', '', s)
+            return re.sub(r'(?<=\S) +(?=\.)', '', s)
+        v.text.map_text(clean)
+        after = v.text.plain(notes=True)
+        n_bidi += before.count('\u200e') + before.count('\u200f')
+        n_star += len(re.findall(r'\*{3,}', before))
+        # "… ( [ (III John 1:15) ) سلام لك … ]" → the KJV-numbered verse text
+        if v.text.parts and junk.search(after):
+            v.text.parts = [['t', junk.sub(r'\1', after)]]
+    # 3 John 1:1 is ':' upstream; the verse text of the same Van Dyck
+    # translation, without vowel marks (eBible.org arb-vd 3JN 1:1).
+    v = bible.books['3 John'][1][1]
+    if v.text.plain().strip() in (':', ''):
+        v.text = Text()
+        v.text.add('t', 'الشيخ الى غايس الحبيب الذي انا احبه بالحق.')
+        log.append('SVD: restored 3 John 1:1 (":" upstream)')
+    log.append(f'SVD: removed {n_bidi} bidi marks, {n_star} asterisk runs → ellipsis')
+    append_final_period(bible, log, 'SVD')
+
+
+def fix_diodati(bible: Bible, log: list):
+    append_final_period(bible, log, 'Diodati')
+
+
+def fix_darby(bible: Bible, log: list):
+    n = 0
+    for b, c, vn, v in bible.all_verses():
+        for p in v.text.parts:
+            if 'à>' in p[1]:
+                p[1] = p[1].replace('à>', 'à')
+                n += 1
+    log.append(f'Darby: removed {n} stray ">"')
+
+
+def fix_kougo(bible: Bible, log: list):
+    n = 0
+    for b, c, vn, v in bible.all_verses():
+        for p in v.text.parts:
+            if '{' in p[1] or '}' in p[1]:
+                n += p[1].count('{') + p[1].count('}')
+                p[1] = p[1].replace('{', '').replace('}', '')
+    log.append(f'Kougo: removed {n} stray braces')
+
+
+_ALMEIDA_GRAVE = re.compile(r'(?<![\w])Â(s?|quel[ae]s?|quilo)(?![\w])')
+
+
+# Upstream (and the Unbound Bible file it comes from) lost one verse number in
+# seven chapters, so the rest of each chapter is numbered one too low: two
+# verses printed as one (the KJV and Almeida 1911 have them apart), a verse
+# number left in the text ("inimigos? 10Também eu"), and Luke 9:61, whose text
+# is missing (the source's 9:61 is 9:62).
+ALMEIDA_MERGED = {('Genesis', 36, 4), ('Genesis', 43, 4), ('Numbers', 5, 5),
+                  ('Numbers', 25, 7), ('Ezekiel', 20, 4)}
+ALMEIDA_SPLIT = {('Nehemiah', 5, 9): '10'}
+ALMEIDA_LOST = {('Luke', 9, 61): 'Jesus'}
+
+
+def _renumber_from(vs: dict, start: int):
+    """Move verses start, start+1, … one number up."""
+    for n in sorted((n for n in vs if n >= start), reverse=True):
+        vs[n + 1] = vs.pop(n)
+
+
+def fix_almeida(bible: Bible, log: list):
+    """'Â tardinha' → 'À tardinha' (crase written with a circumflex upstream),
+    and the verse numbering of the seven chapters above."""
+    n = 0
+    for b, c, vn, v in bible.all_verses():
+        for p in v.text.parts:
+            p[1], k = _ALMEIDA_GRAVE.subn(r'À\1', p[1])
+            n += k
+    log.append(f'Almeida: {n} "Â" → "À"')
+    todo = sorted(ALMEIDA_MERGED | set(ALMEIDA_SPLIT) | set(ALMEIDA_LOST))
+    for b, c, vn in todo:
+        vs = bible.books[b][c]
+        if max(vs) != KJV_VERSES[b][c - 1] - 1:
+            raise BuildError(f'Almeida {b} {c}: {max(vs)} verses, expected one short of the KJV '
+                             '(upstream changed: review ALMEIDA_MERGED/SPLIT/LOST)')
+        if (b, c, vn) in ALMEIDA_MERGED:
+            _renumber_from(vs, vn + 1)
+            vs[vn].label, vs[vn].covers = f'{vn}–{vn + 1}', [vn + 1]
+        elif (b, c, vn) in ALMEIDA_SPLIT:
+            marker = re.compile(r'\s' + ALMEIDA_SPLIT[(b, c, vn)] + r'(?=\w)')
+            parts = vs[vn].text.parts
+            at = next((i for i, p in enumerate(parts) if marker.search(p[1])), None)
+            if at is None:
+                raise BuildError(f'Almeida {b} {c}:{vn}: verse number marker not found')
+            m = marker.search(parts[at][1])
+            head, tail = parts[at][1][:m.start()], parts[at][1][m.end():]
+            new = Verse()
+            new.text.parts = [[parts[at][0], tail]] + [list(p) for p in parts[at + 1:]]
+            vs[vn].text.parts = parts[:at] + ([[parts[at][0], head]] if head else [])
+            _renumber_from(vs, vn + 1)
+            vs[vn + 1] = new
+        else:
+            if not vs[vn].text.plain().startswith(ALMEIDA_LOST[(b, c, vn)]):
+                raise BuildError(f'Almeida {b} {c}:{vn}: unexpected text (review ALMEIDA_LOST)')
+            _renumber_from(vs, vn)
+            vs[vn] = Verse()
+            vs[vn].text.add('n', 'versículo ausente no texto de origem')
+    log.append(f'Almeida: renumbered {len(todo)} chapters (lost verse numbers; Luke 9:61 missing)')
+
+
+# KorRV slots that are empty (or hold the placeholder 상동 "ditto"/(없음)):
+# verses the 개역한글 prints as "(없음)" (omitted in its Greek text), verses
+# printed together with the previous one, and slots that exist only in the
+# module's NRSV versification.
+KO_OMITTED = {("Matthew", 17, 21), ("Matthew", 18, 11), ("Matthew", 23, 14), ("Mark", 9, 44),
+              ("Mark", 9, 46), ("Mark", 11, 26), ("Mark", 15, 28), ("Luke", 17, 36),
+              ("Luke", 23, 17), ("Acts", 8, 37), ("Acts", 15, 34), ("Acts", 28, 29),
+              ("Romans", 16, 24)}
+KO_MERGED = {("1 Samuel", 30, 31), ("1 Chronicles", 16, 13), ("Job", 31, 34), ("Job", 35, 11),
+             ("Psalms", 72, 20), ("Isaiah", 30, 2), ("Isaiah", 48, 2), ("Jeremiah", 21, 2),
+             ("Ezekiel", 24, 5), ("Acts", 15, 26), ("Romans", 9, 2)}
+KO_NOT_IN_EDITION = {("2 Corinthians", 13, 14), ("Revelation", 12, 18)}
+
+
+def fix_korrv(bible: Bible, log: list):
+    seen = set()
+    for b, c, n, v in list(bible.all_verses()):
+        t = v.text.plain().strip()
+        if t and t not in ('상동', '(없음)'):
+            continue
+        key = (b, c, n)
+        seen.add(key)
+        if key in KO_OMITTED:
+            v.text = Text()
+            v.text.add('t', '(없음)')
+        elif key in KO_MERGED:
+            prev = bible.books[b][c][n - 1]
+            prev.covers.append(n)
+            prev.label = f'{n - 1}–{n}'
+            del bible.books[b][c][n]
+        elif key in KO_NOT_IN_EDITION:
+            del bible.books[b][c][n]
+        else:
+            raise BuildError(f'KorRV: unexpected empty verse {key}')
+    missing = (KO_OMITTED | KO_MERGED | KO_NOT_IN_EDITION) - seen
+    if missing:
+        raise BuildError(f'KorRV: expected placeholder verses not found: {sorted(missing)}')
+    log.append(f'KorRV: {len(KO_OMITTED)} verses shown as (없음), {len(KO_MERGED)} merged, '
+               f'{len(KO_NOT_IN_EDITION)} NRSV-only slots dropped')
+
+
+FIXUPS = {'svd': fix_svd, 'diodati': fix_diodati, 'darby': fix_darby, 'kougo': fix_kougo,
+          'almeida': fix_almeida, 'korrv': fix_korrv}
+
+
+# ═════════════════════════════════════════════════════════════
+# Books, expected shape and build gates
+# ═════════════════════════════════════════════════════════════
+
+def allowed_books(cfg: dict) -> set[str]:
+    if cfg.get('testament') == 'nt':
+        return set(NT_BOOKS)
+    books = set(BOOK_ORDER)
+    if cfg.get('deutero'):
+        books |= set(DEUTERO_CHAPTERS)
+    return books
+
+
+def book_order(cfg: dict) -> list[str]:
+    order = BOOK_ORDER_CATHOLIC if cfg.get('deutero') else BOOK_ORDER
+    books = allowed_books(cfg)
+    return [b for b in order if b in books]
+
+
+def expected_chapters(cfg: dict) -> dict[str, int]:
+    exp = {b: len(KJV_VERSES[b]) if b in KJV_VERSES else DEUTERO_CHAPTERS[b]
+           for b in book_order(cfg)}
+    exp.update(cfg.get('chapters', {}))
+    return exp
+
+
+def check_parse(bible: Bible, cfg: dict, source_count: int):
+    """Gates that run on the raw parse, before any per-source repair."""
+    errors = []
+    omit = set(cfg.get('omit_codes', ()))
+    for code, n in sorted(bible.skipped_books.items()):
+        if code not in omit and n:
+            errors.append(f'source book {code!r} ({n} verses) is not mapped to any book')
+    parsed = len(bible.refs())
+    if parsed != source_count:
+        errors.append(f'parsed {parsed} verses, the source has {source_count}')
+    if errors:
+        raise BuildError('; '.join(errors))
+
+
+def check_shape(bible: Bible, cfg: dict, log: list):
+    """Gates on the final text: books, chapters, verse counts, empty verses."""
+    errors = []
+    exp = expected_chapters(cfg)
+    got = set(bible.books)
+    if got != set(exp):
+        errors.append(f'books missing {sorted(set(exp) - got)}, unexpected {sorted(got - set(exp))}')
+    for b, n in exp.items():
+        chs = sorted(bible.books.get(b, {}))
+        if chs != list(range(1, n + 1)):
+            missing = sorted(set(range(1, n + 1)) - set(chs))
+            extra = sorted(set(chs) - set(range(1, n + 1)))
+            errors.append(f'{b}: chapters missing {missing}, extra {extra}')
+    # Verse count per chapter against the KJV table: a chapter that holds far
+    # more or fewer verses than expected is mislabelled or overlaid upstream.
+    skip = set(cfg.get('shape_skip', ()))
+    odd, one_short = 0, []
+    for b, chs in bible.books.items():
+        if b not in KJV_VERSES or b in skip:
+            continue
+        for c, vs in chs.items():
+            if (b, c) in skip or c > len(KJV_VERSES[b]):
+                continue
+            k = KJV_VERSES[b][c - 1]
+            n = len({x for v, verse in vs.items() for x in [v] + verse.covers})
+            if n != k:
+                odd += 1
+            if n == k - 1:
+                one_short.append(f'{b} {c}')
+            if n > k * 1.5 + 2 or n < k * 0.5 - 2:
+                errors.append(f'{b} {c}: {n} verses, KJV versification has {k}')
+    # Words that only exist when an upstream conversion deleted non-ASCII
+    # letters ('clum' for 'cælum', 'qu' for 'quæ'): the old Vulgate source
+    # had 7,640 of them.
+    garbled = cfg.get('garbled_words')
+    if garbled:
+        hits = Counter(m for _, _, _, v in bible.all_verses() for m in garbled.findall(v.text.plain()))
+        if hits:
+            errors.append(f'stripped-letter words in the text: {dict(hits.most_common(8))}')
+    allow_empty = set(cfg.get('allow_empty', ()))
+    for b, c, n, v in bible.all_verses():
+        if v.text.empty() and (b, c, n) not in allow_empty:
+            errors.append(f'empty verse {b} {c}:{n}')
+    if errors:
+        raise BuildError('; '.join(errors[:20]) + (f' (+{len(errors) - 20} more)' if len(errors) > 20 else ''))
+    log.append(f'{odd} chapters differ from the KJV verse count (versification)'
+               + (f'; one verse short: {", ".join(one_short[:12])}' if one_short else ''))
+
+
+# ═════════════════════════════════════════════════════════════
+# Lookup keys: main keys, aliases and verse references
+# ═════════════════════════════════════════════════════════════
+#
+# The app matches keys ignoring case. Aliases are @@@LINK redirects; when two
+# aliases with different targets normalize to the same key, the one with the
+# lower rank wins (a local name beats a local abbreviation, which beats an
+# accent-free spelling, which beats an English name or abbreviation) and the
+# loser is counted in the build log. Losing a rank-0..3 alias is a build error.
+
+R_MAIN, R_LOCAL, R_NAME, R_LEGACY, R_ABBR, R_FOLD, R_EN, R_EN_ABBR, R_VERSE, R_VERSE_FOLD = range(10)
+
+_APOS = str.maketrans({'’': "'", 'ʼ': "'", '‘': "'"})
+
+
+def key_norm(s: str) -> str:
+    return re.sub(r'\s+', ' ', unicodedata.normalize('NFC', s).translate(_APOS)).strip().lower()
+
+
+class KeySet:
+    def __init__(self, name: str):
+        self.name = name
+        self.main: dict[str, str] = {}               # norm → main key
+        self.alias: dict[str, tuple[int, set]] = {}  # norm → (rank, targets)
+        self.out: list[tuple[str, str]] = []         # alias entries
+        self.dropped: dict[int, int] = {}
+        self.examples: list[str] = []
+
+    def add_main(self, key: str):
+        n = key_norm(key)
+        if n in self.main:
+            raise BuildError(f'{self.name}: duplicate main key {key!r}')
+        self.main[n] = key
+
+    def add(self, alias: str, target: str, rank: int, multi: bool = False):
+        alias = re.sub(r'\s+', ' ', alias).strip()
+        n = key_norm(alias)
+        if n in self.main:
+            if self.main[n] == target:
+                return
+            self._drop(alias, target, rank, f'main key {self.main[n]!r}')
+            return
+        if n in self.alias:
+            r, targets = self.alias[n]
+            if target in targets:
+                return
+            if multi and r == rank:
+                targets.add(target)
+                self.out.append((alias, f'@@@LINK={target}'))
+                return
+            if r <= rank:
+                self._drop(alias, target, rank, f'{sorted(targets)} (rank {r})')
+                return
+            raise BuildError(f'{self.name}: alias {alias!r} → {target!r} (rank {rank}) added '
+                             f'after a weaker alias → {sorted(targets)} (rank {r}); reorder')
+        self.alias[n] = (rank, {target})
+        self.out.append((alias, f'@@@LINK={target}'))
+
+    def _drop(self, alias, target, rank, other):
+        if rank <= R_LEGACY:
+            raise BuildError(f'{self.name}: alias {alias!r} → {target!r} collides with {other}')
+        self.dropped[rank] = self.dropped.get(rank, 0) + 1
+        if len(self.examples) < 8:
+            self.examples.append(f'{alias!r}→{target!r} (vs {other})')
+
+
+def _table(text: str) -> dict[str, list[str]]:
+    """'English name = alt | alt …' lines → {English name: [alt, …]}"""
+    out = {}
+    for line in text.strip().splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        book, _, alts = line.partition('=')
+        book = book.strip()
+        if book not in KJV_VERSES and book not in DEUTERO_CHAPTERS:
+            raise ValueError(f'unknown book {book!r} in alias table')
+        out[book] = [a.strip() for a in alts.split('|') if a.strip()]
+    return out
+
+
+# English alternative names and abbreviations (every Bible: the English
+# chapter keys are shared by all of them).
+EN_NAMES = _table("""
+Psalms = Psalm
+Song of Solomon = Song of Songs | Canticles | Canticle of Canticles
+Ecclesiastes = Qoheleth
+Revelation = Revelations | Apocalypse | Revelation of John
+Acts = Acts of the Apostles
+Tobit = Tobias
+Wisdom = Wisdom of Solomon
+Sirach = Ecclesiasticus | Ben Sira
+""")
+EN_ABBR = _table("""
+Genesis = Gen | Gn
+Exodus = Exod | Ex | Exo
+Leviticus = Lev | Lv
+Numbers = Num | Nm | Nb
+Deuteronomy = Deut | Dt | Deu
+Joshua = Josh | Jos
+Judges = Judg | Jdg
+Ruth = Rth
+1 Samuel = 1 Sam | 1 Sa
+2 Samuel = 2 Sam | 2 Sa
+1 Kings = 1 Kgs | 1 Ki
+2 Kings = 2 Kgs | 2 Ki
+1 Chronicles = 1 Chr | 1 Chron | 1 Ch
+2 Chronicles = 2 Chr | 2 Chron | 2 Ch
+Ezra = Ezr
+Nehemiah = Neh
+Esther = Esth | Est
+Job = Jb
+Psalms = Ps | Psa | Pss
+Proverbs = Prov | Prv | Pro
+Ecclesiastes = Eccl | Eccles | Ecc | Qoh
+Song of Solomon = Song | Cant | Sg
+Isaiah = Isa | Is
+Jeremiah = Jer
+Lamentations = Lam
+Ezekiel = Ezek | Ezk
+Daniel = Dan | Dn
+Hosea = Hos
+Joel = Jl
+Amos = Am
+Obadiah = Obad | Ob
+Jonah = Jon
+Micah = Mic
+Nahum = Nah
+Habakkuk = Hab
+Zephaniah = Zeph | Zep
+Haggai = Hag
+Zechariah = Zech | Zec
+Malachi = Mal
+Matthew = Matt | Mt
+Mark = Mk | Mrk
+Luke = Lk | Luk
+John = Jn | Jhn
+Acts = Act
+Romans = Rom | Ro
+1 Corinthians = 1 Cor | 1 Co
+2 Corinthians = 2 Cor | 2 Co
+Galatians = Gal
+Ephesians = Eph
+Philippians = Phil | Php
+Colossians = Col
+1 Thessalonians = 1 Thess | 1 Th
+2 Thessalonians = 2 Thess | 2 Th
+1 Timothy = 1 Tim | 1 Ti
+2 Timothy = 2 Tim | 2 Ti
+Titus = Tit
+Philemon = Phlm | Philem | Phm
+Hebrews = Heb
+James = Jas
+1 Peter = 1 Pet | 1 Pe | 1 Pt
+2 Peter = 2 Pet | 2 Pe | 2 Pt
+1 John = 1 Jn | 1 Jo
+2 John = 2 Jn | 2 Jo
+3 John = 3 Jn | 3 Jo
+Jude = Jud
+Revelation = Rev | Rv
+Tobit = Tob
+Judith = Jdt
+Wisdom = Wis
+Sirach = Sir
+Baruch = Bar
+1 Maccabees = 1 Macc | 1 Mac
+2 Maccabees = 2 Macc | 2 Mac
+""")
+
+_ROMAN = {'1': 'I', '2': 'II', '3': 'III', '4': 'IV'}
+_ORDINAL_EN = {'1': 'First', '2': 'Second', '3': 'Third'}
+
+
+def numbered_variants(name: str, style: str = 'latin') -> list[str]:
+    """'1 Kings' → ['1Kings', 'I Kings']; German '1. Mose' → ['1 Mose',
+    '1.Mose', '1Mose']; Russian '1 Царств' → ['1Царств']."""
+    m = re.match(r'^([1-4])(\.?) (.+)$', name)
+    if not m:
+        return []
+    n, dot, rest = m.groups()
+    if style == 'de':
+        return [f'{n} {rest}', f'{n}.{rest}', f'{n}{rest}']
+    if style in ('ru', 'el'):
+        return [f'{n}{rest}']
+    return [f'{n}{rest}', f'{_ROMAN[n]} {rest}']
+
+
+def fold_latin(s: str) -> str:
+    """Accent-free form: 'Ésaïe' → 'Esaie', 'Matthæus' → 'Matthaeus'."""
+    s = s.replace('æ', 'ae').replace('Æ', 'Ae').replace('œ', 'oe').replace('Œ', 'Oe')
+    return ''.join(ch for ch in unicodedata.normalize('NFD', s)
+                   if not unicodedata.combining(ch)).replace('ß', 'ss')
+
+
+def german_umlaut(s: str) -> str:
+    return (s.replace('ä', 'ae').replace('ö', 'oe').replace('ü', 'ue')
+             .replace('Ä', 'Ae').replace('Ö', 'Oe').replace('Ü', 'Ue'))
+
+
+_GREEK_MARKS = {'̓', '̔', 'ͅ', '̆', '̄'}   # breathings, iota subscript, breve, macron
+_GREEK_ACCENTS = {'̀': '́', '͂': '́', '́': '́'}
+
+
+def greek_monotonic(s: str) -> str:
+    """Polytonic → monotonic: grave/circumflex → tonos, breathings and iota
+    subscript dropped; U+02B9 numeral sign → U+0384 tonos (as typed)."""
+    out = []
+    for ch in unicodedata.normalize('NFD', s):
+        if ch in _GREEK_MARKS:
+            continue
+        out.append(_GREEK_ACCENTS.get(ch, ch))
+    return unicodedata.normalize('NFC', ''.join(out)).replace('ʹ', '΄')
+
+
+def greek_plain(s: str) -> str:
+    """No accents at all (what most people type): 'Κατα Ιωαννην'."""
+    s = ''.join(ch for ch in unicodedata.normalize('NFD', s) if not unicodedata.combining(ch))
+    return unicodedata.normalize('NFC', s).replace('ʹ', '').replace('΄', '').strip()
+
+
+_HAMZA = str.maketrans({'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ٱ': 'ا'})
+_ARABIC_DIGITS = str.maketrans('0123456789', '٠١٢٣٤٥٦٧٨٩')
+
+
+def arabic_digits(s) -> str:
+    return str(s).translate(_ARABIC_DIGITS)
+
+
+# ── Per-language alternative names and abbreviations ─────────
+
+ZH_HANS_NAMES = _table("""
+Genesis = 创世纪
+1 Kings = 列王记上
+2 Kings = 列王记下
+Philippians = 腓利比书
+1 John = 约翰壹书
+2 John = 约翰贰书
+3 John = 约翰叁书 | 约翰参书
+""")
+ZH_HANT_NAMES = _table("""
+Genesis = 創世紀
+1 Kings = 列王記上
+2 Kings = 列王記下
+Philippians = 腓利比書
+1 John = 約翰壹書
+2 John = 約翰貳書
+3 John = 約翰參書 | 約翰叁書
+Revelation = 啓示錄
+""")
+_ZH_HANS_ABBR = ('创 出 利 民 申 书 士 得 撒上 撒下 王上 王下 代上 代下 拉 尼 斯 伯 诗 箴 传 歌 赛 耶 '
+                 '哀 结 但 何 珥 摩 俄 拿 弥 鸿 哈 番 该 亚 玛 太 可 路 约 徒 罗 林前 林后 加 弗 腓 西 '
+                 '帖前 帖后 提前 提后 多 门 来 雅 彼前 彼后 约一 约二 约三 犹 启').split()
+_ZH_HANT_ABBR = ('創 出 利 民 申 書 士 得 撒上 撒下 王上 王下 代上 代下 拉 尼 斯 伯 詩 箴 傳 歌 賽 耶 '
+                 '哀 結 但 何 珥 摩 俄 拿 彌 鴻 哈 番 該 亞 瑪 太 可 路 約 徒 羅 林前 林後 加 弗 腓 西 '
+                 '帖前 帖後 提前 提後 多 門 來 雅 彼前 彼後 約壹 約貳 約參 猶 啟').split()
+ZH_HANS_ABBR = {b: [a] for b, a in zip(BOOK_ORDER, _ZH_HANS_ABBR)}
+ZH_HANT_ABBR = {b: [a] for b, a in zip(BOOK_ORDER, _ZH_HANT_ABBR)}
+ZH_HANT_ABBR['1 John'].append('約一')
+ZH_HANT_ABBR['2 John'].append('約二')
+ZH_HANT_ABBR['3 John'].append('約三')
+ZH_HANT_ABBR['Revelation'].append('啓')
+
+# 新共同訳 / 新改訳 names and the Kougo source's own spellings
+JA_NAMES = _table("""
+1 Kings = 列王記上 | 列王記第一
+2 Kings = 列王記下 | 列王記第二
+1 Chronicles = 歴代誌上 | 歴代誌第一
+2 Chronicles = 歴代誌下 | 歴代誌第二
+1 Samuel = サムエル記第一
+2 Samuel = サムエル記第二
+Nehemiah = ネヘミヤ書
+Psalms = 詩編
+Ecclesiastes = コヘレトの言葉 | 伝道者の書
+Song of Solomon = 雅歌
+Zephaniah = ゼファニヤ書
+Matthew = マタイ福音書 | マタイの福音書 | マタイ
+Mark = マルコ福音書 | マルコの福音書 | マルコ
+Luke = ルカ福音書 | ルカの福音書 | ルカ
+John = ヨハネ福音書 | ヨハネの福音書 | ヨハネ
+Acts = 使徒言行録 | 使徒の働き
+Romans = ローマの信徒への手紙 | ローマ人への手紙 | ローマ書 | ローマ
+1 Corinthians = コリントの信徒への手紙一 | コリント人への手紙第一 | 第一コリント | 1コリント
+2 Corinthians = コリントの信徒への手紙二 | コリント人への手紙第二 | 第二コリント | 2コリント
+Galatians = ガラテヤの信徒への手紙 | ガラテヤ書
+Ephesians = エフェソの信徒への手紙 | エペソ書
+Philippians = フィリピの信徒への手紙 | ピリピ書
+Colossians = コロサイの信徒への手紙 | コロサイ書
+1 Thessalonians = テサロニケの信徒への手紙一 | テサロニケ人への手紙第一
+2 Thessalonians = テサロニケの信徒への手紙二 | テサロニケ人への手紙第二
+1 Timothy = テモテへの手紙一 | テモテへの手紙第一 | テモテヘの第一の手紙
+2 Timothy = テモテへの手紙二 | テモテへの手紙第二 | テモテヘの第二の手紙
+Titus = テトスヘの手紙
+Philemon = フィレモンへの手紙 | ピレモンヘの手紙
+Hebrews = ヘブライ人への手紙 | ヘブル書
+1 Peter = ペトロの手紙一 | ペテロの手紙第一
+2 Peter = ペトロの手紙二 | ペテロの手紙第二
+1 John = ヨハネの手紙一 | ヨハネの手紙第一
+2 John = ヨハネの手紙二 | ヨハネの手紙第二
+3 John = ヨハネの手紙三 | ヨハネの手紙第三
+Revelation = 黙示録
+""")
+_JA_ABBR = ('創 出 レビ 民 申 ヨシュ 士 ルツ サム上 サム下 王上 王下 代上 代下 エズ ネヘ エス ヨブ 詩 箴 '
+            '伝 雅 イザ エレ 哀 エゼ ダニ ホセ ヨエ アモ オバ ヨナ ミカ ナホ ハバ ゼパ ハガ ゼカ マラ '
+            'マタ マコ ルカ ヨハ 使 ロマ 1コリ 2コリ ガラ エペ ピリ コロ 1テサ 2テサ 1テモ 2テモ テト '
+            'ピレ ヘブ ヤコ 1ペテ 2ペテ 1ヨハ 2ヨハ 3ヨハ ユダ 黙').split()
+JA_ABBR = {b: [a] for b, a in zip(BOOK_ORDER, _JA_ABBR)}
+_JA_ORD = {'第一': '1', '第二': '2', '第三': '3'}
+_KATAKANA = re.compile(r'[ァ-ヺ]')
+
+
+def _ja_short(local: str) -> str | None:
+    """Short name Japanese readers write before a reference: 'イザヤ書' →
+    'イザヤ', 'ローマ人への手紙' → 'ローマ', 'コリント人への第一の手紙' →
+    '1コリント', 'マタイによる福音書' → 'マタイ'."""
+    m = re.match(r'^(.+?)人?への(第[一二三])の手紙$', local) or re.match(r'^(.+?)の(第[一二三])の手紙$', local)
+    if m:
+        return _JA_ORD[m.group(2)] + m.group(1)
+    for suf in ('による福音書', '人への手紙', 'への手紙', 'の手紙', '書', '記'):
+        if local.endswith(suf):
+            stem = local[:-len(suf)]
+            return stem if _KATAKANA.search(stem) and not stem.endswith('の') else None
+    return None
+
+
+JA_SHORT = {b: [n] for b, n in ((b, _ja_short(l)) for b, l in JA_BOOK_NAMES.items()) if n}
+JA_SHORT.update({'Acts': ['使徒'], 'Revelation': ['黙示録']})
+for _b, _a in (('Ecclesiastes', 'コヘ'), ('Zephaniah', 'ゼファ'), ('Ephesians', 'エフェ'),
+               ('Philippians', 'フィリ'), ('Philemon', 'フィレ'), ('1 Peter', '1ペト'),
+               ('2 Peter', '2ペト'), ('Romans', 'ロー')):
+    JA_ABBR[_b].append(_a)
+
+KO_NAMES = _table("""
+1 John = 요한1서
+2 John = 요한2서
+3 John = 요한3서
+""")
+_KO_ABBR = ('창 출 레 민 신 수 삿 룻 삼상 삼하 왕상 왕하 대상 대하 스 느 에 욥 시 잠 전 아 사 렘 '
+            '애 겔 단 호 욜 암 옵 욘 미 나 합 습 학 슥 말 마 막 눅 요 행 롬 고전 고후 갈 엡 빌 골 '
+            '살전 살후 딤전 딤후 딛 몬 히 약 벧전 벧후 요일 요이 요삼 유 계').split()
+KO_ABBR = {b: [a] for b, a in zip(BOOK_ORDER, _KO_ABBR)}
+
+AR_NAMES = _table("""
+Genesis = تكوين | سفر التكوين
+Exodus = خروج | سفر الخروج
+Leviticus = لاويين | سفر اللاويين
+Numbers = عدد | سفر العدد
+Deuteronomy = تثنية | سفر التثنية | تثنية الاشتراع
+Judges = قضاة | سفر القضاة
+Psalms = مزامير | مزمور | المزمور
+Proverbs = أمثال
+Ecclesiastes = جامعة
+Song of Solomon = نشيد الانشاد
+Lamentations = المراثي
+Matthew = إنجيل متى
+Mark = إنجيل مرقس
+Luke = إنجيل لوقا
+John = إنجيل يوحنا
+Acts = أعمال
+Hebrews = عبرانيين
+Revelation = رؤيا | سفر الرؤيا
+""")
+
+RU_NAMES = _table("""
+Judges = Судьи
+1 Samuel = 1-я Царств
+2 Samuel = 2-я Царств
+1 Kings = 3-я Царств
+2 Kings = 4-я Царств
+1 Chronicles = 1-я Паралипоменон
+2 Chronicles = 2-я Паралипоменон
+Song of Solomon = Песня Песней | Песнь песней Соломона
+Matthew = От Матфея | Евангелие от Матфея | Матфея
+Mark = От Марка | Евангелие от Марка | Марка
+Luke = От Луки | Евангелие от Луки | Луки
+John = От Иоанна | Евангелие от Иоанна | Иоанна
+Acts = Деяния апостолов | Деяния святых апостолов
+Romans = К Римлянам
+1 Corinthians = 1-е Коринфянам
+2 Corinthians = 2-е Коринфянам
+Galatians = К Галатам
+Ephesians = К Ефесянам
+Philippians = К Филиппийцам
+Colossians = К Колоссянам
+1 Thessalonians = 1-е Фессалоникийцам
+2 Thessalonians = 2-е Фессалоникийцам
+1 Timothy = 1-е Тимофею
+2 Timothy = 2-е Тимофею
+Titus = К Титу
+Philemon = К Филимону
+Hebrews = К Евреям
+1 Peter = 1-е Петра
+2 Peter = 2-е Петра
+1 John = 1-е Иоанна
+2 John = 2-е Иоанна
+3 John = 3-е Иоанна
+Revelation = Апокалипсис | Откровение Иоанна Богослова
+""")
+_RU_ABBR = ('Быт Исх Лев Чис Втор Нав Суд Руф 1Цар 2Цар 3Цар 4Цар 1Пар 2Пар Езд Неем Есф Иов Пс Притч '
+            'Еккл Песн Ис Иер Плач Иез Дан Ос Иоил Ам Авд Ион Мих Наум Авв Соф Агг Зах Мал Мф Мк Лк '
+            'Ин Деян Рим 1Кор 2Кор Гал Еф Флп Кол 1Фес 2Фес 1Тим 2Тим Тит Флм Евр Иак 1Пет 2Пет 1Ин '
+            '2Ин 3Ин Иуд Откр').split()
+RU_ABBR = {b: [a] + ([re.sub(r'^(\d)', r'\1 ', a)] if a[0].isdigit() else []) for b, a in zip(BOOK_ORDER, _RU_ABBR)}
+
+DE_NAMES = _table("""
+Genesis = Genesis | Erstes Buch Mose
+Exodus = Exodus | Zweites Buch Mose
+Leviticus = Levitikus | Drittes Buch Mose
+Numbers = Numeri | Viertes Buch Mose
+Deuteronomy = Deuteronomium | Fünftes Buch Mose
+Job = Ijob | Hiob
+Psalms = Psalm
+Ecclesiastes = Kohelet | Prediger Salomo
+Song of Solomon = Hoheslied | Lied der Lieder
+Ezekiel = Ezechiel
+Zephaniah = Zefanja
+Acts = Apostelgeschichte des Lukas
+Revelation = Offenbarung des Johannes | Apokalypse
+""")
+DE_ABBR = _table("""
+Genesis = 1Mo | 1Mose | Gen
+Exodus = 2Mo | 2Mose | Ex
+Leviticus = 3Mo | 3Mose | Lev
+Numbers = 4Mo | 4Mose | Num
+Deuteronomy = 5Mo | 5Mose | Dtn
+Joshua = Jos
+Judges = Ri
+Ruth = Rut
+1 Samuel = 1Sam
+2 Samuel = 2Sam
+1 Kings = 1Kön | 1Kön
+2 Kings = 2Kön
+1 Chronicles = 1Chr
+2 Chronicles = 2Chr
+Ezra = Esr
+Nehemiah = Neh
+Esther = Est
+Job = Hi | Ijob
+Psalms = Ps
+Proverbs = Spr
+Ecclesiastes = Pred | Koh
+Song of Solomon = Hld
+Isaiah = Jes
+Jeremiah = Jer
+Lamentations = Klgl
+Ezekiel = Hes | Ez
+Daniel = Dan
+Hosea = Hos
+Joel = Joel
+Amos = Am
+Obadiah = Obd | Ob
+Jonah = Jona
+Micah = Mi
+Nahum = Nah
+Habakkuk = Hab
+Zephaniah = Zef
+Haggai = Hag
+Zechariah = Sach
+Malachi = Mal
+Matthew = Mt
+Mark = Mk
+Luke = Lk
+John = Joh
+Acts = Apg
+Romans = Röm
+1 Corinthians = 1Kor
+2 Corinthians = 2Kor
+Galatians = Gal
+Ephesians = Eph
+Philippians = Phil
+Colossians = Kol
+1 Thessalonians = 1Thess
+2 Thessalonians = 2Thess
+1 Timothy = 1Tim
+2 Timothy = 2Tim
+Titus = Tit
+Philemon = Phlm
+Hebrews = Hebr
+James = Jak
+1 Peter = 1Petr
+2 Peter = 2Petr
+1 John = 1Joh
+2 John = 2Joh
+3 John = 3Joh
+Jude = Jud
+Revelation = Offb
+""")
+
+ES_NAMES = _table("""
+Psalms = Salmo
+Song of Solomon = Cantar de los Cantares | Cantar de los cantares | Cantares de Salomón
+Matthew = San Mateo
+Mark = San Marcos
+Luke = San Lucas
+John = San Juan
+Acts = Hechos de los Apóstoles
+James = Jacobo
+Revelation = Revelación
+""")
+ES_ABBR = _table("""
+Genesis = Gn | Gén
+Exodus = Éx | Ex
+Leviticus = Lv | Lev
+Numbers = Nm | Núm
+Deuteronomy = Dt
+Joshua = Jos
+Judges = Jue | Jc
+Ruth = Rt
+1 Samuel = 1 S | 1 Sam
+2 Samuel = 2 S | 2 Sam
+1 Kings = 1 R | 1 Re
+2 Kings = 2 R | 2 Re
+1 Chronicles = 1 Cr | 1 Cró
+2 Chronicles = 2 Cr | 2 Cró
+Ezra = Esd
+Nehemiah = Neh
+Esther = Est
+Job = Jb
+Psalms = Sal | Sl
+Proverbs = Pr | Prov
+Ecclesiastes = Ec | Ecl
+Song of Solomon = Cnt | Cant
+Isaiah = Is
+Jeremiah = Jer
+Lamentations = Lm
+Ezekiel = Ez
+Daniel = Dn
+Hosea = Os
+Joel = Jl
+Amos = Am
+Obadiah = Abd
+Jonah = Jon
+Micah = Mi
+Nahum = Nah
+Habakkuk = Hab
+Zephaniah = Sof
+Haggai = Hag
+Zechariah = Zac
+Malachi = Mal
+Matthew = Mt
+Mark = Mr | Mc
+Luke = Lc
+John = Jn
+Acts = Hch
+Romans = Ro | Rom
+1 Corinthians = 1 Co
+2 Corinthians = 2 Co
+Galatians = Gá | Gal
+Ephesians = Ef
+Philippians = Fil | Flp
+Colossians = Col
+1 Thessalonians = 1 Ts
+2 Thessalonians = 2 Ts
+1 Timothy = 1 Ti | 1 Tm
+2 Timothy = 2 Ti | 2 Tm
+Titus = Tit
+Philemon = Flm
+Hebrews = He | Heb
+James = Stg | Sant
+1 Peter = 1 P | 1 Pe
+2 Peter = 2 P | 2 Pe
+1 John = 1 Jn
+2 John = 2 Jn
+3 John = 3 Jn
+Jude = Jud
+Revelation = Ap | Apoc
+""")
+
+FR_NAMES = _table("""
+Psalms = Psaume
+Isaiah = Isaïe
+Ecclesiastes = Qohélet | L'Ecclésiaste
+Song of Solomon = Cantique des cantiques | Cantique
+Habakkuk = Habacuc
+Acts = Actes des Apôtres
+Revelation = Révélation
+""")
+FR_ABBR = _table("""
+Genesis = Gn | Gen
+Exodus = Ex
+Leviticus = Lv
+Numbers = Nb
+Deuteronomy = Dt
+Joshua = Jos
+Judges = Jg
+Ruth = Rt
+1 Samuel = 1 S | 1 Sam
+2 Samuel = 2 S | 2 Sam
+1 Kings = 1 R
+2 Kings = 2 R
+1 Chronicles = 1 Ch
+2 Chronicles = 2 Ch
+Ezra = Esd
+Nehemiah = Né | Ne
+Esther = Est
+Job = Jb
+Psalms = Ps
+Proverbs = Pr
+Ecclesiastes = Ec | Qo
+Song of Solomon = Ct
+Isaiah = És | Es | Is
+Jeremiah = Jr
+Lamentations = Lm
+Ezekiel = Éz | Ez
+Daniel = Dn
+Hosea = Os
+Joel = Jl
+Amos = Am
+Obadiah = Ab
+Jonah = Jon
+Micah = Mi
+Nahum = Na
+Habakkuk = Ha
+Zephaniah = So
+Haggai = Ag
+Zechariah = Za
+Malachi = Ml
+Matthew = Mt
+Mark = Mc
+Luke = Lc
+John = Jn
+Acts = Ac
+Romans = Rm
+1 Corinthians = 1 Co
+2 Corinthians = 2 Co
+Galatians = Ga
+Ephesians = Ép | Ep
+Philippians = Ph
+Colossians = Col
+1 Thessalonians = 1 Th
+2 Thessalonians = 2 Th
+1 Timothy = 1 Tm
+2 Timothy = 2 Tm
+Titus = Tt
+Philemon = Phm
+Hebrews = Hé | He
+James = Jc
+1 Peter = 1 P
+2 Peter = 2 P
+1 John = 1 Jn
+2 John = 2 Jn
+3 John = 3 Jn
+Jude = Jud
+Revelation = Ap
+""")
+
+PT_NAMES = _table("""
+Genesis = Génesis
+Deuteronomy = Deuteronómio
+1 Chronicles = 1 Crónicas
+2 Chronicles = 2 Crónicas
+Psalms = Salmo
+Song of Solomon = Cântico dos Cânticos | Cantares
+Hosea = Oseias
+Micah = Miqueias
+Acts = Atos dos Apóstolos | Actos
+""")
+PT_ABBR = _table("""
+Genesis = Gn
+Exodus = Êx | Ex
+Leviticus = Lv
+Numbers = Nm
+Deuteronomy = Dt
+Joshua = Js
+Judges = Jz
+Ruth = Rt
+1 Samuel = 1 Sm
+2 Samuel = 2 Sm
+1 Kings = 1 Rs
+2 Kings = 2 Rs
+1 Chronicles = 1 Cr
+2 Chronicles = 2 Cr
+Ezra = Ed | Esd
+Nehemiah = Ne
+Esther = Et
+Job = Jó
+Psalms = Sl
+Proverbs = Pv | Pr
+Ecclesiastes = Ec
+Song of Solomon = Ct
+Isaiah = Is
+Jeremiah = Jr
+Lamentations = Lm
+Ezekiel = Ez
+Daniel = Dn
+Hosea = Os
+Joel = Jl
+Amos = Am
+Obadiah = Ob
+Jonah = Jn
+Micah = Mq
+Nahum = Na
+Habakkuk = Hc
+Zephaniah = Sf
+Haggai = Ag
+Zechariah = Zc
+Malachi = Ml
+Matthew = Mt
+Mark = Mc
+Luke = Lc
+John = Jo
+Acts = At
+Romans = Rm
+1 Corinthians = 1 Co
+2 Corinthians = 2 Co
+Galatians = Gl
+Ephesians = Ef
+Philippians = Fp
+Colossians = Cl
+1 Thessalonians = 1 Ts
+2 Thessalonians = 2 Ts
+1 Timothy = 1 Tm
+2 Timothy = 2 Tm
+Titus = Tt
+Philemon = Fm
+Hebrews = Hb
+James = Tg
+1 Peter = 1 Pe
+2 Peter = 2 Pe
+1 John = 1 Jo
+2 John = 2 Jo
+3 John = 3 Jo
+Jude = Jd
+Revelation = Ap
+""")
+
+IT_NAMES = _table("""
+Psalms = Salmo
+Ecclesiastes = Qoèlet | Qoelet
+Song of Solomon = Cantico
+Nahum = Naum
+Acts = Atti degli Apostoli
+""")
+IT_ABBR = _table("""
+Genesis = Gn | Gen
+Exodus = Es
+Leviticus = Lv
+Numbers = Nm
+Deuteronomy = Dt
+Joshua = Gs
+Judges = Gdc
+Ruth = Rt
+1 Samuel = 1 Sam
+2 Samuel = 2 Sam
+1 Kings = 1 Re
+2 Kings = 2 Re
+1 Chronicles = 1 Cr
+2 Chronicles = 2 Cr
+Ezra = Esd
+Nehemiah = Ne
+Esther = Est
+Job = Gb
+Psalms = Sal
+Proverbs = Pr
+Ecclesiastes = Qo | Ec
+Song of Solomon = Ct
+Isaiah = Is
+Jeremiah = Ger
+Lamentations = Lam
+Ezekiel = Ez
+Daniel = Dn
+Hosea = Os
+Joel = Gl
+Amos = Am
+Obadiah = Abd
+Jonah = Gio
+Micah = Mi
+Nahum = Na
+Habakkuk = Ab
+Zephaniah = Sof
+Haggai = Ag
+Zechariah = Zc
+Malachi = Ml
+Matthew = Mt
+Mark = Mc
+Luke = Lc
+John = Gv
+Acts = At
+Romans = Rm
+1 Corinthians = 1 Cor
+2 Corinthians = 2 Cor
+Galatians = Gal
+Ephesians = Ef
+Philippians = Fil
+Colossians = Col
+1 Thessalonians = 1 Ts
+2 Thessalonians = 2 Ts
+1 Timothy = 1 Tm
+2 Timothy = 2 Tm
+Titus = Tt
+Philemon = Fm
+Hebrews = Eb
+James = Gc
+1 Peter = 1 Pt
+2 Peter = 2 Pt
+1 John = 1 Gv
+2 John = 2 Gv
+3 John = 3 Gv
+Jude = Gd
+Revelation = Ap
+""")
+
+# Vulgate: the edition's own running titles, Nova Vulgata spellings, and the
+# names the earlier builds used (kept so old lookups still resolve).
+LA_NAMES = _table("""
+1 Samuel = Regum I | I Samuelis | 1 Samuelis | Samuelis I
+2 Samuel = Regum II | II Samuelis | 2 Samuelis | Samuelis II
+1 Kings = Regum III | III Regum
+2 Kings = Regum IV | IV Regum
+1 Chronicles = Paralipomenon I | I Chronicorum | 1 Paralipomenon
+2 Chronicles = Paralipomenon II | II Chronicorum | 2 Paralipomenon
+Ezra = Esdras | I Esdræ
+Nehemiah = II Esdræ | Nehemias
+Psalms = Psalmus | Liber Psalmorum
+Ecclesiastes = Qoheleth
+Song of Solomon = Canticum
+Wisdom = Liber Sapientiæ
+Sirach = Siracides | Sirach
+1 Maccabees = Machabæorum I | I Maccabæorum
+2 Maccabees = Machabæorum II | II Maccabæorum
+Matthew = Matthæum
+Mark = Marcum
+Luke = Lucam
+John = Joannem
+Acts = Actus
+Romans = ad Romanos
+1 Corinthians = ad Corinthios I
+2 Corinthians = ad Corinthios II
+Galatians = ad Galatas
+Ephesians = ad Ephesios
+Philippians = ad Philippenses
+Colossians = ad Colossenses
+1 Thessalonians = ad Thessalonicenses I
+2 Thessalonians = ad Thessalonicenses II
+1 Timothy = ad Timotheum I
+2 Timothy = ad Timotheum II
+Titus = ad Titum
+Philemon = ad Philemonem
+Hebrews = ad Hebræos
+1 Peter = Petri I
+2 Peter = Petri II
+1 John = Joannis I
+2 John = Joannis II
+3 John = Joannis III
+Revelation = Apocalypsis Joannis
+""")
+LA_LEGACY = _table("""
+Joshua = Iosue
+Judges = Iudicum
+1 Samuel = I Samuelis
+2 Samuel = II Samuelis
+Ezra = Esdrae
+Nehemiah = Nehemiae
+Job = Iob
+Jeremiah = Ieremias
+Joel = Ioel
+Jonah = Ionas
+Micah = Michaeas
+Haggai = Aggaeus
+Matthew = Matthaeus
+John = Ioannes
+Hebrews = Hebraeos
+James = Iacobi
+1 John = I Ioannis
+2 John = II Ioannis
+3 John = III Ioannis
+Jude = Iudae
+""")
+LA_ABBR = _table("""
+Genesis = Gn | Gen
+Exodus = Ex
+Leviticus = Lv
+Numbers = Nm
+Deuteronomy = Dt
+Joshua = Jos
+Judges = Jdc
+Ruth = Rt
+1 Samuel = 1 Rg | 1 Reg
+2 Samuel = 2 Rg | 2 Reg
+1 Kings = 3 Rg | 3 Reg
+2 Kings = 4 Rg | 4 Reg
+1 Chronicles = 1 Par
+2 Chronicles = 2 Par
+Ezra = Esd
+Nehemiah = Neh
+Tobit = Tob
+Judith = Jdt
+Esther = Est
+Job = Jb
+Psalms = Ps
+Proverbs = Prv | Prov
+Ecclesiastes = Eccl | Qo
+Song of Solomon = Ct | Cant
+Wisdom = Sap
+Sirach = Eccli | Sir
+Isaiah = Is
+Jeremiah = Jer
+Lamentations = Lam
+Baruch = Bar
+Ezekiel = Ez
+Daniel = Dn
+Hosea = Os
+Joel = Jl
+Amos = Am
+Obadiah = Abd
+Jonah = Jon
+Micah = Mich
+Nahum = Nah
+Habakkuk = Hab
+Zephaniah = Soph
+Haggai = Agg
+Zechariah = Zach
+Malachi = Mal
+1 Maccabees = 1 Mach
+2 Maccabees = 2 Mach
+Matthew = Mt
+Mark = Mc
+Luke = Lc
+John = Jo | Io
+Acts = Act
+Romans = Rom
+1 Corinthians = 1 Cor
+2 Corinthians = 2 Cor
+Galatians = Gal
+Ephesians = Eph
+Philippians = Phil
+Colossians = Col
+1 Thessalonians = 1 Thess
+2 Thessalonians = 2 Thess
+1 Timothy = 1 Tim
+2 Timothy = 2 Tim
+Titus = Tit
+Philemon = Philem
+Hebrews = Hebr
+James = Jac
+1 Peter = 1 Petr
+2 Peter = 2 Petr
+1 John = 1 Jo
+2 John = 2 Jo
+3 John = 3 Jo
+Jude = Jud
+Revelation = Apoc
+""")
+
+# Modern Greek names of the NT books (monotonic) and standard abbreviations
+EL_NAMES = _table("""
+Matthew = Ματθαίος | Ευαγγέλιο κατά Ματθαίον
+Mark = Μάρκος | Ευαγγέλιο κατά Μάρκον
+Luke = Λουκάς | Ευαγγέλιο κατά Λουκάν
+John = Ιωάννης | Ευαγγέλιο κατά Ιωάννην
+Acts = Πράξεις | Πράξεις των Αποστόλων
+Romans = Ρωμαίους | Προς Ρωμαίους
+1 Corinthians = Α΄ Κορινθίους | Α' Κορινθίους | Α Κορινθίους
+2 Corinthians = Β΄ Κορινθίους | Β' Κορινθίους | Β Κορινθίους
+Galatians = Γαλάτες | Γαλάτας
+Ephesians = Εφεσίους
+Philippians = Φιλιππησίους
+Colossians = Κολοσσαείς
+1 Thessalonians = Α΄ Θεσσαλονικείς | Α' Θεσσαλονικείς | Α Θεσσαλονικείς
+2 Thessalonians = Β΄ Θεσσαλονικείς | Β' Θεσσαλονικείς | Β Θεσσαλονικείς
+1 Timothy = Α΄ Τιμόθεον | Α' Τιμόθεον | Α Τιμόθεον
+2 Timothy = Β΄ Τιμόθεον | Β' Τιμόθεον | Β Τιμόθεον
+Titus = Τίτον | Τίτος
+Philemon = Φιλήμονα | Φιλήμων
+Hebrews = Εβραίους
+James = Ιακώβου | Ιάκωβος
+1 Peter = Α΄ Πέτρου | Α' Πέτρου | Α Πέτρου
+2 Peter = Β΄ Πέτρου | Β' Πέτρου | Β Πέτρου
+1 John = Α΄ Ιωάννου | Α' Ιωάννου | Α Ιωάννου
+2 John = Β΄ Ιωάννου | Β' Ιωάννου | Β Ιωάννου
+3 John = Γ΄ Ιωάννου | Γ' Ιωάννου | Γ Ιωάννου
+Jude = Ιούδα | Ιούδας
+Revelation = Αποκάλυψη | Αποκάλυψις
+""")
+EL_ABBR = _table("""
+Matthew = Μτ | Ματθ
+Mark = Μκ | Μαρκ
+Luke = Λκ | Λουκ
+John = Ιω | Ιωαν
+Acts = Πρξ | Πραξ
+Romans = Ρωμ
+1 Corinthians = Α΄ Κορ | Α' Κορ | Α Κορ | Κορ Α΄
+2 Corinthians = Β΄ Κορ | Β' Κορ | Β Κορ | Κορ Β΄
+Galatians = Γαλ
+Ephesians = Εφ
+Philippians = Φιλ
+Colossians = Κολ
+1 Thessalonians = Α΄ Θεσ | Α' Θεσ | Α Θεσ
+2 Thessalonians = Β΄ Θεσ | Β' Θεσ | Β Θεσ
+1 Timothy = Α΄ Τιμ | Α' Τιμ | Α Τιμ
+2 Timothy = Β΄ Τιμ | Β' Τιμ | Β Τιμ
+Titus = Τιτ
+Philemon = Φλμ | Φιλημ
+Hebrews = Εβρ
+James = Ιακ
+1 Peter = Α΄ Πετ | Α' Πετ | Α Πετ
+2 Peter = Β΄ Πετ | Β' Πετ | Β Πετ
+1 John = Α΄ Ιω | Α' Ιω | Α Ιω
+2 John = Β΄ Ιω | Β' Ιω | Β Ιω
+3 John = Γ΄ Ιω | Γ' Ιω | Γ Ιω
+Jude = Ιουδ
+Revelation = Απ | Αποκ
+""")
+
+
+# ── Alias generation ─────────────────────────────────────────
+
+def _forms(name: str, style: str) -> list[str]:
+    """Spelling variants of one book name that users type (no marks, …)."""
+    out = []
+    if style in ('latin', 'de'):
+        out.append(fold_latin(name))
+        if style == 'de':
+            out.append(german_umlaut(name))
+    elif style == 'el':
+        mono = greek_monotonic(name)
+        out += [mono, mono.replace('΄', "'"), name.replace('ʹ', "'"), greek_plain(name)]
+    elif style == 'ar':
+        out.append(name.translate(_HAMZA))
+    for n in list(out) + [name]:
+        out += numbered_variants(n, style)
+    return [o for o in dict.fromkeys(out) if o != name]
+
+
+def _chapter_patterns(style: str, psalm: bool):
+    if style == 'zh':
+        pats = ['{n} {c}', '{n}{c}', '{n}{c}章', '{n}第{c}章']
+        return pats + (['{n}{c}篇', '{n}第{c}篇', '{n} {c}篇'] if psalm else [])
+    if style == 'ja':
+        pats = ['{n} {c}', '{n}{c}', '{n}{c}章', '{n} {c}章', '{n}第{c}章']
+        return pats + (['{n}{c}篇', '{n}第{c}篇', '{n}{c}編', '{n}第{c}編'] if psalm else [])
+    if style == 'ko':
+        pats = ['{n} {c}', '{n}{c}', '{n} {c}장', '{n}{c}장']
+        return pats + (['{n} {c}편', '{n}{c}편'] if psalm else [])
+    if style == 'ar':
+        return ['{n} {c}', '{n} {ac}']
+    return ['{n} {c}']
+
+
+def _chapter_aliases(name: str, c: int, style: str, psalm: bool) -> list[str]:
+    return [p.format(n=name, c=c, ac=arabic_digits(c)) for p in _chapter_patterns(style, psalm)]
+
+
+class Book:
+    """Per-book naming for one Bible: display name, main-key name, aliases."""
+
+    def __init__(self, cfg: dict, book: str):
+        self.book = book
+        self.local = cfg['local'].get(book, book)
+        self.lxx = cfg.get('psalms') == 'lxx' and book == 'Psalms'
+        # Main keys use the English name, except LXX-numbered psalms, which are
+        # keyed by their own number under the local name ("Psalmi 22").
+        self.key_name = self.local if self.lxx else book
+
+    def key(self, c: int) -> str:
+        return f'{self.key_name} {c}'
+
+    def title(self, c: int) -> str:
+        return f'{self.local} {c}'
+
+
+def make_keys(cfg: dict, bible: Bible, books: dict[str, Book]) -> KeySet:
+    ks = KeySet(cfg['name'])
+    style = cfg['style']
+    cand: list[tuple[int, str, str, bool]] = []      # (rank, alias, target, multi)
+
+    def add(rank, alias, target, multi=False):
+        cand.append((rank, alias, target, multi))
+
+    for b, B in books.items():
+        chs = sorted(bible.books[b])
+        psalm = b == 'Psalms'
+        local_names = [(R_NAME, n) for n in cfg.get('names', {}).get(b, [])]
+        local_names += [(R_LEGACY, n) for n in cfg.get('legacy', {}).get(b, [])]
+        abbrs = cfg.get('abbr', {}).get(b, []) + cfg.get('short', {}).get(b, [])
+        for c in chs:
+            ks.add_main(B.key(c))
+        # Local names and their variants: same numbering as the main keys
+        groups = [(R_LOCAL, B.local)] + local_names
+        for rank, name in groups:
+            for c in chs:
+                for a in _chapter_aliases(name, c, style, psalm):
+                    add(rank, a, B.key(c))
+                for f in _forms(name, style):
+                    for a in _chapter_aliases(f, c, style, psalm):
+                        add(R_FOLD, a, B.key(c))
+        for name in abbrs:
+            for rank, f in [(R_ABBR, name)] + [(R_FOLD, f) for f in _forms(name, style)]:
+                for c in chs:
+                    for a in _chapter_aliases(f, c, style, psalm):
+                        add(rank, a, B.key(c))
+        # English names (Hebrew psalm numbering everywhere)
+        en_names = [(R_EN, n) for n in EN_NAMES.get(b, [])]
+        en_names += [(R_EN, v) for v in numbered_variants(b)]
+        m = re.match(r'^([123]) (.+)$', b)
+        if m:
+            en_names.append((R_EN, f'{_ORDINAL_EN[m.group(1)]} {m.group(2)}'))
+        en_names += [(R_EN_ABBR, n) for a in EN_ABBR.get(b, []) for n in [a] + numbered_variants(a)]
+        if B.lxx:
+            en_names.insert(0, (R_NAME, b))
+        for rank, name in en_names:
+            if B.lxx:
+                for h in range(1, 151):
+                    for n in hebrew_to_lxx(h):
+                        add(rank, f'{name} {h}', B.key(n), multi=True)
+            else:
+                for c in chs:
+                    add(rank, f'{name} {c}', B.key(c))
+        for alias, target in cfg.get('extra_aliases', {}).get(b, ()):
+            add(R_NAME, alias, target)
+        # Synodal: "Псалом 22" / "Пс 22" use the Synodal (Greek) numbering
+        if psalm and cfg.get('psalms') == 'synodal':
+            for name in ('Псалом', 'Пс', 'Пс.'):
+                for n in range(1, 151):
+                    for h in lxx_to_hebrew(n):
+                        add(R_NAME, f'{name} {n}', B.key(h), multi=True)
+            # "Пс 22:1": the source marks each verse whose Synodal number
+            # differs, e.g. Psalms 23:1 "(22:1) Псалом Давида…"
+            for c in chs:
+                for n, verse in bible.books[b][c].items():
+                    m = re.match(r'\((\d+):(\d+)\)', verse.text.plain())
+                    sn, sv = (int(m.group(1)), int(m.group(2))) if m else (c, n)
+                    for name in ('Пс', 'Псалом'):
+                        add(R_VERSE, f'{name} {sn}:{sv}', B.key(c))
+        # Verse references → the chapter
+        for c in chs:
+            vs = sorted({x for n, v in bible.books[b][c].items() for x in [n] + v.covers})
+            for v in vs:
+                for a in verse_refs(cfg, B, c, v):
+                    add(R_VERSE, a, B.key(c))
+                for a in verse_refs_folded(cfg, B, c, v):
+                    add(R_VERSE_FOLD, a, B.key(c))
+        if B.lxx:
+            for h in range(1, 151):
+                for v in range(1, KJV_VERSES['Psalms'][h - 1] + 1):
+                    for n in hebrew_to_lxx(h):
+                        add(R_VERSE, f'Psalms {h}:{v}', B.key(n), multi=True)
+    for rank, alias, target, multi in sorted(cand, key=lambda t: t[0]):
+        ks.add(alias, target, rank, multi)
+    return ks
+
+
+def verse_refs(cfg: dict, B: Book, c: int, v: int) -> list[str]:
+    """Verse-reference keys ("John 3:16") for one verse: the English name, the
+    local name and the forms native readers write."""
+    style = cfg['style']
+    out = []
+    if not B.lxx:
+        out.append(f'{B.book} {c}:{v}')
+        if B.book == 'Psalms':
+            out.append(f'Psalm {c}:{v}')
+    if B.local != B.book or B.lxx:
+        out.append(f'{B.local} {c}:{v}')
+    abbr = (cfg.get('abbr', {}).get(B.book) or [None])[0]
+    if style in ('zh', 'ja', 'ko'):
+        out.append(f'{B.local}{c}:{v}')
+    sep = cfg.get('verse_abbr')         # "Joh 3,16", "Jn 3:16", "1Cor 13:4"
+    if sep and abbr:
+        for a in _numbered_twins(abbr):
+            out.append(f'{a} {c}{sep}{v}')
+    short = (cfg.get('short', {}).get(B.book) or [None])[0]
+    if short:                           # "ヨハネ3:16", "マタイ 5:3"
+        out += [f'{short}{c}:{v}', f'{short} {c}:{v}']
+    if style == 'zh' and abbr:
+        out.append(f'{abbr}{c}:{v}')
+    if style == 'ko' and abbr:
+        out.append(f'{abbr} {c}:{v}')
+    for a in cfg.get('en_verse_abbr', {}).get(B.book, ()):
+        out += [f'{t} {c}:{v}' for t in _numbered_twins(a)]     # "1 Cor 13:4", "1Cor 13:4"
+    if style == 'ar':
+        out.append(f'{B.local} {arabic_digits(c)}:{arabic_digits(v)}')
+    if style == 'ru' and abbr and not (B.book == 'Psalms' and cfg.get('psalms') == 'synodal'):
+        out.append(f'{abbr} {c}:{v}')     # "Пс N" uses the Synodal numbering
+    if style == 'de':
+        out.append(f'{B.local} {c},{v}')
+    if style == 'el':
+        modern = (cfg.get('names', {}).get(B.book) or [None])[0]
+        if modern:
+            out.append(f'{modern} {c}:{v}')
+        if abbr:                        # "Ιω 3:16", "Α' Κορ 13:4"
+            for a in dict.fromkeys([abbr] + _forms(abbr, 'el')):
+                out.append(f'{a} {c}:{v}')
+    return out
+
+
+def verse_refs_folded(cfg: dict, B: Book, c: int, v: int) -> list[str]:
+    """Accent-free twins of the abbreviated verse references ("Ex 20:3" for
+    "Éx 20:3"); weaker than every exact form, so "Jo 3:16" stays John even
+    where Job's "Jó" folds to "Jo"."""
+    sep = cfg.get('verse_abbr')
+    abbr = (cfg.get('abbr', {}).get(B.book) or [None])[0]
+    if not (sep and abbr) or fold_latin(abbr) == abbr:
+        return []
+    return [f'{a} {c}{sep}{v}' for a in _numbered_twins(fold_latin(abbr))]
+
+
+def _numbered_twins(abbr: str) -> list[str]:
+    """'1 Cor' → ['1 Cor', '1Cor']; '1Kor' → ['1Kor', '1 Kor']."""
+    m = re.match(r'^([1-4])(\.?) ?(\D.*)$', abbr)
+    if not m:
+        return [abbr]
+    n, dot, rest = m.groups()
+    return list(dict.fromkeys([abbr, f'{n}{dot}{rest}', f'{n}{dot} {rest}']))
+
+
+# ═════════════════════════════════════════════════════════════
+# HTML
+# ═════════════════════════════════════════════════════════════
+
 CSS = get_css(
     SENSE_NUMBER_INLINE,
     extra_light=(
-        '.sub{font-size:1.15em;color:#6e6e73;display:block;margin-top:2px}'
-        '.sub2{font-size:1.15em;color:#0071e3;font-style:italic;display:block;margin-top:1px}'
+        f'.sub{{font-size:1.15em;color:{TEXT_SECONDARY[0]};display:block;margin-top:2px}}'
+        f'.sub2{{font-size:1.15em;color:{TEXT_LINK[0]};font-style:italic;display:block;margin-top:1px}}'
+        '.sub2 [lang=he]{font-style:normal}'
         '.gl{font-size:1.05em}'
+        '.sp{letter-spacing:.12em}'
+        f'.pt{{font-style:italic;color:{TEXT_SECONDARY[0]};margin:10px 2px 2px}}'
+        f'.nt{{font-size:0.85em;color:{TEXT_SECONDARY[0]}}}'
         '.nav{display:flex;justify-content:space-between;margin-top:12px;padding-top:8px;'
         'border-top:1px solid #e5e5ea;font-size:0.9em;color:#636366}'
-        '.nav a{color:#0071e3;text-decoration:none}'
+        f'.nav a{{color:{TEXT_LINK[0]};text-decoration:none}}'
     ),
     extra_dark=(
-        '.sub{color:#98989d}'
-        '.sub2{color:#64d2ff}'
+        f'.sub{{color:{TEXT_SECONDARY[1]}}}'
+        f'.sub2{{color:{TEXT_LINK[1]}}}'
+        f'.pt,.nt{{color:{TEXT_SECONDARY[1]}}}'
         '.nav{border-color:#38383a;color:#98989d}'
-        '.nav a{color:#64d2ff}'
+        f'.nav a{{color:{TEXT_LINK[1]}}}'
     ),
 )
 
 
-# ── Parsers ────────────────────────────────────────────────────
-
-def parse_osis(xml_path: Path) -> dict:
-    """Parse OSIS XML into {book_name: {chapter_num: {verse_num: text}}}."""
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-    ns = 'http://www.bibletechnologies.net/2003/OSIS/namespace'
-
-    bible = OrderedDict()
-
-    for verse_elem in root.iter(f'{{{ns}}}verse'):
-        osis_id = verse_elem.get('osisID')
-        if not osis_id:
-            continue
-
-        # Parse "Book.Chapter.Verse"
-        parts = osis_id.split('.')
-        if len(parts) != 3:
-            continue
-        book_code, chap_str, verse_str = parts
-        book_name = OSIS_BOOK_NAMES.get(book_code)
-        if not book_name:
-            continue
-
-        chap = int(chap_str)
-
-        # Handle sub-verse markers like "3!a" → 3
-        verse_num_str = re.split(r'[^0-9]', verse_str)[0]
-        if not verse_num_str:
-            continue
-        verse = int(verse_num_str)
-
-        # Extract text: either in tail (sID/eID pairs) or inside element
-        text = ''
-        s_id = verse_elem.get('sID')
-        if s_id:
-            # Text is in the tail after the opening <verse> tag
-            text = (verse_elem.tail or '').strip()
+def _subtitle(cfg: dict, B: Book, c: int) -> str:
+    rtl = cfg.get('rtl', False)
+    if cfg['script'] == 'latin':
+        if B.lxx:
+            heb = lxx_to_hebrew(c)
+            name, lang = HEBREW_BOOK_NAMES['Psalms'], 'he'
+            num = f'{heb[0]}–{heb[-1]}' if len(heb) > 1 else str(heb[0])
+            text = f'{name} {num}'
         else:
-            # Text is inside the <verse> element
-            text = ''.join(verse_elem.itertext()).strip()
-
-        if not text:
-            continue
-
-        if book_name not in bible:
-            bible[book_name] = OrderedDict()
-        if chap not in bible[book_name]:
-            bible[book_name][chap] = OrderedDict()
-
-        # Sub-verse (e.g. "3!b") appends to existing verse text
-        if verse in bible[book_name][chap] and verse_str != str(verse):
-            bible[book_name][chap][verse] += ' ' + text
-        else:
-            bible[book_name][chap][verse] = text
-
-    return bible
+            name, lang = original_name(B.book, c)
+            if not name:
+                return ''
+            text = f'{name} {c}'
+        inner = (f'<span{dir_attr("rtl", "he")}>{esc(text)}</span>' if lang == 'he'
+                 else f'<span lang="{lang}">{esc(text)}</span>')
+        return f'<span class="sub2">{inner}</span>'
+    text = f'{B.book} {c}'
+    if B.book == 'Psalms' and cfg.get('psalms') == 'synodal':
+        text += f' · Псалом {"/".join(map(str, hebrew_to_lxx(c)))} (синод.)'
+    if rtl:   # LTR island, aligned with the right-aligned headword
+        return f'<span class="sub"><span{dir_attr("ltr", "en")}>{esc(text)}</span></span>'
+    return f'<span class="sub" lang="en">{esc(text)}</span>'
 
 
-def parse_usfx(xml_path: Path) -> dict:
-    """Parse USFX XML into {book_name: {chapter_num: {verse_num: text}}}.
-
-    Handles two USFX variants:
-      1. Simple: text in <v> tail (CUV)
-      2. Strong's: text in <w> text/tail between <v> tags (RVR1909, etc.)
-    """
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-
-    bible = OrderedDict()
-    current_book = None
-    current_chap = None
-    current_verse = None
-    verse_text_parts = []
-
-    def _flush_verse():
-        nonlocal current_verse, verse_text_parts
-        if current_book and current_chap is not None and current_verse is not None:
-            text = ' '.join(verse_text_parts).strip()
-            # Normalize multiple spaces
-            text = re.sub(r'\s+', ' ', text)
-            if text:
-                if current_book not in bible:
-                    bible[current_book] = OrderedDict()
-                if current_chap not in bible[current_book]:
-                    bible[current_book][current_chap] = OrderedDict()
-                bible[current_book][current_chap][current_verse] = text
-        current_verse = None
-        verse_text_parts = []
-
-    for event, elem in ET.iterparse(xml_path, events=('start', 'end')):
-        tag = elem.tag.split('}')[-1] if '}' in elem.tag else elem.tag
-
-        if event == 'start':
-            if tag == 'book':
-                _flush_verse()
-                book_code = elem.get('id', '').upper()
-                current_book = USFX_BOOK_NAMES.get(book_code)
-
-            elif tag == 'c':
-                _flush_verse()
-                chap_id = elem.get('id')
-                if chap_id and current_book:
-                    current_chap = int(chap_id)
-
-            elif tag == 'v':
-                _flush_verse()
-                verse_id = elem.get('id')
-                if verse_id and current_book and current_chap is not None:
-                    current_verse = int(verse_id)
-                # Collect tail text after <v> tag
-                tail = (elem.tail or '').strip()
-                if tail and current_verse is not None:
-                    verse_text_parts.append(tail)
-
-            elif tag in ('w', 'add', 'wj') and current_verse is not None:
-                # <w> (Strong's word), <add> (added text), <wj> (words of Jesus)
-                t = (elem.text or '').strip()
-                if t:
-                    verse_text_parts.append(t)
-
-        elif event == 'end':
-            if tag in ('w', 'add', 'wj') and current_verse is not None:
-                tail = (elem.tail or '').strip()
-                if tail:
-                    verse_text_parts.append(tail)
-            elif tag == 've' and current_verse is not None:
-                # <ve/> = verse end marker; collect any tail
-                tail = (elem.tail or '').strip()
-                if tail:
-                    verse_text_parts.append(tail)
-            elif tag == 'p' and current_verse is not None:
-                # Paragraph boundaries: collect tail
-                tail = (elem.tail or '').strip()
-                if tail:
-                    verse_text_parts.append(tail)
-
-        # Free memory for completed elements
-        if event == 'end':
-            elem.clear()
-
-    _flush_verse()
-    return bible
+def chapter_html(cfg: dict, B: Book, c: int, verses: dict, prev, nxt) -> str:
+    rtl = cfg.get('rtl', False)
+    parts = []
+    if cfg.get('dir_label'):
+        parts.append(f'<span class="dir">{cfg["dir_label"]}</span>')
+    parts.append(f'<span class="hw">{esc(B.title(c))}</span>')
+    parts.append(_subtitle(cfg, B, c))
+    for n in sorted(verses):
+        v = verses[n]
+        if v.title is not None and not v.title.empty():
+            parts.append(f'<div class="pt">{v.title.html()}</div>')
+        parts.append(f'<div class="sn"><span class="sn-n">{esc(v.label or str(n))}</span> '
+                     f'<span class="gl">{v.text.html()}</span></div>')
+    if prev or nxt:
+        back, fwd = ('▶', '◀') if rtl else ('◀', '▶')
+        a = (f'<a href="entry://{esc_attr(prev[0])}">{back} {esc(prev[1])}</a>' if prev else '<span></span>')
+        b = (f'<a href="entry://{esc_attr(nxt[0])}">{esc(nxt[1])} {fwd}</a>' if nxt else '<span></span>')
+        parts.append(f'<div class="nav">{a}{b}</div>')
+    return wrap_entry(''.join(parts), CSS, rtl=rtl, lang=cfg['lang'])
 
 
-def parse_zefania(xml_path: Path) -> dict:
-    """Parse Zefania XML into {book_name: {chapter_num: {verse_num: text}}}.
-
-    Structure: <XMLBIBLE><BIBLEBOOK bnumber="N" bname="..."><CHAPTER cnumber="N"><VERS vnumber="N">text</VERS>
-    """
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-
-    bible = OrderedDict()
-
-    for book_elem in root.iter('BIBLEBOOK'):
-        bnumber = book_elem.get('bnumber')
-        if not bnumber:
-            continue
-        bnum = int(bnumber)
-        if bnum < 1 or bnum > len(ZEFANIA_BOOK_ORDER):
-            continue
-        book_name = ZEFANIA_BOOK_ORDER[bnum - 1]
-
-        if book_name not in bible:
-            bible[book_name] = OrderedDict()
-
-        for chap_elem in book_elem.iter('CHAPTER'):
-            cnumber = chap_elem.get('cnumber')
-            if not cnumber:
-                continue
-            chap = int(cnumber)
-            if chap not in bible[book_name]:
-                bible[book_name][chap] = OrderedDict()
-
-            for vers_elem in chap_elem.iter('VERS'):
-                vnumber = vers_elem.get('vnumber')
-                if not vnumber:
-                    continue
-                verse = int(vnumber)
-                text = ''.join(vers_elem.itertext()).strip()
-                if text:
-                    bible[book_name][chap][verse] = text
-
-    return bible
+def build_entries(cfg: dict, bible: Bible) -> tuple[list, KeySet, dict]:
+    books = {b: Book(cfg, b) for b in book_order(cfg)}
+    seq = [(b, c) for b in books for c in sorted(bible.books[b])]
+    entries, html_by_key = [], {}
+    for i, (b, c) in enumerate(seq):
+        prev = seq[i - 1] if i else None
+        nxt = seq[i + 1] if i + 1 < len(seq) else None
+        p = (books[prev[0]].key(prev[1]), books[prev[0]].title(prev[1])) if prev else None
+        n = (books[nxt[0]].key(nxt[1]), books[nxt[0]].title(nxt[1])) if nxt else None
+        html = chapter_html(cfg, books[b], c, bible.books[b][c], p, n)
+        key = books[b].key(c)
+        entries.append((key, html))
+        html_by_key[key] = html
+    ks = make_keys(cfg, bible, books)
+    return entries + ks.out, ks, html_by_key
 
 
-# ── HTML Builder ──────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# Bible configurations
+# ═════════════════════════════════════════════════════════════
 
-def build_chapter_html(book_name: str, chap: int, verses: dict,
-                       local_book_names: dict, total_chapters: int,
-                       is_latin_script: bool = True,
-                       dir_label: str = '') -> str:
-    """Build HTML for a chapter entry.
-
-    Layout for Latin-script Bibles (EN, ES, FR, DE, PT, IT, TR, LA):
-        .hw  = "Exodus 10"         (local name + chapter number)
-        .sub2 = "שְׁמוֹת 10"        (Hebrew/Greek original + chapter number)
-
-    Layout for CJK / non-Latin Bibles (ZH, JA, KO, AR, RU):
-        .hw  = "出埃及记 10"         (local name + chapter number)
-        .sub = "Exodus 10"          (English canonical name + chapter number)
-    """
-    local_name = local_book_names.get(book_name, book_name)
-    html_parts = [CSS, '<div class="e">']
-
-    # Direction label (header row)
-    if dir_label:
-        html_parts.append(f'<span class="dir">{dir_label}</span>')
-
-    # Headword: local name + chapter number
-    html_parts.append(f'<span class="hw">{esc(local_name)} {chap}</span>')
-
-    # Subtitle line(s)
-    if is_latin_script:
-        # Latin-script Bible: show original Hebrew/Greek name + chapter number
-        orig = get_original_name(book_name)
-        if orig:
-            html_parts.append(f'<span class="sub2">{esc(orig)} {chap}</span>')
-    else:
-        # CJK/non-Latin Bible: show English name as subtitle
-        html_parts.append(f'<span class="sub">{esc(book_name)} {chap}</span>')
-
-    for vnum in sorted(verses.keys()):
-        text = verses[vnum]
-        html_parts.append(
-            f'<div class="sn"><span class="sn-n">{vnum}</span> <span class="gl">{esc(text)}</span></div>'
-        )
-
-    # Navigation: prev (left) / next (right) via flexbox space-between
-    if chap > 1 or chap < total_chapters:
-        html_parts.append('<div class="nav">')
-        if chap > 1:
-            prev_key = f'{book_name} {chap - 1}'
-            local_prev = local_book_names.get(book_name, book_name)
-            html_parts.append(f'<a href="entry://{prev_key}">\u25C0 {esc(local_prev)} {chap - 1}</a>')
-        else:
-            html_parts.append('<span></span>')
-        if chap < total_chapters:
-            next_key = f'{book_name} {chap + 1}'
-            local_next = local_book_names.get(book_name, book_name)
-            html_parts.append(f'<a href="entry://{next_key}">{esc(local_next)} {chap + 1} \u25B6</a>')
-        else:
-            html_parts.append('<span></span>')
-        html_parts.append('</div>')
-
-    html_parts.append('</div>')
-    return ''.join(html_parts)
-
-
-# ── MDict Entry Builder ──────────────────────────────────────
-
-def build_entries(bible: dict, local_book_names: dict,
-                  is_latin_script: bool = True,
-                  dir_label: str = '') -> list:
-    """Build MDict entry pairs: [(headword, html_or_redirect), ...].
-
-    Only chapter-level entries are generated (no verse-level redirects).
-    """
-    entries = []
-
-    # Sort books in canonical order
-    ordered_books = sorted(
-        bible.keys(),
-        key=lambda b: BOOK_ORDER.index(b) if b in BOOK_ORDER else 999
-    )
-
-    for book_name in ordered_books:
-        chapters = bible[book_name]
-        total_chapters = max(chapters.keys()) if chapters else 0
-        local_name = local_book_names.get(book_name, book_name)
-
-        for chap in sorted(chapters.keys()):
-            verses = chapters[chap]
-            if not verses:
-                continue
-
-            # Chapter entry (primary)
-            chap_key = f'{book_name} {chap}'
-            html = build_chapter_html(book_name, chap, verses,
-                                       local_book_names, total_chapters,
-                                       is_latin_script, dir_label)
-            entries.append((chap_key, html))
-
-            # Local-name chapter alias: "创世记 1" → @@@LINK=Genesis 1
-            if local_name != book_name:
-                local_chap_key = f'{local_name} {chap}'
-                entries.append((local_chap_key, f'@@@LINK={chap_key}'))
-
-    return entries
-
-
-# ── MDX Packing ───────────────────────────────────────────────
-
-def pack_mdx(dict_dir: Path, name: str, entries: list,
-             title_str: str, desc_str: str) -> Path | None:
-    """Write entries and pack MDX for a Bible translation.
-    Returns the MDX path on success, None on failure."""
-    dict_dir.mkdir(parents=True, exist_ok=True)
-
-    slug = name.lower().replace("-", "_")
-    txt_path = dict_dir / f'{slug}_entries.txt'
-    mdx_path = dict_dir / f'{name}.mdx'
-
-    write_mdict_source(entries, txt_path)
-
-    success, size_mb, _ = _shared_pack_mdx(
-        txt_path, title_str, f'<p>{desc_str}</p>', mdx_path
-    )
-    if not success:
-        return None
-
-    chapter_entries = sum(1 for _, body in entries if not body.startswith('@@@LINK='))
-    total_entries = len(entries)
-    print(f'  \u2713 {mdx_path.name}: {size_mb:.1f} MB, {chapter_entries} chapters + {total_entries - chapter_entries} redirects')
-    return mdx_path
-
-
-# ── Bible Configurations ──────────────────────────────────────
+OPEN_BIBLES = '<a href="https://github.com/seven1m/open-bibles">Open Bibles</a>'
+GRATIS = '<a href="https://github.com/gratis-bible/bible">gratis-bible</a>'
+KJV_APOCRYPHA = frozenset({'Tob', 'Jdt', 'EsthGr', 'AddEsth', 'Wis', 'Sir', 'Bar', 'EpJer', 'PrAzar',
+                           'Sus', 'Bel', '1Macc', '2Macc', '1Esd', '2Esd', 'PrMan'})
 
 BIBLES = [
     {
         'name': 'Bible-KJV-EN',
-        'xml': DATA_DIR / 'kjv.osis.xml',
-        'format': 'osis',
-        'local_names': {},
-        'is_latin_script': True,
+        'src': DATA_DIR / 'kjv.osis.xml', 'format': 'osis',
+        'lang': 'en', 'style': 'latin', 'script': 'latin', 'local': {},
+        'omit_codes': KJV_APOCRYPHA,
+        # "Rom 8:28", "Mt 6:9": the usual English abbreviation at verse level
+        'en_verse_abbr': {b: EN_ABBR[b][:1] + (['Mt'] if b == 'Matthew' else []) for b in BOOK_ORDER},
         'dir_label': '✝️ → \U0001F1EC\U0001F1E7\U0001F1FA\U0001F1F8',  # ✝️ → 🇬🇧🇺🇸
         'title': 'King James Version (KJV)',
-        'desc': 'The King James Version of the Holy Bible (1611). Public Domain.',
+        'desc': ('The Holy Bible, King James Version (Authorized Version, 1611) in the standardized '
+                 'text of 1769: the 66 books of the Old and New Testaments, one entry per chapter '
+                 '(the Apocrypha is not included); look up “John 3” or “John 3:16”. Words supplied by '
+                 'the translators are in italics. Source: <a href="https://ebible.org/details.php?id=eng-kjv">'
+                 'eBible.org eng-kjv</a> via ' + OPEN_BIBLES + '. Public domain; in the United Kingdom the '
+                 'King James Version is under perpetual Crown copyright (letters patent). Converted by OpenMDict.'),
         'catalog_display_name': 'Bible — King James Version',
-        'catalog_description': 'The King James Version (1611) of the Holy Bible, 66 books with chapter-level entries. Public Domain.',
-        'catalog_direction': {'src': 'EN', 'dest': ['EN']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('The King James Version of the Holy Bible (1769 standard text): 66 books, '
+                                'one entry per chapter, verse references such as “John 3:16”. Public domain '
+                                '(Crown copyright in the UK).'),
+        'direction': {'src': 'EN', 'dest': ['EN']},
+        'data_source': 'Open Bibles (eBible.org eng-kjv, OSIS XML)',
     },
     {
         'name': 'Bible-CUV-ZH-Hans',
-        'xml': DATA_DIR / 'cuv-simp.usfx.xml',
-        'format': 'usfx',
-        'local_names': ZH_HANS_BOOK_NAMES,
-        'is_latin_script': False,
+        'src': DATA_DIR / 'cuv-simp.usfx.xml', 'format': 'usfx',
+        'lang': 'zh-Hans', 'style': 'zh', 'script': 'cjk', 'local': ZH_HANS_BOOK_NAMES,
+        'names': {b: ZH_HANS_NAMES.get(b, []) + [ZH_HANT_BOOK_NAMES[b]] for b in BOOK_ORDER},
+        'abbr': ZH_HANS_ABBR,
         'dir_label': '✝️ → \U0001F1E8\U0001F1F3',  # ✝️ → 🇨🇳
-        'title': '和合本圣经（简体）',
-        'desc': '中文和合本圣经（1919年），简体中文。公有领域。',
-        'catalog_display_name': '和合本圣经（简体）',
-        'catalog_description': '中文和合本圣经（1919年），简体中文。66卷，章级条目。公有领域。',
-        'catalog_direction': {'src': 'ZH', 'dest': ['ZH']},
-        'catalog_data_source': 'Open Bibles (USFX XML)',
+        'title': '新标点和合本圣经（简体）',
+        'desc': ('圣经·新标点和合本（1988 年出版，以 1919 年官话和合本为底本加新式标点修订），简体中文，“神”版。'
+                 '66 卷，每章一个词条，可查“约翰福音 3”“约3:16”。来源：'
+                 '<a href="https://ebible.org/details.php?id=cmn-cu89s">eBible.org cmn-cu89s</a>，经 '
+                 + OPEN_BIBLES + '。eBible.org 标注为公有领域。由 OpenMDict 转换。'),
+        'catalog_display_name': '新标点和合本圣经（简体）',
+        'catalog_description': ('圣经新标点和合本（1919 年和合本的新式标点版，1988），简体中文，66 卷，'
+                                '按章收录，可查“约3:16”。公有领域（据 eBible.org）。'),
+        'direction': {'src': 'ZH', 'dest': ['ZH']},
+        'data_source': 'Open Bibles (eBible.org cmn-cu89s, USFX XML)',
     },
     {
         'name': 'Bible-CUV-ZH-Hant',
-        'xml': DATA_DIR / 'cuv-trad.usfx.xml',
-        'format': 'usfx',
-        'local_names': ZH_HANT_BOOK_NAMES,
-        'is_latin_script': False,
+        'src': DATA_DIR / 'cuv-trad.usfx.xml', 'format': 'usfx',
+        'lang': 'zh-Hant', 'style': 'zh', 'script': 'cjk', 'local': ZH_HANT_BOOK_NAMES,
+        'names': {b: ZH_HANT_NAMES.get(b, []) + [ZH_HANS_BOOK_NAMES[b]] for b in BOOK_ORDER},
+        'abbr': ZH_HANT_ABBR,
         'dir_label': '✝️ → \U0001F1F9\U0001F1FC\U0001F1ED\U0001F1F0',  # ✝️ → 🇹🇼🇭🇰
-        'title': '和合本聖經（繁體）',
-        'desc': '中文和合本聖經（1919年），繁體中文。公有領域。',
-        'catalog_display_name': '和合本聖經（繁體）',
-        'catalog_description': '中文和合本聖經（1919年），繁體中文。66卷，章級條目。公有領域。',
-        'catalog_direction': {'src': 'ZH', 'dest': ['ZH']},
-        'catalog_data_source': 'Open Bibles (USFX XML)',
+        'title': '新標點和合本聖經（繁體）',
+        'desc': ('聖經·新標點和合本（1988 年出版，以 1919 年官話和合本為底本加新式標點修訂），繁體中文，「神」版。'
+                 '66 卷，每章一個詞條，可查「約翰福音 3」「約3:16」。來源：'
+                 '<a href="https://ebible.org/details.php?id=cmn-cu89t">eBible.org cmn-cu89t</a>，經 '
+                 + OPEN_BIBLES + '。eBible.org 標註為公有領域。由 OpenMDict 轉換。'),
+        'catalog_display_name': '新標點和合本聖經（繁體）',
+        'catalog_description': ('聖經新標點和合本（1919 年和合本的新式標點版，1988），繁體中文，66 卷，'
+                                '按章收錄，可查「約3:16」。公有領域（據 eBible.org）。'),
+        'direction': {'src': 'ZH', 'dest': ['ZH']},
+        'data_source': 'Open Bibles (eBible.org cmn-cu89t, USFX XML)',
     },
     {
         'name': 'Bible-Kougo-JA',
-        'xml': DATA_DIR / 'kougo.osis.xml',
-        'format': 'osis',
-        'local_names': JA_BOOK_NAMES,
-        'is_latin_script': False,
+        'src': DATA_DIR / 'kougo.osis.xml', 'format': 'osis',
+        'lang': 'ja', 'style': 'ja', 'script': 'cjk', 'local': JA_BOOK_NAMES,
+        'names': JA_NAMES, 'abbr': JA_ABBR, 'short': JA_SHORT, 'fixups': ['kougo'],
         'dir_label': '✝️ → \U0001F1EF\U0001F1F5',  # ✝️ → 🇯🇵
         'title': '口語訳聖書',
-        'desc': '口語訳聖書（1954-1955年）。パブリックドメイン。',
+        'desc': ('口語訳聖書（日本聖書協会、新約 1954 年・旧約 1955 年）。66 巻、各章 1 項目。'
+                 '「ヨハネによる福音書 3」「ヨハネ 3」「ヨハネ3:16」などで引けます。'
+                 '出典：' + OPEN_BIBLES + '（jpn-kougo.osis.xml）。日本では著作権の保護期間が満了した'
+                 'パブリックドメイン。OpenMDict が変換。'),
         'catalog_display_name': '口語訳聖書',
-        'catalog_description': '口語訳聖書（1954-1955年）。66巻、章レベルのエントリ。パブリックドメイン。',
-        'catalog_direction': {'src': 'JA', 'dest': ['JA']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('口語訳聖書（1954/1955 年）。66 巻、章ごとの項目、「ヨハネ 3」「ヨハネ3:16」'
+                                '形式の検索に対応。パブリックドメイン（日本）。'),
+        'direction': {'src': 'JA', 'dest': ['JA']},
+        'data_source': 'Open Bibles (jpn-kougo, OSIS XML)',
     },
     {
         'name': 'Bible-RV1909-ES',
-        'xml': DATA_DIR / 'spa-rv1909.usfx.xml',
-        'format': 'usfx',
-        'local_names': ES_BOOK_NAMES,
-        'is_latin_script': True,
+        'src': DATA_DIR / 'spa-rv1909.usfx.xml', 'format': 'usfx',
+        'lang': 'es', 'style': 'latin', 'script': 'latin', 'local': ES_BOOK_NAMES,
+        'names': ES_NAMES, 'abbr': ES_ABBR, 'verse_abbr': ':',
+        # Verse slots the source leaves empty: their text is numbered as part of
+        # the next chapter (Hebrew versification), e.g. Jonah 1:17 → 2:1.
+        'allow_empty': {('Numbers', 12, 16), ('Numbers', 29, 40), ('1 Samuel', 23, 29),
+                        ('2 Samuel', 20, 26), ('2 Chronicles', 33, 25), ('Job', 35, 16),
+                        ('Job', 38, 39), ('Job', 38, 40), ('Job', 38, 41), ('Job', 40, 20),
+                        ('Job', 40, 21), ('Job', 40, 22), ('Job', 40, 23), ('Job', 40, 24),
+                        ('Hosea', 11, 12), ('Jonah', 1, 17), ('Acts', 19, 41),
+                        ('2 Corinthians', 13, 14)},
         'dir_label': '✝️ → \U0001F1EA\U0001F1F8',  # ✝️ → 🇪🇸
         'title': 'Santa Biblia — Reina-Valera 1909',
-        'desc': 'La Santa Biblia, versión Reina-Valera (1909). Dominio público.',
+        'desc': ('La Santa Biblia, versión Reina-Valera revisada en 1909: 66 libros, una entrada por '
+                 'capítulo; busque «Juan 3», «Juan 3:16» o «Jn 3:16». Las palabras en cursiva son añadidas por los '
+                 'traductores. Fuente: <a href="https://ebible.org/details.php?id=spaRV1909">eBible.org '
+                 'spaRV1909</a> vía ' + OPEN_BIBLES + '. Dominio público. Convertido por OpenMDict.'),
         'catalog_display_name': 'Santa Biblia — Reina-Valera 1909',
-        'catalog_description': 'La Santa Biblia, versión Reina-Valera (1909). 66 libros. Dominio público.',
-        'catalog_direction': {'src': 'ES', 'dest': ['ES']},
-        'catalog_data_source': 'Open Bibles (USFX XML)',
+        'catalog_description': ('La Santa Biblia, versión Reina-Valera (1909). 66 libros, una entrada por '
+                                'capítulo, búsqueda por «Juan 3:16». Dominio público.'),
+        'direction': {'src': 'ES', 'dest': ['ES']},
+        'data_source': 'Open Bibles (eBible.org spaRV1909, USFX XML)',
     },
     {
         'name': 'Bible-Darby-FR',
-        'xml': DATA_DIR / 'fra-darby.osis.xml',
-        'format': 'osis',
-        'local_names': FR_BOOK_NAMES,
-        'is_latin_script': True,
+        'src': DATA_DIR / 'fra-darby.osis.xml', 'format': 'osis',
+        'lang': 'fr', 'style': 'latin', 'script': 'latin', 'local': FR_BOOK_NAMES,
+        'names': FR_NAMES, 'abbr': FR_ABBR, 'verse_abbr': ':', 'fixups': ['darby'],
         'dir_label': '✝️ → \U0001F1EB\U0001F1F7',  # ✝️ → 🇫🇷
         'title': 'Bible Darby (français)',
-        'desc': 'La Bible, traduction J.N. Darby (1859-1880). Domaine public.',
+        'desc': ('La Sainte Bible, traduction de J. N. Darby (Nouveau Testament 1859, Bible complète '
+                 '1885) : 66 livres, une entrée par chapitre ; cherchez « Jean 3 », « Jean 3:16 » ou « Jn 3:16 ». '
+                 'Les astérisques (*Dieu, *Seigneur) sont ceux du texte de Darby ; les références entre '
+                 'parenthèses, p. ex. (5:20), donnent la numérotation hébraïque. Source : ' + GRATIS +
+                 ' (fr/frdarb.xml, d’après The Unbound Bible). Domaine public. Converti par OpenMDict.'),
         'catalog_display_name': 'Bible Darby (français)',
-        'catalog_description': 'La Bible, traduction J.N. Darby (1859-1880). 66 livres. Domaine public.',
-        'catalog_direction': {'src': 'FR', 'dest': ['FR']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('La Bible, traduction J. N. Darby (1859/1885). 66 livres, une entrée par '
+                                'chapitre, recherche « Jean 3:16 ». Domaine public.'),
+        'direction': {'src': 'FR', 'dest': ['FR']},
+        'data_source': 'gratis-bible (frdarb, OSIS XML)',
     },
     {
         'name': 'Bible-Luther1912-DE',
-        'xml': DATA_DIR / 'deu-luther1912.osis.xml',
-        'format': 'osis',
-        'local_names': DE_BOOK_NAMES,
-        'is_latin_script': True,
+        'src': DATA_DIR / 'deu-luther1912.osis.xml', 'format': 'osis',
+        'lang': 'de', 'style': 'de', 'script': 'latin', 'local': DE_BOOK_NAMES,
+        'names': DE_NAMES, 'abbr': DE_ABBR, 'verse_abbr': ',', 'notes': 'inline',
+        # KJV Malachi 4 is Malachi 3:19–24 in the Hebrew chapter division
+        'extra_aliases': {'Malachi': [('Malachi 4', 'Malachi 3'), ('Maleachi 4', 'Malachi 3'),
+                                      ('Mal 4', 'Malachi 3')]},
+        'chapters': {'Joel': 4, 'Malachi': 3},
+        # Hebrew chapter division (Num 17 = KJV 16:36–17:13, 1 Kgs 5 = KJV 4:21–5:18, Joel 3–4)
+        'shape_skip': {('Numbers', 17), ('1 Kings', 5), ('Joel', 2), ('Joel', 3), ('Malachi', 3)},
         'dir_label': '✝️ → \U0001F1E9\U0001F1EA',  # ✝️ → 🇩🇪
         'title': 'Lutherbibel 1912',
-        'desc': 'Die Bibel, Lutherübersetzung (1912). Gemeinfrei.',
+        'desc': ('Die Bibel nach der Übersetzung Martin Luthers, revidierter Text von 1912: 66 Bücher, '
+                 'ein Eintrag pro Kapitel; suchen Sie „Johannes 3“, „Joh 3“, „Johannes 3,16“ oder „Joh 3,16“. '
+                 'Kapitelzählung nach der hebräischen Bibel (Joel 4, Maleachi 3). Worterklärungen der '
+                 'Vorlage stehen in eckigen Klammern. Quelle: ' + OPEN_BIBLES + ' (deu-luther1912.osis.xml, '
+                 'Free Bible Software Group). Gemeinfrei. Konvertiert von OpenMDict.'),
         'catalog_display_name': 'Lutherbibel 1912',
-        'catalog_description': 'Die Bibel, Lutherübersetzung (1912). 66 Bücher. Gemeinfrei.',
-        'catalog_direction': {'src': 'DE', 'dest': ['DE']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('Die Bibel, Lutherübersetzung (1912). 66 Bücher, ein Eintrag pro Kapitel, '
+                                'Suche nach „Joh 3“ oder „Joh 3,16“. Gemeinfrei.'),
+        'direction': {'src': 'DE', 'dest': ['DE']},
+        'data_source': 'Open Bibles (deu-luther1912, OSIS XML)',
     },
     {
         'name': 'Bible-Almeida-PT',
-        'xml': DATA_DIR / 'por-almeida.usfx.xml',
-        'format': 'usfx',
-        'local_names': PT_BOOK_NAMES,
-        'is_latin_script': True,
+        'src': DATA_DIR / 'open-bibles-f257a35' / 'por-almeida.usfx.xml', 'format': 'usfx',
+        'lang': 'pt', 'style': 'latin', 'script': 'latin', 'local': PT_BOOK_NAMES,
+        'names': PT_NAMES, 'abbr': PT_ABBR, 'verse_abbr': ':', 'fixups': ['almeida'],
         'dir_label': '✝️ → \U0001F1F5\U0001F1F9\U0001F1E7\U0001F1F7',  # ✝️ → 🇵🇹🇧🇷
         'title': 'Bíblia Sagrada — Almeida',
-        'desc': 'Bíblia Sagrada, tradução de João Ferreira de Almeida. Domínio público.',
+        'desc': ('Bíblia Sagrada, tradução de João Ferreira de Almeida com '
+                 'ortografia brasileira: 66 livros, uma '
+                 'entrada por capítulo; pesquise «João 3», «João 3:16» ou «Jo 3:16». Os colchetes [ ] são os '
+                 'do texto de origem. Em sete capítulos a fonte perdeu o número de um versículo; a numeração '
+                 'foi corrigida (versículos unidos aparecem como 4–5; Lucas 9:61 falta na fonte). Fonte: ' + OPEN_BIBLES +
+                 ' (por-almeida.usfx.xml, commit f257a35), que o declara de domínio público. '
+                 'Convertido por OpenMDict.'),
         'catalog_display_name': 'Bíblia Sagrada — Almeida',
-        'catalog_description': 'Bíblia Sagrada, tradução de João Ferreira de Almeida. 66 livros. Domínio público.',
-        'catalog_direction': {'src': 'PT', 'dest': ['PT']},
-        'catalog_data_source': 'Open Bibles (USFX XML)',
+        'catalog_description': ('Bíblia Sagrada, tradução de João Ferreira de Almeida'
+                                '. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». '
+                                'Domínio público.'),
+        'direction': {'src': 'PT', 'dest': ['PT']},
+        'data_source': 'Open Bibles @f257a35 (por-almeida, USFX XML)',
     },
     {
         'name': 'Bible-Synodal-RU',
-        'xml': DATA_DIR / 'rus-synodal.zefania.xml',
-        'format': 'zefania',
-        'local_names': RU_BOOK_NAMES,
-        'is_latin_script': False,
+        'src': DATA_DIR / 'rus-synodal.zefania.xml', 'format': 'zefania',
+        'lang': 'ru', 'style': 'ru', 'script': 'cyrillic', 'local': RU_BOOK_NAMES,
+        'names': RU_NAMES, 'abbr': RU_ABBR, 'psalms': 'synodal',
+        'chapters': {'Daniel': 14, 'Joel': 4, 'Malachi': 4},
+        # Hebrew chapter division; Daniel 3 includes the Prayer of Azariah (3:24–90)
+        'shape_skip': {('Numbers', 17), ('1 Kings', 5), ('Daniel', 3), ('Joel', 3)},
         'dir_label': '✝️ → \U0001F1F7\U0001F1FA',  # ✝️ → 🇷🇺
         'title': 'Синодальный перевод',
-        'desc': 'Библия, Синодальный перевод (1876). Общественное достояние.',
+        'desc': ('Библия, Синодальный перевод (1876; текст издания 1956 г.): 66 книг, по одной статье на '
+                 'главу; ищите «Иоанн 3», «От Иоанна 3», «Ин 3:16». Главы Псалтири пронумерованы по '
+                 'еврейскому тексту, синодальный номер стиха стоит в скобках, например (22:1); '
+                 '«Псалом 22» и «Пс 22» открывают псалом по синодальной нумерации. Источник: ' + OPEN_BIBLES +
+                 ' (rus-synodal.zefania.xml; текст предоставлен «Light in East Germany»). Общественное '
+                 'достояние. Преобразовано OpenMDict.'),
         'catalog_display_name': 'Синодальный перевод',
-        'catalog_description': 'Библия, Синодальный перевод (1876). 66 книг. Общественное достояние.',
-        'catalog_direction': {'src': 'RU', 'dest': ['RU']},
-        'catalog_data_source': 'Open Bibles (Zefania XML)',
+        'catalog_description': ('Библия, Синодальный перевод (1876). 66 книг, по одной статье на главу, '
+                                'поиск «Ин 3:16» и «Псалом 22». Общественное достояние.'),
+        'direction': {'src': 'RU', 'dest': ['RU']},
+        'data_source': 'Open Bibles (rus-synodal, Zefania XML)',
     },
     {
         'name': 'Bible-Korean-KO',
-        'xml': DATA_DIR / 'kor-korean.osis.xml',
-        'format': 'osis',
-        'local_names': KO_BOOK_NAMES,
-        'is_latin_script': False,
+        'src': DATA_DIR / 'crosswire' / 'KorRV-2.0.1.zip', 'format': 'sword',
+        'lang': 'ko', 'style': 'ko', 'script': 'hangul', 'local': KO_BOOK_NAMES,
+        'legacy': KO_NAMES, 'abbr': KO_ABBR, 'fixups': ['korrv'],
         'dir_label': '✝️ → \U0001F1F0\U0001F1F7',  # ✝️ → 🇰🇷
         'title': '성경 (개역한글)',
-        'desc': '한국어 성경 (1910). 퍼블릭 도메인.',
+        'desc': ('성경전서 개역한글판(대한성서공회, 1961): 66권, 장마다 한 항목. “요한복음 3”, “요 3장”, '
+                 '“요한복음 3:16”으로 찾을 수 있습니다. 개역한글판에 없는 절은 “(없음)”으로 표시합니다. 출처: '
+                 '<a href="https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV">CrossWire SWORD '
+                 'KorRV 2.0.1</a>(위키문헌 텍스트). 한국에서 저작권 보호기간이 끝난 퍼블릭 도메인. '
+                 'OpenMDict 변환.'),
         'catalog_display_name': '성경 (개역한글)',
-        'catalog_description': '한국어 성경 (1910). 66권. 퍼블릭 도메인.',
-        'catalog_direction': {'src': 'KO', 'dest': ['KO']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('성경전서 개역한글판 (1961). 66권, 장별 항목, “요 3:16” 형식 검색. '
+                                '퍼블릭 도메인 (한국).'),
+        'direction': {'src': 'KO', 'dest': ['KO']},
+        'data_source': 'CrossWire SWORD KorRV 2.0.1 (Wikisource)',
     },
     {
         'name': 'Bible-SVD-AR',
-        'xml': DATA_DIR / 'ar-svd.osis.xml',
-        'format': 'osis',
-        'local_names': AR_BOOK_NAMES,
-        'is_latin_script': False,
-        'dir_label': '✝️ → \U0001F1F8\U0001F1E6',  # ✝️ → 🇸🇦
+        'src': DATA_DIR / 'ar-svd.osis.xml', 'format': 'osis',
+        'lang': 'ar', 'style': 'ar', 'script': 'arabic', 'rtl': True, 'local': AR_BOOK_NAMES,
+        'names': AR_NAMES, 'fixups': ['svd'],
+        # The upstream file labels 1 Chronicles '2Chr' and 2 Chronicles 'Ezra'
+        'div_book_override': {13: ('2Chr', '1Chr'), 14: ('Ezra', '2Chr'), 15: ('Ezra', 'Ezra')},
+        'dir_label': '✝️ ← \U0001F1F8\U0001F1E6',  # ✝️ ← 🇸🇦 (reads right to left)
         'title': 'الكتاب المقدس — ترجمة فان دايك',
-        'desc': 'الكتاب المقدس، ترجمة سميث-فان دايك (1865). ملكية عامة.',
+        'desc': ('الكتاب المقدس، ترجمة سميث وفان دايك (1865): 66 سفرًا، مدخل لكل أصحاح؛ ابحث عن «يوحنا 3» '
+                 'أو «يوحنا ٣:١٦». المصدر: ' + GRATIS + ' (ar/arasvd.xml)، مع تصحيح تسمية سفري أخبار الأيام '
+                 'الأول والثاني، وإكمال رسالة يوحنا الثالثة 1:1 من '
+                 '<a href="https://ebible.org/details.php?id=arb-vd">eBible.org arb-vd</a>. ملكية عامة. '
+                 'حوّله OpenMDict.'),
         'catalog_display_name': 'الكتاب المقدس — ترجمة فان دايك',
-        'catalog_description': 'الكتاب المقدس، ترجمة سميث-فان دايك (1865). ملكية عامة.',
-        'catalog_direction': {'src': 'AR', 'dest': ['AR']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('الكتاب المقدس، ترجمة سميث-فان دايك (1865). 66 سفرًا، مدخل لكل أصحاح، '
+                                'والبحث بصيغة «يوحنا 3:16». ملكية عامة.'),
+        'direction': {'src': 'AR', 'dest': ['AR']},
+        'data_source': 'gratis-bible (arasvd, OSIS XML)',
     },
     {
         'name': 'Bible-Diodati-IT',
-        'xml': DATA_DIR / 'it-diodati.osis.xml',
-        'format': 'osis',
-        'local_names': IT_BOOK_NAMES,
-        'is_latin_script': True,
+        'src': DATA_DIR / 'it-diodati.osis.xml', 'format': 'osis',
+        'lang': 'it', 'style': 'latin', 'script': 'latin', 'local': IT_BOOK_NAMES,
+        'names': IT_NAMES, 'abbr': IT_ABBR, 'verse_abbr': ':', 'fixups': ['diodati'],
         'dir_label': '✝️ → \U0001F1EE\U0001F1F9',  # ✝️ → 🇮🇹
         'title': 'La Bibbia — Diodati',
-        'desc': 'La Sacra Bibbia, traduzione di Giovanni Diodati. Dominio pubblico.',
+        'desc': ('La Sacra Bibbia, traduzione di Giovanni Diodati: 66 libri, una voce per capitolo; '
+                 'cercate «Giovanni 3», «Giovanni 3:16» o «Gv 3:16». Fonte: ' + GRATIS + ' (it/itadio.xml). '
+                 'Pubblico dominio. Convertito da OpenMDict.'),
         'catalog_display_name': 'La Bibbia — Diodati',
-        'catalog_description': 'La Sacra Bibbia, traduzione di Giovanni Diodati. 66 libri. Dominio pubblico.',
-        'catalog_direction': {'src': 'IT', 'dest': ['IT']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('La Sacra Bibbia, traduzione di Giovanni Diodati. 66 libri, una voce per '
+                                'capitolo, ricerca «Giovanni 3:16». Pubblico dominio.'),
+        'direction': {'src': 'IT', 'dest': ['IT']},
+        'data_source': 'gratis-bible (itadio, OSIS XML)',
     },
     {
         'name': 'Bible-Vulgate-LA',
-        'xml': DATA_DIR / 'la-vulgate.osis.xml',
-        'format': 'osis',
-        'local_names': LA_BOOK_NAMES,
-        'is_latin_script': True,
-        'dir_label': '✝️ → \U0001F3DB\uFE0F',  # ✝️ → 🏛️
+        'src': DATA_DIR / 'open-bibles-f257a35' / 'lat-clementine.usfx.xml', 'format': 'usfx',
+        'lang': 'la', 'style': 'latin', 'script': 'latin', 'local': LA_BOOK_NAMES,
+        'names': LA_NAMES, 'legacy': LA_LEGACY, 'abbr': LA_ABBR,
+        'deutero': True, 'psalms': 'lxx',
+        'garbled_words': re.compile(r'\b(?:qu|Qu|clum|tenebr|Isral|Hc|hc|prcepit|gypti|terr|dificavit)\b'),
+        'chapters': {'Esther': 16, 'Daniel': 14},
+        # LXX psalm numbering; Greek additions in Esther 10 and Daniel 3
+        'shape_skip': {'Psalms', ('Esther', 10), ('Daniel', 3)},
+        'dir_label': '✝️ → \U0001F3DB️',  # ✝️ → 🏛️
         'title': 'Biblia Sacra Vulgata',
-        'desc': 'Biblia Sacra Vulgata (Clementina). In publico dominio.',
+        'desc': ('Biblia Sacra juxta Vulgatam Clementinam (1592): 73 libri, inter quos Tobiæ, Judith, '
+                 'Sapientia, Ecclesiasticus, Baruch et Machabæorum I–II; singula capita singulis articulis. '
+                 'Psalmi secundum numerationem Vulgatæ numerantur (Psalmi 22 = Hebr. 23); Anglice “Psalms 23” '
+                 'numerationem Hebraicam sequitur. Regum I–IV = 1–2 Samuel et 1–2 Kings. Fons: ' + OPEN_BIBLES +
+                 ' (lat-clementine.usfx.xml, commit f257a35). In publico dominio. OpenMDict convertit.'),
         'catalog_display_name': 'Biblia Sacra Vulgata',
-        'catalog_description': 'Biblia Sacra Vulgata (Clementina). In publico dominio.',
-        'catalog_direction': {'src': 'LA', 'dest': ['LA']},
-        'catalog_data_source': 'Open Bibles (OSIS XML)',
+        'catalog_description': ('Biblia Sacra Vulgata (Clementina, 1592): 73 libri cum deuterocanonicis, '
+                                'singula capita; Psalmi secundum Vulgatam. In publico dominio.'),
+        'direction': {'src': 'LA', 'dest': ['LA']},
+        'data_source': 'Open Bibles @f257a35 (lat-clementine, USFX XML)',
     },
     {
         'name': 'Bible-Byzantine-GRC',
-        'xml': DATA_DIR / 'grc-byzantine.usfx.xml',
-        'format': 'usfx',
-        'local_names': GREEK_BOOK_NAMES,
-        'is_latin_script': False,
+        'src': DATA_DIR / 'grc-byzantine.usfx.xml', 'format': 'usfx',
+        'lang': 'grc', 'style': 'el', 'script': 'greek', 'local': GREEK_BOOK_NAMES,
+        'names': EL_NAMES, 'abbr': EL_ABBR, 'testament': 'nt',
+        # bdit: Old Testament quotations; it: the 1904 edition's letter-spaced emphasis
+        'usfx_italic': ('bdit',), 'usfx_spaced': ('it',),
         'dir_label': '✝️ → \U0001F1EC\U0001F1F7',  # ✝️ → 🇬🇷
         'title': 'Ἡ Καινὴ Διαθήκη (1904)',
-        'desc': 'Πατριαρχικὸν Κείμενον τῆς Καινῆς Διαθήκης (1904). Δημόσιος τομέας.',
+        'desc': ('Ἡ Καινὴ Διαθήκη, Πατριαρχικὸν κείμενον (1904): 27 βιβλία, ἓν λῆμμα ἀνὰ κεφάλαιον· '
+                 'αναζήτηση «Ιωάννης 3», «Κατά Ιωάννην 3», «Ιω 3:16» ή «John 3:16». Οι παραθέσεις από την '
+                 'Παλαιά Διαθήκη σε πλάγια· οι λέξεις που η έκδοση του 1904 τονίζει με αραιά στοιχεία '
+                 'εμφανίζονται αραιωμένες. Πηγή: <a href="https://ebible.org/details.php?id=grcbyz">'
+                 'eBible.org grcbyz</a>. Δημόσιος τομέας. Μετατροπή: OpenMDict.'),
         'catalog_display_name': 'Ἡ Καινὴ Διαθήκη (1904)',
-        'catalog_description': 'Πατριαρχικὸν Κείμενον τῆς Καινῆς Διαθήκης (1904). New Testament only (27 books). Public Domain.',
-        'catalog_direction': {'src': 'EL', 'dest': ['EL']},
-        'catalog_data_source': 'eBible.org (USFX XML)',
+        'catalog_description': ('Πατριαρχικὸν Κείμενον τῆς Καινῆς Διαθήκης (1904): the Greek New Testament '
+                                '(27 books), one entry per chapter, searchable as «Ιωάννης 3» or “John 3:16”. '
+                                'Public domain.'),
+        'direction': {'src': 'EL', 'dest': ['EL']},
+        'data_source': 'eBible.org grcbyz (USFX XML)',
     },
 ]
 
 
-# ── Preview ──────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# Build
+# ═════════════════════════════════════════════════════════════
 
+PARSERS = {'osis': (parse_osis, count_osis_source), 'usfx': (parse_usfx, count_usfx_source),
+           'zefania': (parse_zefania, count_zefania_source), 'sword': (parse_sword, count_sword_source)}
 SAMPLE_CHAPTERS = [('Genesis', 1), ('Psalms', 23), ('John', 3)]
 
 
-def _generate_preview(bible: dict, local_book_names: dict,
-                      is_latin_script: bool, dict_dir: Path, name: str,
-                      dir_label: str = ''):
-    """Generate a preview HTML for a Bible translation."""
-    slug = name.lower().replace("-", "_")
-    entries_html = []
+def load_bible(cfg: dict, log: list) -> Bible:
+    parse, count = PARSERS[cfg['format']]
+    source_count = count(cfg['src'], cfg)
+    bible = parse(cfg['src'], cfg, log)
+    check_parse(bible, cfg, source_count)
+    for b, c, n, v in bible.all_verses():
+        v.text.normalize()
+        if v.title is not None:
+            v.title.normalize()
+    for fx in cfg.get('fixups', ()):
+        FIXUPS[fx](bible, log)
+    for b, c, n, v in bible.all_verses():
+        v.text.normalize()
+    check_shape(bible, cfg, log)
+    dropped = 0
+    for b, c, n in sorted(cfg.get('allow_empty', ())):
+        v = bible.books.get(b, {}).get(c, {}).get(n)
+        if v is not None and v.text.empty():
+            del bible.books[b][c][n]
+            dropped += 1
+    if dropped:
+        log.append(f'{dropped} verse numbers that are empty in the source (versification) left out')
+    return bible
 
-    for book_name, chap in SAMPLE_CHAPTERS:
-        if book_name in bible and chap in bible[book_name]:
-            total_chapters = max(bible[book_name].keys())
-            html = build_chapter_html(book_name, chap, bible[book_name][chap],
-                                       local_book_names, total_chapters,
-                                       is_latin_script, dir_label)
-            entries_html.append(html)
 
-    if not entries_html:
-        return
+def build_one(cfg: dict) -> Path:
+    name = cfg['name']
+    log: list[str] = []
+    print(f'\n{"=" * 60}\nBuilding {name}…\n  Source: {cfg["src"].relative_to(DATA_DIR)}')
+    bible = load_bible(cfg, log)
+    n_verses = len(bible.refs())
+    n_ch = sum(len(chs) for chs in bible.books.values())
+    print(f'  Parsed: {len(bible.books)} books, {n_ch} chapters, {n_verses} verses')
+    entries, ks, html_by_key = build_entries(cfg, bible)
+    for line in log:
+        print(f'  · {line}')
+    if ks.dropped:
+        print(f'  · aliases dropped on collision (rank: count) {dict(sorted(ks.dropped.items()))}; '
+              f'e.g. {"; ".join(ks.examples[:4])}')
 
-    preview_path = dict_dir / f"{slug}_preview.html"
-    _shared_preview(entries_html, preview_path, f'{name} — preview')
+    dict_dir = OUTPUT_BASE / name
+    dict_dir.mkdir(parents=True, exist_ok=True)
+    slug = name.lower().replace('-', '_')
+    txt_path = dict_dir / f'{slug}_entries.txt'
+    mdx_path = dict_dir / f'{name}.mdx'
+    write_mdict_source(entries, txt_path)
+    ok, size_mb, _ = _shared_pack_mdx(txt_path, cfg['title'], f'<p>{cfg["desc"]}</p>', mdx_path)
+    if not ok:
+        raise BuildError(f'{name}: packing failed')
+    n_links = sum(1 for _, body in entries if body.startswith('@@@LINK='))
+    print(f'  ✓ {mdx_path.name}: {size_mb:.1f} MB, {len(entries) - n_links} chapters + {n_links} redirects')
+    write_catalog_metadata(
+        mdx_path=mdx_path,
+        display_name=cfg['catalog_display_name'],
+        description=cfg['catalog_description'],
+        direction=cfg['direction'],
+        entries=len(entries),
+        license='LicenseRef-Public-Domain',
+        data_source=cfg['data_source'],
+        tier=2,
+        flag='✝️',
+    )
+    books = {b: Book(cfg, b) for b in book_order(cfg)}
+    samples = []
+    for b, c in SAMPLE_CHAPTERS:
+        if b in books:
+            if books[b].lxx:
+                c = hebrew_to_lxx(c)[0]
+            samples.append(html_by_key[books[b].key(c)])
+    _shared_preview(samples, dict_dir / f'{slug}_preview.html', f'{name} — preview')
+    return mdx_path
 
 
-# ── Main ──────────────────────────────────────────────────────
-
-def main():
-    mdx_paths = []
-
-    for config in BIBLES:
-        name = config['name']
-        xml_path = config['xml']
-
-        if not xml_path.exists():
-            print(f'\u26A0 Skipping {name}: {xml_path} not found')
+def main(argv: list[str]) -> int:
+    wanted = set(argv)
+    unknown = wanted - {c['name'] for c in BIBLES}
+    if unknown:
+        print(f'Unknown Bible(s): {sorted(unknown)}')
+        return 2
+    failed = []
+    for cfg in BIBLES:
+        if wanted and cfg['name'] not in wanted:
             continue
-
-        print(f'\n{"="*60}')
-        print(f'Building {name}...')
-        print(f'  Source: {xml_path.name}')
-
-        fmt = config['format']
-        if fmt == 'osis':
-            bible = parse_osis(xml_path)
-        elif fmt == 'usfx':
-            bible = parse_usfx(xml_path)
-        elif fmt == 'zefania':
-            bible = parse_zefania(xml_path)
-        else:
-            print(f'  ERROR: Unknown format {fmt}')
+        if not cfg['src'].exists():
+            print(f'⚠ {cfg["name"]}: {cfg["src"]} not found (see fetch_data.sh fetch_bible)')
+            failed.append(cfg['name'])
             continue
-
-        total_books = len(bible)
-        total_chapters = sum(len(chs) for chs in bible.values())
-        total_verses = sum(
-            len(vs) for chs in bible.values() for vs in chs.values()
-        )
-        print(f'  Parsed: {total_books} books, {total_chapters} chapters, {total_verses} verses')
-
-        is_latin_script = config.get('is_latin_script', True)
-        dir_label = config.get('dir_label', '')
-        entries = build_entries(bible, config['local_names'],
-                                is_latin_script, dir_label)
-        print(f'  Entries: {len(entries)} total')
-
-        dict_dir = OUTPUT_BASE / name
-        mdx_path = pack_mdx(dict_dir, name, entries,
-                            config['title'], config['desc'])
-        if mdx_path:
-            mdx_paths.append(mdx_path)
-            write_catalog_metadata(
-                mdx_path=mdx_path,
-                display_name=config['catalog_display_name'],
-                description=config['catalog_description'],
-                direction=config['catalog_direction'],
-                entries=len(entries),
-                license='Public Domain',
-                data_source=config['catalog_data_source'],
-                tier=2,
-                flag='✝️',
-            )
-            _generate_preview(bible, config['local_names'],
-                              is_latin_script, dict_dir, name, dir_label)
-
-    print(f'\n{"="*60}')
+        try:
+            build_one(cfg)
+        except BuildError as e:
+            print(f'  ✗ {cfg["name"]}: BUILD GATE FAILED: {e}')
+            failed.append(cfg['name'])
+    print(f'\n{"=" * 60}')
+    if failed:
+        print(f'FAILED: {", ".join(failed)}')
+        return 1
     print('Done!')
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))
