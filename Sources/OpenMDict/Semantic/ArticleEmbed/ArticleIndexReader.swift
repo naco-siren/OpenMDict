@@ -193,6 +193,9 @@ public final class ArticleIndexReader {
                 }
             }
 
+            // All-zero rows (aliases, missing records) carry no embedding.
+            if sim == 0 { continue }
+
             // Insert into top-K if it qualifies.
             if topHits.count < k {
                 // Sorted insert.

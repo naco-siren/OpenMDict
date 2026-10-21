@@ -42,16 +42,16 @@ enum ArticleHTMLRenderer {
                     color: \(cssColor(.label, traitCollection));
                     background: transparent;
                 }
-                h2.h { font-size: 1.3em; margin: 0 0 8px 0; }
-                .pos { color: \(cssColor(.secondaryLabel, traitCollection)); font-style: italic; }
-                .def { display: block; margin: 8px 0; }
-                .x { color: \(cssColor(.secondaryLabel, traitCollection)); display: block; margin: 4px 0 4px 16px; }
-                .x::before { content: "• "; }
-                .phon { color: \(cssColor(.systemBlue, traitCollection)); }
-                .num { font-weight: bold; margin-right: 4px; }
-                .collapse { display: block; margin-top: 12px; padding-top: 8px; border-top: 1px solid \(cssColor(.separator, traitCollection)); }
-                .heading { font-weight: 600; display: block; margin-bottom: 4px; }
                 a { color: \(cssColor(.link, traitCollection)); text-decoration: none; }
+                /* Between the articles of a word that has several records
+                   (homographs, case variants) — MDictReader.homographSeparator.
+                   Only app-owned class names here: rules for generic names
+                   (.pos, .def, …) would restyle every dictionary's own markup. */
+                hr.omdict-homograph-separator {
+                    border: none;
+                    border-top: 1px solid \(cssColor(.separator, traitCollection));
+                    margin: 16px 0;
+                }
                 img { max-width: 100%; height: auto; }
                 
                 /* Invisible positioning marks inside #_omdict_content */
@@ -77,7 +77,13 @@ enum ArticleHTMLRenderer {
                 // 3. Find matches in content, wrap in invisible marks
                 var escaped = keyword.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
                 var regex = new RegExp('(' + escaped + ')', 'gi');
-                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null);
+                // Text inside <style>/<script> is code, not article text.
+                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+                    acceptNode: function(n) {
+                        var tag = n.parentNode && n.parentNode.nodeName;
+                        return (tag === 'STYLE' || tag === 'SCRIPT') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+                    }
+                });
                 var nodes = [];
                 while (walker.nextNode()) nodes.push(walker.currentNode);
 

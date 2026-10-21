@@ -42,6 +42,10 @@ final class SetupViewController: UIViewController {
     /// the "picker-only re-launch" case (sync mode decided, no dicts).
     var isCancellable: Bool = true
 
+    /// Management mode from the preset update prompt: the picker pre-selects
+    /// only the presets that have an update. Set before presenting.
+    var preselectUpdatesOnly = false
+
     // MARK: - Callback
 
     /// Called after setup is complete and the VC has been dismissed
@@ -73,7 +77,9 @@ final class SetupViewController: UIViewController {
         case .firstInstall: pickerMode = .firstInstall
         case .management:   pickerMode = .management
         }
-        return PresetDictionaryPickerViewController(mode: pickerMode)
+        let picker = PresetDictionaryPickerViewController(mode: pickerMode)
+        picker.preselectUpdatesOnly = preselectUpdatesOnly
+        return picker
     }()
 
     /// Wraps pickerVC in a UINavigationController for native nav bar support

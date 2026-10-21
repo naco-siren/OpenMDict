@@ -364,6 +364,21 @@ final class ArticleIndexCoordinator {
         debugLog("handleDictImported(\(dictId)): registered .notIndexed in service\(suffix)")
     }
 
+    /// Called just BEFORE a dictionary's MDX is replaced in place (a preset
+    /// updated to a newer build). Stops a build that is running, deletes the
+    /// sidecar and marks the dictionary `.notIndexed` (the user's
+    /// preferences — Disabled section, order — are kept). Done before the
+    /// swap so that a kill at any later point cannot leave an index of the
+    /// old content looking valid: a rebuilt preset keeps its header hash,
+    /// which is all the sidecar validation checks. Nothing is queued here;
+    /// `handleDictImported` queues it once the new file has opened (and a
+    /// launch backfill picks it up if the app was killed in between).
+    func prepareForContentReplacement(_ dictId: String) {
+        ArticleIndexDispatcher.shared.cancel(dictId)
+        try? FileManager.default.removeItem(at: sidecarURL(for: dictId))
+        ArticleIndexService.shared.setState(.notIndexed, for: dictId, indexedThrough: 0)
+    }
+
     /// Called from `DictionaryStorageService.deleteDictionary(id:)` and
     /// `DictionaryService.handleRemoteChange(...)`'s remote-delete
     /// branch. Removes the dict's article sidecar (if any) from disk

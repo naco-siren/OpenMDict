@@ -334,19 +334,80 @@ public final class MDictReader: @unchecked Sendable {
     
     // MARK: - Lookup API
     
-    /// Look up a word by key
+    /// Look up a word by key.
+    ///
+    /// When the dictionary holds several records for the word — homographs
+    /// stored as separate articles, an article plus a redirect, or (in a
+    /// case-insensitive dictionary) keys that differ only in case — their
+    /// articles are joined into one, exact-case match first, separated by
+    /// `homographSeparator`. `key` and `index` are those of the first one.
     /// - Parameter key: The word to look up
     /// - Returns: Entry with article content, or nil if not found
     public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        guard let (originalKey, definition, index) = parser.lookupWithIndex(key) else {
-            return nil
-        }
+        let matches = lookupAll(key)
+        guard let first = matches.first else { return nil }
+        guard matches.count > 1 else { return first }
         return MDictWordEntry(
-            key: originalKey,  // Use original key from dictionary
-            article: MDictWordArticle(html: definition),
-            index: index
+            key: first.key,
+            article: MDictWordArticle(html: Self.joinArticles(matches.map(\.article.html))),
+            index: first.index
         )
     }
+
+    /// Whether the dictionary has the word (ignoring case, any apostrophe),
+    /// without loading any record.
+    public func contains(_ key: MDictWordKey) -> Bool {
+        parser.containsKeyword(key)
+    }
+
+    /// The record at `index`, with a redirect followed — one record, for
+    /// callers that walk the dictionary by position.
+    public func article(at index: Int) -> MDictWordEntry? {
+        guard let (key, definition, resolvedIndex) = parser.resolvedEntry(at: index) else { return nil }
+        return MDictWordEntry(key: key, article: MDictWordArticle(html: definition), index: resolvedIndex)
+    }
+
+    /// Join the articles of one word. Records of a dictionary usually repeat
+    /// the same `<script src>`, inline `<script>` and stylesheet `<link>`;
+    /// running a script once per record binds its handlers twice (a toggle
+    /// then toggles back) and re-declaring `const`/`let` throws. Such a tag
+    /// is kept only where it first appears.
+    static func joinArticles(_ articles: [String]) -> String {
+        var seen = Set<String>()
+        let pattern = #"<script\b[^>]*>[\s\S]*?</script\s*>|<link\b[^>]*>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return articles.joined(separator: homographSeparator)
+        }
+        let deduped = articles.map { html -> String in
+            let ns = html as NSString
+            var result = ""
+            var last = 0
+            for match in regex.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
+                let tag = ns.substring(with: match.range)
+                result += ns.substring(with: NSRange(location: last, length: match.range.location - last))
+                if seen.insert(tag).inserted { result += tag }
+                last = match.range.location + match.range.length
+            }
+            result += ns.substring(from: last)
+            return result
+        }
+        return deduped.joined(separator: homographSeparator)
+    }
+
+    /// Every record for a word, separately (see `lookup(_:)`).
+    public func lookupAll(_ key: MDictWordKey) -> [MDictWordEntry] {
+        parser.lookupAllWithIndex(key).map { originalKey, definition, index in
+            MDictWordEntry(
+                key: originalKey,  // Use original key from dictionary
+                article: MDictWordArticle(html: definition),
+                index: index
+            )
+        }
+    }
+
+    /// Placed between the articles of a word that has several records.
+    /// The app styles `hr.omdict-homograph-separator`.
+    public static let homographSeparator = "\n<hr class=\"omdict-homograph-separator\">\n"
     
     /// Access entry by index
     /// - Parameter index: Index in keyword list

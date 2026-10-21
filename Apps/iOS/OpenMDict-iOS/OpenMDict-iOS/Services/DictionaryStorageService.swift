@@ -373,7 +373,11 @@ final class DictionaryStorageService {
     }
     
     /// Save dict manifest for a specific dictionary
-    func saveDictManifest(_ dictManifest: DictManifest) throws {
+    /// - Parameter syncCountsToMetadata: Also write the resource counts and
+    ///   size to the (iCloud-synced) metadata row. `false` for changes that
+    ///   only concern this device's copy, such as a preset's MDX updated in
+    ///   place.
+    func saveDictManifest(_ dictManifest: DictManifest, syncCountsToMetadata: Bool = true) throws {
         let url = dictManifestURL(id: dictManifest.id)
         
         let encoder = JSONEncoder()
@@ -387,18 +391,187 @@ final class DictionaryStorageService {
         dictManifestCache[dictManifest.id] = dictManifest
         
         // Sync counts to CoreData metadata
-        syncDictManifestToMetadata(dictManifest)
+        if syncCountsToMetadata {
+            syncDictManifestToMetadata(dictManifest)
+        }
         
         print("📄 Saved dict manifest for \(dictManifest.id.prefix(8))...")
     }
     
+    /// Whether the dictionary's folder holds a manifest and the MDX it names.
+    func hasCompleteDictionary(id: String) -> Bool {
+        guard let manifest = loadDictManifest(id: id) else { return false }
+        return FileManager.default.fileExists(atPath: mdxURL(id: id, fileName: manifest.mdx.fileName).path)
+    }
+
+    /// An incomplete dictionary folder nothing has touched for 10 minutes —
+    /// left behind by an import that was killed, not one in progress.
+    func isAbandonedIncompleteFolder(id: String) -> Bool {
+        let dir = dictionaryDirectoryURL(id: id)
+        guard !hasCompleteDictionary(id: id),
+              let modified = (try? FileManager.default.attributesOfItem(atPath: dir.path))?[.modificationDate] as? Date
+        else { return false }
+        return Date().timeIntervalSince(modified) > 600
+    }
+
+    // MARK: - MDX File Hash (device-local)
+
+    /// SHA-256 of a dictionary's MDX file on this device, if it was recorded
+    /// for the file as it is now (same size and modification date). A preset
+    /// keeps its dictionary ID when its MDX is updated in place, so the ID
+    /// alone does not say which build the file is. Stored next to the file
+    /// in a hidden JSON file that belongs to this device only: it is not in
+    /// the manifest and never uploaded.
+    func recordedMDXSha256(id: String) -> String? {
+        guard let manifest = loadDictManifest(id: id),
+              let data = try? Data(contentsOf: mdxHashURL(id: id)),
+              let record = try? JSONDecoder().decode(MDXHashRecord.self, from: data),
+              let current = Self.fileStamp(mdxURL(id: id, fileName: manifest.mdx.fileName)),
+              current == record.stamp else { return nil }
+        return record.sha256
+    }
+
+    /// Record the SHA-256 of the dictionary's MDX file as it is now.
+    func recordMDXSha256(_ sha256: String, id: String) {
+        guard let manifest = loadDictManifest(id: id),
+              let stamp = Self.fileStamp(mdxURL(id: id, fileName: manifest.mdx.fileName)) else { return }
+        recordMDXSha256(sha256, id: id, stamp: stamp)
+    }
+
+    /// Record a hash computed from the file that had `stamp` — only if the
+    /// file still has it (it may have been replaced while it was hashed).
+    func recordMDXSha256(_ sha256: String, id: String, stamp: FileStamp) {
+        guard let manifest = loadDictManifest(id: id),
+              Self.fileStamp(mdxURL(id: id, fileName: manifest.mdx.fileName)) == stamp,
+              let data = try? JSONEncoder().encode(MDXHashRecord(sha256: sha256.lowercased(), stamp: stamp)) else { return }
+        try? data.write(to: mdxHashURL(id: id), options: .atomic)
+    }
+
+    private struct MDXHashRecord: Codable {
+        let sha256: String
+        let stamp: FileStamp
+    }
+
+    struct FileStamp: Codable, Equatable {
+        let size: Int64
+        let modified: Double
+    }
+
+    nonisolated static func fileStamp(_ url: URL) -> FileStamp? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let size = (attrs[.size] as? NSNumber)?.int64Value,
+              let date = attrs[.modificationDate] as? Date else { return nil }
+        return FileStamp(size: size, modified: date.timeIntervalSince1970)
+    }
+
+    private func mdxHashURL(id: String) -> URL {
+        dictionaryDirectoryURL(id: id).appendingPathComponent(".mdx-sha256.json")
+    }
+
+    // MARK: - Replacing an MDX in place (preset updates)
+    //
+    // The new file is staged as ".<name>.updating" next to the MDX, then
+    //   rename(<name>, .<name>.previous); rename(.<name>.updating, <name>)
+    // Both renames are atomic and within one folder; a reader that has the
+    // old file open keeps its (now unlinked) copy. ".previous" is removed
+    // once the new file has opened, or renamed back if it does not.
+
+    private nonisolated static func stagedURL(for mdxURL: URL) -> URL {
+        mdxURL.deletingLastPathComponent().appendingPathComponent(".\(mdxURL.lastPathComponent).updating")
+    }
+
+    private nonisolated static func previousURL(for mdxURL: URL) -> URL {
+        mdxURL.deletingLastPathComponent().appendingPathComponent(".\(mdxURL.lastPathComponent).previous")
+    }
+
+    /// Copy `source` next to `mdxURL` under a temporary name.
+    nonisolated static func stageReplacement(for mdxURL: URL, from source: URL) async throws -> URL {
+        let staged = stagedURL(for: mdxURL)
+        try await Task.detached(priority: .userInitiated) {
+            try? FileManager.default.removeItem(at: staged)
+            do {
+                try FileManager.default.copyItem(at: source, to: staged)
+            } catch {
+                // e.g. disk full: do not leave a partial copy behind
+                try? FileManager.default.removeItem(at: staged)
+                throw error
+            }
+        }.value
+        return staged
+    }
+
+    /// Swap the staged file in; the old one is kept as ".previous".
+    nonisolated static func swapInReplacement(_ staged: URL, for mdxURL: URL) async throws {
+        let previous = previousURL(for: mdxURL)
+        try await Task.detached(priority: .userInitiated) {
+            try? FileManager.default.removeItem(at: previous)
+            guard rename(mdxURL.path, previous.path) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            guard rename(staged.path, mdxURL.path) == 0 else {
+                let code = POSIXErrorCode(rawValue: errno) ?? .EIO
+                _ = rename(previous.path, mdxURL.path)
+                throw POSIXError(code)
+            }
+        }.value
+    }
+
+    /// Put the ".previous" file back (the replacement did not open).
+    nonisolated static func restoreReplaced(_ mdxURL: URL) async {
+        let previous = previousURL(for: mdxURL)
+        await Task.detached(priority: .userInitiated) {
+            if FileManager.default.fileExists(atPath: previous.path) {
+                _ = rename(previous.path, mdxURL.path)
+            }
+        }.value
+    }
+
+    /// Remove the ".previous" file (the replacement opened).
+    nonisolated static func discardReplaced(_ mdxURL: URL) async {
+        let previous = previousURL(for: mdxURL)
+        await Task.detached(priority: .utility) {
+            try? FileManager.default.removeItem(at: previous)
+        }.value
+    }
+
+    /// Repair replacements interrupted by a kill. Call before dictionaries are
+    /// opened: when the MDX is missing but ".previous" exists (killed between
+    /// the renames), the previous file is put back; leftover staged copies and
+    /// a ".previous" next to a present MDX (killed after the swap) are removed.
+    func recoverInterruptedMDXReplacements() {
+        let fm = FileManager.default
+        guard let folders = try? fm.contentsOfDirectory(atPath: rootDirectoryURL.path) else { return }
+        for folder in folders where !folder.hasPrefix(".") {
+            let dir = rootDirectoryURL.appendingPathComponent(folder, isDirectory: true)
+            guard let names = try? fm.contentsOfDirectory(atPath: dir.path) else { continue }
+            for name in names where name.hasPrefix(".") {
+                let url = dir.appendingPathComponent(name)
+                if name.hasSuffix(".updating") {
+                    try? fm.removeItem(at: url)
+                    debugLog("🧹 Removed an interrupted preset update's staged file in \(folder.prefix(16))")
+                } else if name.hasSuffix(".previous") {
+                    let original = String(name.dropFirst().dropLast(".previous".count))
+                    let mdx = dir.appendingPathComponent(original)
+                    if fm.fileExists(atPath: mdx.path) {
+                        try? fm.removeItem(at: url)
+                    } else {
+                        _ = rename(url.path, mdx.path)
+                        debugLog("🧹 Restored \(original) after an interrupted preset update in \(folder.prefix(16))")
+                    }
+                }
+            }
+        }
+    }
+
     /// Update dict manifest in place
-    func updateDictManifest(id: String, _ mutate: (inout DictManifest) -> Void) throws {
+    /// - Parameter syncCountsToMetadata: see `saveDictManifest`.
+    func updateDictManifest(id: String, syncCountsToMetadata: Bool = true,
+                            _ mutate: (inout DictManifest) -> Void) throws {
         guard var dictManifest = loadDictManifest(id: id) else {
             throw ResourceError.dictManifestNotFound(id: id)
         }
         mutate(&dictManifest)
-        try saveDictManifest(dictManifest)
+        try saveDictManifest(dictManifest, syncCountsToMetadata: syncCountsToMetadata)
     }
     
     /// Invalidate cached dict manifest (e.g., after external changes)

@@ -182,28 +182,30 @@ final class ImportProgressViewController: UIViewController {
         updateStatusLabel()
 
         Task {
+            // The batch decides from the current library whether this is an
+            // update, a new install, or already done — a retry must not
+            // install a second copy when an update stopped being possible.
             let service = PresetDictionaryService.shared
-            do {
-                let dictId: String
-                if preset.isBundleAsset {
-                    dictId = try await service.importFromBundle(preset)
-                } else {
-                    dictId = try await service.importFromODR(preset) { [weak self] progress in
-                        Task { @MainActor in
-                            self?.importStates[preset.id] = .importing(progress: progress)
-                            self?.reconfigureItem(preset.id)
-                        }
-                    }
+            let results = await service.importBatch([preset], onProgress: { [weak self] _, progress in
+                Task { @MainActor in
+                    self?.importStates[preset.id] = .importing(progress: progress)
+                    self?.reconfigureItem(preset.id)
                 }
+            }, onComplete: { _ in })
+            if let dictId = results.first?.libraryId {
                 importStates[preset.id] = .completed
                 // Piggyback loading into RAM
                 Task {
                     await DictionaryService.shared.refreshAfterImport(dictId)
                 }
                 print("✅ Retry succeeded: \(preset.displayName) → \(dictId.prefix(16))...")
-            } catch {
-                importStates[preset.id] = .failed(message: error.localizedDescription)
-                print("❌ Retry failed: \(preset.displayName): \(error.localizedDescription)")
+            } else if service.isImported(preset.id) {
+                importStates[preset.id] = .completed
+                print("✅ Retry: \(preset.displayName) is already installed and current")
+            } else {
+                let message = results.first?.errorMessage ?? L10n.PresetUpdate.errorFailed
+                importStates[preset.id] = .failed(message: message)
+                print("❌ Retry failed: \(preset.displayName): \(message)")
             }
 
             reconfigureItem(preset.id)

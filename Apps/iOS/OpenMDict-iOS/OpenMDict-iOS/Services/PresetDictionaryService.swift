@@ -13,6 +13,7 @@
 //  This service is called by SetupViewController and PresetDictionaryPicker.
 //
 
+import Combine
 import Foundation
 import CryptoKit
 import OpenMDictKit
@@ -46,6 +47,12 @@ struct PresetDictionary: Codable, Identifiable {
 
     let entries: Int
     let sizeBytes: Int64
+    /// SHA-256 of the MDX file this app ships. Optional: catalogs before
+    /// 2026-10 had no hash.
+    let sha256: String?
+    /// SHA-256 of every earlier build that shipped. An installed copy whose
+    /// file is one of these is offered an update (see `PresetVersioning`).
+    let previousSha256: [String]?
     let license: String
     let dataSource: String
     let source: Source
@@ -237,6 +244,9 @@ enum PresetDictionaryStatus {
     case notImported
     /// Already imported (matched by filename in Library manifest)
     case imported(libraryId: String)
+    /// Imported, but the MDX on this device is an earlier build than the
+    /// one this app ships (the IDs of the copies to update)
+    case updateAvailable(libraryIds: [String])
     /// Currently being downloaded/imported
     case importing(progress: Double)
     /// Import failed
@@ -325,7 +335,28 @@ final class PresetDictionaryService {
     /// Active ODR requests (keyed by preset ID, for cancellation)
     private var activeODRRequests: [String: NSBundleResourceRequest] = [:]
 
+    private var libraryCancellable: AnyCancellable?
+
     private init() {}
+
+    /// Compute update status now and keep it current as the library changes
+    /// (imports, deletions, iCloud sync, downloads finishing). Called once
+    /// from DictionaryService.setup().
+    func startTrackingUpdates() {
+        refreshUpdateStatus()
+        guard libraryCancellable == nil else { return }
+        let metadataChanges = DictMetadataService.shared.$revision.dropFirst().map { _ in () }
+        let libraryChanges = DictionaryService.shared.$allDictionaries.dropFirst().map { _ in () }
+        libraryCancellable = metadataChanges.merge(with: libraryChanges)
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, !self.catalog.isEmpty else { return }
+                self.refreshImportStatus()
+                // New copies (an import, an iCloud download) get their
+                // build recorded; cheap when there is nothing to hash.
+                Task { await self.recordInstalledBuilds() }
+            }
+    }
 
     // MARK: - Catalog Loading
 
@@ -352,22 +383,182 @@ final class PresetDictionaryService {
     // MARK: - Import Status
 
     /// Refresh import status for all preset dictionaries by checking CoreData metadata.
-    /// Matches by originalFileName.
+    /// Matches by originalFileName; an update is offered when the MDX on this
+    /// device is an earlier build this catalog lists (see PresetVersioning)
+    /// and the copy can be updated right now.
     func refreshImportStatus() {
         let metadataList = DictMetadataService.shared.loadAll()
+        let dictionaryService = DictionaryService.shared
 
         for preset in catalog {
             // Skip if already in a transient state (importing/failed)
             if case .importing = importStatus[preset.id] { continue }
 
-            // Check if this preset's .mdx filename matches any imported dictionary's originalFileName
-            if let existing = metadataList.first(where: { $0.originalFileName == preset.filename }) {
-                importStatus[preset.id] = .imported(libraryId: existing.dictId)
-            } else {
+            let copies = metadataList
+                .filter { $0.originalFileName == preset.filename }
+                .map { InstalledPresetCopy(dictId: $0.dictId, fileSha256: storage.recordedMDXSha256(id: $0.dictId)) }
+            switch PresetVersioning.state(installed: copies,
+                                          latestSha256: preset.sha256,
+                                          previousSha256: preset.previousSha256 ?? []) {
+            case .notInstalled:
                 importStatus[preset.id] = .notImported
+            case .current(let dictId), .unrecognized(let dictId):
+                importStatus[preset.id] = .imported(libraryId: dictId)
+            case .updateAvailable(let dictIds):
+                let ready = dictIds.filter { dictionaryService.canUpdatePresetFile($0) }
+                importStatus[preset.id] = ready.isEmpty
+                    ? .imported(libraryId: dictIds[0])
+                    : .updateAvailable(libraryIds: ready)
             }
         }
+        let builds = Set(updatablePresets.map { "\($0.id)=\($0.sha256 ?? "")" })
+        if builds != lastPostedUpdates {
+            lastPostedUpdates = builds
+            NotificationCenter.default.post(name: Self.updatesDidChangeNotification, object: self)
+        }
     }
+
+    // MARK: - Updates
+
+    /// Posted (on the main actor) when the set of presets with an available
+    /// update changes.
+    static let updatesDidChangeNotification = Notification.Name("PresetDictionaryService.updatesDidChange")
+    private var lastPostedUpdates: Set<String> = []
+
+    /// The installed copies of a preset that can be updated now.
+    func installedIdsWithUpdate(_ presetId: String) -> [String] {
+        if case .updateAvailable(let ids) = importStatus[presetId] { return ids }
+        return []
+    }
+
+    func isUpdateAvailable(_ presetId: String) -> Bool {
+        !installedIdsWithUpdate(presetId).isEmpty
+    }
+
+    /// Installed presets for which this app ships a newer build.
+    var updatablePresets: [PresetDictionary] {
+        catalog.filter { isUpdateAvailable($0.id) }
+    }
+
+    /// Whether the preset is being imported or updated right now.
+    func isInProgress(_ presetId: String) -> Bool {
+        if case .importing = importStatus[presetId] { return true }
+        return false
+    }
+
+    /// Load the catalog if needed and recompute statuses. Cheap; safe to call
+    /// at launch and whenever dictionary metadata changes.
+    func refreshUpdateStatus() {
+        if catalog.isEmpty {
+            do { try loadCatalog() } catch {
+                debugLog("⚠️ Preset catalog unavailable: \(error.localizedDescription)")
+                return
+            }
+        } else {
+            refreshImportStatus()
+        }
+    }
+
+    /// Record which build each installed preset's MDX is, for files that have
+    /// no record yet (installed before this was recorded, or downloaded from
+    /// iCloud). Until then the dictionary ID stands in for it — correct for
+    /// every file that was never updated in place. Hashing runs off the main
+    /// actor, once per file.
+    func recordInstalledBuilds() async {
+        guard !isRecordingBuilds else { return }
+        isRecordingBuilds = true
+        defer { isRecordingBuilds = false }
+        refreshUpdateStatus()
+        let names = Set(catalog.map(\.filename))
+        let pending = DictMetadataService.shared.loadAll().filter {
+            names.contains($0.originalFileName) && storage.recordedMDXSha256(id: $0.dictId) == nil
+        }
+        var recorded = 0
+        for metadata in pending {
+            // Stamp first: if the file is replaced while it is hashed (an
+            // update), the hash is not recorded against the new file.
+            guard let mdx = storage.mdxURL(id: metadata.dictId),
+                  let stamp = DictionaryStorageService.fileStamp(mdx) else { continue }
+            guard let sha = try? await Task.detached(priority: .utility, operation: {
+                try Self.fileSHA256(mdx)
+            }).value else { continue }
+            storage.recordMDXSha256(sha, id: metadata.dictId, stamp: stamp)
+            recorded += 1
+        }
+        if recorded > 0 {
+            debugLog("📋 Recorded the build of \(recorded) installed preset file(s)")
+            refreshImportStatus()
+        }
+    }
+
+    private var isRecordingBuilds = false
+
+    /// Update the installed copies of a preset to the build this app ships
+    /// (fetched from the bundle or ODR). Each copy keeps its dictionary ID;
+    /// see `DictionaryService.updatePresetFile`.
+    func updatePreset(
+        _ preset: PresetDictionary,
+        onProgress: @escaping @Sendable (Double) -> Void
+    ) async throws {
+        try await performUpdate(preset, ids: installedIdsWithUpdate(preset.id), onProgress: onProgress)
+    }
+
+    /// `updatePreset` with the copies captured by the caller (the batch flips
+    /// the status to `.importing` before its task runs).
+    private func performUpdate(
+        _ preset: PresetDictionary,
+        ids: [String],
+        onProgress: @escaping @Sendable (Double) -> Void
+    ) async throws {
+        guard !ids.isEmpty, let expected = preset.sha256 else {
+            throw DictionaryService.PresetUpdateError(kind: .notReady, underlying: nil)
+        }
+        try await withPresetFile(preset, onProgress: onProgress) { sourceURL in
+            for dictId in ids {
+                try await DictionaryService.shared.updatePresetFile(dictId: dictId, from: sourceURL,
+                                                                    expectedSha256: expected)
+            }
+        }
+        importStatus[preset.id] = .imported(libraryId: ids[0])
+        refreshImportStatus()
+    }
+
+    /// Make the preset's shipped MDX available (bundle, or ODR download) for
+    /// the duration of `body`.
+    private func withPresetFile(
+        _ preset: PresetDictionary,
+        onProgress: @escaping @Sendable (Double) -> Void,
+        _ body: (URL) async throws -> Void
+    ) async throws {
+        let baseName = (preset.filename as NSString).deletingPathExtension
+        if preset.isBundleAsset {
+            guard let url = Bundle.main.url(forResource: baseName, withExtension: "mdx") else {
+                throw PresetImportError.bundleFileNotFound(filename: preset.filename)
+            }
+            try await body(url)
+            return
+        }
+        guard let tag = preset.odrTag else { throw PresetImportError.odrTagMissing(presetId: preset.id) }
+        let request = NSBundleResourceRequest(tags: [tag])
+        request.loadingPriority = NSBundleResourceRequestLoadingPriorityUrgent
+        activeODRRequests[preset.id] = request
+        defer { activeODRRequests.removeValue(forKey: preset.id) }
+        let observation = request.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
+            Task { @MainActor in onProgress(progress.fractionCompleted) }
+        }
+        defer { observation.invalidate() }
+        do {
+            try await request.beginAccessingResources()
+        } catch {
+            throw PresetImportError.odr(ODRError.classify(error))
+        }
+        defer { request.endAccessingResources() }
+        guard let url = Bundle.main.url(forResource: baseName, withExtension: "mdx") else {
+            throw PresetImportError.odr(.fileNotFoundAfterDownload(tag: tag, filename: "\(baseName).mdx"))
+        }
+        try await body(url)
+    }
+
 
     /// Check if a specific preset dictionary is already imported
     func isImported(_ presetId: String) -> Bool {
@@ -519,9 +710,15 @@ final class PresetDictionaryService {
         // Suspension points (SHA256, ODR download) allow true concurrency.
         var tasks: [(PresetDictionary, Task<PresetImportResult, Never>)] = []
 
+        // Decide from the current library, not from a status left by an
+        // earlier attempt (a failed update must not turn into a second copy).
+        refreshImportStatus()
+
         for preset in presets {
-            // Skip if already imported
-            if isImported(preset.id) {
+            // Skip a preset that an earlier batch is still working on, and
+            // one that is installed and up to date.
+            let updateIds = installedIdsWithUpdate(preset.id)
+            if isInProgress(preset.id) || (updateIds.isEmpty && isImported(preset.id)) {
                 let result = PresetImportResult(
                     presetId: preset.id,
                     libraryId: nil,
@@ -537,7 +734,13 @@ final class PresetDictionaryService {
             let task = Task { @MainActor [self] () -> PresetImportResult in
                 do {
                     let dictId: String
-                    if preset.isBundleAsset {
+                    if !updateIds.isEmpty {
+                        // Installed with an earlier build: replace the file in place.
+                        try await performUpdate(preset, ids: updateIds) { progress in
+                            onProgress(preset.id, progress)
+                        }
+                        dictId = updateIds[0]
+                    } else if preset.isBundleAsset {
                         dictId = try await importFromBundle(preset)
                     } else {
                         dictId = try await importFromODR(preset) { progress in
@@ -553,6 +756,8 @@ final class PresetDictionaryService {
 
                 } catch {
                     importStatus[preset.id] = .failed(error: error)
+                    // An update that failed is still offered (the old file is in place).
+                    if !updateIds.isEmpty { refreshImportStatus() }
                     let result = PresetImportResult(presetId: preset.id, libraryId: nil, errorMessage: error.localizedDescription)
                     onComplete(result)
                     print("❌ Failed to import preset \(preset.displayName): \(error.localizedDescription)")
@@ -582,27 +787,38 @@ final class PresetDictionaryService {
     ///   - preset: The preset dictionary metadata
     /// - Returns: Library dictionary ID (SHA256 hash)
     private func importMDXFile(from sourceURL: URL, preset: PresetDictionary) async throws -> String {
-        // 1. Calculate SHA256 hash of the MDX file (used as directory name / ID)
+        // 1. Calculate SHA256 hash of the MDX file (used as directory name / ID).
+        //    Off the main actor: presets are tens of MB.
         let headerSHA256: String
         do {
-            headerSHA256 = try await storage.calculateSHA256(of: sourceURL)
+            headerSHA256 = try await Task.detached(priority: .userInitiated) {
+                try Self.fileSHA256(sourceURL)
+            }.value
         } catch {
             throw PresetImportError.sha256CalculationFailed(error)
         }
 
-        // 2. Check for duplicate (same file already imported)
-        if storage.isDuplicateImport(headerSHA256: headerSHA256) {
-            // Already imported — just update status and return
-            importStatus[preset.id] = .imported(libraryId: headerSHA256)
-            print("ℹ️ Preset \(preset.displayName) already in Library (dedup): \(headerSHA256.prefix(16))...")
-            return headerSHA256
-        }
-
         let dictId = headerSHA256
-
-        // 3. Create directory structure: Library/Dictionaries/{sha256}/
         let dictDir = storage.dictionaryDirectoryURL(id: dictId)
         let fm = FileManager.default
+
+        // 2. Check for duplicate (same file already imported)
+        if storage.isDuplicateImport(headerSHA256: headerSHA256) {
+            if let manifest = storage.loadDictManifest(id: dictId),
+               fm.fileExists(atPath: storage.mdxURL(id: dictId, fileName: manifest.mdx.fileName).path) {
+                // Already imported — just update status and return
+                importStatus[preset.id] = .imported(libraryId: headerSHA256)
+                print("ℹ️ Preset \(preset.displayName) already in Library (dedup): \(headerSHA256.prefix(16))...")
+                return headerSHA256
+            }
+            // A folder without a manifest (or MDX) is what a kill in the middle
+            // of an earlier import leaves behind; nothing can load it.
+            debugLog("🧹 Removing an incomplete library folder for \(dictId.prefix(16)) before installing \(preset.filename)")
+            storage.invalidateDictManifestCache(id: dictId)
+            try? fm.removeItem(at: dictDir)
+        }
+
+        // 3. Create directory structure: Library/Dictionaries/{sha256}/
 
         do {
             try fm.createDirectory(at: dictDir, withIntermediateDirectories: true)
@@ -679,7 +895,22 @@ final class PresetDictionaryService {
             enhanceDarkModeStrength: EnhanceDarkModeStrength.standard.rawValue
         )
         storage.addDictionaryMetadata(metadata)
+        storage.recordMDXSha256(dictId, id: dictId)
 
         return dictId
+    }
+
+    /// SHA-256 of a file, lowercase hex (a preset's dictionary ID, and the
+    /// build identity of an installed preset's MDX).
+    nonisolated static func fileSHA256(_ url: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while true {
+            let chunk = try autoreleasepool { try handle.read(upToCount: 1 << 20) } ?? Data()
+            if chunk.isEmpty { break }
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }
