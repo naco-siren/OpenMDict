@@ -5,7 +5,7 @@
       "id": "wordnet-en",
       "filename": "WordNet-EN.mdx",
       "displayName": "Open English WordNet",
-      "description": "Comprehensive English dictionary with definitions, examples, synonyms, and semantic relations from Princeton WordNet synsets.",
+      "description": "Open English WordNet 2025+: English nouns, verbs, adjectives and adverbs with definitions, examples, synonyms, antonyms and related words. Derived from Princeton WordNet.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -13,22 +13,23 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 153888,
-      "sizeBytes": 23910747,
+      "entries": 158675,
+      "sizeBytes": 28356513,
       "license": "CC-BY-4.0 AND LicenseRef-WordNet-3.0",
-      "dataSource": "Open English WordNet 2025",
+      "dataSource": "Open English WordNet 2025+ (2025-edition release)",
       "source": "bundle",
       "tier": 0,
-      "sha256": "1bde9ce8439f764a154935a052c7df6207582aedb1e2283827afd603366cf8f5",
+      "sha256": "c7c986ca32d088d1f26d0880504d815a0ff5a5b6df4533785cc95b61fd2278bc",
       "previousSha256": [
-        "74d116179a25142ecb93dc3a8df3b219cd4e4a31ba69db1d79f847ebc41dc6c8"
+        "74d116179a25142ecb93dc3a8df3b219cd4e4a31ba69db1d79f847ebc41dc6c8",
+        "1bde9ce8439f764a154935a052c7df6207582aedb1e2283827afd603366cf8f5"
       ]
     },
     {
       "id": "gcide-en",
       "filename": "GCIDE-EN.mdx",
       "displayName": "GCIDE — English Dictionary",
-      "description": "GNU Collaborative International Dictionary — enhanced Webster's 1913 with etymologies, pronunciation, and usage examples.",
+      "description": "GNU Collaborative International Dictionary of English: Webster's 1913 with WordNet additions — definitions, etymologies, quotations, phrases, and pronunciation where available.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -36,23 +37,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 108181,
-      "sizeBytes": 16446764,
+      "entries": 165711,
+      "sizeBytes": 24155212,
       "license": "GPL-3.0-or-later",
       "dataSource": "GCIDE 0.53 (GNU Project)",
       "source": "odr",
       "odrTag": "preset-dict-gcide-en",
       "tier": 1,
-      "sha256": "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a",
+      "sha256": "9e1f47de33e258d6f16d2c1bbd993f5f9253794f73dc7bd44a53a3114ceef376",
       "previousSha256": [
-        "015cf5f036a00d095f6b8c32e852123522e0608ca16c4e04f650e18e7c286fe8"
+        "015cf5f036a00d095f6b8c32e852123522e0608ca16c4e04f650e18e7c286fe8",
+        "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a"
       ]
     },
     {
       "id": "bible-darby-fr",
       "filename": "Bible-Darby-FR.mdx",
       "displayName": "Bible Darby (français)",
-      "description": "La Bible, traduction J.N. Darby (1859-1880). 66 livres. Domaine public.",
+      "description": "La Bible, traduction J. N. Darby (1859/1885). 66 livres, une entrée par chapitre, recherche « Jean 3:16 ». Domaine public.",
       "direction": {
         "src": "FR",
         "dest": [
@@ -60,23 +62,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2237,
-      "sizeBytes": 1855485,
+      "entries": 110693,
+      "sizeBytes": 2486140,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "dataSource": "gratis-bible (frdarb, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-darby-fr",
       "tier": 2,
-      "sha256": "4bec3f0bd57066954b3334dd5888e6d6382d006b76ed548a7af5d0013f5603d8",
+      "sha256": "5e87972d27fc8cd525cc55e546f7871bd048bc52c4439bf863ad9a539c3e3415",
       "previousSha256": [
-        "9fb00d4f45c2207ceebce7b9b511cb8f5cc11d31b373cb220ba6d11716b5a9a4"
+        "9fb00d4f45c2207ceebce7b9b511cb8f5cc11d31b373cb220ba6d11716b5a9a4",
+        "4bec3f0bd57066954b3334dd5888e6d6382d006b76ed548a7af5d0013f5603d8"
       ]
     },
     {
       "id": "bible-kjv-en",
       "filename": "Bible-KJV-EN.mdx",
       "displayName": "Bible — King James Version",
-      "description": "The King James Version (1611) of the Holy Bible, 66 books with chapter-level entries. Public Domain.",
+      "description": "The King James Version of the Holy Bible (1769 standard text): 66 books, one entry per chapter, verse references such as “John 3:16”. Public domain (Crown copyright in the UK).",
       "direction": {
         "src": "EN",
         "dest": [
@@ -84,22 +87,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 1184,
-      "sizeBytes": 1252650,
+      "entries": 77616,
+      "sizeBytes": 2247390,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "licenseNote": "Public domain outside the United Kingdom. In the UK the King James Version is under perpetual Crown copyright: printing requires letters patent (held by Cambridge University Press, Oxford University Press and Collins), as the eBible.org eng-kjv rights statement notes.",
+      "dataSource": "Open Bibles (eBible.org eng-kjv, OSIS XML)",
       "source": "bundle",
       "tier": 2,
-      "sha256": "a742abe2e2872506d4d72b4e0c470924c0a160c23564ca5fbee4e4772853a87a",
+      "sha256": "513b1125f988f48088527852abdb290f82fe46cb056479f6eefeb9af9c8f7bc7",
       "previousSha256": [
-        "365acb8b3e57e9d807d6d6c10d1ce8127dfddfcf086f99e57f30691522ed2840"
+        "365acb8b3e57e9d807d6d6c10d1ce8127dfddfcf086f99e57f30691522ed2840",
+        "a742abe2e2872506d4d72b4e0c470924c0a160c23564ca5fbee4e4772853a87a"
       ]
     },
     {
       "id": "bible-vulgate-la",
       "filename": "Bible-Vulgate-LA.mdx",
       "displayName": "Biblia Sacra Vulgata",
-      "description": "Biblia Sacra Vulgata (Clementina). In publico dominio.",
+      "description": "Biblia Sacra Vulgata (Clementina, 1592): 73 libri cum deuterocanonicis, singula capita; Psalmi secundum Vulgatam. In publico dominio.",
       "direction": {
         "src": "LA",
         "dest": [
@@ -107,23 +112,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2219,
-      "sizeBytes": 1726728,
+      "entries": 75574,
+      "sizeBytes": 2441760,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "dataSource": "Open Bibles @f257a35 (lat-clementine, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-vulgate-la",
       "tier": 2,
-      "sha256": "b7a059dbab1fc25260f506814a44a1bac298d059a7b3c5637c1d2102bd0549f1",
+      "sha256": "e8713fc851aabe19642e3d69a2a920363ae0da54571799363ff9e29a15e20fbf",
       "previousSha256": [
-        "1172b0a1956332b8067355bd44b066ff96b1c54849898496aacdf254aba2ac43"
+        "1172b0a1956332b8067355bd44b066ff96b1c54849898496aacdf254aba2ac43",
+        "b7a059dbab1fc25260f506814a44a1bac298d059a7b3c5637c1d2102bd0549f1"
       ]
     },
     {
       "id": "bible-almeida-pt",
       "filename": "Bible-Almeida-PT.mdx",
       "displayName": "Bíblia Sagrada — Almeida",
-      "description": "Bíblia Sagrada, tradução de João Ferreira de Almeida. 66 livros. Domínio público.",
+      "description": "Bíblia Sagrada, tradução de João Ferreira de Almeida. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». Domínio público.",
       "direction": {
         "src": "PT",
         "dest": [
@@ -131,23 +137,25 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2308,
-      "sizeBytes": 1778549,
+      "entries": 110379,
+      "sizeBytes": 2428863,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (USFX XML)",
+      "licenseNote": "Text: João Ferreira de Almeida translation, marked Public Domain by Open Bibles (por-almeida).",
+      "dataSource": "Open Bibles @f257a35 (por-almeida, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-almeida-pt",
       "tier": 2,
-      "sha256": "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa",
+      "sha256": "df93f885860d7c79800ee368b3103aa855b85cc32d6b6a30b6f46688fac45f2d",
       "previousSha256": [
-        "58ef46264af40fc3debf05fd0e1ae6ffb911e3f2e31506847e7b947e4feb0480"
+        "58ef46264af40fc3debf05fd0e1ae6ffb911e3f2e31506847e7b947e4feb0480",
+        "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa"
       ]
     },
     {
       "id": "cedict-zh-en",
       "filename": "CEDICT-ZH-EN.mdx",
       "displayName": "CC-CEDICT Chinese-English",
-      "description": "Community-maintained Chinese-English dictionary with pinyin, traditional/simplified characters, and English definitions.",
+      "description": "Community-maintained Chinese-English dictionary with pinyin, traditional/simplified characters, and English definitions (CC-CEDICT release 2026-01-02).",
       "direction": {
         "src": "ZH",
         "dest": [
@@ -155,23 +163,24 @@
         ]
       },
       "flag": "🇨🇳🇹🇼",
-      "entries": 196783,
-      "sizeBytes": 11148729,
+      "entries": 201487,
+      "sizeBytes": 11379640,
       "license": "CC-BY-SA-4.0",
       "dataSource": "CC-CEDICT",
       "source": "odr",
       "odrTag": "preset-dict-cedict-zh-en",
       "tier": 2,
-      "sha256": "045adcb59119066a04f4ac70607fb26783aac842e954d6f446155761b042902f",
+      "sha256": "c0e56fddc70d0d3c76e05a742d07c7bd918798677ccccf3a89808b15b74fe44a",
       "previousSha256": [
-        "a210e7bb4a234c3a5ed5bd160495383e0adf3c3db77b19fadf7a7d37ae937a0c"
+        "a210e7bb4a234c3a5ed5bd160495383e0adf3c3db77b19fadf7a7d37ae937a0c",
+        "045adcb59119066a04f4ac70607fb26783aac842e954d6f446155761b042902f"
       ]
     },
     {
       "id": "cc-canto-yue-en",
       "filename": "CC-Canto-YUE-EN.mdx",
       "displayName": "CC-Canto Cantonese-English",
-      "description": "Open-source Cantonese-English dictionary with Jyutping romanization and Mandarin pinyin cross-reference.",
+      "description": "Cantonese supplement to CC-CEDICT: colloquial words, slang and idioms with Jyutping, Mandarin pinyin and English definitions. Search by characters or Jyutping.",
       "direction": {
         "src": "ZH",
         "dest": [
@@ -179,21 +188,23 @@
         ]
       },
       "flag": "🇭🇰🇨🇳",
-      "entries": 40360,
-      "sizeBytes": 2619909,
+      "entries": 122875,
+      "sizeBytes": 4406698,
       "license": "CC-BY-SA-3.0",
       "dataSource": "CC-Canto (Pleco Inc.)",
       "source": "odr",
       "odrTag": "preset-dict-cc-canto-yue-en",
       "tier": 2,
-      "sha256": "b74398d12e064691ec801ff90f7b82073a1bef065b190b621238a532bccc0acd",
-      "previousSha256": []
+      "sha256": "a9a24615d54b4d260a57ac0ac55816b78a45efca5c88d510699c25cbc3da0892",
+      "previousSha256": [
+        "b74398d12e064691ec801ff90f7b82073a1bef065b190b621238a532bccc0acd"
+      ]
     },
     {
       "id": "jmdict-ja-en",
       "filename": "JMdict-JA-EN.mdx",
       "displayName": "JMdict Japanese-English",
-      "description": "Authoritative Japanese-English dictionary with readings, pitch accent, part-of-speech, and detailed definitions from EDRDG.",
+      "description": "Japanese-English dictionary from the EDRDG JMdict project: kanji and kana forms, romaji, part of speech, usage labels and English glosses, with Kanjium pitch accent for many words.",
       "direction": {
         "src": "JA",
         "dest": [
@@ -201,23 +212,24 @@
         ]
       },
       "flag": "🇯🇵",
-      "entries": 429465,
-      "sizeBytes": 28585461,
+      "entries": 583290,
+      "sizeBytes": 40476076,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "JMdict + Kanjium pitch accent",
+      "dataSource": "JMdict (EDRDG), release 2026-10-18; pitch accents from Kanjium (Uros O.)",
       "source": "odr",
       "odrTag": "preset-dict-jmdict-ja-en",
       "tier": 2,
-      "sha256": "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f",
+      "sha256": "4633a61735f652a0b73bb54bed8d488926d703383622a9fd46e23f7d25fd1d79",
       "previousSha256": [
-        "cd129c12f5cf94f897a8c56a6f4442d8a4c2c6cd2bb08d7a76592f1f8223211d"
+        "cd129c12f5cf94f897a8c56a6f4442d8a4c2c6cd2bb08d7a76592f1f8223211d",
+        "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f"
       ]
     },
     {
       "id": "kanjidic2-ja",
       "filename": "KANJIDIC2-JA.mdx",
       "displayName": "KANJIDIC2 漢字",
-      "description": "Comprehensive kanji dictionary with stroke counts, radicals, readings (on/kun/pinyin/Korean), meanings, and JLPT/grade levels.",
+      "description": "13,108 kanji with stroke counts, radicals, on/kun/pinyin/Korean/Vietnamese readings, English meanings, school grade, former JLPT level and variant links. KANJIDIC2 2026-291.",
       "direction": {
         "src": "JA",
         "dest": [
@@ -225,21 +237,23 @@
         ]
       },
       "flag": "🇯🇵",
-      "entries": 12633,
-      "sizeBytes": 1722747,
+      "entries": 13108,
+      "sizeBytes": 1935419,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "KANJIDIC2 (EDRDG)",
+      "dataSource": "KANJIDIC2 (EDRDG), database version 2026-291",
       "source": "odr",
       "odrTag": "preset-dict-kanjidic2-ja",
       "tier": 2,
-      "sha256": "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a",
-      "previousSha256": []
+      "sha256": "22d9078b9f4fe6b366bbe2528b5abf204ce22d3829b20935881e24ffe7d2e031",
+      "previousSha256": [
+        "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a"
+      ]
     },
     {
       "id": "bible-diodati-it",
       "filename": "Bible-Diodati-IT.mdx",
       "displayName": "La Bibbia — Diodati",
-      "description": "La Sacra Bibbia, traduzione di Giovanni Diodati. 66 libri. Dominio pubblico.",
+      "description": "La Sacra Bibbia, traduzione di Giovanni Diodati. 66 libri, una voce per capitolo, ricerca «Giovanni 3:16». Pubblico dominio.",
       "direction": {
         "src": "IT",
         "dest": [
@@ -247,23 +261,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2366,
-      "sizeBytes": 1885852,
+      "entries": 108746,
+      "sizeBytes": 2495490,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "dataSource": "gratis-bible (itadio, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-diodati-it",
       "tier": 2,
-      "sha256": "00dbab7fc6d431fb7a2a90e4c1274cdfbf52747450dce9499a8b1ab6f594b0d8",
+      "sha256": "6c91587b23c73aad38be492c86c77c9598a238ca408920661e0fd67fac605a8c",
       "previousSha256": [
-        "7cf6b9a49908b4a41fcb392c7fde19f9a37176bdbf5e301c34d4a97e98af72bc"
+        "7cf6b9a49908b4a41fcb392c7fde19f9a37176bdbf5e301c34d4a97e98af72bc",
+        "00dbab7fc6d431fb7a2a90e4c1274cdfbf52747450dce9499a8b1ab6f594b0d8"
       ]
     },
     {
       "id": "bible-luther1912-de",
       "filename": "Bible-Luther1912-DE.mdx",
       "displayName": "Lutherbibel 1912",
-      "description": "Die Bibel, Lutherübersetzung (1912). 66 Bücher. Gemeinfrei.",
+      "description": "Die Bibel, Lutherübersetzung (1912). 66 Bücher, ein Eintrag pro Kapitel, Suche nach „Joh 3“ oder „Joh 3,16“. Gemeinfrei.",
       "direction": {
         "src": "DE",
         "dest": [
@@ -271,23 +286,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2316,
-      "sizeBytes": 1836999,
+      "entries": 150365,
+      "sizeBytes": 2639308,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "dataSource": "Open Bibles (deu-luther1912, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-luther1912-de",
       "tier": 2,
-      "sha256": "8b47bdb9a41bb79cfdd578936e687d6b7a23170c257ea297f967a74c811a1aa7",
+      "sha256": "ec01943558262c43f70fcec8c6c0e4648a1373dcb09979be07dc06025d431f7d",
       "previousSha256": [
-        "29c50594e2387a6a199618bf9701190895665b1d4b0b3d0a781c9c74ffb8f503"
+        "29c50594e2387a6a199618bf9701190895665b1d4b0b3d0a781c9c74ffb8f503",
+        "8b47bdb9a41bb79cfdd578936e687d6b7a23170c257ea297f967a74c811a1aa7"
       ]
     },
     {
       "id": "bible-rv1909-es",
       "filename": "Bible-RV1909-ES.mdx",
       "displayName": "Santa Biblia — Reina-Valera 1909",
-      "description": "La Santa Biblia, versión Reina-Valera (1909). 66 libros. Dominio público.",
+      "description": "La Santa Biblia, versión Reina-Valera (1909). 66 libros, una entrada por capítulo, búsqueda por «Juan 3:16». Dominio público.",
       "direction": {
         "src": "ES",
         "dest": [
@@ -295,23 +311,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2266,
-      "sizeBytes": 1783254,
+      "entries": 110173,
+      "sizeBytes": 2418707,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (USFX XML)",
+      "dataSource": "Open Bibles (eBible.org spaRV1909, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-rv1909-es",
       "tier": 2,
-      "sha256": "9e8fa4ea46f44f4f6122d7c87f29d13b5724dd4ce87e84c1c4729eb20e6c2694",
+      "sha256": "b943e29c20a0770df241b8276ba6eac0bfbeee078178e8ad63f793556ab72e20",
       "previousSha256": [
-        "a86fa119c3951b1ba3142b44aaffe840aa24c9bf1705d4a57b8bf238b0eaf1b0"
+        "a86fa119c3951b1ba3142b44aaffe840aa24c9bf1705d4a57b8bf238b0eaf1b0",
+        "9e8fa4ea46f44f4f6122d7c87f29d13b5724dd4ce87e84c1c4729eb20e6c2694"
       ]
     },
     {
       "id": "bible-synodal-ru",
       "filename": "Bible-Synodal-RU.mdx",
       "displayName": "Синодальный перевод",
-      "description": "Библия, Синодальный перевод (1876). 66 книг. Общественное достояние.",
+      "description": "Библия, Синодальный перевод (1876). 66 книг, по одной статье на главу, поиск «Ин 3:16» и «Псалом 22». Общественное достояние.",
       "direction": {
         "src": "RU",
         "dest": [
@@ -319,23 +336,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2384,
-      "sizeBytes": 2099719,
+      "entries": 107543,
+      "sizeBytes": 2724258,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (Zefania XML)",
+      "dataSource": "Open Bibles (rus-synodal, Zefania XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-synodal-ru",
       "tier": 2,
-      "sha256": "2acf6a7763af7a037de50ca54fce70c457ac5fe2e95028c20f494fb639c3bad0",
+      "sha256": "8e7751f132eb812578d6244b29affd1b10bf3bf374b42e816d096eb8e2c11224",
       "previousSha256": [
-        "1b02940d4d94010675cd7afb7716c6c22426f7e0a3cfbbd1f3feac97eb27a1fc"
+        "1b02940d4d94010675cd7afb7716c6c22426f7e0a3cfbbd1f3feac97eb27a1fc",
+        "2acf6a7763af7a037de50ca54fce70c457ac5fe2e95028c20f494fb639c3bad0"
       ]
     },
     {
       "id": "bible-svd-ar",
       "filename": "Bible-SVD-AR.mdx",
       "displayName": "الكتاب المقدس — ترجمة فان دايك",
-      "description": "الكتاب المقدس، ترجمة سميث-فان دايك (1865). ملكية عامة.",
+      "description": "الكتاب المقدس، ترجمة سميث-فان دايك (1865). 66 سفرًا، مدخل لكل أصحاح، والبحث بصيغة «يوحنا 3:16». ملكية عامة.",
       "direction": {
         "src": "AR",
         "dest": [
@@ -343,23 +361,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2358,
-      "sizeBytes": 1601846,
+      "entries": 107243,
+      "sizeBytes": 2256788,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "dataSource": "gratis-bible (arasvd, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-svd-ar",
       "tier": 2,
-      "sha256": "76377fc2c736ecd434b93ad39c082961f8fe1b2548384a5add090bfdae826062",
+      "sha256": "c246d4638968409f771c7e4483f7b50d0ea6c103a98c1bde2fe7378573a263c4",
       "previousSha256": [
-        "5681e6318db3a2044c0379f49318506a509fa64efb931e0aff9a89e2c1f327f8"
+        "5681e6318db3a2044c0379f49318506a509fa64efb931e0aff9a89e2c1f327f8",
+        "76377fc2c736ecd434b93ad39c082961f8fe1b2548384a5add090bfdae826062"
       ]
     },
     {
       "id": "bible-byzantine-grc",
       "filename": "Bible-Byzantine-GRC.mdx",
       "displayName": "Ἡ Καινὴ Διαθήκη (1904)",
-      "description": "Πατριαρχικὸν Κείμενον τῆς Καινῆς Διαθήκης (1904). New Testament only (27 books). Public Domain.",
+      "description": "Πατριαρχικὸν Κείμενον τῆς Καινῆς Διαθήκης (1904): the Greek New Testament (27 books), one entry per chapter, searchable as «Ιωάννης 3» or “John 3:16”. Public domain.",
       "direction": {
         "src": "EL",
         "dest": [
@@ -367,23 +386,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 520,
-      "sizeBytes": 577542,
+      "entries": 38274,
+      "sizeBytes": 806444,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "eBible.org (USFX XML)",
+      "dataSource": "eBible.org grcbyz (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-byzantine-grc",
       "tier": 2,
-      "sha256": "3bdb30587a5af7464aec554d6bedc0b92941a8e331eb0356fefec9b6624125f3",
+      "sha256": "e2f1f7f786e4c3b6bbcc456a2b45e0801220005517e51b489d600c6606fb98e4",
       "previousSha256": [
-        "b7fe19c9e97d3ef287e4f9ff39c28795583823d3e87cfb09895258707609cf3f"
+        "b7fe19c9e97d3ef287e4f9ff39c28795583823d3e87cfb09895258707609cf3f",
+        "3bdb30587a5af7464aec554d6bedc0b92941a8e331eb0356fefec9b6624125f3"
       ]
     },
     {
       "id": "bible-kougo-ja",
       "filename": "Bible-Kougo-JA.mdx",
       "displayName": "口語訳聖書",
-      "description": "口語訳聖書（1954-1955年）。66巻、章レベルのエントリ。パブリックドメイン。",
+      "description": "口語訳聖書（1954/1955 年）。66 巻、章ごとの項目、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン（日本）。",
       "direction": {
         "src": "JA",
         "dest": [
@@ -391,23 +411,25 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2374,
-      "sizeBytes": 1549854,
+      "entries": 159205,
+      "sizeBytes": 2780640,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "licenseNote": "Public domain in Japan: a work published in the name of the Japan Bible Society (NT 1954, OT 1955) whose 50-year term ended in 2005.",
+      "dataSource": "Open Bibles (jpn-kougo, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-kougo-ja",
       "tier": 2,
-      "sha256": "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3",
+      "sha256": "29aa2f5fd1b9bcd9c4524005418bff9a2b80744e73764fd130917941784e9caf",
       "previousSha256": [
-        "305fc6d325c9f5f2795a38aee30576887b0704d5534c2128370607bd1b5e4abc"
+        "305fc6d325c9f5f2795a38aee30576887b0704d5534c2128370607bd1b5e4abc",
+        "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3"
       ]
     },
     {
       "id": "bible-cuv-zh-hans",
       "filename": "Bible-CUV-ZH-Hans.mdx",
-      "displayName": "和合本圣经（简体）",
-      "description": "中文和合本圣经（1919年），简体中文。66卷，章级条目。公有领域。",
+      "displayName": "新标点和合本圣经（简体）",
+      "description": "圣经新标点和合本（1919 年和合本的新式标点版，1988），简体中文，66 卷，按章收录，可查“约3:16”。公有领域（据 eBible.org）。",
       "direction": {
         "src": "ZH",
         "dest": [
@@ -415,23 +437,25 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2378,
-      "sizeBytes": 1660645,
+      "entries": 148394,
+      "sizeBytes": 2469687,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (USFX XML)",
+      "licenseNote": "Text: Chinese Union Version with New Punctuation (新标点和合本, 1988), marked Public Domain by eBible.org (cmn-cu89s).",
+      "dataSource": "Open Bibles (eBible.org cmn-cu89s, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-cuv-zh-hans",
       "tier": 2,
-      "sha256": "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96",
+      "sha256": "837948894bf487afd7e240fc2476b342a5ee2cbe59d22ef979d052efa0954729",
       "previousSha256": [
-        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d"
+        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d",
+        "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96"
       ]
     },
     {
       "id": "bible-cuv-zh-hant",
       "filename": "Bible-CUV-ZH-Hant.mdx",
-      "displayName": "和合本聖經（繁體）",
-      "description": "中文和合本聖經（1919年），繁體中文。66卷，章級條目。公有領域。",
+      "displayName": "新標點和合本聖經（繁體）",
+      "description": "聖經新標點和合本（1919 年和合本的新式標點版，1988），繁體中文，66 卷，按章收錄，可查「約3:16」。公有領域（據 eBible.org）。",
       "direction": {
         "src": "ZH",
         "dest": [
@@ -439,23 +463,25 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2378,
-      "sizeBytes": 1665427,
+      "entries": 148598,
+      "sizeBytes": 2475102,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (USFX XML)",
+      "licenseNote": "Text: Chinese Union Version with New Punctuation (新標點和合本, 1988), marked Public Domain by eBible.org (cmn-cu89t).",
+      "dataSource": "Open Bibles (eBible.org cmn-cu89t, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-cuv-zh-hant",
       "tier": 2,
-      "sha256": "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c",
+      "sha256": "4b5efc568ab4566b5704039f38203972813eb167833145331ef27a396b9a989b",
       "previousSha256": [
-        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19"
+        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19",
+        "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c"
       ]
     },
     {
       "id": "bible-korean-ko",
       "filename": "Bible-Korean-KO.mdx",
       "displayName": "성경 (개역한글)",
-      "description": "한국어 성경 (1910). 66권. 퍼블릭 도메인.",
+      "description": "성경전서 개역한글판 (1961). 66권, 장별 항목, “요 3:16” 형식 검색. 퍼블릭 도메인 (한국).",
       "direction": {
         "src": "KO",
         "dest": [
@@ -463,23 +489,25 @@
         ]
       },
       "flag": "✝️",
-      "entries": 2342,
-      "sizeBytes": 1785606,
+      "entries": 142761,
+      "sizeBytes": 2557479,
       "license": "LicenseRef-Public-Domain",
-      "dataSource": "Open Bibles (OSIS XML)",
+      "licenseNote": "Korean Revised Version (개역한글판, Korean Bible Society 1961); copyright term expired in Korea; distributed by CrossWire as Public Domain (KorRV 2.0.1).",
+      "dataSource": "CrossWire SWORD KorRV 2.0.1 (Wikisource)",
       "source": "odr",
       "odrTag": "preset-dict-bible-korean-ko",
       "tier": 2,
-      "sha256": "ccf24b60e144d1537859a5f1c36532175a54780da6a79a94ceee2e4ab250a20d",
+      "sha256": "4be91e2ee2d57c2946dbf51629a48da2bc5cf4591e663e1a0f9b3d568da9c57a",
       "previousSha256": [
-        "c92e3d91045519060673190c4b1fff04b379bf93d38c76431b367990caa195ed"
+        "c92e3d91045519060673190c4b1fff04b379bf93d38c76431b367990caa195ed",
+        "ccf24b60e144d1537859a5f1c36532175a54780da6a79a94ceee2e4ab250a20d"
       ]
     },
     {
       "id": "freedict-en-de",
       "filename": "FreeDict-EN-DE.mdx",
       "displayName": "FreeDict English-German",
-      "description": "English-German dictionary with examples and domain labels from FreeDict / Ding.",
+      "description": "English-German dictionary from FreeDict / Ding with German genders, usage and domain labels, examples and cross-references.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -487,23 +515,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 367348,
-      "sizeBytes": 29334905,
-      "license": "GPL-3.0-or-later",
-      "dataSource": "FreeDict (eng-deu TEI P5)",
+      "entries": 394668,
+      "sizeBytes": 54356825,
+      "license": "GPL-3.0-or-later AND AGPL-3.0-or-later",
+      "dataSource": "FreeDict eng-deu 1.9-fd1 (from the Ding dictionary, TU Chemnitz)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-en-de",
       "tier": 3,
-      "sha256": "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330",
+      "sha256": "3c92d2c3224f12f3f1d55b56d6e4468d4637c6d9315cc8902e4a36f8d1bf2877",
       "previousSha256": [
-        "b4cacb4bcf20f15e0ba753b68957a2077f2e7a39534096a542afe5e38f20a453"
+        "b4cacb4bcf20f15e0ba753b68957a2077f2e7a39534096a542afe5e38f20a453",
+        "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330"
       ]
     },
     {
       "id": "freedict-de-en",
       "filename": "FreeDict-DE-EN.mdx",
       "displayName": "FreeDict German-English",
-      "description": "German-English dictionary with examples and domain labels from FreeDict / Ding.",
+      "description": "German-English dictionary from FreeDict / Ding with genders, usage and domain labels, examples and cross-references.",
       "direction": {
         "src": "DE",
         "dest": [
@@ -511,23 +540,24 @@
         ]
       },
       "flag": "🇩🇪",
-      "entries": 385407,
-      "sizeBytes": 31713992,
-      "license": "GPL-3.0-or-later",
-      "dataSource": "FreeDict (deu-eng TEI P5)",
+      "entries": 421991,
+      "sizeBytes": 62380778,
+      "license": "GPL-3.0-or-later AND AGPL-3.0-or-later",
+      "dataSource": "FreeDict deu-eng 1.9-fd1 (from the Ding dictionary, TU Chemnitz)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-de-en",
       "tier": 3,
-      "sha256": "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be",
+      "sha256": "6e1a6193b44c16ed9fb826958a87378e0d53fdcdda68d0a82eec2b0280dceab2",
       "previousSha256": [
-        "f74478c225e7d2b968026750489a5c8bfaf9ad4386bc4828af6e85a380919525"
+        "f74478c225e7d2b968026750489a5c8bfaf9ad4386bc4828af6e85a380919525",
+        "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be"
       ]
     },
     {
       "id": "kaikki-ar-en",
       "filename": "Kaikki-AR-EN.mdx",
       "displayName": "Kaikki Arabic-English",
-      "description": "Arabic-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Arabic-English dictionary with 21,461 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "AR",
         "dest": [
@@ -535,24 +565,25 @@
         ]
       },
       "flag": "🇸🇦",
-      "entries": 25955,
-      "sizeBytes": 3457374,
+      "entries": 139385,
+      "sizeBytes": 5481641,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ar-en",
       "tier": 3,
-      "sha256": "98c4c55ca6ea454878399a0aeb2d191e5ea7218789b4c73fe4da450aaba9f230",
+      "sha256": "524794f87d686a52024b5c3643056088c206e21604ff2124754d2a42d6f7bb32",
       "previousSha256": [
         "8df5148e152b07cc4f85128e79e0bbf6e330adac739663b888dd4d0a408eb088",
-        "fdb991667cbe2acacd813bddd3b3a11526c90f4639cc8c2d25778811f3bbbdae"
+        "fdb991667cbe2acacd813bddd3b3a11526c90f4639cc8c2d25778811f3bbbdae",
+        "98c4c55ca6ea454878399a0aeb2d191e5ea7218789b4c73fe4da450aaba9f230"
       ]
     },
     {
       "id": "kaikki-fr-en",
       "filename": "Kaikki-FR-EN.mdx",
       "displayName": "Kaikki French-English",
-      "description": "French-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "French-English dictionary with 97,341 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "FR",
         "dest": [
@@ -560,24 +591,25 @@
         ]
       },
       "flag": "🇫🇷",
-      "entries": 367824,
-      "sizeBytes": 12099233,
+      "entries": 399229,
+      "sizeBytes": 13666660,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-fr-en",
       "tier": 3,
-      "sha256": "52b8183f2a7868ea569057484189b39157ce708f287af0bbc0c1c1c4066cac3d",
+      "sha256": "0e190f468f3b2340a0042a70a7b3b0942da087dbd2ec355416665c1869ecb2e2",
       "previousSha256": [
         "155dd2f9c82d6890bcbf6da65a4a651934757beccd298b38241e3df8812dce44",
-        "8f6d88c31b79845a1afbe0f4dee4837545a678f6e9419d97268a6ad8520edc3d"
+        "8f6d88c31b79845a1afbe0f4dee4837545a678f6e9419d97268a6ad8520edc3d",
+        "52b8183f2a7868ea569057484189b39157ce708f287af0bbc0c1c1c4066cac3d"
       ]
     },
     {
       "id": "kaikki-el-en",
       "filename": "Kaikki-EL-EN.mdx",
       "displayName": "Kaikki Greek-English",
-      "description": "Greek-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Greek-English dictionary with 32,666 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "EL",
         "dest": [
@@ -585,24 +617,25 @@
         ]
       },
       "flag": "🇬🇷",
-      "entries": 79911,
-      "sizeBytes": 4452196,
+      "entries": 506311,
+      "sizeBytes": 7953626,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-el-en",
       "tier": 3,
-      "sha256": "6f459973b781b4ec3cdf59aad35e18625a91b9d87058d063d3d1f5f1c935412d",
+      "sha256": "6992b3db8e9274a410448f8a15aba4873561bf0e760c234060cde2acff08b772",
       "previousSha256": [
         "2578340d187bb6269f3c985448ccb04c37f162037842f22c7794250bd82c3685",
-        "3445e001f1089b5c9d4e575570d0454a894291595e3fee600400b4a79680dd91"
+        "3445e001f1089b5c9d4e575570d0454a894291595e3fee600400b4a79680dd91",
+        "6f459973b781b4ec3cdf59aad35e18625a91b9d87058d063d3d1f5f1c935412d"
       ]
     },
     {
       "id": "kaikki-it-en",
       "filename": "Kaikki-IT-EN.mdx",
       "displayName": "Kaikki Italian-English",
-      "description": "Italian-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Italian-English dictionary with 162,281 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "IT",
         "dest": [
@@ -610,24 +643,25 @@
         ]
       },
       "flag": "🇮🇹",
-      "entries": 567302,
-      "sizeBytes": 16978583,
+      "entries": 610689,
+      "sizeBytes": 19424901,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-it-en",
       "tier": 3,
-      "sha256": "58a4de3004bf681cb0ace11c086d24296c420aef3e53625f3837b9388d16cbbe",
+      "sha256": "8a3e8e990f5dfffa8bb3623f29726b12b5f347eaf4e27dd3ef2c616e651e57f9",
       "previousSha256": [
         "1583bc74573f813b5b0ccc01269755182f81c3a2b47b54516328861e71c48be4",
-        "8d03acbfb9cdf6b4c7b1bbeb47d6c4b2b8bbc730b23664bb9ac9cce4c9ca9b78"
+        "8d03acbfb9cdf6b4c7b1bbeb47d6c4b2b8bbc730b23664bb9ac9cce4c9ca9b78",
+        "58a4de3004bf681cb0ace11c086d24296c420aef3e53625f3837b9388d16cbbe"
       ]
     },
     {
       "id": "kaikki-ko-en",
       "filename": "Kaikki-KO-EN.mdx",
       "displayName": "Kaikki Korean-English",
-      "description": "Korean-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Korean-English dictionary with 46,344 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "KO",
         "dest": [
@@ -635,24 +669,25 @@
         ]
       },
       "flag": "🇰🇷",
-      "entries": 44181,
-      "sizeBytes": 4727762,
+      "entries": 336686,
+      "sizeBytes": 7953308,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ko-en",
       "tier": 3,
-      "sha256": "f3d805c4db4412f8966473f03b42ac291a4b037ebbf4463a1ab890adcb7e346b",
+      "sha256": "7efc41d6c2e86ce69dfedccfc93f0bb914cae5dccbc4c65afdc0c72615a10d32",
       "previousSha256": [
         "c0a431d2b93fdf3184cbf3f65429fe119361cef2b77edee9a01fe6645597af22",
-        "c5e4d5a0a5a4870e08f362dcd840b717fda25a3133eba36e701154b3e93ad14f"
+        "c5e4d5a0a5a4870e08f362dcd840b717fda25a3133eba36e701154b3e93ad14f",
+        "f3d805c4db4412f8966473f03b42ac291a4b037ebbf4463a1ab890adcb7e346b"
       ]
     },
     {
       "id": "kaikki-la-en",
       "filename": "Kaikki-LA-EN.mdx",
       "displayName": "Kaikki Latin-English",
-      "description": "Latin-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Latin-English dictionary with 52,513 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "LA",
         "dest": [
@@ -660,24 +695,25 @@
         ]
       },
       "flag": "🏛️",
-      "entries": 113033,
-      "sizeBytes": 7167144,
+      "entries": 1065269,
+      "sizeBytes": 13823843,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-la-en",
       "tier": 3,
-      "sha256": "ec222d54c10a3c86174a3d58c602d80d17ad57bf0dec6ec31fb7ff041d06c6ba",
+      "sha256": "0475e62368a4d4489d5961fe0f37e83ae2d692237ef9b76785ebe34204cbc7bd",
       "previousSha256": [
         "8589681d1b5ee62b5aace69d249bf16337384544c8bc37aa7d9eac12cef4400c",
-        "b0d9a414611b217c3d192793b9b353a3ba5f3168bab6211b4650eb2687feca94"
+        "b0d9a414611b217c3d192793b9b353a3ba5f3168bab6211b4650eb2687feca94",
+        "ec222d54c10a3c86174a3d58c602d80d17ad57bf0dec6ec31fb7ff041d06c6ba"
       ]
     },
     {
       "id": "kaikki-pt-en",
       "filename": "Kaikki-PT-EN.mdx",
       "displayName": "Kaikki Portuguese-English",
-      "description": "Portuguese-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Portuguese-English dictionary with 79,736 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "PT",
         "dest": [
@@ -685,24 +721,25 @@
         ]
       },
       "flag": "🇵🇹🇧🇷",
-      "entries": 390324,
-      "sizeBytes": 11610441,
+      "entries": 426435,
+      "sizeBytes": 14447588,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-pt-en",
       "tier": 3,
-      "sha256": "a20442a66a652b962cd0b3915866945592e55aea97e5ae594abaddd433f3acf4",
+      "sha256": "01acbb700798f62d351bd845c9859b9f04bdae405a4213995519bf8f415dbf1f",
       "previousSha256": [
         "3d92863f9eaae5b28dc217586e24d00cb16a6b668b1d0192a4e4888b15480194",
-        "4822ddf1a76a540e31cfb7bf71878b86d1bb15b613efe1f72003d0bc3b861831"
+        "4822ddf1a76a540e31cfb7bf71878b86d1bb15b613efe1f72003d0bc3b861831",
+        "a20442a66a652b962cd0b3915866945592e55aea97e5ae594abaddd433f3acf4"
       ]
     },
     {
       "id": "kaikki-ru-en",
       "filename": "Kaikki-RU-EN.mdx",
       "displayName": "Kaikki Russian-English",
-      "description": "Russian-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Russian-English dictionary with 60,586 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "RU",
         "dest": [
@@ -710,24 +747,25 @@
         ]
       },
       "flag": "🇷🇺",
-      "entries": 382133,
-      "sizeBytes": 11160001,
+      "entries": 506079,
+      "sizeBytes": 14054846,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ru-en",
       "tier": 3,
-      "sha256": "ce877a62afd5b9d59e96c953c8f8c06de3e2af00d989b141616a48dc56eddbb2",
+      "sha256": "19327731aedb2798edfd5bca0fc77c636e03e812ffc2e101d2c53a81a3d27a6f",
       "previousSha256": [
         "60b01b43167aee21497b13a0e5e40910475ebfa1b0d90e0c713e1df21ca9dd6b",
-        "e0e11c90d1d0a3685e444c75b277dbdaad18685f561c2d563b2a4b0566cf2b69"
+        "e0e11c90d1d0a3685e444c75b277dbdaad18685f561c2d563b2a4b0566cf2b69",
+        "ce877a62afd5b9d59e96c953c8f8c06de3e2af00d989b141616a48dc56eddbb2"
       ]
     },
     {
       "id": "kaikki-es-en",
       "filename": "Kaikki-ES-EN.mdx",
       "displayName": "Kaikki Spanish-English",
-      "description": "Spanish-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Spanish-English dictionary with 115,824 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "ES",
         "dest": [
@@ -735,24 +773,25 @@
         ]
       },
       "flag": "🇪🇸",
-      "entries": 730605,
-      "sizeBytes": 16713494,
+      "entries": 784704,
+      "sizeBytes": 19281052,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-es-en",
       "tier": 3,
-      "sha256": "fc3e1db023777ecad8ab2d4029f05607048b1f6dd4ee1e977d829c67dce08c2c",
+      "sha256": "4d3085289c1c6c0c5b4a55b3f9151af2197cf810aeecf9628c2344a3b4905952",
       "previousSha256": [
         "a4be9641c1ea31b632441997636e337f01836e6807a769be87a8a16ac363f520",
-        "e2e483671bc18cd8bb7d34c6422b1204cadef492519fe20a7d1cae9f559ef98c"
+        "e2e483671bc18cd8bb7d34c6422b1204cadef492519fe20a7d1cae9f559ef98c",
+        "fc3e1db023777ecad8ab2d4029f05607048b1f6dd4ee1e977d829c67dce08c2c"
       ]
     },
     {
       "id": "kaikki-tr-en",
       "filename": "Kaikki-TR-EN.mdx",
       "displayName": "Kaikki Turkish-English",
-      "description": "Turkish-English dictionary with IPA pronunciation, usage examples, and inflection redirects from Wiktionary.",
+      "description": "Turkish-English dictionary with 26,303 headwords: English glosses, IPA and usage examples; inflected forms and spelling variants lead to their headwords. From the English Wiktionary (https://en.wiktionary.org/), © Wiktionary contributors, extracted by Wiktextract / Kaikki.org (https://kaikki.org/). Converted to MDict and modified by OpenMDict. License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).",
       "direction": {
         "src": "TR",
         "dest": [
@@ -760,49 +799,51 @@
         ]
       },
       "flag": "🇹🇷",
-      "entries": 38976,
-      "sizeBytes": 2783733,
+      "entries": 567912,
+      "sizeBytes": 6225788,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "Kaikki.org (English Wiktionary extract)",
+      "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-tr-en",
       "tier": 3,
-      "sha256": "bd347bff329a92d88c6d7969e5fbe91d1ad3c0623b08fdc2e127a43c4a683068",
+      "sha256": "479b6a045153eddaf325c052cc4345c83dcc6abedae6a03c30daf387f92048f8",
       "previousSha256": [
         "5afa2876a4ceb53ac6caf8c89d5e25785ae164da2b2dcb1d1a7a06c59ac6d0b1",
-        "83e4f7e3158aa9a6c42b4178e958f30ebfaa8ca44e0b24244bbd62899b25f16e"
+        "83e4f7e3158aa9a6c42b4178e958f30ebfaa8ca44e0b24244bbd62899b25f16e",
+        "bd347bff329a92d88c6d7969e5fbe91d1ad3c0623b08fdc2e127a43c4a683068"
       ]
     },
     {
       "id": "lsj-grc-en",
       "filename": "LSJ-GRC-EN.mdx",
       "displayName": "LSJ Greek-English Lexicon",
-      "description": "Liddell-Scott-Jones: the standard comprehensive Ancient Greek-English lexicon (9th ed., 1940).",
+      "description": "Liddell–Scott–Jones Ancient Greek–English Lexicon (9th ed., 1940): 116K entries with full citations and linked cross-references; type with or without accents.",
       "direction": {
-        "src": "EL",
+        "src": "GRC",
         "dest": [
           "EN"
         ]
       },
       "flag": "🏺",
-      "entries": 115724,
-      "sizeBytes": 19744905,
+      "entries": 343051,
+      "sizeBytes": 29270301,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Perseus Digital Library",
       "source": "odr",
       "odrTag": "preset-dict-lsj-grc-en",
       "tier": 3,
-      "sha256": "a3e223c5d495476721ffe6a9316b1027ac67d4c2108901cb78ea85f9a0f0e9e0",
+      "sha256": "8b45d0ab350867bb4955603a52054d186afe8487d11e9ec4e3c1a88f19401a8f",
       "previousSha256": [
         "49cff1ae92b4583736f7687cb00f70cabb1915a9d30246390c7408fecb22e4de",
-        "5e453f5ba0d1232bcb6788a8c47e878d0ad01cda1ec4e08585eb6081d054bb77"
+        "5e453f5ba0d1232bcb6788a8c47e878d0ad01cda1ec4e08585eb6081d054bb77",
+        "a3e223c5d495476721ffe6a9316b1027ac67d4c2108901cb78ea85f9a0f0e9e0"
       ]
     },
     {
       "id": "lewis-short-la-en",
       "filename": "Lewis-Short-LA-EN.mdx",
       "displayName": "Lewis & Short Latin Dictionary",
-      "description": "The standard Latin-English dictionary (Lewis & Short, 1879). 50K entries with etymologies, citations, and cross-references.",
+      "description": "Lewis & Short Latin–English dictionary (1879): 50K entries with etymologies, full citations and cross-references; finds j/i and v/u spellings.",
       "direction": {
         "src": "LA",
         "dest": [
@@ -810,24 +851,25 @@
         ]
       },
       "flag": "🏛️",
-      "entries": 49985,
-      "sizeBytes": 11939113,
+      "entries": 101013,
+      "sizeBytes": 18062703,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Perseus Digital Library",
       "source": "odr",
       "odrTag": "preset-dict-lewis-short-la-en",
       "tier": 3,
-      "sha256": "69f177502ca5baa8a668b64b49a27a12d2aa458aa609f0c7903ef8a23f1bdcef",
+      "sha256": "c2e9ed49b8e3c94abe19df6776016a32adc88b44957e12c43657a0f5032ba9b4",
       "previousSha256": [
         "4c6a58218031fb9ffa4aeb4c85f0b56537536c063d7481606187bca1dd6c9a07",
-        "f80557793ca4e49102e752d6439003ba26d240c75a43692bd2c733cf964f0083"
+        "f80557793ca4e49102e752d6439003ba26d240c75a43692bd2c733cf964f0083",
+        "69f177502ca5baa8a668b64b49a27a12d2aa458aa609f0c7903ef8a23f1bdcef"
       ]
     },
     {
       "id": "moby-thesaurus-en",
       "filename": "Moby-Thesaurus-EN.mdx",
       "displayName": "Moby Thesaurus II",
-      "description": "English thesaurus with 2.5 million synonym links. Public domain, no restrictions.",
+      "description": "English thesaurus (American spelling): 30,259 root words with about 2.5 million synonyms and related words, plus an entry for every listed term. Public domain; word-form redirects from Open English WordNet (CC BY 4.0).",
       "direction": {
         "src": "EN",
         "dest": [
@@ -835,23 +877,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 30259,
-      "sizeBytes": 19791228,
-      "license": "LicenseRef-Public-Domain",
+      "entries": 157037,
+      "sizeBytes": 31912633,
+      "license": "LicenseRef-Public-Domain AND CC-BY-4.0 AND LicenseRef-WordNet-3.0",
       "dataSource": "Moby Thesaurus II (Grady Ward)",
       "source": "odr",
       "odrTag": "preset-dict-moby-thesaurus-en",
       "tier": 3,
-      "sha256": "386499d70d24166ee4c59c02a2e53743f1e425484ec255dfe26fda2db3f02b22",
+      "sha256": "130dfe408daa6befc79ccb0cc4fd930765366db621d84b1da08eda7c01b72799",
       "previousSha256": [
-        "7d1b8c99796b31d33103dd1e0ae95bda54305d8dfac814523e1e8cf92ed88054"
+        "7d1b8c99796b31d33103dd1e0ae95bda54305d8dfac814523e1e8cf92ed88054",
+        "386499d70d24166ee4c59c02a2e53743f1e425484ec255dfe26fda2db3f02b22"
       ]
     },
     {
       "id": "unihan-cjk",
       "filename": "Unihan-CJK.mdx",
       "displayName": "Unihan CJK Characters",
-      "description": "Unicode CJK character database with pinyin, on/kun, Korean, Vietnamese, Cantonese readings, radical-stroke index.",
+      "description": "All 102,998 Unicode CJK ideographs with radical-stroke index and stroke counts; Mandarin, Cantonese, Middle Chinese, Japanese on/kun, Korean, Vietnamese and Zhuang readings; variant links. English definitions for 23,285 characters.",
       "direction": {
         "src": "ZH",
         "dest": [
@@ -859,21 +902,23 @@
         ]
       },
       "flag": "🇨🇳🇹🇼🇭🇰🇯🇵🇰🇷",
-      "entries": 60171,
-      "sizeBytes": 6470761,
+      "entries": 102998,
+      "sizeBytes": 11617097,
       "license": "Unicode-3.0",
-      "dataSource": "Unicode Unihan Database",
+      "dataSource": "Unicode Unihan Database 17.0.0",
       "source": "odr",
       "odrTag": "preset-dict-unihan-cjk",
       "tier": 3,
-      "sha256": "7cde6eb6b08420141a9759cd3763db757131f4eefab910c9b71936cd73a6a52b",
-      "previousSha256": []
+      "sha256": "97f58abd4a22246b456254a239cd8a119ad9fe6f47abf63d39e3c9f09ff0a957",
+      "previousSha256": [
+        "7cde6eb6b08420141a9759cd3763db757131f4eefab910c9b71936cd73a6a52b"
+      ]
     },
     {
       "id": "wikdict-en-fr",
       "filename": "WikDict-EN-FR.mdx",
       "displayName": "WikDict English-French",
-      "description": "English-French dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-French translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -881,23 +926,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 68891,
-      "sizeBytes": 7661408,
-      "license": "CC-BY-SA-3.0",
+      "entries": 184572,
+      "sizeBytes": 13905604,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-fr",
       "tier": 3,
-      "sha256": "e608e49092ef832f2f0a65022854a8d345837e6e3a893dd582ab24be4e617a6f",
+      "sha256": "67a4fd1cccc148a754e95d3668b18a78b6143dd261bdf3c339a9efe0909a48a3",
       "previousSha256": [
-        "cc12f4e50c641f4f73910b2b94392868bed4ad6d8711508efa34dedb70b99717"
+        "cc12f4e50c641f4f73910b2b94392868bed4ad6d8711508efa34dedb70b99717",
+        "e608e49092ef832f2f0a65022854a8d345837e6e3a893dd582ab24be4e617a6f"
       ]
     },
     {
       "id": "wikdict-en-de",
       "filename": "WikDict-EN-DE.mdx",
       "displayName": "WikDict English-German",
-      "description": "English-German dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-German translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -905,23 +951,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 65694,
-      "sizeBytes": 7725329,
-      "license": "CC-BY-SA-3.0",
+      "entries": 150597,
+      "sizeBytes": 13557839,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-de",
       "tier": 3,
-      "sha256": "a75462d4d23d0b64e541977ede2fbaad62060faedbaed5811ab90e36c6e580c9",
+      "sha256": "52f4b729d226a041a69d1ba26c4598b37d5ac759ab28ab8f00fbddc3d1230501",
       "previousSha256": [
-        "85b2560115ec7ced5322e4ee4d534938cdf6688f80980d6dcca86095ee7a9e68"
+        "85b2560115ec7ced5322e4ee4d534938cdf6688f80980d6dcca86095ee7a9e68",
+        "a75462d4d23d0b64e541977ede2fbaad62060faedbaed5811ab90e36c6e580c9"
       ]
     },
     {
       "id": "wikdict-en-el",
       "filename": "WikDict-EN-EL.mdx",
       "displayName": "WikDict English-Greek",
-      "description": "English-Greek dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Greek translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -929,23 +976,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 30037,
-      "sizeBytes": 3701228,
-      "license": "CC-BY-SA-3.0",
+      "entries": 79645,
+      "sizeBytes": 6280440,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-el",
       "tier": 3,
-      "sha256": "f33792253d2373b5d5112465a991432b5ab65f8147fbb2f9a1407483630c5a7d",
+      "sha256": "0db66df9936e381d6e94401df554e71628920e7eb9a029b96839c994deed32f4",
       "previousSha256": [
-        "39e33da6fdd09b5b4da1d11104abbccd581452cc647e74f64714fbf5a873b77e"
+        "39e33da6fdd09b5b4da1d11104abbccd581452cc647e74f64714fbf5a873b77e",
+        "f33792253d2373b5d5112465a991432b5ab65f8147fbb2f9a1407483630c5a7d"
       ]
     },
     {
       "id": "wikdict-en-it",
       "filename": "WikDict-EN-IT.mdx",
       "displayName": "WikDict English-Italian",
-      "description": "English-Italian dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Italian translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -953,23 +1001,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 51029,
-      "sizeBytes": 5620097,
-      "license": "CC-BY-SA-3.0",
+      "entries": 107748,
+      "sizeBytes": 8163521,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-it",
       "tier": 3,
-      "sha256": "c2142c11c1b123a3b203dc390450491a6a68ff5d1e2163b1d9a6b902cc288801",
+      "sha256": "f29ba53ae12f89b1a1aa80522b1f0fd9b032ee6730332ef984f12828a4ec15f4",
       "previousSha256": [
-        "b4408fd6e613082db4d7245a5a5764d0451ed42f98d62823d4c5899a158f197e"
+        "b4408fd6e613082db4d7245a5a5764d0451ed42f98d62823d4c5899a158f197e",
+        "c2142c11c1b123a3b203dc390450491a6a68ff5d1e2163b1d9a6b902cc288801"
       ]
     },
     {
       "id": "wikdict-en-la",
       "filename": "WikDict-EN-LA.mdx",
       "displayName": "WikDict English-Latin",
-      "description": "English-Latin dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Latin translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -977,23 +1026,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 18368,
-      "sizeBytes": 2047970,
-      "license": "CC-BY-SA-3.0",
+      "entries": 39350,
+      "sizeBytes": 2727676,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-la",
       "tier": 3,
-      "sha256": "d4187c2c60a887ae02fcdb360052f95a3d6419eb0856dd3292b423698cacf133",
+      "sha256": "6ec30bc3a201b8fec489638db7aa9cbe9935e9dce36f03948fb97da2ec3bdf25",
       "previousSha256": [
-        "2a74c3940858742d1b226e48d8cb224ae9335ae5358ec95e82215aa42019bcaa"
+        "2a74c3940858742d1b226e48d8cb224ae9335ae5358ec95e82215aa42019bcaa",
+        "d4187c2c60a887ae02fcdb360052f95a3d6419eb0856dd3292b423698cacf133"
       ]
     },
     {
       "id": "wikdict-en-pt",
       "filename": "WikDict-EN-PT.mdx",
       "displayName": "WikDict English-Portuguese",
-      "description": "English-Portuguese dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Portuguese translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -1001,23 +1051,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 52025,
-      "sizeBytes": 5883005,
-      "license": "CC-BY-SA-3.0",
+      "entries": 94053,
+      "sizeBytes": 7087557,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-pt",
       "tier": 3,
-      "sha256": "d7224722624e722af445de779547f2fcccebc394515866c8a7fb69b19ee99eac",
+      "sha256": "25aacb5bf9a6426977bf6a2953497a573820b8e1830e4f73a2e86ca7bf782ccc",
       "previousSha256": [
-        "868f032daebccba663811154846ce5ad98725558fb4d6749534e9809466e0bd3"
+        "868f032daebccba663811154846ce5ad98725558fb4d6749534e9809466e0bd3",
+        "d7224722624e722af445de779547f2fcccebc394515866c8a7fb69b19ee99eac"
       ]
     },
     {
       "id": "wikdict-en-ru",
       "filename": "WikDict-EN-RU.mdx",
       "displayName": "WikDict English-Russian",
-      "description": "English-Russian dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Russian translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -1025,23 +1076,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 57709,
-      "sizeBytes": 7526831,
-      "license": "CC-BY-SA-3.0",
+      "entries": 124096,
+      "sizeBytes": 11198880,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-ru",
       "tier": 3,
-      "sha256": "76268b561ec7de3d9332f944e3c154c1d52eda79d1df777bc8d4160d47e9bb1f",
+      "sha256": "f8c1840e36ac20e09addc4fd9cbd368b39b888f2f7abd2aa103700c50a5c66b6",
       "previousSha256": [
-        "f8a63d1100b5bd00a09df9cd7f79fa30fa80e336919cbe80fdcc9d600fa8da3e"
+        "f8a63d1100b5bd00a09df9cd7f79fa30fa80e336919cbe80fdcc9d600fa8da3e",
+        "76268b561ec7de3d9332f944e3c154c1d52eda79d1df777bc8d4160d47e9bb1f"
       ]
     },
     {
       "id": "wikdict-en-es",
       "filename": "WikDict-EN-ES.mdx",
       "displayName": "WikDict English-Spanish",
-      "description": "English-Spanish dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Spanish translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -1049,23 +1101,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 59858,
-      "sizeBytes": 6853628,
-      "license": "CC-BY-SA-3.0",
+      "entries": 112016,
+      "sizeBytes": 8795884,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-es",
       "tier": 3,
-      "sha256": "9d02c957502d082157597df244774507a22b24b933ed9c24d7ec9e58f33eda9c",
+      "sha256": "9b0ae4872278bf2af125765000ab5263bdf76573202f5a782c683b85f6eb2cb1",
       "previousSha256": [
-        "d67c94d663ba6040149ee28e1a19af360661402e1212e443daf4683f799d56a9"
+        "d67c94d663ba6040149ee28e1a19af360661402e1212e443daf4683f799d56a9",
+        "9d02c957502d082157597df244774507a22b24b933ed9c24d7ec9e58f33eda9c"
       ]
     },
     {
       "id": "wikdict-en-tr",
       "filename": "WikDict-EN-TR.mdx",
       "displayName": "WikDict English-Turkish",
-      "description": "English-Turkish dictionary extracted from Wiktionary via WikDict.",
+      "description": "English-Turkish translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EN",
         "dest": [
@@ -1073,23 +1126,24 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 25575,
-      "sizeBytes": 3019332,
-      "license": "CC-BY-SA-3.0",
+      "entries": 55990,
+      "sizeBytes": 4283933,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-tr",
       "tier": 3,
-      "sha256": "98d38caf1e22e8d7756f66f1459bc173f34534fd9b0a72197caf8f1073254580",
+      "sha256": "c531ed607ed391452dff25688d09b652b884001d5b8647712f1478780360cd33",
       "previousSha256": [
-        "7199302d29fa6b6774199971a59ba44d410e2dc2bcb0392070db6dbd74c0569c"
+        "7199302d29fa6b6774199971a59ba44d410e2dc2bcb0392070db6dbd74c0569c",
+        "98d38caf1e22e8d7756f66f1459bc173f34534fd9b0a72197caf8f1073254580"
       ]
     },
     {
       "id": "wikdict-fr-en",
       "filename": "WikDict-FR-EN.mdx",
       "displayName": "WikDict French-English",
-      "description": "French-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "French-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "FR",
         "dest": [
@@ -1097,23 +1151,24 @@
         ]
       },
       "flag": "🇫🇷",
-      "entries": 119636,
-      "sizeBytes": 8130366,
-      "license": "CC-BY-SA-3.0",
+      "entries": 152484,
+      "sizeBytes": 12181249,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-en",
       "tier": 3,
-      "sha256": "0f8b95d1512b5f3be82b805f6e04590d742cdd57a771121a7f4d982e50bda1ca",
+      "sha256": "8a4030ee5ae5a3df8b2bae6e04ff00964e21480a6ca2848693b5efdf788ac56c",
       "previousSha256": [
-        "7abf1b81b5a694017d56eb25c921d31047dcb4de93111850e34c009c4865959f"
+        "7abf1b81b5a694017d56eb25c921d31047dcb4de93111850e34c009c4865959f",
+        "0f8b95d1512b5f3be82b805f6e04590d742cdd57a771121a7f4d982e50bda1ca"
       ]
     },
     {
       "id": "wikdict-fr-ru",
       "filename": "WikDict-FR-RU.mdx",
       "displayName": "WikDict French-Russian",
-      "description": "French-Russian dictionary extracted from Wiktionary via WikDict.",
+      "description": "French-Russian translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "FR",
         "dest": [
@@ -1121,23 +1176,24 @@
         ]
       },
       "flag": "🇫🇷",
-      "entries": 25404,
-      "sizeBytes": 1983945,
-      "license": "CC-BY-SA-3.0",
+      "entries": 50527,
+      "sizeBytes": 4552864,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-ru",
       "tier": 3,
-      "sha256": "a9ad758bac8e2f43e1572252fbba19cc74323f788365ee6655c0a4d3c628f2ae",
+      "sha256": "3586e9a6c622836179e24f4366729b33a4c57bbd078250579a5c45039987e760",
       "previousSha256": [
-        "4f4328f434e1da87b2e90450f3ba2aa06b0fce6c011775a76c59fd20d1bc07e7"
+        "4f4328f434e1da87b2e90450f3ba2aa06b0fce6c011775a76c59fd20d1bc07e7",
+        "a9ad758bac8e2f43e1572252fbba19cc74323f788365ee6655c0a4d3c628f2ae"
       ]
     },
     {
       "id": "wikdict-fr-es",
       "filename": "WikDict-FR-ES.mdx",
       "displayName": "WikDict French-Spanish",
-      "description": "French-Spanish dictionary extracted from Wiktionary via WikDict.",
+      "description": "French-Spanish translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "FR",
         "dest": [
@@ -1145,23 +1201,24 @@
         ]
       },
       "flag": "🇫🇷",
-      "entries": 53532,
-      "sizeBytes": 3460995,
-      "license": "CC-BY-SA-3.0",
+      "entries": 65124,
+      "sizeBytes": 4924764,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-es",
       "tier": 3,
-      "sha256": "c1bdf8672e2031291a0bf46abe356749aa4831584dd4a8dc8325c87a5da398f6",
+      "sha256": "2532312a7136ae50598cdc6f5ed92540887c257c814ba8c420a3dd35dfe0c93d",
       "previousSha256": [
-        "887271368eec7e833fc21af25e38eb2896d263ee3e709a696d10ad27f81be11e"
+        "887271368eec7e833fc21af25e38eb2896d263ee3e709a696d10ad27f81be11e",
+        "c1bdf8672e2031291a0bf46abe356749aa4831584dd4a8dc8325c87a5da398f6"
       ]
     },
     {
       "id": "wikdict-de-en",
       "filename": "WikDict-DE-EN.mdx",
       "displayName": "WikDict German-English",
-      "description": "German-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "German-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "DE",
         "dest": [
@@ -1169,23 +1226,24 @@
         ]
       },
       "flag": "🇩🇪",
-      "entries": 71018,
-      "sizeBytes": 7548959,
-      "license": "CC-BY-SA-3.0",
+      "entries": 126530,
+      "sizeBytes": 14129911,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-de-en",
       "tier": 3,
-      "sha256": "e819ac958cae37f6fbf7a15b3035f6ab09c358d807f81547085710e2d12e9b1f",
+      "sha256": "6c66c71c8394c90510a3b87a2a06ab31b6f483929cbff61b5b9c23e75365168e",
       "previousSha256": [
-        "c144320d664f928180cfe30c443662c1fe08fcaf47a60878705f6cebd4175073"
+        "c144320d664f928180cfe30c443662c1fe08fcaf47a60878705f6cebd4175073",
+        "e819ac958cae37f6fbf7a15b3035f6ab09c358d807f81547085710e2d12e9b1f"
       ]
     },
     {
       "id": "wikdict-de-ru",
       "filename": "WikDict-DE-RU.mdx",
       "displayName": "WikDict German-Russian",
-      "description": "German-Russian dictionary extracted from Wiktionary via WikDict.",
+      "description": "German-Russian translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "DE",
         "dest": [
@@ -1193,23 +1251,24 @@
         ]
       },
       "flag": "🇩🇪",
-      "entries": 27402,
-      "sizeBytes": 2927333,
-      "license": "CC-BY-SA-3.0",
+      "entries": 53152,
+      "sizeBytes": 5857825,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-de-ru",
       "tier": 3,
-      "sha256": "4d1d94a8c212450a3e7089920487a7cbbb5957678395ccae4ab992acd3cdd175",
+      "sha256": "de679821b9ed396fdfbc09bd0523a9515e201cdaa97b77d254eacda7e10d1250",
       "previousSha256": [
-        "2cdf69dea426df82fc521a960701c576b2a49c3a1f5921b8f0fd0ebba79c467b"
+        "2cdf69dea426df82fc521a960701c576b2a49c3a1f5921b8f0fd0ebba79c467b",
+        "4d1d94a8c212450a3e7089920487a7cbbb5957678395ccae4ab992acd3cdd175"
       ]
     },
     {
       "id": "wikdict-el-en",
       "filename": "WikDict-EL-EN.mdx",
       "displayName": "WikDict Greek-English",
-      "description": "Greek-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Greek-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "EL",
         "dest": [
@@ -1217,23 +1276,24 @@
         ]
       },
       "flag": "🇬🇷",
-      "entries": 41638,
-      "sizeBytes": 2881880,
-      "license": "CC-BY-SA-3.0",
+      "entries": 57345,
+      "sizeBytes": 4836116,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-el-en",
       "tier": 3,
-      "sha256": "76abd559a60ee1132fd7adbfebe30f4cf2f35dc70108f986a7b2d9c12c9da01b",
+      "sha256": "a99861121524ceb0487374088d8767702ee39f9c126d889d71ea793720c24737",
       "previousSha256": [
-        "45f188600ab866a219da6ab8d39f4da062a9ebeb80db85faffcf1f3c07046c45"
+        "45f188600ab866a219da6ab8d39f4da062a9ebeb80db85faffcf1f3c07046c45",
+        "76abd559a60ee1132fd7adbfebe30f4cf2f35dc70108f986a7b2d9c12c9da01b"
       ]
     },
     {
       "id": "wikdict-it-en",
       "filename": "WikDict-IT-EN.mdx",
       "displayName": "WikDict Italian-English",
-      "description": "Italian-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Italian-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "IT",
         "dest": [
@@ -1241,23 +1301,24 @@
         ]
       },
       "flag": "🇮🇹",
-      "entries": 28414,
-      "sizeBytes": 2522594,
-      "license": "CC-BY-SA-3.0",
+      "entries": 67498,
+      "sizeBytes": 6788029,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-it-en",
       "tier": 3,
-      "sha256": "7c3b85ffaff7d917d791fd9c2db0fd11dc1253851c9da4920a4cf4aa4a94d7d4",
+      "sha256": "1981dbb19b13010eada6021f98c78a9e64cac6501d72afadce45225687a70e2f",
       "previousSha256": [
-        "8bc5bae4c7afa528391befe819e9b83d0550b5b83fad3a5b1f351e6a5ba4d24a"
+        "8bc5bae4c7afa528391befe819e9b83d0550b5b83fad3a5b1f351e6a5ba4d24a",
+        "7c3b85ffaff7d917d791fd9c2db0fd11dc1253851c9da4920a4cf4aa4a94d7d4"
       ]
     },
     {
       "id": "wikdict-la-en",
       "filename": "WikDict-LA-EN.mdx",
       "displayName": "WikDict Latin-English",
-      "description": "Latin-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Latin-English translations from Wiktionary (via DBnary and WikDict 2025-11); most entries rebuilt from the English–Latin data.",
       "direction": {
         "src": "LA",
         "dest": [
@@ -1265,23 +1326,24 @@
         ]
       },
       "flag": "🏛️",
-      "entries": 2628,
-      "sizeBytes": 174721,
-      "license": "CC-BY-SA-3.0",
+      "entries": 29197,
+      "sizeBytes": 2292973,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-la-en",
       "tier": 3,
-      "sha256": "861cfde377238380e992ba68a3960728073f22b4bedae617458089dde70bdf95",
+      "sha256": "1869fc190f00e9d8562b08216c50c5df34184f376b6c63f56042531676c1ec18",
       "previousSha256": [
-        "27313913b40c6b9cc6543022703ead5bd68acf590d5ff6a2a2dacf1fef56656c"
+        "27313913b40c6b9cc6543022703ead5bd68acf590d5ff6a2a2dacf1fef56656c",
+        "861cfde377238380e992ba68a3960728073f22b4bedae617458089dde70bdf95"
       ]
     },
     {
       "id": "wikdict-pt-en",
       "filename": "WikDict-PT-EN.mdx",
       "displayName": "WikDict Portuguese-English",
-      "description": "Portuguese-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Portuguese-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "PT",
         "dest": [
@@ -1289,23 +1351,24 @@
         ]
       },
       "flag": "🇵🇹🇧🇷",
-      "entries": 12551,
-      "sizeBytes": 812296,
-      "license": "CC-BY-SA-3.0",
+      "entries": 62602,
+      "sizeBytes": 5975811,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-pt-en",
       "tier": 3,
-      "sha256": "0e3fdbed5dcc7350eb9144aa0c706ce5b7125dfd42bb794a5e5f249f9209c22a",
+      "sha256": "50b7d2025b57dabda201704858d627560c9138e0bdd5f66452058fcf8bbfe169",
       "previousSha256": [
-        "1fbaac33fcdf214c61543ede16513ab6e2ec924affd13355e62feac53427c759"
+        "1fbaac33fcdf214c61543ede16513ab6e2ec924affd13355e62feac53427c759",
+        "0e3fdbed5dcc7350eb9144aa0c706ce5b7125dfd42bb794a5e5f249f9209c22a"
       ]
     },
     {
       "id": "wikdict-pt-es",
       "filename": "WikDict-PT-ES.mdx",
       "displayName": "WikDict Portuguese-Spanish",
-      "description": "Portuguese-Spanish dictionary extracted from Wiktionary via WikDict.",
+      "description": "Portuguese-Spanish translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "PT",
         "dest": [
@@ -1313,23 +1376,24 @@
         ]
       },
       "flag": "🇵🇹🇧🇷",
-      "entries": 10803,
-      "sizeBytes": 592224,
-      "license": "CC-BY-SA-3.0",
+      "entries": 18401,
+      "sizeBytes": 1308590,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-pt-es",
       "tier": 3,
-      "sha256": "fc12a88ceaa019d9f8fbbbb6081963d79514455c1c974a1d8744990dfaaeffff",
+      "sha256": "2f9126a79c85a3bc7856556e0d644e82402a98f8d49f6244acf6c00ebf0d5b0b",
       "previousSha256": [
-        "692604b9a4219df2eb850bed4c6b46a8cb3a0b6681d4bf1a9421a2f66cc85233"
+        "692604b9a4219df2eb850bed4c6b46a8cb3a0b6681d4bf1a9421a2f66cc85233",
+        "fc12a88ceaa019d9f8fbbbb6081963d79514455c1c974a1d8744990dfaaeffff"
       ]
     },
     {
       "id": "wikdict-ru-en",
       "filename": "WikDict-RU-EN.mdx",
       "displayName": "WikDict Russian-English",
-      "description": "Russian-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Russian-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "RU",
         "dest": [
@@ -1337,23 +1401,24 @@
         ]
       },
       "flag": "🇷🇺",
-      "entries": 42596,
-      "sizeBytes": 3433000,
-      "license": "CC-BY-SA-3.0",
+      "entries": 99824,
+      "sizeBytes": 10340510,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-en",
       "tier": 3,
-      "sha256": "9cc035570be2d54c23df73359687ae6afde39ec9d57db856886350291949e09e",
+      "sha256": "fa75f2f36a6a941c5fc89a7bd28e4b46f4f1c9177cfa8eade71b2987e4909f53",
       "previousSha256": [
-        "b4e5bb03d63610924086a5acca9ba87bc2ac7c2b52ac3ee748797d9b2261d6db"
+        "b4e5bb03d63610924086a5acca9ba87bc2ac7c2b52ac3ee748797d9b2261d6db",
+        "9cc035570be2d54c23df73359687ae6afde39ec9d57db856886350291949e09e"
       ]
     },
     {
       "id": "wikdict-ru-fr",
       "filename": "WikDict-RU-FR.mdx",
       "displayName": "WikDict Russian-French",
-      "description": "Russian-French dictionary extracted from Wiktionary via WikDict.",
+      "description": "Russian-French translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "RU",
         "dest": [
@@ -1361,23 +1426,24 @@
         ]
       },
       "flag": "🇷🇺",
-      "entries": 25310,
-      "sizeBytes": 1952976,
-      "license": "CC-BY-SA-3.0",
+      "entries": 45725,
+      "sizeBytes": 4068189,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-fr",
       "tier": 3,
-      "sha256": "10fff5578e81433c02c8bf71f6a61f4167d3534d30dd82fec3ef6ee305dbf787",
+      "sha256": "fb4373a8946af1f28d7a7a045e9e4b28181bf9648cda21bf44e9d88977e2caa6",
       "previousSha256": [
-        "2b065ed5f4543b1569f30d231e4290767f440e9ec9ed17ea8d018428aebd90de"
+        "2b065ed5f4543b1569f30d231e4290767f440e9ec9ed17ea8d018428aebd90de",
+        "10fff5578e81433c02c8bf71f6a61f4167d3534d30dd82fec3ef6ee305dbf787"
       ]
     },
     {
       "id": "wikdict-ru-de",
       "filename": "WikDict-RU-DE.mdx",
       "displayName": "WikDict Russian-German",
-      "description": "Russian-German dictionary extracted from Wiktionary via WikDict.",
+      "description": "Russian-German translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "RU",
         "dest": [
@@ -1385,23 +1451,24 @@
         ]
       },
       "flag": "🇷🇺",
-      "entries": 24000,
-      "sizeBytes": 1857018,
-      "license": "CC-BY-SA-3.0",
+      "entries": 46150,
+      "sizeBytes": 4686049,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-de",
       "tier": 3,
-      "sha256": "b5259d7dc25a43a3b42a70403f6a8f748e72c3f9e082a2802c9bdd808bf6e694",
+      "sha256": "9eba2ab5997e107ef0530351dabb0673beeffe5d879c5f9f1cb0765f692067e3",
       "previousSha256": [
-        "4b7f58eb0e8f0f3329ad53a7cfccf77b5cf72a1d88c1a2c44f9a97ff976c1d2e"
+        "4b7f58eb0e8f0f3329ad53a7cfccf77b5cf72a1d88c1a2c44f9a97ff976c1d2e",
+        "b5259d7dc25a43a3b42a70403f6a8f748e72c3f9e082a2802c9bdd808bf6e694"
       ]
     },
     {
       "id": "wikdict-es-en",
       "filename": "WikDict-ES-EN.mdx",
       "displayName": "WikDict Spanish-English",
-      "description": "Spanish-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Spanish-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "ES",
         "dest": [
@@ -1409,23 +1476,24 @@
         ]
       },
       "flag": "🇪🇸",
-      "entries": 22145,
-      "sizeBytes": 2020699,
-      "license": "CC-BY-SA-3.0",
+      "entries": 85277,
+      "sizeBytes": 8777099,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-en",
       "tier": 3,
-      "sha256": "46a3c00c2efeeca23071f488b77e648260d2b1a680013208b137590a0a7b1ec8",
+      "sha256": "a9085994628fbcfc53f8ffcd0dbcb14dbca35a9b9d8128f8ab5b84a58b1d0253",
       "previousSha256": [
-        "8c865b7e93230833c11d865544f887fc5d38fc153f7b3dcb12b1c5c48e74613d"
+        "8c865b7e93230833c11d865544f887fc5d38fc153f7b3dcb12b1c5c48e74613d",
+        "46a3c00c2efeeca23071f488b77e648260d2b1a680013208b137590a0a7b1ec8"
       ]
     },
     {
       "id": "wikdict-es-fr",
       "filename": "WikDict-ES-FR.mdx",
       "displayName": "WikDict Spanish-French",
-      "description": "Spanish-French dictionary extracted from Wiktionary via WikDict.",
+      "description": "Spanish-French translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "ES",
         "dest": [
@@ -1433,23 +1501,24 @@
         ]
       },
       "flag": "🇪🇸",
-      "entries": 16420,
-      "sizeBytes": 1372727,
-      "license": "CC-BY-SA-3.0",
+      "entries": 56623,
+      "sizeBytes": 4562760,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-fr",
       "tier": 3,
-      "sha256": "021d1454d41fef776eaf89e0464cfe2d7e93ec29a9743c8f38a8b56a5e622834",
+      "sha256": "40da0eef2ac11a8bca90e500c47e59652752084dc9fc50e4755d48fdc2fc9abe",
       "previousSha256": [
-        "b0084f134ad8f43701eac1f2a9935fc67fba088c49328ff6d0464ed2424f5a75"
+        "b0084f134ad8f43701eac1f2a9935fc67fba088c49328ff6d0464ed2424f5a75",
+        "021d1454d41fef776eaf89e0464cfe2d7e93ec29a9743c8f38a8b56a5e622834"
       ]
     },
     {
       "id": "wikdict-es-pt",
       "filename": "WikDict-ES-PT.mdx",
       "displayName": "WikDict Spanish-Portuguese",
-      "description": "Spanish-Portuguese dictionary extracted from Wiktionary via WikDict.",
+      "description": "Spanish-Portuguese translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "ES",
         "dest": [
@@ -1457,23 +1526,24 @@
         ]
       },
       "flag": "🇪🇸",
-      "entries": 10647,
-      "sizeBytes": 901818,
-      "license": "CC-BY-SA-3.0",
+      "entries": 20674,
+      "sizeBytes": 1721448,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-pt",
       "tier": 3,
-      "sha256": "323c137d3eeb67d5a1863e61f89f43a9bec7f47cac1e55e880dee94a9b5a51d7",
+      "sha256": "47473b0a4f844e317f99b7dc5280eff2f77bc811ee8495aa8ef2831ce9283f12",
       "previousSha256": [
-        "6219f0ccc095e0dc925f8d619bb331bf1b4a93a2d198b2c6452a225420293e5d"
+        "6219f0ccc095e0dc925f8d619bb331bf1b4a93a2d198b2c6452a225420293e5d",
+        "323c137d3eeb67d5a1863e61f89f43a9bec7f47cac1e55e880dee94a9b5a51d7"
       ]
     },
     {
       "id": "wikdict-tr-en",
       "filename": "WikDict-TR-EN.mdx",
       "displayName": "WikDict Turkish-English",
-      "description": "Turkish-English dictionary extracted from Wiktionary via WikDict.",
+      "description": "Turkish-English translations from Wiktionary (via DBnary and WikDict 2025-11), grouped by sense.",
       "direction": {
         "src": "TR",
         "dest": [
@@ -1481,23 +1551,24 @@
         ]
       },
       "flag": "🇹🇷",
-      "entries": 15401,
-      "sizeBytes": 1009782,
-      "license": "CC-BY-SA-3.0",
+      "entries": 39303,
+      "sizeBytes": 3524130,
+      "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-tr-en",
       "tier": 3,
-      "sha256": "ef48c3d5ea0ac5f1fd07cf3e8fc17fa07844810f8899cb7e8d75f0c9f4864861",
+      "sha256": "3b635cf161612ff98fd0fae3c40bef32bce0edb0187976d0b6bd739214e8b844",
       "previousSha256": [
-        "036b2b97a18762f6764ed894bfa639232d9ae792e32dda938d5e75d391fbfb0e"
+        "036b2b97a18762f6764ed894bfa639232d9ae792e32dda938d5e75d391fbfb0e",
+        "ef48c3d5ea0ac5f1fd07cf3e8fc17fa07844810f8899cb7e8d75f0c9f4864861"
       ]
     },
     {
       "id": "wiktionary-ar-en",
       "filename": "Wiktionary-AR-EN.mdx",
       "displayName": "Wiktionary Arabic-English",
-      "description": "Arabic-English dictionary extracted from Wiktionary with definitions and transliterations.",
+      "description": "Arabic-English glosses from English Wiktionary (2022 snapshot) with vocalized readings, transliterations, and lookup by inflected or definite form.",
       "direction": {
         "src": "AR",
         "dest": [
@@ -1505,21 +1576,23 @@
         ]
       },
       "flag": "🇸🇦",
-      "entries": 14100,
-      "sizeBytes": 1283470,
+      "entries": 278177,
+      "sizeBytes": 3438515,
       "license": "CC-BY-SA-3.0 OR GFDL-1.3-or-later",
-      "dataSource": "Wiktionary (English edition)",
+      "dataSource": "English Wiktionary via Vuizur/Wiktionary-Dictionaries (2022-11)",
       "source": "odr",
       "odrTag": "preset-dict-wiktionary-ar-en",
       "tier": 3,
-      "sha256": "4fd52a962f97ca46bbf06dc5541943d7c72b476c2ba1b1815bf40ce852999844",
-      "previousSha256": []
+      "sha256": "b2ffa11b2d17d3bccb854e23ea8e30df3e1114798e0d5700b873af6f5c7af920",
+      "previousSha256": [
+        "4fd52a962f97ca46bbf06dc5541943d7c72b476c2ba1b1815bf40ce852999844"
+      ]
     },
     {
       "id": "wiktionary-ko-en",
       "filename": "Wiktionary-KO-EN.mdx",
       "displayName": "Wiktionary Korean-English",
-      "description": "Wiktionary Korean-English with 66K entries. Alternative to the Kaikki version for comparison.",
+      "description": "Korean-English glosses from English Wiktionary (2022 snapshot) with Hanja, romanization, and lookup by inflected form, Hanja or romanized spelling.",
       "direction": {
         "src": "KO",
         "dest": [
@@ -1527,16 +1600,17 @@
         ]
       },
       "flag": "🇰🇷",
-      "entries": 65580,
-      "sizeBytes": 3033516,
+      "entries": 310982,
+      "sizeBytes": 4861403,
       "license": "CC-BY-SA-3.0 OR GFDL-1.3-or-later",
-      "dataSource": "English Wiktionary",
+      "dataSource": "English Wiktionary via Vuizur/Wiktionary-Dictionaries (2022-11)",
       "source": "odr",
       "odrTag": "preset-dict-wiktionary-ko-en",
       "tier": 3,
-      "sha256": "9e6fbabcd22bf959aee7c4a046d8a527b7dcaccec5f7ed1f0af9e5b77130d010",
+      "sha256": "18484cf44f4fdce7c88470edd29cc3aa909e7a20ddc6bce483d8488fcde41dd2",
       "previousSha256": [
-        "655ecebae10a6927de55af41f91cb31de4ab8c04e1306bcf0b79972a3090e96c"
+        "655ecebae10a6927de55af41f91cb31de4ab8c04e1306bcf0b79972a3090e96c",
+        "9e6fbabcd22bf959aee7c4a046d8a527b7dcaccec5f7ed1f0af9e5b77130d010"
       ]
     }
   ]

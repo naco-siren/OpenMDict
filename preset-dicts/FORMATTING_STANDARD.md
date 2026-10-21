@@ -192,7 +192,7 @@ KANJIDIC2 和 Unihan 的日语/韩语 reading 统一使用 **paired 格式**，�
 | 한국 (Korean) | `<span class="tag tag-ko">한글 romaji</span>` | `일 il` |
 
 - **KANJIDIC2**: 假名→罗马字使用 `shared/html.py` 的 `kana_to_romaji()`；训读保留送假名标记 (`.`, `-`)
-- **Unihan**: 源数据本身是罗马字 (`kJapaneseOn`, `kJapaneseKun`)，转换为假名后与原始罗马字配对；韩语将 `kHangul`（去除 source suffix）与 `kKorean` 按位置配对
+- **Unihan**: 日语以 `kJapanese` 为主（Unicode 15.1 起已是假名：片假名 = 音、平假名 = 訓，原样显示），`kJapaneseOn` / `kJapaneseKun`（大写罗马字）中未列出的读音转换为假名后补上，但与 `kJapanese` 某读音罗马字相同的不再补（Hepburn 分不清 ず/づ、じ/ぢ，外来语片假名也会变成平假名）；罗马字一律由 `kana_to_romaji()` 生成。韩语显示 `kHangul`（去除 source suffix），罗马字由谚文推导（Revised Romanization）；`kKorean`（Yale）与 `kHangul` 不是平行列表，不再按位置配对，只把 `kHangul` 没有的音节另起一行「한국 (Yale, 참고)」显示（谚文 + Yale；TR38 不推荐 `kKorean`，「참고」标明其可信度较低）
 - **JMdict**: 假名后附罗马字 (Hepburn)，另有 Kanjium 音高重音标注
 
 #### 3.4.3 拼音/粤拼
