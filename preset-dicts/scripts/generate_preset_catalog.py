@@ -5,9 +5,11 @@ For every output/<Name>/<Name>.meta.json sidecar the build scripts wrote:
 
   * displayName, description, direction, flag, license, dataSource and tier
     come from the sidecar;
-  * sizeBytes, sha256 and entries are measured from output/<Name>/<Name>.mdx
-    itself, because a sidecar can be older than its .mdx (entries = the key
-    count in the MDX keyword header, the number the `openmdict` CLI prints);
+  * sizeBytes, sha256, entries and headwords are measured from
+    output/<Name>/<Name>.mdx itself, because a sidecar can be older than its
+    .mdx (entries = the key count in the MDX keyword header, the number the
+    `openmdict` CLI prints; headwords = the records that are not
+    `@@@LINK=` redirects, which the preset picker shows);
   * licenseNote (hand-maintained), previousSha256 and previousDisplayNames
     are carried over from the current catalog by id; previousSha256 gains the
     sha256 that a rebuild replaces, since the app offers an update only for
@@ -34,6 +36,7 @@ import json
 import re
 import struct
 import sys
+import zlib
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -47,7 +50,7 @@ import gen_third_party_notices as notices  # noqa: E402  (license / source table
 
 # Field order of a catalog entry (optional fields are omitted when absent).
 FIELD_ORDER = ("id", "filename", "displayName", "description", "direction",
-               "flag", "entries", "sizeBytes", "license", "licenseNote",
+               "flag", "entries", "headwords", "sizeBytes", "license", "licenseNote",
                "dataSource", "source", "odrTag", "tier", "sha256",
                "previousSha256", "previousDisplayNames")
 
@@ -119,6 +122,88 @@ def mdx_entry_count(path: Path) -> int:
     return entries
 
 
+def _mdx_block(data: bytes) -> bytes:
+    """Payload of a key-block-info, key or record block (no LZO: the
+    pipeline's packer writes zlib)."""
+    kind = data[:4]
+    if kind == b"\x00\x00\x00\x00":
+        return data[8:]
+    if kind == b"\x02\x00\x00\x00":
+        return zlib.decompress(data[8:])
+    raise ValueError(f"unsupported block compression {kind.hex()}")
+
+
+def mdx_headword_count(path: Path) -> int:
+    """Number of articles in an MDX file: the distinct records that its keys
+    point to, minus the `@@@LINK=` redirects.
+
+    Alternative spellings, inflected forms and verse references are keys
+    that redirect to an article; they count in `entries`, not here. Reads
+    the key blocks for the record offsets, then the first bytes of each
+    record (docs/MDict_Format_Specification.md; engine 2.x, unencrypted).
+    """
+    with open(path, "rb") as f:
+        (header_len,) = struct.unpack(">I", f.read(4))
+        header = f.read(header_len).decode("utf-16-le", errors="replace")
+        f.read(4)
+        if not re.search(r'GeneratedByEngineVersion="2\.', header):
+            raise ValueError(f"{path}: only engine version 2.x is supported")
+        m = re.search(r'Encrypted="(\d+)"', header)
+        if m and int(m.group(1)) != 0:
+            raise ValueError(f"{path}: encrypted")
+        utf16 = 'Encoding="UTF-16"' in header
+        unit = 2 if utf16 else 1
+
+        n_blocks, _entries, _info_dsize, info_size, _keys_size = struct.unpack(">5Q", f.read(40))
+        f.read(4)
+        info = _mdx_block(f.read(info_size))
+        block_sizes = []
+        p = 0
+        for _ in range(n_blocks):
+            p += 8                                    # entries in the block
+            for _ in range(2):                        # first and last key
+                (n,) = struct.unpack(">H", info[p:p + 2])
+                p += 2 + (n + 1) * unit
+            (comp,) = struct.unpack(">Q", info[p:p + 8])
+            p += 16                                   # compressed, decompressed size
+            block_sizes.append(comp)
+
+        offsets = set()
+        term = b"\x00" * unit
+        for comp in block_sizes:
+            block = _mdx_block(f.read(comp))
+            q = 0
+            while q < len(block):
+                (offset,) = struct.unpack(">Q", block[q:q + 8])
+                end = block.find(term, q + 8)
+                while (end - q - 8) % unit:
+                    end = block.find(term, end + 1)
+                q = end + unit
+                offsets.add(offset)
+
+        n_rblocks, _rentries, rinfo_size, _rsize = struct.unpack(">4Q", f.read(32))
+        rinfo = f.read(rinfo_size)
+        link = "@@@LINK=".encode("utf-16-le" if utf16 else "utf-8")
+        starts = sorted(offsets)
+        articles = 0
+        partial = []     # starts of records that continue into the next block
+        base = 0
+        i = 0
+        for b in range(n_rblocks):
+            comp, decomp = struct.unpack(">QQ", rinfo[b * 16:b * 16 + 16])
+            data = _mdx_block(f.read(comp))
+            heads = [head + data[:len(link) - len(head)] for head in partial]
+            while i < len(starts) and starts[i] < base + decomp:
+                at = starts[i] - base
+                heads.append(data[at:at + len(link)])
+                i += 1
+            partial = [head for head in heads if len(head) < len(link)]
+            articles += sum(1 for head in heads if len(head) == len(link) and head != link)
+            base += decomp
+    # A record shorter than the marker at the end of the file is an article.
+    return articles + len(partial)
+
+
 def derive_id(filename: str) -> str:
     """WordNet-EN.mdx -> wordnet-en"""
     return Path(filename).stem.lower()
@@ -182,6 +267,7 @@ def build_catalog(sidecars: list[dict], policy: dict, current: dict) -> tuple[di
             "direction": meta["direction"],
             "flag": meta["flag"],
             "entries": mdx_entry_count(mdx),
+            "headwords": mdx_headword_count(mdx),
             "sizeBytes": mdx.stat().st_size,
             "license": license_expr,
             "dataSource": meta["dataSource"],

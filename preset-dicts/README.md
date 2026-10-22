@@ -186,8 +186,9 @@ license id, data source and delivery mode (`bundle` = copied into the app,
 hash, which is the dictionary ID the app derives) and `previousSha256`
 (every build that shipped before; the app offers an update only for an
 installed build listed there). `make catalog` takes the descriptive fields
-from the `.meta.json` sidecars and measures `sha256`, `sizeBytes` and
-`entries` from the `.mdx` files; it keeps the hand-maintained `licenseNote`
+from the `.meta.json` sidecars and measures `sha256`, `sizeBytes`,
+`entries` (lookup keys) and `headwords` (articles, which the preset picker
+shows) from the `.mdx` files; it keeps the hand-maintained `licenseNote`
 and the `previousSha256` history, and appends the hash a rebuild replaces.
 The iOS app reads the catalog from the bundle; `../scripts/check-assets.sh`
 verifies it against the Xcode project and the asset lock.
