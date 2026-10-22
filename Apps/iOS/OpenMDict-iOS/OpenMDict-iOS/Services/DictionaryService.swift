@@ -1198,9 +1198,10 @@ final class DictionaryService: ObservableObject {
             MDictReader.removeSidecarCache(forHeaderSHA256: oldHeaderSHA)
         }
         ArticleIndexCoordinator.shared.handleDictImported(dictId)
-        if let displayName, let current = dict.userDisplayName, current != displayName,
-           previousDisplayNames.contains(current) {
-            updateDisplayName(dictId: dictId, newName: displayName)
+        if let newName = PresetVersioning.adoptedDisplayName(current: dict.userDisplayName,
+                                                             catalogName: displayName,
+                                                             previousNames: previousDisplayNames) {
+            updateDisplayName(dictId: dictId, newName: newName)
         }
         SpotlightIndexingService.shared.indexDictionary(dict)
         displayNameRevision += 1
