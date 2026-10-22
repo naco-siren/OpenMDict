@@ -122,8 +122,8 @@ committing.
 
 The EDRDG licence (section 4) requires a procedure for updating JMdict and
 KANJIDIC2 regularly from the current releases; the builds warn once their
-pinned release is more than 31 days old. Refresh both about once a month
-and before every release that ships presets:
+pinned release is more than 31 days old. Refresh both before every app
+build that is uploaded (TestFlight or App Store), and at least once a month:
 
 ```bash
 cd preset-dicts
@@ -254,6 +254,33 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
   `gcide-0.53.tar.xz`, kept in `preset-dicts/data/` by `fetch_data.sh`) so
   the compiled dictionaries satisfy GPLv3 §6. Older Releases keep their own
   copies: assets are never deleted from a published Release.
+
+### Publishing the dictionary sources
+
+The conversion scripts of the GPL/AGPL presets (FreeDict EN-DE, FreeDict
+DE-EN, GCIDE) and their upstream source archives are public at
+<https://github.com/naco-siren/OpenMDict-dictionary-sources>, which the three
+dictionaries' descriptions and `THIRD-PARTY-NOTICES.md` link. Whenever one of
+them is rebuilt with a different output, publish a matching tag there (the
+asset tag without its `assets-` prefix) before the app build that ships it:
+
+```bash
+git clone git@github.com:naco-siren/OpenMDict-dictionary-sources.git /tmp/ds
+scripts/export-dictionary-sources.sh /tmp/ds
+cd /tmp/ds
+make                    # fetches and verifies the archives, rebuilds, checks SHA256SUMS
+git add -A && git commit -m "Scripts for assets-YYYY.MM[.N]"
+git tag YYYY.MM[.N] && git push origin main YYYY.MM[.N]
+gh release create YYYY.MM[.N] --title YYYY.MM[.N] --notes "…" \
+  <preset-dicts/data/freedict/freedict-{eng-deu,deu-eng}.src.tar.xz> \
+  <preset-dicts/data/gcide/gcide-0.53.tar.xz>
+```
+
+`preset-dicts/dictionary-sources/` holds that repository's README, Makefile
+and fetch script; the export adds the scripts and shared modules, `LICENSE`,
+the three build pins and `SHA256SUMS` from the catalog. Keep every tag and
+Release there: each one is the source of dictionary files that an installed
+app build may carry.
 
 ### Verifying a clean clone
 

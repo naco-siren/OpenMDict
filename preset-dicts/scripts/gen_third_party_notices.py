@@ -30,6 +30,8 @@ from pathlib import Path
 from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent          # preset-dicts/
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from shared.build import DICTIONARY_SOURCES_URL  # noqa: E402
 REPO_ROOT = ROOT.parent                                # repository root
 CATALOG_PATH = ROOT / "preset-dictionaries.json"
 NOTICES_PATH = REPO_ROOT / "THIRD-PARTY-NOTICES.md"
@@ -442,14 +444,15 @@ def render(catalog: dict) -> str:
               "Dictionaries under `GPL-3.0-or-later` (FreeDict, GCIDE; FreeDict "
               "also under `AGPL-3.0-or-later`, which upstream applies to the "
               "ding2tei-haskell part of its combined work) are distributed as "
-              "compiled `.mdx` files. Their corresponding source consists of the "
-              "upstream source archives — `freedict-eng-deu.src.tar.xz`, "
-              "`freedict-deu-eng.src.tar.xz` and `gcide-0.53.tar.xz`, attached to "
-              "the GitHub Release that carries the `.mdx` files; FreeDict's own "
-              "source form is in turn the Ding dictionary (GPLv2+) and "
-              "ding2tei-haskell (AGPLv3+), which its TEI header names — together "
-              "with OpenMDict's conversion scripts (`preset-dicts/scripts/`, "
-              "`preset-dicts/Makefile`) at the commit that built the files.",
+              "compiled `.mdx` files. Their corresponding source — the conversion "
+              "scripts and the upstream source archives "
+              "(`freedict-eng-deu.src.tar.xz`, `freedict-deu-eng.src.tar.xz`, "
+              "`gcide-0.53.tar.xz`) — is published at "
+              f"<{DICTIONARY_SOURCES_URL}>, one tag for each set of shipped "
+              "files; `make` there rebuilds each file byte for byte. FreeDict's "
+              "own source form is the Ding dictionary (GPLv2+) and "
+              "ding2tei-haskell (AGPLv3+), which its TEI header names. The "
+              "description of each of these dictionaries links the repository.",
               "", END]
     return "\n".join(lines) + "\n"
 
