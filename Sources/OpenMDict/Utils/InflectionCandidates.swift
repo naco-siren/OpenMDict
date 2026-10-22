@@ -16,14 +16,9 @@ public enum InflectionCandidates {
     public static let maxCandidates = 12
 
     /// Lemma candidates for `query`, most likely first, none equal to the
-    /// query (ignoring case).
-    ///
-    /// The lemmas `NLTagger` gives come first. When it gives none — iOS
-    /// may not have downloaded its German model — inflections are undone by
-    /// rule: English -s/-es/-ies, -ed/-ied, -ing, -er/-est (with a dropped e
-    /// or a doubled consonant restored); German strong and irregular verbs
-    /// (a table of common ones), ge…t / ge…en participles, finite-verb
-    /// endings, and adjective and noun endings.
+    /// query ignoring case and diacritics (the tagger "lemmatizes" resumé
+    /// to résumé; that is left to diacritic-insensitive matching): the
+    /// `likely` candidates of `rankedCandidates`, then the `loose` ones.
     ///
     /// - Parameters:
     ///   - headwordLanguage: The dictionary's headword language as an ISO 639
@@ -36,25 +31,49 @@ public enum InflectionCandidates {
     ///     background and this call uses the rules alone.
     public static func candidates(for query: String, headwordLanguage: String?,
                                   waitsForSetup: Bool = true) -> [String] {
-        let word = query.trimmingCharacters(in: .whitespaces)
-        guard isLatinScript(word) else { return [] }
-        let languages = languages(for: word, headwordLanguage: headwordLanguage)
-        guard !languages.isEmpty else { return [] }
+        let ranked = rankedCandidates(for: query, headwordLanguage: headwordLanguage, waitsForSetup: waitsForSetup)
+        return ranked.likely + ranked.loose
+    }
 
-        var result: [String] = []
-        var seen: Set<String> = [word.lowercased()]
-        func add(_ candidates: [String]) {
-            for candidate in candidates where result.count < maxCandidates {
-                if seen.insert(candidate.lowercased()).inserted { result.append(candidate) }
+    /// The candidates of `candidates(for:headwordLanguage:waitsForSetup:)`
+    /// in two tiers, together at most `maxCandidates`.
+    ///
+    /// `likely`: the lemmas `NLTagger` gives; when it gives none — iOS may
+    /// not have downloaded its German model — the forms the rules undo with
+    /// little doubt: English -s/-es/-ies, -ed/-ied, -ing (with a dropped e
+    /// or a doubled consonant restored); German strong and irregular verbs
+    /// (a table of common ones), ge…t / ge…en participles, finite-verb
+    /// endings.
+    ///
+    /// `loose`: bare stems that are often other words — English -er/-est
+    /// comparatives and German adjective and noun endings ("Muller" →
+    /// "Mull"). A lookup tries them after diacritic-insensitive matching.
+    static func rankedCandidates(for query: String, headwordLanguage: String?,
+                                 waitsForSetup: Bool = true) -> (likely: [String], loose: [String]) {
+        let word = query.trimmingCharacters(in: .whitespaces)
+        guard isLatinScript(word) else { return ([], []) }
+        let languages = languages(for: word, headwordLanguage: headwordLanguage)
+        guard !languages.isEmpty else { return ([], []) }
+
+        var seen: Set<String> = []
+        let foldedWord = LookupFolding.folded(word)
+        /// The new candidates among `candidates`, within the overall cap.
+        func accepted(_ candidates: [String]) -> [String] {
+            var out: [String] = []
+            for candidate in candidates where seen.count < maxCandidates {
+                guard LookupFolding.folded(candidate) != foldedWord else { continue }
+                if seen.insert(candidate.lowercased()).inserted { out.append(candidate) }
             }
+            return out
         }
-        for language in languages { add(taggerLemmas(word, language: language, waitsForModel: waitsForSetup)) }
-        if result.isEmpty {
-            for language in languages {
-                add(language == .german ? germanRuleCandidates(word) : englishRuleCandidates(word))
-            }
+        var likely = languages.flatMap { accepted(taggerLemmas(word, language: $0, waitsForModel: waitsForSetup)) }
+        var loose: [String] = []
+        if likely.isEmpty {
+            let rules = languages.map { $0 == .german ? germanRules(word) : englishRules(word) }
+            likely = rules.flatMap { accepted($0.likely) }
+            loose = rules.flatMap { accepted($0.loose) }
         }
-        return result
+        return (likely, loose)
     }
 
     // MARK: - Language
@@ -159,8 +178,14 @@ public enum InflectionCandidates {
 
     /// Base forms of a regular English inflection, most likely first.
     static func englishRuleCandidates(_ query: String) -> [String] {
+        let rules = englishRules(query)
+        return rules.likely + rules.loose
+    }
+
+    /// `englishRuleCandidates` in the tiers of `rankedCandidates`.
+    static func englishRules(_ query: String) -> (likely: [String], loose: [String]) {
         let word = query.lowercased()
-        guard word.count >= 4, word.allSatisfy({ $0 >= "a" && $0 <= "z" }) else { return [] }
+        guard word.count >= 4, word.allSatisfy({ $0 >= "a" && $0 <= "z" }) else { return ([], []) }
         var out: [String] = []
         func drop(_ n: Int) -> String { String(word.dropLast(n)) }
 
@@ -186,17 +211,19 @@ public enum InflectionCandidates {
         }
         if let ieVerb, word.count > 6 { out.append(ieVerb) }
 
+        // Comparatives: many words end in -er/-est without being one.
+        var comparatives: [String] = []
         if word.hasSuffix("iest") {                 // happiest → happy
-            out.append(drop(4) + "y")
+            comparatives.append(drop(4) + "y")
         } else if word.hasSuffix("est") {           // nicest, tallest, biggest
-            out += verbStems(drop(3))
+            comparatives += verbStems(drop(3))
         }
         if word.hasSuffix("ier") {                  // happier → happy
-            out.append(drop(3) + "y")
+            comparatives.append(drop(3) + "y")
         } else if word.hasSuffix("er") {            // nicer, taller, bigger
-            out += verbStems(drop(2))
+            comparatives += verbStems(drop(2))
         }
-        return out.filter { $0.count >= 2 }
+        return (out.filter { $0.count >= 2 }, comparatives.filter { $0.count >= 2 })
     }
 
     /// The base forms a stem left by removing -ed, -ing, -er or -est can
@@ -237,8 +264,15 @@ public enum InflectionCandidates {
     /// irregular verbs, participles, finite forms; then the bare stems of
     /// inflected adjectives and nouns (kleinen → klein, Häuser → Haus).
     static func germanRuleCandidates(_ query: String) -> [String] {
+        let rules = germanRules(query)
+        return rules.likely + rules.loose
+    }
+
+    /// `germanRuleCandidates` in the tiers of `rankedCandidates`: verb
+    /// forms, then the adjective and noun stems.
+    static func germanRules(_ query: String) -> (likely: [String], loose: [String]) {
         let word = query.lowercased()
-        guard word.count >= 3, !word.contains(" ") else { return [] }
+        guard word.count >= 3, !word.contains(" ") else { return ([], []) }
         var out: [String] = []
         func infinitives(_ stem: String) -> [String] {
             stem.count >= 2 ? [stem + "en", stem + "n"] : []
@@ -272,14 +306,15 @@ public enum InflectionCandidates {
 
         // Adjectives and noun plurals: kleine, kleinen → klein; Tage → Tag;
         // Häuser → Haus; Kindern → Kind; Väter → Vater.
+        var stemsOfNouns: [String] = []
         for ending in ["ern", "en", "em", "er", "es", "e", "n", "s"]
         where word.hasSuffix(ending) && word.count - ending.count >= 3 {
             let stem = String(word.dropLast(ending.count))
-            out.append(stem)
-            if let plain = withoutUmlaut(stem) { out.append(plain) }
+            stemsOfNouns.append(stem)
+            if let plain = withoutUmlaut(stem) { stemsOfNouns.append(plain) }
         }
-        if let plain = withoutUmlaut(word) { out.append(plain) }
-        return out.filter { $0 != word }
+        if let plain = withoutUmlaut(word) { stemsOfNouns.append(plain) }
+        return (out.filter { $0 != word }, stemsOfNouns.filter { $0 != word })
     }
 
     /// `stem` with its last umlaut replaced by the plain vowel, or nil.

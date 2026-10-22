@@ -37,6 +37,11 @@ internal final class MDXParser: @unchecked Sendable {
     var allKeywords: [String] {
         keywords.map { $0.keyword }
     }
+
+    /// The keyword at `index` (in dictionary order).
+    func keyword(at index: Int) -> String {
+        keywords[index].keyword
+    }
     
     // MARK: - Internal State (initialized once)
 
@@ -253,16 +258,22 @@ internal final class MDXParser: @unchecked Sendable {
     ///
     /// 1. the query with full-width ASCII and ideographic spaces as ASCII
     ///    ("ヨハネ３：１６" → "ヨハネ3:16");
-    /// 2. the keys equal to it ignoring case and diacritics
-    ///    (`LookupFolding.folded`), in dictionary order;
-    /// 3. its English or German base forms (`InflectionCandidates`), the
-    ///    first that is a key.
+    /// 2. its English or German base forms (`InflectionCandidates`), the
+    ///    first that is a key ("machte" → "machen");
+    /// 3. the keys equal to it ignoring case and diacritics
+    ///    (`LookupFolding.folded`), in dictionary order ("Muller" →
+    ///    "Müller"). After inflection, so that a verb form is not taken for
+    ///    a word that differs from it only by a mark ("machte", "Mächte");
+    ///    but before the loose base forms — bare stems of comparatives and
+    ///    of German adjective and noun endings, which are often other words
+    ///    ("Muller" → "Mull") — which come last, also reported as
+    ///    `.inflection`.
     ///
-    /// Two steps have a one-time setup: step 2's folded-key index is built
-    /// on first need, and step 3's lemmatizer loads a language's model on
-    /// first use. With `waitsForSetup` false (a caller on the main thread),
-    /// a lookup that needs either before it is ready starts it in the
-    /// background and goes on without it.
+    /// Two steps have a one-time setup: step 2's lemmatizer loads a
+    /// language's model on first use, and step 3's folded-key index is read
+    /// or built on first need. With `waitsForSetup` false (a caller on the
+    /// main thread), a lookup that needs either before it is ready starts it
+    /// in the background and goes on without it.
     func lookupAllWithFallbacks(_ keyword: String, headwordLanguage: String?, waitsForSetup: Bool = true,
                                 limit: Int = MDXParser.maxRecordsPerLookup)
         -> (records: [(String, String, Int)], fallback: MDictLookupFallback?) {
@@ -275,20 +286,26 @@ internal final class MDXParser: @unchecked Sendable {
             if !found.isEmpty { return (found, .widthFolded) }
         }
 
+        func firstBaseForm(_ lemmas: [String]) -> (records: [(String, String, Int)], fallback: MDictLookupFallback?)? {
+            for lemma in lemmas {
+                var found = lookupAllWithIndex(lemma, limit: limit)
+                if found.isEmpty, header.keyCaseSensitive {
+                    // Rules give lowercase forms; a case-sensitive dictionary
+                    // may have the base form capitalized (a German noun).
+                    found = records(at: lowercaseMatchIndices(lemma.lowercased()), limit: limit)
+                }
+                if !found.isEmpty { return (found, .inflection(lemma: lemma)) }
+            }
+            return nil
+        }
+        let baseForms = InflectionCandidates.rankedCandidates(for: narrow, headwordLanguage: headwordLanguage,
+                                                              waitsForSetup: waitsForSetup)
+        if let hit = firstBaseForm(baseForms.likely) { return hit }
+
         let folded = records(at: foldedMatchIndices(keyword, waitsForSetup: waitsForSetup), limit: limit)
         if !folded.isEmpty { return (folded, .diacriticInsensitive) }
 
-        for lemma in InflectionCandidates.candidates(for: narrow, headwordLanguage: headwordLanguage,
-                                                     waitsForSetup: waitsForSetup) {
-            var found = lookupAllWithIndex(lemma, limit: limit)
-            if found.isEmpty, header.keyCaseSensitive {
-                // Rules give lowercase forms; a case-sensitive dictionary
-                // may have the base form capitalized (a German noun).
-                found = records(at: lowercaseMatchIndices(lemma.lowercased()), limit: limit)
-            }
-            if !found.isEmpty { return (found, .inflection(lemma: lemma)) }
-        }
-        return ([], nil)
+        return firstBaseForm(baseForms.loose) ?? ([], nil)
     }
 
     /// Indices, in dictionary order, of the keys equal to `query` ignoring
@@ -329,6 +346,21 @@ internal final class MDXParser: @unchecked Sendable {
             }
         }
         return index
+    }
+
+    /// Save the folded-key index beside the sidecar unless a valid copy is
+    /// there or a lookup already has the index (its write is queued). The
+    /// index is not kept in memory: the first lookup that needs it reads
+    /// the file. No-op without a sidecar cache or with writes disabled.
+    func saveFoldedKeyIndexIfNeeded() {
+        guard let file = foldedIndexFile, MDictSidecarCache.writeMode != .disabled else { return }
+        foldedIndexLock.lock()
+        defer { foldedIndexLock.unlock() }
+        guard foldedIndexStorage == nil,
+              !FoldedIndexFile.hasValidCopy(at: file.url, identity: file.identity,
+                                            keywordCount: keywords.count) else { return }
+        let index = FoldedKeyIndex.build(count: keywords.count) { keywords[$0].keyword }
+        try? FoldedIndexFile.write(index, to: file.url, identity: file.identity, keywordCount: keywords.count)
     }
 
     /// The folded-key index; when `waits` is false and it is not

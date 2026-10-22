@@ -157,10 +157,13 @@ FALLBACKS = [
     ("Straße", "<p>Straße: street</p>"),
     ("øre", "<p>øre: coin</p>"),
     ("łódź", "<p>łódź: boat</p>"),
-    # Fallback order: this key folds to "bookes", which is also an
-    # inflection of "booke"
-    ("bóokes", "<p>bóokes: folded match</p>"),
-    ("booke", "<p>booke: inflection match</p>"),
+    # Fallback order: "machte" is an inflection of "machen" and folds to
+    # "Mächte" (inflection wins); "Muller" folds to "Müller", which wins over
+    # the loose noun stem "Mull"; "blorpier" only has a loose stem, "blorpy"
+    ("Mächte", "<p>Mächte: powers</p>"),
+    ("Müller", "<p>Müller: miller</p>"),
+    ("Mull", "<p>Mull: gauze</p>"),
+    ("blorpy", "<p>blorpy: made up</p>"),
     # English base forms
     ("walk", "<p>walk: to go on foot</p>"),
     ("study", "<p>study: to learn</p>"),

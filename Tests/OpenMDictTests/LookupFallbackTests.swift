@@ -163,6 +163,18 @@ import NaturalLanguage
         #expect(has("kleinen", "klein"))
     }
 
+    @Test("Comparatives and adjective and noun stems are loose candidates, verb forms likely ones")
+    func tiers() {
+        #expect(InflectionCandidates.englishRules("walked").likely.contains("walk"))
+        #expect(InflectionCandidates.englishRules("bigger").loose.contains("big"))
+        #expect(!InflectionCandidates.englishRules("bigger").likely.contains("big"))
+        #expect(InflectionCandidates.germanRules("machte").likely.first == "machen")
+        #expect(InflectionCandidates.germanRules("muller").loose.contains("mull"))
+        #expect(!InflectionCandidates.germanRules("muller").likely.contains("mull"))
+        let ranked = InflectionCandidates.rankedCandidates(for: "blorpier", headwordLanguage: "EN")
+        #expect(ranked.likely.isEmpty && ranked.loose.first == "blorpy")
+    }
+
     @Test("German: strong and irregular verbs, with prefixes; noun plurals")
     func germanIrregular() {
         func first(_ word: String) -> String? { InflectionCandidates.germanRuleCandidates(word).first }
@@ -198,6 +210,8 @@ import NaturalLanguage
         // Unknown language: Latin-script queries get English and German candidates.
         #expect(InflectionCandidates.candidates(for: "spielten", headwordLanguage: nil).contains("spielen"))
         #expect(InflectionCandidates.candidates(for: "walked", headwordLanguage: nil).first == "walk")
+        // A form that differs only by diacritics is no inflection.
+        #expect(!InflectionCandidates.candidates(for: "resumé", headwordLanguage: "EN").contains("résumé"))
         // Other languages and scripts get none.
         #expect(InflectionCandidates.candidates(for: "mangé", headwordLanguage: "FR").isEmpty)
         #expect(InflectionCandidates.candidates(for: "ὁδοί", headwordLanguage: nil).isEmpty)
@@ -205,7 +219,7 @@ import NaturalLanguage
         #expect(InflectionCandidates.candidates(for: "3:16", headwordLanguage: nil).isEmpty)
         for word in ["walked", "Walk", "spielten", "xyzzyings", "fährst"] {
             let candidates = InflectionCandidates.candidates(for: word, headwordLanguage: nil)
-            #expect(!candidates.contains { $0.lowercased() == word.lowercased() })
+            #expect(!candidates.contains { LookupFolding.folded($0) == LookupFolding.folded(word) })
             #expect(candidates.count <= InflectionCandidates.maxCandidates)
             #expect(Set(candidates).count == candidates.count)
         }
@@ -255,8 +269,8 @@ struct LookupFallbackTests {
         #expect(Self.keys(entries) == ["resume"])
         #expect(entries.allSatisfy { $0.fallback == nil })
         #expect(reader.lookup("WALK")?.fallback == nil)
-        #expect(reader.lookup("booke")?.key == "booke")
-        #expect(reader.lookup("booke")?.fallback == nil)
+        #expect(reader.lookup("Mächte")?.key == "Mächte")
+        #expect(reader.lookup("Mächte")?.fallback == nil)
     }
 
     @Test("Full-width verse references find their ASCII keys")
@@ -321,14 +335,34 @@ struct LookupFallbackTests {
         #expect(reader.lookup("walked", headwordLanguage: "FR") == nil)
     }
 
-    @Test("Fallbacks run in order: width, then diacritics, then inflection")
+    @Test("Fallbacks run in order: width, then inflection, then diacritics")
     func fallbackOrder() throws {
         let reader = try Self.reader()
-        // "bookes" folds to the key "bóokes" and is also an inflection of "booke".
-        let entry = try #require(reader.lookup("bookes", headwordLanguage: "EN"))
-        #expect(entry.key == "bóokes")
-        #expect(entry.fallback == .diacriticInsensitive)
-        #expect(reader.lookup("ｂｏｏｋｅ")?.fallback == .widthFolded)
+        // "machte" is a form of "machen" and folds to the key "Mächte":
+        // inflection comes first.
+        for language in ["DE", nil] {
+            let entries = reader.lookupAll("machte", headwordLanguage: language)
+            #expect(Self.keys(entries) == ["machen"])
+            #expect(entries.allSatisfy { $0.fallback == .inflection(lemma: "machen") })
+        }
+        // Diacritic folding finds "Müller" for "Muller" before the loose
+        // noun stem "Mull" is tried.
+        for language in ["DE", nil] {
+            let entry = try #require(reader.lookup("Muller", headwordLanguage: language))
+            #expect(entry.key == "Müller")
+            #expect(entry.fallback == .diacriticInsensitive)
+        }
+        // A loose stem is tried last: "blorpier" → "blorpy".
+        let loose = try #require(reader.lookup("blorpier", headwordLanguage: "EN"))
+        #expect(loose.key == "blorpy")
+        #expect(loose.fallback == .inflection(lemma: "blorpy"))
+        // A dictionary of another language skips inflection, not diacritics.
+        #expect(reader.lookup("machte", headwordLanguage: "FR")?.key == "Mächte")
+        #expect(reader.lookup("machte", headwordLanguage: "FR")?.fallback == .diacriticInsensitive)
+        // Width folding comes before both.
+        #expect(reader.lookup("ｍａｃｈｅｎ")?.fallback == .widthFolded)
+        #expect(reader.lookup("ｍａｃｈｔｅ", headwordLanguage: "DE")?.fallback == .inflection(lemma: "machen"))
+        #expect(reader.lookup("ＭＵＬＬＥＲ", headwordLanguage: "DE")?.key == "Müller")
         #expect(reader.lookup("nothing-like-this") == nil)
         #expect(reader.lookupAll("").isEmpty)
     }
@@ -348,6 +382,13 @@ struct LookupFallbackTests {
         #expect(reader.search(prefix: "res") == ["resume"])
         #expect(reader.search(prefix: "resúm").sorted() == ["resume", "résumé"])
         #expect(reader.search(prefix: "zzz").isEmpty)
+        // Prefix search has no inflection step: width, then diacritics.
+        #expect(reader.search(prefix: "Mull") == ["Mull"])
+        #expect(reader.search(prefix: "Mulle") == ["Müller"])
+        #expect(reader.search(prefix: "ｍｕｌ") == ["Mull"])
+        #expect(reader.search(prefix: "ｍｕｌｌｅ") == ["Müller"])
+        #expect(reader.search(prefix: "macht") == ["Mächte"])
+        #expect(reader.search(prefix: "mach") == ["machen"])
     }
 
     @Test("Without index builds, a miss builds the folded index in the background")

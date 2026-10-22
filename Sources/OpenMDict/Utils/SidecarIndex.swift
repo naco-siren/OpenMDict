@@ -517,10 +517,11 @@ internal enum SidecarWriter {
 // MARK: - Folded-key index file
 
 /// The folded-key index (`FoldedKeyIndex`) of a dictionary, saved next to
-/// its sidecar as `<sha256>.fold` the first time a lookup builds it, so later
-/// launches — and the extensions, which never write — read it instead of
-/// building it again. Dictionaries whose lookups never need it get no file.
-/// A separate file, so the sidecar format and its fast path are unchanged.
+/// its sidecar as `<sha256>.fold` — when a lookup first builds it, or by the
+/// host app's background pass (`MDictReader.saveFoldedKeyIndexIfNeeded`) —
+/// so later launches and the extensions, which never write, read it instead
+/// of building it again. A separate file, so the sidecar format and its fast
+/// path are unchanged.
 ///
 /// Layout (little-endian):
 ///
@@ -545,11 +546,11 @@ internal enum FoldedIndexFile {
         sidecarURL.deletingPathExtension().appendingPathExtension("fold")
     }
 
-    /// The saved index, or nil if the file is missing, from another version
-    /// or source, or damaged.
-    static func load(from url: URL, identity: SidecarSourceIdentity, keywordCount: Int) -> FoldedKeyIndex? {
-        guard let data = try? Data(contentsOf: url, options: .alwaysMapped),
-              data.count >= headerSize,
+    /// The number of indices a file with this header and `fileSize` holds,
+    /// or nil if it is from another version or source, or truncated.
+    private static func indexCount(header data: Data, fileSize: Int, identity: SidecarSourceIdentity,
+                                   keywordCount: Int) -> Int? {
+        guard data.count >= headerSize,
               data.readUInt32LE(at: 0) == magicLE,
               data.readUInt32LE(at: 4) == formatVersion,
               data.readUInt64LE(at: 8) == identity.fileSize,
@@ -559,7 +560,27 @@ internal enum FoldedIndexFile {
             return nil
         }
         let count = Int(data.readUInt32LE(at: 60))
-        guard data.count == headerSize + count * 4 else { return nil }
+        return fileSize == headerSize + count * 4 ? count : nil
+    }
+
+    /// Whether a saved index for this source is at `url`, checking the
+    /// header only.
+    static func hasValidCopy(at url: URL, identity: SidecarSourceIdentity, keywordCount: Int) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let header = try? handle.read(upToCount: headerSize),
+              let size = try? handle.seekToEnd() else { return false }
+        return indexCount(header: header, fileSize: Int(size), identity: identity, keywordCount: keywordCount) != nil
+    }
+
+    /// The saved index, or nil if the file is missing, from another version
+    /// or source, or damaged.
+    static func load(from url: URL, identity: SidecarSourceIdentity, keywordCount: Int) -> FoldedKeyIndex? {
+        guard let data = try? Data(contentsOf: url, options: .alwaysMapped),
+              let count = indexCount(header: data, fileSize: data.count, identity: identity,
+                                     keywordCount: keywordCount) else {
+            return nil
+        }
         var indices: [UInt32] = []
         indices.reserveCapacity(count)
         let valid = data.withUnsafeBytes { raw -> Bool in

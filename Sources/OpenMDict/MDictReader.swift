@@ -45,16 +45,17 @@ public struct MDictWordEntry: Sendable {
 }
 
 /// The fallback that found a lookup's records when the query matched no key
-/// directly. Tried in this order.
+/// directly. Tried in this order (`inflection` once more at the end, for the
+/// loose base forms; see `MDictReader.lookupAll`).
 public enum MDictLookupFallback: Sendable, Equatable {
     /// Full-width ASCII and ideographic spaces read as ASCII ("ヨハネ３：１６"
     /// finds "ヨハネ3:16").
     case widthFolded
+    /// A base form of the query ("walked" finds "walk", "ging" finds "gehen").
+    case inflection(lemma: String)
     /// Equal ignoring case and diacritics ("αθηναι" finds "Ἀθῆναι", "cafe"
     /// finds "café").
     case diacriticInsensitive
-    /// A base form of the query ("walked" finds "walk", "ging" finds "gehen").
-    case inflection(lemma: String)
 }
 
 /// Lightweight dictionary metadata (can be loaded without full parsing)
@@ -430,15 +431,18 @@ public final class MDictReader: @unchecked Sendable {
     /// the records of the first of these fallbacks that matches are
     /// returned, each entry's `fallback` saying which:
     /// 1. full-width ASCII and ideographic spaces read as ASCII;
-    /// 2. the keys equal to the word ignoring case and diacritics;
-    /// 3. an English or German base form of the word (`InflectionCandidates`;
-    ///    a `headwordLanguage` other than English or German skips this).
+    /// 2. an English or German base form of the word (`InflectionCandidates`;
+    ///    a `headwordLanguage` other than English or German skips this);
+    /// 3. the keys equal to the word ignoring case and diacritics;
+    /// 4. a loose base form: the bare stem of a comparative or of a German
+    ///    adjective or noun ending — after step 3, as these are often other
+    ///    words ("Muller" finds "Müller" in step 3, not "Mull").
     ///
-    /// Two steps have a one-time setup: step 2 uses an index of the keys
-    /// with diacritics, built the first time a lookup or search of this
-    /// dictionary needs it (up to about a tenth of a second for half a
-    /// million keys), and step 3's lemmatizer loads a language's model on
-    /// first use. Pass `waitsForSetup: false` on the main thread: a lookup
+    /// Two steps have a one-time setup: step 2's lemmatizer loads a
+    /// language's model on first use, and step 3 uses an index of the keys
+    /// with diacritics, read from beside the sidecar or built the first time
+    /// a lookup or search of this dictionary needs it (up to about a tenth
+    /// of a second for half a million keys; see `saveFoldedKeyIndexIfNeeded`). Pass `waitsForSetup: false` on the main thread: a lookup
     /// that needs either before it is ready then starts it in the
     /// background and goes on without it (until the index is ready only
     /// keys without marks are found; until the model is, only the rules
@@ -496,6 +500,17 @@ public final class MDictReader: @unchecked Sendable {
     @discardableResult
     public func prepareFoldedKeyIndex() -> Int {
         parser.foldedKeyIndex().indices.count
+    }
+
+    /// Save the index behind diacritic-insensitive matching beside the
+    /// sidecar if no valid copy is there, without keeping it in memory, so
+    /// the first lookup that needs it — in this process or in one that never
+    /// writes, such as an extension — reads it (about a millisecond)
+    /// instead of building it. For a background pass after loading; blocks
+    /// while it builds. No-op without a sidecar cache, with
+    /// `MDictSidecarCache.writeMode == .disabled`, or when a copy exists.
+    public func saveFoldedKeyIndexIfNeeded() {
+        parser.saveFoldedKeyIndexIfNeeded()
     }
     
     /// Get suggestions for a misspelled word

@@ -341,4 +341,38 @@ struct SidecarRoundTripTests {
         MDictReader.removeSidecarCache(forHeaderSHA256: sha)
         #expect(!FileManager.default.fileExists(atPath: foldURL.path))
     }
+
+    @Test("saveFoldedKeyIndexIfNeeded writes the index once, and never with writes disabled")
+    func saveFoldedIndexInBackgroundPass() throws {
+        let path = TestFixtures.fixturesDirectory.appendingPathComponent("fallbacks.mdx").path
+        let saved = Self.saveGlobals()
+        defer { Self.restoreGlobals(saved) }
+        let sidecarDir = Self.makeTempSidecarDir()
+        defer { try? FileManager.default.removeItem(at: sidecarDir) }
+        MDictSidecarCache.cacheDirectory = sidecarDir
+
+        let sha = try #require(MDictReader.loadMetadata(from: path)?.headerSHA256)
+        let foldURL = sidecarDir.appendingPathComponent("\(sha).fold", isDirectory: false)
+        let identity = try #require(SidecarSourceIdentity.capture(path: path, headerSHA256Hex: sha))
+
+        MDictSidecarCache.writeMode = .disabled
+        try MDictReader(path: path).saveFoldedKeyIndexIfNeeded()
+        #expect(!FileManager.default.fileExists(atPath: foldURL.path))
+
+        MDictSidecarCache.writeMode = .immediate
+        let reader = try MDictReader(path: path)
+        reader.saveFoldedKeyIndexIfNeeded()
+        #expect(FoldedIndexFile.hasValidCopy(at: foldURL, identity: identity, keywordCount: reader.entryCount))
+        let written = try #require(FoldedIndexFile.load(from: foldURL, identity: identity,
+                                                        keywordCount: reader.entryCount))
+        #expect(written.indices == FoldedKeyIndex.build(count: reader.entryCount) { reader.parser.keyword(at: $0) }.indices)
+
+        // A valid copy is left alone.
+        let stamp = try FileManager.default.attributesOfItem(atPath: foldURL.path)[.modificationDate] as? Date
+        Thread.sleep(forTimeInterval: 0.05)
+        try MDictReader(path: path).saveFoldedKeyIndexIfNeeded()
+        #expect(try FileManager.default.attributesOfItem(atPath: foldURL.path)[.modificationDate] as? Date == stamp)
+        #expect(!FoldedIndexFile.hasValidCopy(at: foldURL, identity: identity, keywordCount: reader.entryCount + 1))
+        #expect(try MDictReader(path: path).lookup("αθηναι")?.key == "Ἀθῆναι")
+    }
 }

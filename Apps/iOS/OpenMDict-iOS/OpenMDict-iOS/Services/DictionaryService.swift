@@ -906,6 +906,9 @@ final class DictionaryService: ObservableObject {
         }
         MDictSidecarCache.flushPendingWrites()
         MDictSidecarCache.writeMode = .immediate
+
+        // Lookup fallbacks: saved diacritic indexes, German lemma model.
+        LookupFallbackSetup.dictionariesDidLoad(allDictionaries.filter(\.isLoaded))
     }
 
     /// Single-dict load wrapper used by both the parallel TaskGroup path
@@ -1192,6 +1195,7 @@ final class DictionaryService: ObservableObject {
         if let oldHeaderSHA, oldHeaderSHA != dict.metadata?.headerSHA256 {
             MDictReader.removeSidecarCache(forHeaderSHA256: oldHeaderSHA)
         }
+        LookupFallbackSetup.dictionariesDidLoad([dict])
         ArticleIndexCoordinator.shared.handleDictImported(dictId)
         SpotlightIndexingService.shared.indexDictionary(dict)
         displayNameRevision += 1
@@ -1316,6 +1320,7 @@ final class DictionaryService: ObservableObject {
 
         do {
             try await newDict.load()
+            LookupFallbackSetup.dictionariesDidLoad([newDict])
             // Debug: show raw title vs resolved title
             if let meta = newDict.metadata {
                 debugLog("✅ Loaded imported dictionary:")
