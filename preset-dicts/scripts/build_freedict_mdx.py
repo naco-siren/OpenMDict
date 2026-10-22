@@ -58,7 +58,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from shared.theme import (get_css, GLOSS, ORDERED_LIST, DOMAIN_BADGE, TAG_BADGE,
                           EXAMPLES_BILINGUAL, TEXT_SECONDARY, TEXT_LINK)
 from shared.html import esc, entry_link
-from shared.build import pack_mdx, generate_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview, write_catalog_metadata,
+                          DICTIONARY_SOURCES_URL)
 
 DATA_DIR = SCRIPT_DIR.parent / "data" / "freedict"
 OUTPUT_BASE = SCRIPT_DIR.parent / "output"
@@ -1199,7 +1200,9 @@ def description(title: str, pair: str, src_lang: str, dst_lang: str) -> str:
         f"<p>Converted to MDict and modified by OpenMDict ({MODIFIED}): new layout, "
         "lookup keys for phrase, inflected and abbreviated forms, example sentences "
         "merged from linked entries. Source of the dictionary: "
-        f"<a href='{SOURCE_URL.format(pair=pair)}'>freedict-{pair}-{EDITION}.src.tar.xz</a>.</p>"
+        f"<a href='{SOURCE_URL.format(pair=pair)}'>freedict-{pair}-{EDITION}.src.tar.xz</a>. "
+        "Source code of this conversion: "
+        f"<a href='{DICTIONARY_SOURCES_URL}'>{DICTIONARY_SOURCES_URL[8:]}</a>.</p>"
     )
 
 

@@ -24,6 +24,10 @@ DATA_DIR = PIPELINE_ROOT / "data"
 # resolve_creation_date). Checked in, so a rebuild anywhere reproduces it.
 PINS_PATH = PIPELINE_ROOT / "build-pins.json"
 
+# Public repository with the conversion scripts and upstream source archives
+# of the GPL/AGPL dictionaries (FreeDict, GCIDE); their descriptions link it.
+DICTIONARY_SOURCES_URL = "https://github.com/naco-siren/OpenMDict-dictionary-sources"
+
 
 # ── Default flag lookup (matches iOS flagEmoji logic) ───────────
 FLAGS: dict[str, str] = {

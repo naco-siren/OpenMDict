@@ -48,7 +48,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from shared.theme import get_css, PRONUNCIATION, ETYMOLOGY, DEFINITION, \
     SENSE_NUMBER, EXAMPLES, SYNONYMS, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, esc_attr, dir_label
-from shared.build import pack_mdx, generate_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview, write_catalog_metadata,
+                          DICTIONARY_SOURCES_URL)
 
 # ── Paths ──────────────────────────────────────────────────────
 GCIDE_VERSION = "0.53"
@@ -95,7 +96,21 @@ SOURCE_FIXES = {
     'W': [('<hw>wan"na</hw> <pr>(w<ocr/n"n<ucr/*b<emac/`)</pr>',
            '<hw>wan"na*be`</hw> <pr>(w<ocr/n"n<ucr/*b<emac/`)</pr>')],
     'F': [('<hw>frits` out"</hw>', '<hw>fritz` out"</hw>')],
+    # Two entries upstream has as commented-out drafts, kept as entries.
+    'S': [('<-- <hw>shoo-in</hw>  <def>a candidate who is certain to win easily.</def> --><br/',
+           '<hw>shoo-in</hw>  <def>a candidate who is certain to win easily.</def><br/')],
 }
+SOURCE_FIXES['W'] += [
+    ('<-- <hw>water jacket</hw>.  A chamber surrounding a vessel or tube in which water '
+     'may be circulated, thereby regulating the temperature or supply of heat to the '
+     'vessel.  Used in laboratory and manufacturing equipment.<br/',
+     '<hw>water jacket</hw>.  <def>A chamber surrounding a vessel or tube in which water '
+     'may be circulated, thereby regulating the temperature or supply of heat to the '
+     'vessel.  Used in laboratory and manufacturing equipment.</def><br/'),
+    ('<p>  water-jacketed.  adj. Having a water jacket; -- as, a water-jacketed condenser. --><br/',
+     '<p><hw>water-jacketed</hw>, <pos>a.</pos> <def>Having a water jacket; -- as, '
+     'a water-jacketed condenser.</def><br/'),
+]
 SOURCE_FIXES_UNUSED: list[str] = []
 
 
@@ -2127,7 +2142,9 @@ def description_html(build_date: str) -> str:
         "proof-read and supplemented by volunteers. Definitions, etymologies, literary "
         "quotations, phrases, and pronunciation where available.</p>"
         "<p>Source: <a href='https://www.gnu.org/software/gcide/'>www.gnu.org/software/gcide</a> "
-        f"(<a href='https://ftp.gnu.org/gnu/gcide/'>gcide-{GCIDE_VERSION}.tar.xz</a>).</p>"
+        f"(<a href='https://ftp.gnu.org/gnu/gcide/'>gcide-{GCIDE_VERSION}.tar.xz</a>). "
+        "Source code of this conversion: "
+        f"<a href='{DICTIONARY_SOURCES_URL}'>{DICTIONARY_SOURCES_URL[8:]}</a>.</p>"
         "<p>GCIDE is free; you can redistribute it and/or modify it under the terms "
         "of the GNU General Public License as published by the Free Software Foundation; "
         "either version 3, or (at your option) any later version "
@@ -2161,7 +2178,7 @@ def description_html(build_date: str) -> str:
     )
 
 
-MODIFIED_DATE = '2026-10-20'
+MODIFIED_DATE = '2026-10-21'
 STRICT = True      # content checks fail the build
 
 
