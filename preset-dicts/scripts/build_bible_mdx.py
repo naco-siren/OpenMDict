@@ -1853,7 +1853,13 @@ def fix_bungo(bible: Bible, log: list):
     if not (max(ch) == 23 and bare(16).startswith(head15b) and bare(20).startswith(head19)
             and not any(ch[n].covers or ch[n].title for n in range(15, 22))):
         raise BuildError(f'JapBungo {b} {c}:16–21: unexpected text (review JA_SHIFT)')
-    ch[15].text.parts += [['t', ' ']] + ch.pop(16).text.parts
+    joined = ch.pop(16).text.parts
+    # No space where the two module slots meet (the 文語訳 OT has none).
+    if ch[15].text.parts and ch[15].text.parts[-1][0] == 't':
+        ch[15].text.parts[-1][1] = ch[15].text.parts[-1][1].rstrip()
+    if joined and joined[0][0] == 't':
+        joined[0][1] = joined[0][1].lstrip()
+    ch[15].text.parts += joined
     for n in range(17, 22):
         ch[n - 1] = ch.pop(n)
     ch[20].covers.append(21)
