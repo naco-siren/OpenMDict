@@ -31,12 +31,30 @@ public struct MDictWordEntry: Sendable {
     
     /// Internal index for navigation (not exposed to users)
     public let index: Int
-    
-    internal init(key: MDictWordKey, article: MDictWordArticle, index: Int) {
+
+    /// How the entry was found when the looked-up word is not itself a key
+    /// (nil for a direct match, including case and apostrophe variants).
+    public let fallback: MDictLookupFallback?
+
+    internal init(key: MDictWordKey, article: MDictWordArticle, index: Int, fallback: MDictLookupFallback? = nil) {
         self.key = key
         self.article = article
         self.index = index
+        self.fallback = fallback
     }
+}
+
+/// The fallback that found a lookup's records when the query matched no key
+/// directly. Tried in this order.
+public enum MDictLookupFallback: Sendable, Equatable {
+    /// Full-width ASCII and ideographic spaces read as ASCII ("ヨハネ３：１６"
+    /// finds "ヨハネ3:16").
+    case widthFolded
+    /// Equal ignoring case and diacritics ("αθηναι" finds "Ἀθῆναι", "cafe"
+    /// finds "café").
+    case diacriticInsensitive
+    /// A base form of the query ("walked" finds "walk", "ging" finds "gehen").
+    case inflection(lemma: String)
 }
 
 /// Lightweight dictionary metadata (can be loaded without full parsing)
@@ -303,7 +321,8 @@ public final class MDictReader: @unchecked Sendable {
 
     // MARK: - Sidecar Cache Management
 
-    /// Delete any cached sidecar index file(s) for the given header SHA256.
+    /// Delete any cached sidecar index file(s) for the given header SHA256
+    /// (the sidecar and the folded-key index saved beside it).
     ///
     /// Call this from the host app when a dictionary is removed so the cache
     /// directory does not accumulate orphans. No-op if `MDictSidecarCache.cacheDirectory`
@@ -311,6 +330,7 @@ public final class MDictReader: @unchecked Sendable {
     public static func removeSidecarCache(forHeaderSHA256 sha256: String) {
         guard let url = MDictSidecarCache.sidecarURL(forHeaderSHA256: sha256) else { return }
         try? FileManager.default.removeItem(at: url)
+        try? FileManager.default.removeItem(at: FoldedIndexFile.url(forSidecar: url))
     }
     
     // MARK: - Private Helpers
@@ -341,16 +361,26 @@ public final class MDictReader: @unchecked Sendable {
     /// case-insensitive dictionary) keys that differ only in case — their
     /// articles are joined into one, exact-case match first, separated by
     /// `homographSeparator`. `key` and `index` are those of the first one.
-    /// - Parameter key: The word to look up
+    ///
+    /// When the word is not a key, the lookup falls back (see
+    /// `lookupAll(_:headwordLanguage:waitsForSetup:)`) and `fallback` says
+    /// how it matched.
+    /// - Parameters:
+    ///   - key: The word to look up
+    ///   - headwordLanguage: The dictionary's headword language (ISO 639
+    ///     code), when known — it decides which inflections are undone.
+    ///   - waitsForSetup: See `lookupAll(_:headwordLanguage:waitsForSetup:)`.
     /// - Returns: Entry with article content, or nil if not found
-    public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        let matches = lookupAll(key)
+    public func lookup(_ key: MDictWordKey, headwordLanguage: String? = nil,
+                       waitsForSetup: Bool = true) -> MDictWordEntry? {
+        let matches = lookupAll(key, headwordLanguage: headwordLanguage, waitsForSetup: waitsForSetup)
         guard let first = matches.first else { return nil }
         guard matches.count > 1 else { return first }
         return MDictWordEntry(
             key: first.key,
             article: MDictWordArticle(html: Self.joinArticles(matches.map(\.article.html))),
-            index: first.index
+            index: first.index,
+            fallback: first.fallback
         )
     }
 
@@ -394,13 +424,35 @@ public final class MDictReader: @unchecked Sendable {
         return deduped.joined(separator: homographSeparator)
     }
 
-    /// Every record for a word, separately (see `lookup(_:)`).
-    public func lookupAll(_ key: MDictWordKey) -> [MDictWordEntry] {
-        parser.lookupAllWithIndex(key).map { originalKey, definition, index in
+    /// Every record for a word, separately (see `lookup(_:headwordLanguage:waitsForSetup:)`).
+    ///
+    /// When no key matches the word (ignoring case, with any apostrophe),
+    /// the records of the first of these fallbacks that matches are
+    /// returned, each entry's `fallback` saying which:
+    /// 1. full-width ASCII and ideographic spaces read as ASCII;
+    /// 2. the keys equal to the word ignoring case and diacritics;
+    /// 3. an English or German base form of the word (`InflectionCandidates`;
+    ///    a `headwordLanguage` other than English or German skips this).
+    ///
+    /// Two steps have a one-time setup: step 2 uses an index of the keys
+    /// with diacritics, built the first time a lookup or search of this
+    /// dictionary needs it (up to about a tenth of a second for half a
+    /// million keys), and step 3's lemmatizer loads a language's model on
+    /// first use. Pass `waitsForSetup: false` on the main thread: a lookup
+    /// that needs either before it is ready then starts it in the
+    /// background and goes on without it (until the index is ready only
+    /// keys without marks are found; until the model is, only the rules
+    /// undo inflections).
+    public func lookupAll(_ key: MDictWordKey, headwordLanguage: String? = nil,
+                          waitsForSetup: Bool = true) -> [MDictWordEntry] {
+        let (records, fallback) = parser.lookupAllWithFallbacks(key, headwordLanguage: headwordLanguage,
+                                                                waitsForSetup: waitsForSetup)
+        return records.map { originalKey, definition, index in
             MDictWordEntry(
                 key: originalKey,  // Use original key from dictionary
                 article: MDictWordArticle(html: definition),
-                index: index
+                index: index,
+                fallback: fallback
             )
         }
     }
@@ -425,22 +477,36 @@ public final class MDictReader: @unchecked Sendable {
     
     // MARK: - Search API
     
-    /// Search for word keys with a prefix
+    /// Search for word keys with a prefix. When no key has the prefix, keys
+    /// with it in full-width-folded form, then ignoring case and diacritics,
+    /// are returned.
     /// - Parameters:
     ///   - prefix: Prefix to match
     ///   - limit: Maximum results (default 20)
+    ///   - waitsForSetup: As in `lookupAll(_:headwordLanguage:waitsForSetup:)`.
     /// - Returns: Array of matching word keys
-    public func search(prefix: String, limit: Int = 20) -> [MDictWordKey] {
-        parser.search(prefix: prefix, limit: limit)
+    public func search(prefix: String, limit: Int = 20, waitsForSetup: Bool = true) -> [MDictWordKey] {
+        parser.search(prefix: prefix, limit: limit, waitsForSetup: waitsForSetup)
+    }
+
+    /// Build the index behind diacritic-insensitive matching now instead of
+    /// on the first lookup or search that needs it. Safe to call from any
+    /// thread, and more than once. Returns the number of keys it holds (keys
+    /// whose folded form differs from their lowercase form).
+    @discardableResult
+    public func prepareFoldedKeyIndex() -> Int {
+        parser.foldedKeyIndex().indices.count
     }
     
     /// Get suggestions for a misspelled word
     /// - Parameters:
     ///   - key: The word to find suggestions for
     ///   - limit: Maximum suggestions
+    ///   - waitsForSetup: As in `lookupAll(_:headwordLanguage:waitsForSetup:)`
+    ///     (candidates come from prefix searches, which fall back to folding).
     /// - Returns: Array of scored suggestions, closest matches first
-    public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [ScoredSuggestion] {
-        parser.suggestions(for: key, limit: limit)
+    public func suggestions(for key: MDictWordKey, limit: Int = 5, waitsForSetup: Bool = true) -> [ScoredSuggestion] {
+        parser.suggestions(for: key, limit: limit, waitsForSetup: waitsForSetup)
     }
     
     // MARK: - Resource API

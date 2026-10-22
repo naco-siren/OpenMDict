@@ -86,8 +86,9 @@ def main() -> None:
         subprocess.run(["mdict", "-a", str(res), str(HERE / "tiny.mdd")], check=True)
 
     make_homographs()
+    make_fallbacks()
 
-    for f in ("tiny.mdx", "tiny.mdd", "homographs.mdx"):
+    for f in ("tiny.mdx", "tiny.mdd", "homographs.mdx", "fallbacks.mdx"):
         print(f"{f}: {os.path.getsize(HERE / f)} bytes")
 
 
@@ -131,6 +132,68 @@ def make_homographs() -> None:
         subprocess.run(["mdict", "--title", str(tmp / "title.html"),
                         "--description", str(tmp / "desc.html"),
                         "-a", str(tmp / "h.txt"), str(HERE / "homographs.mdx")], check=True)
+
+
+# Keys for the lookup fallbacks (MDXParser.lookupAllWithFallbacks): verse
+# references typed with full-width digits, keys with diacritics, letters that
+# must not fold, and base forms of English and German inflections.
+FALLBACKS = [
+    # Width folding
+    ("John 3:16", "<p>John 3:16 (en)</p>"),
+    ("ヨハネ3:16", "<p>ヨハネ3:16 (ja)</p>"),
+    ("ヨハネ 3:16", "@@@LINK=ヨハネ3:16"),
+    ("约翰福音3:16", "<p>约翰福音3:16 (zh)</p>"),
+    # Diacritics: Greek, Latin, Arabic
+    ("Ἀθῆναι", "<p>Ἀθῆναι: Athens</p>"),
+    ("ὁδός", "<p>ὁδός: way</p>"),
+    ("ᾄδω", "<p>ᾄδω: sing</p>"),
+    ("amō", "<p>amō: I love</p>"),
+    ("café", "<p>café: coffee house</p>"),
+    ("resume", "<p>resume: to begin again</p>"),
+    ("résumé", "<p>résumé: a summary</p>"),
+    ("كِتَاب", "<p>كِتَاب: book</p>"),
+    ("أحمد", "<p>أحمد: Ahmad</p>"),
+    # Letters that are not marks: must not fold to other keys
+    ("Straße", "<p>Straße: street</p>"),
+    ("øre", "<p>øre: coin</p>"),
+    ("łódź", "<p>łódź: boat</p>"),
+    # Fallback order: this key folds to "bookes", which is also an
+    # inflection of "booke"
+    ("bóokes", "<p>bóokes: folded match</p>"),
+    ("booke", "<p>booke: inflection match</p>"),
+    # English base forms
+    ("walk", "<p>walk: to go on foot</p>"),
+    ("study", "<p>study: to learn</p>"),
+    ("make", "<p>make: to create</p>"),
+    ("stop", "<p>stop: to halt</p>"),
+    ("big", "<p>big: large</p>"),
+    ("happy", "<p>happy: glad</p>"),
+    ("watch", "<p>watch: to look at</p>"),
+    ("go", "<p>go: to move</p>"),
+    # German base forms
+    ("gehen", "<p>gehen: to go</p>"),
+    ("machen", "<p>machen: to make</p>"),
+    ("spielen", "<p>spielen: to play</p>"),
+    ("wandern", "<p>wandern: to hike</p>"),
+    ("aufmachen", "<p>aufmachen: to open</p>"),
+    ("Haus", "<p>Haus: house</p>"),
+]
+
+
+def make_fallbacks() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        lines = []
+        for key, body in FALLBACKS:
+            lines += [key, body, "</>"]
+        (tmp / "f.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (tmp / "title.html").write_text("OpenMDict Fallback Fixture", encoding="utf-8")
+        (tmp / "desc.html").write_text(
+            "Synthetic keys for the lookup fallbacks, used by the OpenMDict test suite.", encoding="utf-8")
+        (HERE / "fallbacks.mdx").unlink(missing_ok=True)
+        subprocess.run(["mdict", "--title", str(tmp / "title.html"),
+                        "--description", str(tmp / "desc.html"),
+                        "-a", str(tmp / "f.txt"), str(HERE / "fallbacks.mdx")], check=True)
 
 
 if __name__ == "__main__":

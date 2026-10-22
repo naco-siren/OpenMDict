@@ -1,0 +1,429 @@
+//
+//  InflectionCandidates.swift
+//  OpenMDict
+//
+//  Base forms to look up when an English or German query is an inflected
+//  form that the dictionary has no key for ("walked" → "walk",
+//  "ging" → "gehen").
+//
+
+import Foundation
+import NaturalLanguage
+
+public enum InflectionCandidates {
+
+    /// The most candidates `candidates(for:headwordLanguage:waitsForSetup:)` returns.
+    public static let maxCandidates = 12
+
+    /// Lemma candidates for `query`, most likely first, none equal to the
+    /// query (ignoring case).
+    ///
+    /// The lemmas `NLTagger` gives come first. When it gives none — iOS
+    /// may not have downloaded its German model — inflections are undone by
+    /// rule: English -s/-es/-ies, -ed/-ied, -ing, -er/-est (with a dropped e
+    /// or a doubled consonant restored); German strong and irregular verbs
+    /// (a table of common ones), ge…t / ge…en participles, finite-verb
+    /// endings, and adjective and noun endings.
+    ///
+    /// - Parameters:
+    ///   - headwordLanguage: The dictionary's headword language as an ISO 639
+    ///     code ("EN", "de", "deu" …), when known. Other languages get no
+    ///     candidates. When nil, a Latin-script query gets candidates for
+    ///     English and German, the likelier language first.
+    ///   - waitsForSetup: The first tagging in a language loads its model
+    ///     (on the order of 100 ms). When false (a caller on the main
+    ///     thread) and the model is not loaded yet, it is loaded in the
+    ///     background and this call uses the rules alone.
+    public static func candidates(for query: String, headwordLanguage: String?,
+                                  waitsForSetup: Bool = true) -> [String] {
+        let word = query.trimmingCharacters(in: .whitespaces)
+        guard isLatinScript(word) else { return [] }
+        let languages = languages(for: word, headwordLanguage: headwordLanguage)
+        guard !languages.isEmpty else { return [] }
+
+        var result: [String] = []
+        var seen: Set<String> = [word.lowercased()]
+        func add(_ candidates: [String]) {
+            for candidate in candidates where result.count < maxCandidates {
+                if seen.insert(candidate.lowercased()).inserted { result.append(candidate) }
+            }
+        }
+        for language in languages { add(taggerLemmas(word, language: language, waitsForModel: waitsForSetup)) }
+        if result.isEmpty {
+            for language in languages {
+                add(language == .german ? germanRuleCandidates(word) : englishRuleCandidates(word))
+            }
+        }
+        return result
+    }
+
+    // MARK: - Language
+
+    static func languages(for word: String, headwordLanguage: String?) -> [NLLanguage] {
+        if let code = headwordLanguage {
+            let base = code.lowercased().split(whereSeparator: { $0 == "-" || $0 == "_" }).first.map(String.init) ?? ""
+            switch base {
+            case "en", "eng": return [.english]
+            case "de", "deu", "ger": return [.german]
+            default: return []
+            }
+        }
+        let recognizer = NLLanguageRecognizer()
+        recognizer.languageConstraints = [.english, .german]
+        recognizer.processString(word)
+        let hypotheses = recognizer.languageHypotheses(withMaximum: 2)
+        return (hypotheses[.german] ?? 0) > (hypotheses[.english] ?? 0) ? [.german, .english] : [.english, .german]
+    }
+
+    /// Letters of the Latin script (with spaces, hyphens and apostrophes
+    /// between words), and at least one letter.
+    static func isLatinScript(_ text: String) -> Bool {
+        var hasLetter = false
+        for scalar in text.unicodeScalars {
+            switch scalar.value {
+            case 0x41...0x5A, 0x61...0x7A, 0xC0...0xD6, 0xD8...0xF6, 0xF8...0x24F, 0x1E00...0x1EFF:
+                hasLetter = true
+            case 0x20, 0x2D, 0x27, 0x2019, 0x300...0x36F:
+                continue
+            default:
+                return false
+            }
+        }
+        return hasLetter
+    }
+
+    // MARK: - NLTagger
+
+    /// The query with each word replaced by the lemma `NLTagger` gives for
+    /// it, or nothing when it gives no lemma that differs from the word.
+    static func taggerLemmas(_ text: String, language: NLLanguage, waitsForModel: Bool = true) -> [String] {
+        if !waitsForModel, !TaggerModels.shared.isLoaded(language) {
+            if TaggerModels.shared.beginLoading(language) {
+                let raw = language.rawValue
+                DispatchQueue.global(qos: .utility).async {
+                    _ = taggerLemmas("loading", language: NLLanguage(rawValue: raw))
+                }
+            }
+            return []
+        }
+        defer { TaggerModels.shared.markLoaded(language) }
+        let tagger = NLTagger(tagSchemes: [.lemma])
+        tagger.string = text
+        let whole = text.startIndex..<text.endIndex
+        tagger.setLanguage(language, range: whole)
+        var lemmatized = ""
+        var cursor = text.startIndex
+        var changed = false
+        tagger.enumerateTags(in: whole, unit: .word, scheme: .lemma,
+                             options: [.omitWhitespace, .omitPunctuation]) { tag, range in
+            lemmatized += text[cursor..<range.lowerBound]
+            let token = String(text[range])
+            if let lemma = tag?.rawValue, !lemma.isEmpty, lemma.lowercased() != token.lowercased() {
+                lemmatized += lemma
+                changed = true
+            } else {
+                lemmatized += token
+            }
+            cursor = range.upperBound
+            return true
+        }
+        lemmatized += text[cursor...]
+        return changed ? [lemmatized] : []
+    }
+
+    /// The languages whose lemma model this process has loaded.
+    private final class TaggerModels: @unchecked Sendable {
+        static let shared = TaggerModels()
+        private let lock = NSLock()
+        private var loaded: Set<String> = []
+        private var loading: Set<String> = []
+
+        func isLoaded(_ language: NLLanguage) -> Bool {
+            lock.lock(); defer { lock.unlock() }
+            return loaded.contains(language.rawValue)
+        }
+
+        /// True for the first caller only.
+        func beginLoading(_ language: NLLanguage) -> Bool {
+            lock.lock(); defer { lock.unlock() }
+            return loading.insert(language.rawValue).inserted
+        }
+
+        func markLoaded(_ language: NLLanguage) {
+            lock.lock(); defer { lock.unlock() }
+            loaded.insert(language.rawValue)
+        }
+    }
+
+    // MARK: - English rules
+
+    /// Base forms of a regular English inflection, most likely first.
+    static func englishRuleCandidates(_ query: String) -> [String] {
+        let word = query.lowercased()
+        guard word.count >= 4, word.allSatisfy({ $0 >= "a" && $0 <= "z" }) else { return [] }
+        var out: [String] = []
+        func drop(_ n: Int) -> String { String(word.dropLast(n)) }
+
+        if word.hasSuffix("ies") {                  // studies → study, ties → tie
+            out += [drop(3) + "y", drop(1)]
+        } else if word.hasSuffix("es") {            // makes → make, watches → watch
+            out += [drop(1), drop(2)]
+        } else if word.hasSuffix("s"), !word.hasSuffix("ss"), !word.hasSuffix("us"), !word.hasSuffix("is") {
+            out.append(drop(1))                     // books → book
+        }
+
+        if word.hasSuffix("ied") {                  // carried → carry, tied → tie
+            out += [drop(3) + "y", drop(1)]
+        } else if word.hasSuffix("ed") {            // loved → love, walked → walk, stopped → stop
+            out += verbStems(drop(2))
+        }
+
+        // dying → die (not dye); a longer stem keeps its y (studying → study).
+        let ieVerb = word.hasSuffix("ying") ? drop(4) + "ie" : nil
+        if let ieVerb, word.count <= 6 { out.append(ieVerb) }
+        if word.hasSuffix("ing") {                  // walking, making, running
+            out += verbStems(drop(3))
+        }
+        if let ieVerb, word.count > 6 { out.append(ieVerb) }
+
+        if word.hasSuffix("iest") {                 // happiest → happy
+            out.append(drop(4) + "y")
+        } else if word.hasSuffix("est") {           // nicest, tallest, biggest
+            out += verbStems(drop(3))
+        }
+        if word.hasSuffix("ier") {                  // happier → happy
+            out.append(drop(3) + "y")
+        } else if word.hasSuffix("er") {            // nicer, taller, bigger
+            out += verbStems(drop(2))
+        }
+        return out.filter { $0.count >= 2 }
+    }
+
+    /// The base forms a stem left by removing -ed, -ing, -er or -est can
+    /// come from: with a silent e restored and with a doubled final
+    /// consonant undone, in the order most likely for the stem's shape.
+    private static func verbStems(_ stem: String) -> [String] {
+        guard stem.count >= 2 else { return [] }
+        let chars = Array(stem)
+        let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
+        let last = chars[chars.count - 1]
+        let beforeLast = chars[chars.count - 2]
+        if last == beforeLast, !vowels.contains(last) {
+            return [stem, String(chars.dropLast())]                 // falling → fall, running → run
+        }
+        // Consonant–vowel–consonant ends usually lost a silent e (hoping,
+        // making); other stems usually lost nothing (walking, eating).
+        let cvc = chars.count >= 3 && !vowels.contains(last) && !"wxy".contains(last)
+            && vowels.contains(beforeLast) && !vowels.contains(chars[chars.count - 3])
+        return cvc ? [stem + "e", stem] : [stem, stem + "e"]
+    }
+
+    // MARK: - German rules
+
+    /// Prefixes that separate from the verb and precede "ge" in its
+    /// participle (aufgemacht → aufmachen).
+    private static let separablePrefixes = [
+        "zusammen", "zurück", "voran", "vorbei", "weiter", "nach", "fest", "fort", "heim", "her", "hin",
+        "los", "mit", "vor", "weg", "auf", "aus", "bei", "ein", "ab", "an", "zu",
+    ]
+
+    /// Prefixes that stay on the verb (verstand → verstehen).
+    private static let inseparablePrefixes = ["miss", "ent", "emp", "ver", "zer", "be", "er", "ge"]
+
+    /// Endings of finite verb forms, longest first.
+    private static let verbEndings = ["test", "tet", "ten", "est", "te", "st", "et", "en", "t", "e"]
+
+    /// Infinitives a German word form may come from, most likely first:
+    /// irregular verbs, participles, finite forms; then the bare stems of
+    /// inflected adjectives and nouns (kleinen → klein, Häuser → Haus).
+    static func germanRuleCandidates(_ query: String) -> [String] {
+        let word = query.lowercased()
+        guard word.count >= 3, !word.contains(" ") else { return [] }
+        var out: [String] = []
+        func infinitives(_ stem: String) -> [String] {
+            stem.count >= 2 ? [stem + "en", stem + "n"] : []
+        }
+
+        // Strong and irregular verbs: ging → gehen, aufgestanden → aufstehen.
+        if let base = germanIrregularBase(word) { out.append(base) }
+
+        // Participles: gemacht → machen, geredet → reden, gesehen → sehen,
+        // aufgemacht → aufmachen. The verb stem after "ge" needs a vowel
+        // ("gehst" is not one).
+        func isStem(_ stem: Substring) -> Bool {
+            stem.count >= 2 && stem.contains { "aeiouäöüy".contains($0) }
+        }
+        for prefix in [""] + separablePrefixes where word.hasPrefix(prefix + "ge") {
+            let rest = word.dropFirst(prefix.count + 2)
+            if rest.hasSuffix("et"), isStem(rest.dropLast(2)) { out += infinitives(prefix + rest.dropLast(2)) }
+            if rest.hasSuffix("t"), isStem(rest.dropLast(1)) { out += infinitives(prefix + rest.dropLast(1)) }
+            if rest.hasSuffix("en"), isStem(rest.dropLast(2)) { out.append(prefix + rest) }
+        }
+
+        // Finite forms: machte → machen, gehst → gehen, wanderst → wandern.
+        var stems: [String] = []
+        for ending in verbEndings where word.hasSuffix(ending) && word.count - ending.count >= 2 {
+            stems.append(String(word.dropLast(ending.count)))
+        }
+        out += stems.map { $0 + "en" }
+        out += stems.filter { $0.hasSuffix("el") || $0.hasSuffix("er") }.map { $0 + "n" }
+        // Strong verbs that take an umlaut: fährst → fahren, läuft → laufen.
+        out += stems.compactMap(withoutUmlaut).map { $0 + "en" }
+
+        // Adjectives and noun plurals: kleine, kleinen → klein; Tage → Tag;
+        // Häuser → Haus; Kindern → Kind; Väter → Vater.
+        for ending in ["ern", "en", "em", "er", "es", "e", "n", "s"]
+        where word.hasSuffix(ending) && word.count - ending.count >= 3 {
+            let stem = String(word.dropLast(ending.count))
+            out.append(stem)
+            if let plain = withoutUmlaut(stem) { out.append(plain) }
+        }
+        if let plain = withoutUmlaut(word) { out.append(plain) }
+        return out.filter { $0 != word }
+    }
+
+    /// `stem` with its last umlaut replaced by the plain vowel, or nil.
+    private static func withoutUmlaut(_ stem: String) -> String? {
+        guard let index = stem.lastIndex(where: { "äöü".contains($0) }) else { return nil }
+        let plain: Character = ["ä": "a", "ö": "o", "ü": "u"][stem[index]] ?? stem[index]
+        var result = stem
+        result.replaceSubrange(index...index, with: String(plain))
+        return result
+    }
+
+    /// The infinitive of a form of a common strong or irregular verb, also
+    /// with a prefix (angefangen → anfangen, verstand → verstehen), or nil.
+    static func germanIrregularBase(_ word: String) -> String? {
+        if let base = germanIrregularForms[word] { return base }
+        for prefix in separablePrefixes + inseparablePrefixes where word.hasPrefix(prefix) {
+            if let base = germanIrregularForms[String(word.dropFirst(prefix.count))] { return prefix + base }
+        }
+        return nil
+    }
+
+    /// Form → infinitive for `germanIrregularVerbs`. A preterite stem
+    /// stands for its person forms (ging: gingst, gingen, gingt).
+    private static let germanIrregularForms: [String: String] = {
+        var forms: [String: String] = [:]
+        for line in germanIrregularVerbs.split(separator: "\n") {
+            let words = line.split(separator: " ").map(String.init)
+            guard words.count >= 3 else { continue }
+            let infinitive = words[0]
+            let preterite = words[1]
+            var all = [preterite]
+            if preterite.hasSuffix("e") {                               // dachte, dachtest, dachten, dachtet
+                all += [preterite + "st", preterite + "n", preterite + "t"]
+            } else if let last = preterite.last, "sßzx".contains(last) { // saß, saßest, saßen, saßt
+                all += [preterite + "est", preterite + "en", preterite + "t"]
+            } else {                                                     // ging, gingst, gingen, gingt
+                all += [preterite + "st", preterite + "en", preterite + "t"]
+                if let last = preterite.last, "td".contains(last) { all += [preterite + "est", preterite + "et"] }
+            }
+            all += words.dropFirst(2)
+            for form in all where forms[form] == nil { forms[form] = infinitive }
+        }
+        return forms
+    }()
+
+    /// Common German verbs whose forms the endings rules cannot undo:
+    /// "infinitive preterite-stem participle other-forms…" (present-tense
+    /// vowel changes and common subjunctives). NLTagger's German model,
+    /// where the system has it, covers the rest.
+    private static let germanIrregularVerbs = """
+        sein war gewesen bin bist ist sind seid wäre wären wärst
+        haben hatte gehabt habe hast hat habt hätte hätten hättest
+        werden wurde geworden wirst wird würde würden würdest
+        gehen ging gegangen ginge
+        kommen kam gekommen käme kämen
+        sehen sah gesehen sieht siehst
+        geben gab gegeben gibt gibst
+        nehmen nahm genommen nimmt nimmst
+        finden fand gefunden
+        stehen stand gestanden
+        tun tat getan tue tust tut
+        wissen wusste gewusst weiß weißt wisst
+        können konnte gekonnt kann kannst könnte könnten
+        müssen musste gemusst muss musst müsste müssten
+        dürfen durfte gedurft darf darfst dürfte
+        mögen mochte gemocht mag magst möchte möchten
+        wollen wollte gewollt will willst
+        denken dachte gedacht
+        bringen brachte gebracht
+        kennen kannte gekannt
+        nennen nannte genannt
+        rennen rannte gerannt
+        brennen brannte gebrannt
+        wenden wandte gewandt
+        sprechen sprach gesprochen spricht sprichst
+        helfen half geholfen hilft hilfst
+        lesen las gelesen liest
+        essen aß gegessen isst
+        treffen traf getroffen trifft triffst
+        werfen warf geworfen wirft wirfst
+        sterben starb gestorben stirbt stirbst
+        werben warb geworben wirbt
+        brechen brach gebrochen bricht brichst
+        stehlen stahl gestohlen stiehlt
+        empfehlen empfahl empfohlen empfiehlt
+        befehlen befahl befohlen befiehlt
+        gelten galt gegolten gilt
+        vergessen vergaß vergessen vergisst
+        messen maß gemessen misst
+        treten trat getreten tritt trittst
+        schreiben schrieb geschrieben
+        bleiben blieb geblieben
+        steigen stieg gestiegen
+        scheinen schien geschienen
+        schreien schrie geschrien
+        schweigen schwieg geschwiegen
+        scheiden schied geschieden
+        leihen lieh geliehen
+        weisen wies gewiesen
+        greifen griff gegriffen
+        reiten ritt geritten
+        leiden litt gelitten
+        schneiden schnitt geschnitten
+        streiten stritt gestritten
+        gleichen glich geglichen
+        fahren fuhr gefahren fährt fährst
+        tragen trug getragen trägt trägst
+        schlagen schlug geschlagen schlägt schlägst
+        waschen wusch gewaschen wäscht
+        wachsen wuchs gewachsen wächst
+        laufen lief gelaufen läuft läufst
+        schlafen schlief geschlafen schläft schläfst
+        fallen fiel gefallen fällt fällst
+        halten hielt gehalten hält hältst
+        lassen ließ gelassen lässt
+        fangen fing gefangen fängt fängst
+        heißen hieß geheißen
+        rufen rief gerufen
+        liegen lag gelegen
+        sitzen saß gesessen
+        bitten bat gebeten
+        trinken trank getrunken
+        singen sang gesungen
+        sinken sank gesunken
+        springen sprang gesprungen
+        zwingen zwang gezwungen
+        binden band gebunden
+        beginnen begann begonnen
+        gewinnen gewann gewonnen
+        schwimmen schwamm geschwommen
+        ziehen zog gezogen
+        fliegen flog geflogen
+        fliehen floh geflohen
+        verlieren verlor verloren
+        frieren fror gefroren
+        bieten bot geboten
+        schieben schob geschoben
+        heben hob gehoben
+        lügen log gelogen
+        riechen roch gerochen
+        schließen schloss geschlossen
+        genießen genoss genossen
+        gießen goss gegossen
+        fließen floss geflossen
+        schießen schoss geschossen
+        """
+}

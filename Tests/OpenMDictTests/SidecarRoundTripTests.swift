@@ -287,4 +287,58 @@ struct SidecarRoundTripTests {
         #expect(!FileManager.default.fileExists(atPath: sidecarPath),
                 "Sidecar should be gone after removeSidecarCache")
     }
+
+    // MARK: - Folded-key index file
+
+    /// The folded-key index a lookup builds is saved beside the sidecar and
+    /// read back by the next reader; a damaged file is ignored, and
+    /// `removeSidecarCache` deletes it with the sidecar.
+    @Test("The folded-key index is saved, reused, validated and removed with the sidecar")
+    func foldedIndexFile() async throws {
+        let path = TestFixtures.fixturesDirectory.appendingPathComponent("fallbacks.mdx").path
+        let saved = Self.saveGlobals()
+        defer { Self.restoreGlobals(saved) }
+        let sidecarDir = Self.makeTempSidecarDir()
+        defer { try? FileManager.default.removeItem(at: sidecarDir) }
+        MDictSidecarCache.cacheDirectory = sidecarDir
+        MDictSidecarCache.writeMode = .immediate
+
+        let sha = try #require(MDictReader.loadMetadata(from: path)?.headerSHA256)
+        let foldURL = sidecarDir.appendingPathComponent("\(sha).fold", isDirectory: false)
+        let identity = try #require(SidecarSourceIdentity.capture(path: path, headerSHA256Hex: sha))
+
+        // First reader: builds the index on first need and saves it.
+        let first = try MDictReader(path: path)
+        #expect(first.lookup("αθηναι")?.key == "Ἀθῆναι")
+        for _ in 0..<300 where !FileManager.default.fileExists(atPath: foldURL.path) {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        let built = first.parser.foldedKeyIndex().indices
+        let loaded = try #require(FoldedIndexFile.load(from: foldURL, identity: identity,
+                                                       keywordCount: first.entryCount))
+        #expect(loaded.indices == built)
+        #expect(!built.isEmpty)
+
+        // A reader uses the saved index: an (artificially) empty one hides
+        // the keys with marks.
+        try FoldedIndexFile.write(.empty, to: foldURL, identity: identity, keywordCount: first.entryCount)
+        #expect(try MDictReader(path: path).lookup("αθηναι") == nil)
+
+        // A file for another source, or a damaged one, is rebuilt.
+        #expect(FoldedIndexFile.load(from: foldURL, identity: identity, keywordCount: first.entryCount + 1) == nil)
+        try Data(repeating: 7, count: 80).write(to: foldURL)
+        #expect(FoldedIndexFile.load(from: foldURL, identity: identity, keywordCount: first.entryCount) == nil)
+        #expect(try MDictReader(path: path).lookup("αθηναι")?.key == "Ἀθῆναι")
+        // … and saved again.
+        var resaved: FoldedKeyIndex?
+        for _ in 0..<300 {
+            resaved = FoldedIndexFile.load(from: foldURL, identity: identity, keywordCount: first.entryCount)
+            if resaved != nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        #expect(resaved?.indices == built)
+
+        MDictReader.removeSidecarCache(forHeaderSHA256: sha)
+        #expect(!FileManager.default.fileExists(atPath: foldURL.path))
+    }
 }

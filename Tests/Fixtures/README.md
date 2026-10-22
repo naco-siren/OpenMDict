@@ -8,6 +8,13 @@ is made up for the test suite. Regenerate with:
 
     python3 Tests/Fixtures/make-fixture.py      # needs: pip install mdict-utils
 
+## `homographs.mdx` / `fallbacks.mdx`
+
+Small synthetic dictionaries written by the same script: records that share
+a key (`HomographLookupTests`), and keys for the lookup fallbacks — verse
+references, keys with diacritics in Latin, Greek and Arabic, letters that
+must not fold, English and German base forms (`LookupFallbackTests`).
+
 ## `lzo1x/`
 
 Known-answer vectors for the pure-Swift LZO1X decoder: each `<name>.lzo` is

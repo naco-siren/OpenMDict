@@ -514,6 +514,85 @@ internal enum SidecarWriter {
     }
 }
 
+// MARK: - Folded-key index file
+
+/// The folded-key index (`FoldedKeyIndex`) of a dictionary, saved next to
+/// its sidecar as `<sha256>.fold` the first time a lookup builds it, so later
+/// launches — and the extensions, which never write — read it instead of
+/// building it again. Dictionaries whose lookups never need it get no file.
+/// A separate file, so the sidecar format and its fast path are unchanged.
+///
+/// Layout (little-endian):
+///
+/// ```
+/// Header (64 bytes):
+///   [0..4]    magic = "MDFX"
+///   [4..8]    formatVersion       UInt32  (bump when the folding changes)
+///   [8..16]   sourceFileSize      UInt64  ┐
+///   [16..24]  sourceMTimeNanos    Int64   │ same identity as the sidecar
+///   [24..56]  sourceHeaderSHA256  32 bytes┘
+///   [56..60]  keywordCount        UInt32
+///   [60..64]  indexCount          UInt32
+/// Indices (indexCount × 4 bytes): FoldedKeyIndex.indices
+/// ```
+internal enum FoldedIndexFile {
+    /// 'M','D','F','X' read as little-endian.
+    static let magicLE: UInt32 = 0x5846444D
+    static let formatVersion: UInt32 = 1
+    static let headerSize = 64
+
+    static func url(forSidecar sidecarURL: URL) -> URL {
+        sidecarURL.deletingPathExtension().appendingPathExtension("fold")
+    }
+
+    /// The saved index, or nil if the file is missing, from another version
+    /// or source, or damaged.
+    static func load(from url: URL, identity: SidecarSourceIdentity, keywordCount: Int) -> FoldedKeyIndex? {
+        guard let data = try? Data(contentsOf: url, options: .alwaysMapped),
+              data.count >= headerSize,
+              data.readUInt32LE(at: 0) == magicLE,
+              data.readUInt32LE(at: 4) == formatVersion,
+              data.readUInt64LE(at: 8) == identity.fileSize,
+              Int64(bitPattern: data.readUInt64LE(at: 16)) == identity.mtimeNanos,
+              data.subdata(in: 24..<56) == identity.headerSHA256,
+              Int(data.readUInt32LE(at: 56)) == keywordCount else {
+            return nil
+        }
+        let count = Int(data.readUInt32LE(at: 60))
+        guard data.count == headerSize + count * 4 else { return nil }
+        var indices: [UInt32] = []
+        indices.reserveCapacity(count)
+        let valid = data.withUnsafeBytes { raw -> Bool in
+            for i in 0..<count {
+                let value = UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: headerSize + i * 4, as: UInt32.self))
+                guard Int(value) < keywordCount else { return false }
+                indices.append(value)
+            }
+            return true
+        }
+        return valid ? FoldedKeyIndex(indices: indices) : nil
+    }
+
+    /// Atomic write (temporary file, then rename).
+    static func write(_ index: FoldedKeyIndex, to url: URL, identity: SidecarSourceIdentity,
+                      keywordCount: Int) throws {
+        var out = Data(count: headerSize + index.indices.count * 4)
+        out.writeUInt32LE(magicLE, at: 0)
+        out.writeUInt32LE(formatVersion, at: 4)
+        out.writeUInt64LE(identity.fileSize, at: 8)
+        out.writeUInt64LE(UInt64(bitPattern: identity.mtimeNanos), at: 16)
+        out.replaceSubrange(24..<56, with: identity.headerSHA256)
+        out.writeUInt32LE(UInt32(keywordCount), at: 56)
+        out.writeUInt32LE(UInt32(index.indices.count), at: 60)
+        for (i, value) in index.indices.enumerated() {
+            out.writeUInt32LE(value, at: headerSize + i * 4)
+        }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                 withIntermediateDirectories: true)
+        try out.write(to: url, options: .atomic)
+    }
+}
+
 // MARK: - Data little-endian helpers (sidecar uses LE throughout)
 
 extension Data {
