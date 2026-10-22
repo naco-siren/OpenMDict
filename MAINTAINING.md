@@ -27,6 +27,7 @@ the four is caught before it reaches `main`.
 | Tool | Needed for |
 |---|---|
 | Python 3.10+ and `pip install mdict-utils==1.3.14` (provides the `mdict` CLI) | Building dictionaries |
+| `pip install opencc==1.4.2` | Building `Bible-CUV-ZH-Hans` (Traditional → Simplified) |
 | Ruby with the `xcodeproj` gem (`gem install xcodeproj`) | `scripts/relink-project-assets.rb` |
 | `jq`, `curl`, `shasum` (all on macOS 15+) | `scripts/bootstrap-assets.sh` |
 | Xcode (for `xcrun coremlcompiler`) | Compiling the model after bootstrap |
@@ -280,7 +281,7 @@ and keep a backup of `data/`. `bootstrap-assets.sh` can restore `output/`
 from the published assets; nothing restores `data/` except
 `fetch_data.sh`, and it cannot bring back the pinned release of the
 upstreams that serve only their latest one (CC-CEDICT, Kaikki.org,
-JMdict, KANJIDIC2, CrossWire KorRV, eBible.org grcbyz).
+JMdict, KANJIDIC2, CrossWire KorRV and JapBungo, eBible.org grcbyz).
 
 ## Documentation map
 

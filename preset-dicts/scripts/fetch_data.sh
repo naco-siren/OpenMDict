@@ -18,9 +18,10 @@
 #   ✗ error    a pinned file does not match its SHA-256 (delete it and
 #              re-run if the download was incomplete)
 #   ! warning  the upstream serves only its latest release under a fixed
-#              URL (CC-CEDICT, Kaikki.org, CrossWire KorRV, eBible.org
-#              grcbyz) and the local file is not the release the published
-#              dictionary was built from: a rebuild will differ from it
+#              URL (CC-CEDICT, Kaikki.org, CrossWire KorRV and JapBungo,
+#              eBible.org grcbyz) and the local file is not the release the
+#              published dictionary was built from: a rebuild will differ
+#              from it
 #
 # A source that fails is reported and the remaining sources still run; the
 # exit status is 1 when any source failed. Warnings are repeated at the end.
@@ -398,27 +399,100 @@ fetch_gcide() {
     fi
 }
 
-# ── Bible (14 translations: OSIS / USFX / Zefania XML, SWORD) ──
+# ── Bible (14 translations: OSIS / USFX / Zefania XML, SWORD, wikitext, Markdown) ──
 # Every input is pinned to the SHA-256 that build_bible_mdx.py was last
-# built from. GitHub sources use commit-pinned URLs, so a mismatch is an
-# error. CrossWire (KorRV) and eBible.org (grcbyz) serve only their latest
-# release under a fixed URL, so a newer file there only warns: the build
-# gates still check every book, chapter and verse of it.
+# built from. GitHub sources use commit-pinned URLs and Wikisource pages
+# revision ids, so a mismatch is an error. CrossWire (KorRV, JapBungo) and
+# eBible.org (grcbyz) serve only their latest release under a fixed URL, so
+# a newer file there only warns: the build gates still check every book,
+# chapter and verse of it.
 OPEN_BIBLES="https://raw.githubusercontent.com/seven1m/open-bibles/f257a3559025c3f873b48a75019f53a9354ed7de"
 GRATIS_BIBLE="https://raw.githubusercontent.com/gratis-bible/bible/252c53a7e51916f6f2bf329b477f1ca6f2016b15"
+# Almeida 1911: mazza/biblia-arc1911 (CC0 1.0), the Markdown structuring of
+# Project Gutenberg #62383. Its canon/ tree is checked by ARC1911_CANON_SHA256
+# (as in build_bible_mdx.py: sha256 of the sorted "<sha256>  <path>" lines of
+# canon/*/*.md), and its archive/pg62383.txt must be the Gutenberg file
+# https://www.gutenberg.org/cache/epub/62383/pg62383.txt (5,161,686 bytes).
+ARC1911_COMMIT="eda2823f85894a2b09f5c191186325467410739f"
+ARC1911_CANON_SHA256="2137289fa9d4cdabb6550391448783812033eb22ed7787c333a2206a109e0df5"
+PG62383_SHA256="bf9c6053bfb441d117a2a128d4edec9fbe935f415bc8f7bf4e1f3f9121790215"
+# Wikimedia asks for a descriptive User-Agent
+WIKI_UA="OpenMDict-preset-dicts/1.0 (fetch_data.sh)"
+
+# tree_sha256 DIR -- the ARC1911_CANON_SHA256 digest of DIR/canon.
+tree_sha256() {
+    (cd "$1" && find canon -type f -name '*.md' | LC_ALL=C sort | while IFS= read -r f; do
+        printf '%s  %s\n' "$(sha256_of "$f")" "$f"
+    done) | if command -v shasum >/dev/null 2>&1; then shasum -a 256; else sha256sum; fi | cut -d' ' -f1
+}
+
+# fetch_cuv1919 -- the 66 Chinese Wikisource pages of 聖經 (和合本), each at
+# the revision scripts/cuv1919_wikisource.pins names.
+fetch_cuv1919() {
+    local dir="$DATA/bible/zhwikisource-cuv1919" bad=0 n=0 code revid sum page dest
+    mkdir -p "$dir"
+    while IFS=$'\t' read -r code revid sum page; do
+        [[ -z "$code" || "$code" == \#* ]] && continue
+        n=$((n + 1))
+        dest="$dir/$code-$revid.wiki"
+        if [[ ! -f "$dest" ]]; then
+            if ! curl -fsSL --retry 3 -A "$WIKI_UA" -o "$dest.part" \
+                    "https://zh.wikisource.org/w/index.php?oldid=$revid&action=raw"; then
+                rm -f "$dest.part"
+                red "  ✗ download failed: $page (revision $revid)"
+                bad=$((bad + 1))
+                continue
+            fi
+            mv "$dest.part" "$dest"
+        fi
+        if [[ "$(sha256_of "$dest")" != "$sum" ]]; then
+            red "  ✗ sha256 mismatch: $dest (delete it and re-run if the download was incomplete)"
+            bad=$((bad + 1))
+        fi
+    done < scripts/cuv1919_wikisource.pins
+    if [[ $n -ne 66 ]]; then
+        red "  ✗ scripts/cuv1919_wikisource.pins lists $n pages, expected 66"
+        return 1
+    fi
+    [[ $bad -eq 0 ]] && green "  ✓ sha256 ok: 66 pages in $dir"
+    return $bad
+}
+
+# fetch_arc1911 -- mazza/biblia-arc1911 at ARC1911_COMMIT: canon/, archive/
+# and the licence files.
+fetch_arc1911() {
+    local dir="$DATA/bible/biblia-arc1911-${ARC1911_COMMIT:0:7}" tmp top
+    if [[ ! -d "$dir/canon" ]]; then
+        tmp=$(mktemp -d "${TMPDIR:-/tmp}/fetch_arc1911.XXXXXX")
+        top="biblia-arc1911-$ARC1911_COMMIT"
+        if ! dl "https://codeload.github.com/mazza/biblia-arc1911/tar.gz/$ARC1911_COMMIT" "$tmp/src.tar.gz" ||
+           ! mkdir -p "$dir.part" ||
+           ! tar -xzf "$tmp/src.tar.gz" -C "$dir.part" --strip-components=1 \
+                "$top/canon" "$top/archive" "$top/LICENSE" "$top/NOTICE.md" "$top/QUALITY.md"; then
+            rm -rf "$tmp" "$dir.part"
+            return 1
+        fi
+        rm -rf "$tmp"
+        mv "$dir.part" "$dir"
+        green "  ✓ extracted → $dir"
+    fi
+    verify_sha256 "$dir/archive/pg62383.txt" "$PG62383_SHA256" || return 1
+    if [[ "$(tree_sha256 "$dir")" != "$ARC1911_CANON_SHA256" ]]; then
+        red "  ✗ $dir/canon differs from the pinned tree (delete the directory and re-run)"
+        return 1
+    fi
+    green "  ✓ sha256 ok: $dir/canon"
+}
+
 fetch_bible() {
     green "=== Bible translations ==="
     echo "  License: Public Domain (see each MDX description)"
     # local name | URL | sha256
     local pins="
 kjv.osis.xml|$OPEN_BIBLES/eng-kjv.osis.xml|eeeae647fc28360ce47f9c0d5cc3b397b7fdd9913fe53dc9f44eb6deee50e253
-cuv-simp.usfx.xml|$OPEN_BIBLES/chi-cuv-simp.usfx.xml|bea9f6e4fd35b70a67e3978ce8b9dc0ad853078e67472653cf1b34f357ae3abf
-cuv-trad.usfx.xml|$OPEN_BIBLES/chi-cuv.usfx.xml|049e36ec3ee1b5c9bc2c8bfd2ca07f9f1f30398838f692d12ea38a092d41fe4b
-kougo.osis.xml|$OPEN_BIBLES/jpn-kougo.osis.xml|6930015f5d0faf49f3038a7e2f482aeb45939510b6acb8a8fb1945640c1d91b6
 spa-rv1909.usfx.xml|$OPEN_BIBLES/spa-rv1909.usfx.xml|233b4d6a87f833ac809d0e68dcf9ba83c709d612e914a357a4f5473782b703a3
 deu-luther1912.osis.xml|$OPEN_BIBLES/deu-luther1912.osis.xml|5df33f4bf3e086b6490b467cf8ddbf4cf95126b2826efaddf17b223ddd07f92b
 rus-synodal.zefania.xml|$OPEN_BIBLES/rus-synodal.zefania.xml|5ccd097980d85790d36525859cc9092ba7a31671dcdd46e4fa659f1d7fa57769
-open-bibles-f257a35/por-almeida.usfx.xml|$OPEN_BIBLES/por-almeida.usfx.xml|4990d0d1909e2bd57aa6ecc2a2ce9a565b154aac8575b0242dc943ad796e643e
 open-bibles-f257a35/lat-clementine.usfx.xml|$OPEN_BIBLES/lat-clementine.usfx.xml|5da5f3c07fa6896d4a2b45f5f309c3ece43e554fd059b31b8ae3688bbd182baf
 fra-darby.osis.xml|$GRATIS_BIBLE/fr/frdarb.xml|6b9efd7c67b461adb3dece213d50be48139873a518428062ffec97062a9f4fad
 it-diodati.osis.xml|$GRATIS_BIBLE/it/itadio.xml|cf0d7b5a2d428766019b8503f2ecce8d0715810d50232f83fb537f813307303f
@@ -427,6 +501,7 @@ ar-svd.osis.xml|$GRATIS_BIBLE/ar/arasvd.xml|c0ec084bba88874c0a6da8c5fced4d73b100
     # Latest-release downloads: local name | URL | sha256 | zip member to extract
     local latest="
 crosswire/KorRV-2.0.1.zip|https://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/KorRV.zip|194dd52ceabdefb97a60f6627de22e97990e0a43b1b388caf4013d010884ecd7|
+crosswire/JapBungo-2.0.zip|https://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/JapBungo.zip|1acc5048206ba75ade77b3cb146568809a28151a53ce314cfc721d080aca75e6|
 grc-byzantine.usfx.xml|https://ebible.org/Scriptures/grcbyz_usfx.zip|7de60b43e142438822ed656ce17e19bb227503259bc677bc4693dda6533986a9|grcbyz_usfx.xml
 "
     local bad=0 name url sum member tmp
@@ -452,11 +527,13 @@ grc-byzantine.usfx.xml|https://ebible.org/Scriptures/grcbyz_usfx.zip|7de60b43e14
         [[ -f "$DATA/bible/$name" ]] || continue
         check_latest "$DATA/bible/$name" "$sum" "$url serves only its latest release; the build gates still check every book, chapter and verse"
     done <<< "$latest"
+    fetch_cuv1919 || bad=$((bad + 1))
+    fetch_arc1911 || bad=$((bad + 1))
     if [[ $bad -ne 0 ]]; then
         red "  ✗ $bad Bible source(s) missing or not matching their pinned SHA-256"
         return 1
     fi
-    green "  ✓ all 14 Bible sources present"
+    green "  ✓ all Bible sources present"
 }
 
 # ── Perseus (LSJ Greek + Lewis & Short Latin) ─────────────────
