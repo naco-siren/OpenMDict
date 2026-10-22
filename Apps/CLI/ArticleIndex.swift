@@ -69,7 +69,7 @@ private func handleArticleIndexBuild(args: [String]) {
             guard i + 1 < args.count else { eprintln("--out needs path"); exit(1) }
             outPath = args[i + 1]; i += 2
         case "--limit":
-            // Index only the first N articles. For testing/iteration on
+            // Index only the first N keys. For testing/iteration on
             // large MDX files where the full build would take many minutes.
             guard i + 1 < args.count else { eprintln("--limit needs int"); exit(1) }
             limit = Int(args[i + 1]) ?? 0; i += 2
@@ -137,7 +137,7 @@ private func handleArticleIndexBuild(args: [String]) {
             header = h
         case .interrupted(let h, let through):
             header = h
-            eprintln(colored("⚠️  interrupted at \(through)/\(h.articleCount)", .yellow))
+            eprintln(colored("⚠️  interrupted at key \(through) (\(h.rowCount) articles)", .yellow))
         }
     } catch {
         eprintln(colored("Build failed: \(error)", .red)); exit(1)
@@ -150,7 +150,8 @@ private func handleArticleIndexBuild(args: [String]) {
     print(colored("✅ Sidecar written", .green))
     print("   path:         \(outURL.path)")
     print("   size:         \(formatByteSize(bytes))")
-    print("   articles:     \(header.articleCount)")
+    print("   articles:     \(header.rowCount) (rows)")
+    print("   keys:         \(header.keyCount)")
     print("   dim:          \(header.embeddingDim)")
     print("   model SHA:    \(header.modelSHA256.map { String(format: "%02x", $0) }.joined().prefix(16))…")
     print("   mdx SHA:      \(header.mdxHeaderSHA256.map { String(format: "%02x", $0) }.joined().prefix(16))…")
@@ -201,12 +202,18 @@ private func handleArticleIndexInfo(args: [String]) {
     print(colored("📇 Sidecar:", .cyan), sidecarPath)
     print()
     print(colored("Header:", .bold))
-    print("  format version:    \(header.formatVersion) " +
-          (header.formatVersion == ArticleIndexFormat.currentVersion
-           ? colored("(current)", .green)
-           : colored("(stale, expected \(ArticleIndexFormat.currentVersion))", .yellow)))
+    let versionNote: String
+    if header.formatVersion == ArticleIndexFormat.currentVersion {
+        versionNote = colored("(current)", .green)
+    } else if ArticleIndexFormat.isReadable(header.formatVersion) {
+        versionNote = colored("(dense legacy layout, still readable; current = \(ArticleIndexFormat.currentVersion))", .yellow)
+    } else {
+        versionNote = colored("(unsupported, expected \(ArticleIndexFormat.currentVersion))", .yellow)
+    }
+    print("  format version:    \(header.formatVersion) " + versionNote)
     print("  embedding_dim:     \(header.embeddingDim)")
-    print("  article_count:     \(header.articleCount)")
+    print("  row_count:         \(header.rowCount)")
+    print("  key_count:         \(header.keyCount)")
     print("  tokenizer_max_len: \(header.tokenizerMaxLen)")
     print("  model SHA256:      \(header.modelSHA256.map { String(format: "%02x", $0) }.joined())")
     print("  mdx SHA256:        \(header.mdxHeaderSHA256.map { String(format: "%02x", $0) }.joined())")
@@ -215,7 +222,7 @@ private func handleArticleIndexInfo(args: [String]) {
     print(colored("File:", .bold))
     print("  actual size:       \(formatByteSize(Int64(data.count)))")
     print("  expected size:     \(formatByteSize(Int64(header.expectedFileSize)))")
-    print("  body bytes:        \(data.count - ArticleIndexFormat.headerSize)")
+    print("  body bytes:        \(data.count - header.headerSize) (\(header.rowStride) per row)")
     print()
 
     // Optional validation against current MDX + model.
@@ -254,7 +261,7 @@ private func handleArticleIndexInfo(args: [String]) {
     case .notASidecar:
         print(colored("  ✗ magic mismatch (impossible — we already parsed)", .red))
     case .wrongVersion(let v):
-        print(colored("  ✗ stale format version \(v) (current = \(ArticleIndexFormat.currentVersion))", .yellow))
+        print(colored("  ✗ unsupported format version \(v) (current = \(ArticleIndexFormat.currentVersion))", .yellow))
     case .modelMismatch:
         print(colored("  ✗ model SHA256 mismatch — rebuild needed", .yellow))
     case .mdxMismatch:
@@ -342,10 +349,10 @@ private func handleArticleIndexQuery(args: [String]) {
     print()
     print(colored("Timings:", .bold))
     print(String(format: "  query encode:  %6.2f ms", result.queryEncodeMs))
-    print(String(format: "  sidecar scan:  %6.2f ms over %d articles",
-                  result.scanMs, result.header.articleCount))
-    print(String(format: "  ips equiv:     %.1f articles/sec",
-                  Double(result.header.articleCount) / (result.scanMs / 1000)))
+    print(String(format: "  sidecar scan:  %6.2f ms over %d rows",
+                  result.scanMs, result.header.rowCount))
+    print(String(format: "  ips equiv:     %.1f rows/sec",
+                  Double(result.header.rowCount) / (result.scanMs / 1000)))
     print()
 }
 

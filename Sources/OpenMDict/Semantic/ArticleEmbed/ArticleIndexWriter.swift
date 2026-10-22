@@ -10,9 +10,11 @@
 //    - the iOS app's ArticleIndexDispatcher — on-device incremental
 //      indexing (foreground GPU + background CPU via BGProcessingTask)
 //
-//  Strategy: streaming append to a single FileHandle. Iterate articles
-//  in MDictReader.allKeys order; for each, encode + append the FP16
-//  vector directly to the file. **Peak RAM = one row's worth of FP16
+//  Strategy: streaming append to a single FileHandle. Walk the records in
+//  MDictReader.allKeys order; for each real article, encode + append one
+//  row (key index + FP16 vector) directly to the file. `@@@LINK=` aliases
+//  and missing records are walked past without a row (format version 2,
+//  see ArticleIndexFormat.swift). **Peak RAM = one row's worth of FP16
 //  (~768 B for MiniLM-L6's 384-dim)** plus encoder/model overhead.
 //
 //  This is load-bearing for the BGProcessingTask path. The previous
@@ -22,36 +24,42 @@
 //  comment that confessed `~118 MB` peak). Streaming reduces peak by
 //  five orders of magnitude.
 //
-//  Resumability lives in the on-disk format. The header's
-//  `article_count` field IS the truth: how many rows are committed.
+//  Resumability lives in the on-disk format. The header's `row_count`
+//  (rows committed) and `key_count` (keys walked, the resume point) ARE
+//  the truth:
 //
-//    Body-append             (file grows, header.count UNCHANGED)
+//    Body-append             (file grows, header counts UNCHANGED)
 //        ↓
 //    Periodic checkpoint     (truncate to exact size + in-place update
-//                             of article_count at offset 76 + fsync)
+//                             of row_count, then key_count + fsync)
 //        ↓
 //    Body-append             ... and so on
 //
-//  Crash window: between an `append` and the next checkpoint, the file
-//  may have trailing partial-row bytes that the header doesn't account
-//  for. The reader tolerates that — its size check is `>= expected`
-//  (was `==`) and queries only scan the first `article_count` rows.
-//  The writer overwrites trailing on the next resume by seeking to
-//  `headerSize + article_count × dim × 2` (the canonical write head).
+//  Crash windows:
+//    - between an `append` and the next checkpoint, the file may have
+//      trailing partial-row bytes that the header doesn't account for.
+//      The reader tolerates that — its size check is `>= expected` and
+//      queries only scan the first `row_count` rows. The writer
+//      overwrites trailing on the next resume by seeking to
+//      `headerSize + row_count × rowStride` (the canonical write head).
+//    - between the row_count and key_count updates of a checkpoint,
+//      key_count lags the rows. Resume continues after the larger of
+//      key_count and the last row's key index, so no record gets a
+//      second row.
 //
 //  No atomic file swap on each checkpoint — that would require holding
-//  a full second copy. Streaming trades atomicity for memory; the
+//  a full second copy. Streaming trades atomicity for memory; each
 //  in-place header update is still atomic at the 4-byte word level
-//  (POSIX), so the file is never in an "advertises more rows than it
-//  has" state.
+//  (POSIX), so the file never advertises more rows than it has.
 //
 
 import Foundation
 import CryptoKit
 
 /// Progress callback fired periodically during sidecar build. Reports
-/// `(done, total, elapsed)` in articles + seconds. Caller uses this to
-/// drive a progress UI or just print to stderr.
+/// `(done, total, elapsed)`: MDX keys walked (articles and aliases
+/// alike), the dictionary's key count (or the `limit`), and seconds.
+/// Caller uses this to drive a progress UI or just print to stderr.
 public typealias ArticleIndexProgress = @Sendable (_ done: Int, _ total: Int, _ elapsedSec: Double) -> Void
 
 public enum ArticleIndexWriterError: Error, CustomStringConvertible {
@@ -76,15 +84,28 @@ public enum ArticleIndexWriterError: Error, CustomStringConvertible {
 
 /// Outcome of a `build()` call.
 public enum ArticleIndexBuildOutcome: Sendable {
-    /// Every article was encoded; the sidecar at `outputURL` is complete
-    /// (its `article_count` equals the dict's article total, modulo any
+    /// Every key was walked; the sidecar at `outputURL` is complete (its
+    /// `key_count` equals the dictionary's key count, modulo any
     /// `limit`). `header` is the final header.
     case completed(ArticleIndexHeader)
 
     /// `isCancelled` fired mid-build. A valid partial sidecar
-    /// (`article_count == indexedThrough`) was flushed to `outputURL`;
-    /// re-invoking `build()` resumes from there.
+    /// (`key_count == indexedThrough`) was flushed to `outputURL`;
+    /// re-invoking `build()` resumes from there. `indexedThrough` counts
+    /// keys, like the progress callback.
     case interrupted(header: ArticleIndexHeader, indexedThrough: Int)
+}
+
+/// What `ArticleIndexWriter` needs from a text encoder. `ArticleEncoder`
+/// (Core ML) is the production conformer; tests substitute a
+/// deterministic one.
+public protocol ArticleIndexEncoding {
+    /// Output vector length, or 0 until the first `encode`.
+    var dimension: Int { get }
+    /// Tokenizer max length, recorded in the sidecar header.
+    var tokenizerMaxLength: Int { get }
+    /// L2-normalized embedding of `text`.
+    func encode(_ text: String) throws -> [Float]
 }
 
 /// Resumable, checkpointing, cancellable sidecar writer. Construct +
@@ -105,8 +126,9 @@ public struct ArticleIndexWriter {
     /// start + end.
     public let progress: ArticleIndexProgress?
 
-    /// Optional cap on the number of articles to index. nil = index all.
-    /// Used by the CLI's `--limit N` flag for fast iteration on big MDXs.
+    /// Optional cap on the number of keys to walk (the first N of
+    /// `allKeys`). nil = the whole dictionary. Used by the CLI's
+    /// `--limit N` flag for fast iteration on big MDXs.
     public let limit: Int?
 
     public init(modelURL: URL, outputURL: URL, limit: Int? = nil,
@@ -122,21 +144,23 @@ public struct ArticleIndexWriter {
     /// configuration (the encoder's vocab + max_len determine the
     /// embedding output; the header records both).
     ///
-    /// **Resumability** + **checkpointing**: see the file header.
+    /// **Resumability** + **checkpointing**: see the file header. A
+    /// version-1 (dense) file at `outputURL` is not resumed; the build
+    /// starts over in the current format.
     ///
-    /// **Cancellation**: `isCancelled` is polled once per article; when
-    /// it flips true the writer flushes (truncate + update header +
-    /// fsync) and returns `.interrupted(indexedThrough:)`.
+    /// **Cancellation**: `isCancelled` is polled once per key; when it
+    /// flips true the writer flushes (truncate + update header + fsync)
+    /// and returns `.interrupted(indexedThrough:)`.
     ///
     /// - Parameters:
-    ///   - checkpointEvery: articles between checkpoints (default 2000).
+    ///   - checkpointEvery: keys between checkpoints (default 2000).
     ///     A larger value reduces fsync frequency but widens the
-    ///     crash-loss window. The final article always triggers a flush.
+    ///     crash-loss window. The final key always triggers a flush.
     ///   - isCancelled: cooperative cancellation probe, polled per
-    ///     article. `@Sendable` so the writer can run in a detached task.
-    public func build(
+    ///     key. `@Sendable` so the writer can run in a detached task.
+    public func build<Encoder: ArticleIndexEncoding>(
         reader: MDictReader,
-        encoder: ArticleEncoder,
+        encoder: Encoder,
         checkpointEvery: Int = 2000,
         isCancelled: (@Sendable () -> Bool)? = nil
     ) throws -> ArticleIndexBuildOutcome {
@@ -149,37 +173,39 @@ public struct ArticleIndexWriter {
         }
         let modelSHA = try Self.computeModelSHA256(modelURL: modelURL)
 
-        let allKeysFull = reader.allKeys
-        let allKeys = limit.map { Array(allKeysFull.prefix($0)) } ?? allKeysFull
-        let count = allKeys.count
+        let allKeys = reader.allKeys
+        let keyTotal = limit.map { max(0, min($0, allKeys.count)) } ?? allKeys.count
 
         // 2. Resume detection. If a valid partial for THIS (model, MDX)
         // already sits at outputURL, pick up where it left off; else
-        // start fresh by writing an initial header (article_count = 0).
+        // start fresh by writing an initial header (no rows, no keys).
         //
-        // Learn the output dimension up front: alias rows are skipped
-        // without an encode (see the loop), so row 0 may not be one.
+        // Learn the output dimension up front: aliases are walked past
+        // without an encode (see the loop), so key 0 may not be an article.
         if encoder.dimension == 0 { _ = try? encoder.encode(" ") }
         let fallbackDim = encoder.dimension > 0 ? encoder.dimension : 384
-        var poolPtr: Int
-        var detectedDim: Int
+        var rowCount: Int
+        var keyCursor: Int
+        var dim: Int
         let createdAt: UInt64
 
         if let resumed = Self.loadResumableState(
             outputURL: outputURL, modelSHA: modelSHA,
-            mdxSHA: mdxSHABytes, maxCount: count
+            mdxSHA: mdxSHABytes, maxKeyCount: keyTotal
         ) {
-            poolPtr = resumed.articleCount
-            detectedDim = resumed.dim
+            rowCount = resumed.rowCount
+            keyCursor = resumed.keyCount
+            dim = resumed.dim
             createdAt = resumed.createdAt
         } else {
-            poolPtr = 0
-            detectedDim = fallbackDim
+            rowCount = 0
+            keyCursor = 0
+            dim = fallbackDim
             createdAt = UInt64(Date().timeIntervalSince1970)
             try Self.initializeNewFile(
                 at: outputURL,
                 modelSHA: modelSHA, mdxSHA: mdxSHABytes,
-                embeddingDim: UInt32(detectedDim),
+                embeddingDim: UInt32(dim),
                 tokenizerMaxLen: UInt32(encoder.tokenizerMaxLength),
                 createdAt: createdAt
             )
@@ -187,25 +213,21 @@ public struct ArticleIndexWriter {
 
         // Header factory — `createdAt` is preserved across resumes so the
         // final file's timestamp reflects when indexing first began.
-        func makeHeader(_ articleCount: Int) -> ArticleIndexHeader {
+        func makeHeader(rows: Int, keys: Int) -> ArticleIndexHeader {
             ArticleIndexHeader(
                 modelSHA256: modelSHA,
                 mdxHeaderSHA256: mdxSHABytes,
-                embeddingDim: UInt32(detectedDim),
-                articleCount: UInt32(articleCount),
+                embeddingDim: UInt32(dim),
+                rowCount: UInt32(rows),
+                keyCount: UInt32(keys),
                 tokenizerMaxLen: UInt32(encoder.tokenizerMaxLength),
                 createdAt: createdAt
             )
         }
 
-        // Already complete (re-invoked on a finished sidecar, or a
-        // partial that exactly reaches `count`/limit). Idempotent no-op.
-        if poolPtr >= count {
-            return .completed(makeHeader(count))
-        }
-
         // 3. Open the file for incremental append. Seek to the canonical
-        // write head (after the last committed row).
+        // write head (after the last committed row). A file that is
+        // already complete runs no iterations and is only re-flushed.
         let handle: FileHandle
         do {
             handle = try FileHandle(forUpdating: outputURL)
@@ -213,22 +235,24 @@ public struct ArticleIndexWriter {
             throw ArticleIndexWriterError.writeFailed(outputURL, error)
         }
         defer { try? handle.close() }
-        try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + poolPtr * detectedDim * 2))
+        var stride = Self.rowStride(dim: dim)
+        try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + rowCount * stride))
 
         let buildStart = Date()
-        progress?(poolPtr, count, 0)
+        progress?(keyCursor, keyTotal, 0)
         var lastReport = buildStart
         var sinceCheckpoint = 0
 
-        for i in poolPtr..<count {
+        while keyCursor < keyTotal {
+            let i = keyCursor
             // Cooperative cancellation: flush a valid partial + bail.
             if isCancelled?() == true {
-                try Self.finalizeFile(handle: handle, articleCount: poolPtr, dim: detectedDim)
-                progress?(poolPtr, count, Date().timeIntervalSince(buildStart))
-                return .interrupted(header: makeHeader(poolPtr), indexedThrough: poolPtr)
+                try Self.finalizeFile(handle: handle, rowCount: rowCount, keyCount: i, rowStride: stride)
+                progress?(i, keyTotal, Date().timeIntervalSince(buildStart))
+                return .interrupted(header: makeHeader(rows: rowCount, keys: i), indexedThrough: i)
             }
 
-            // Wrap the heavy ObjC-bridged work (reader.lookup → NSString-
+            // Wrap the heavy ObjC-bridged work (reader[i] → NSString-
             // backed body text; stripHTML's four `replacingOccurrences`
             // each round-trip through NSString; encoder.encode's
             // MLMultiArray scratches) so its autoreleased temporaries
@@ -238,78 +262,96 @@ public struct ArticleIndexWriter {
             // iPhone 11 leaked ~15 KB/article, peaked at 1.9 GB before
             // the build finished, then snapped back to ~70 MB on
             // return (the textbook autorelease-accumulation signature).
-            let writeDim: Int = try autoreleasepool { () throws -> Int in
-                let key = allKeys[i]
-                // Row i embeds the record stored at index i: `reader[i]`
+            let writtenDim: Int? = try autoreleasepool { () throws -> Int? in
+                // A row embeds the record stored at index i: `reader[i]`
                 // does not follow redirects and keeps homograph records
                 // (equal keys) apart. A `@@@LINK=` alias would only
                 // re-embed its target, so alias-heavy dictionaries (a
                 // Bible keeps ~60 verse-reference aliases per chapter)
                 // would multiply the encode time and fill query results
                 // with copies of one article. Aliases and missing records
-                // get an all-zero row instead: it keeps the positional
-                // alignment with `allKeys`, `ArticleIndexReader.query`
-                // never returns it, and it is skipped over, not written.
+                // get no row; the key index stored in each row keeps the
+                // mapping to `allKeys`.
                 guard let entry = reader[i], !Self.isRedirect(entry.article.html) else {
-                    try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + (i + 1) * detectedDim * 2))
-                    return detectedDim
+                    return nil
                 }
                 let plain = Self.stripHTML(entry.article.html)
                 let vec: [Float]
                 do {
                     vec = try encoder.encode(plain)
                 } catch {
-                    throw ArticleIndexWriterError.encodeFailed(article: i, key: key, underlying: error)
+                    throw ArticleIndexWriterError.encodeFailed(article: i, key: allKeys[i], underlying: error)
                 }
-                let actualDim = vec.count
-                var bits = [UInt16](repeating: 0, count: actualDim)
-                for d in 0..<actualDim { bits[d] = float16Bits(from: vec[d]) }
-                try bits.withUnsafeBufferPointer { buf in
-                    try handle.write(contentsOf: Data(buffer: buf))
-                }
-                return actualDim
+                try handle.write(contentsOf: Self.encodeRow(keyIndex: i, vector: vec))
+                return vec.count
             }
 
-            // Dim detection: patch the placeholder header on the first
-            // real encode of a fresh build if the encoder's actual dim
-            // differs from the writer's guess. The row we just wrote is
-            // already sized for `writeDim`, so the write head is at the
-            // right offset for the next row.
-            if poolPtr == 0, writeDim != detectedDim {
-                detectedDim = writeDim
-                try Self.updateHeaderEmbeddingDim(handle: handle, dim: UInt32(detectedDim))
+            if let writtenDim {
+                // Dim detection: patch the placeholder header on the first
+                // row if the encoder's actual dim differs from the guess.
+                // The row just written is already sized for `writtenDim`;
+                // the header poke moves the file position, so seek back to
+                // the write head after it.
+                if rowCount == 0, writtenDim != dim {
+                    dim = writtenDim
+                    stride = Self.rowStride(dim: dim)
+                    try Self.updateHeaderField(handle: handle,
+                                               offset: ArticleIndexFormat.embeddingDimOffset,
+                                               value: UInt32(dim))
+                    try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + stride))
+                }
+                precondition(writtenDim == dim,
+                             "Encoder returned variable-dim output (\(writtenDim) vs \(dim))")
+                rowCount += 1
             }
-            precondition(writeDim == detectedDim,
-                         "Encoder returned variable-dim output (\(writeDim) vs \(detectedDim))")
-
-            poolPtr += 1
+            keyCursor = i + 1
             sinceCheckpoint += 1
 
-            // Periodic checkpoint: truncate to exact size + update header
-            // article_count in place + fsync. After the header poke,
-            // re-seek to the new write head for the next batch.
+            // Periodic checkpoint: truncate to exact size + update the
+            // header counts in place + fsync. After the header poke,
+            // re-seek to the write head for the next batch.
             if sinceCheckpoint >= checkpointEvery {
-                try Self.finalizeFile(handle: handle, articleCount: poolPtr, dim: detectedDim)
+                try Self.finalizeFile(handle: handle, rowCount: rowCount, keyCount: keyCursor, rowStride: stride)
                 sinceCheckpoint = 0
-                try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + poolPtr * detectedDim * 2))
+                try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + rowCount * stride))
             }
 
             // Periodic progress sample.
             let now = Date()
-            if now.timeIntervalSince(lastReport) > 1.0 || i == count - 1 {
-                progress?(poolPtr, count, now.timeIntervalSince(buildStart))
+            if now.timeIntervalSince(lastReport) > 1.0 || keyCursor == keyTotal {
+                progress?(keyCursor, keyTotal, now.timeIntervalSince(buildStart))
                 lastReport = now
             }
         }
 
-        // Final flush — complete sidecar (article_count == count).
-        try Self.finalizeFile(handle: handle, articleCount: poolPtr, dim: detectedDim)
-        return .completed(makeHeader(poolPtr))
+        // Final flush — complete sidecar (key_count == keyTotal).
+        try Self.finalizeFile(handle: handle, rowCount: rowCount, keyCount: keyTotal, rowStride: stride)
+        return .completed(makeHeader(rows: rowCount, keys: keyTotal))
     }
 
     // MARK: - File initialization + checkpoint primitives
 
-    /// Create a new sidecar with a placeholder header (article_count = 0).
+    /// Bytes per current-version row for `dim`-dimensional vectors.
+    static func rowStride(dim: Int) -> Int {
+        ArticleIndexFormat.rowKeyIndexSize + dim * 2
+    }
+
+    /// One current-version row: little-endian u32 key index, then the
+    /// vector as Float16.
+    static func encodeRow(keyIndex: Int, vector: [Float]) -> Data {
+        var row = Data(count: rowStride(dim: vector.count))
+        row.withUnsafeMutableBytes { raw in
+            raw.storeBytes(of: UInt32(keyIndex).littleEndian, toByteOffset: 0, as: UInt32.self)
+            for (d, value) in vector.enumerated() {
+                raw.storeBytes(of: float16Bits(from: value).littleEndian,
+                               toByteOffset: ArticleIndexFormat.rowKeyIndexSize + d * 2,
+                               as: UInt16.self)
+            }
+        }
+        return row
+    }
+
+    /// Create a new sidecar with a placeholder header (no rows, no keys).
     private static func initializeNewFile(
         at outputURL: URL,
         modelSHA: Data, mdxSHA: Data,
@@ -319,7 +361,7 @@ public struct ArticleIndexWriter {
         try? FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
         let initial = ArticleIndexHeader(
             modelSHA256: modelSHA, mdxHeaderSHA256: mdxSHA,
-            embeddingDim: embeddingDim, articleCount: 0,
+            embeddingDim: embeddingDim, rowCount: 0, keyCount: 0,
             tokenizerMaxLen: tokenizerMaxLen, createdAt: createdAt
         )
         do {
@@ -329,36 +371,29 @@ public struct ArticleIndexWriter {
         }
     }
 
-    /// Commit `articleCount` rows to disk: truncate the file to the
-    /// exact expected size (discarding any trailing partial-row bytes),
-    /// update the header's article_count field in place, fsync. The
-    /// file is in a consistent state when this returns.
-    private static func finalizeFile(handle: FileHandle, articleCount: Int, dim: Int) throws {
-        let expectedSize = UInt64(ArticleIndexFormat.headerSize + articleCount * dim * 2)
+    /// Commit `rowCount` rows covering `keyCount` keys: truncate the file
+    /// to the exact expected size (discarding any trailing partial-row
+    /// bytes), update the header's row_count and then key_count fields in
+    /// place, fsync. The file is in a consistent state when this returns.
+    private static func finalizeFile(handle: FileHandle, rowCount: Int, keyCount: Int, rowStride: Int) throws {
+        let expectedSize = UInt64(ArticleIndexFormat.headerSize + rowCount * rowStride)
         try handle.truncate(atOffset: expectedSize)
-        try Self.updateHeaderArticleCount(handle: handle, count: UInt32(articleCount))
+        // row_count first: if the process dies before key_count is
+        // written, resume finds the newer rows through their key indices.
+        try Self.updateHeaderField(handle: handle, offset: ArticleIndexFormat.rowCountOffset,
+                                   value: UInt32(rowCount))
+        try Self.updateHeaderField(handle: handle, offset: ArticleIndexFormat.keyCountOffset,
+                                   value: UInt32(keyCount))
         try handle.synchronize()
     }
 
-    /// In-place update of the header's `article_count` field
-    /// (offset 76, 4-byte little-endian u32). 4-byte aligned writes are
+    /// In-place update of a 4-byte little-endian u32 header field
+    /// (embedding_dim, row_count, key_count). 4-byte aligned writes are
     /// atomic on every POSIX filesystem we ship to, so the file never
-    /// observes a torn `article_count`.
-    private static func updateHeaderArticleCount(handle: FileHandle, count: UInt32) throws {
-        try handle.seek(toOffset: 76)
-        var le = count.littleEndian
-        try withUnsafeBytes(of: &le) { ptr in
-            try handle.write(contentsOf: Data(bytes: ptr.baseAddress!, count: ptr.count))
-        }
-    }
-
-    /// In-place update of the header's `embedding_dim` field
-    /// (offset 72, 4-byte little-endian u32). Only used when the first
-    /// real encode's vector length differs from the placeholder dim the
-    /// writer guessed at file-init time.
-    private static func updateHeaderEmbeddingDim(handle: FileHandle, dim: UInt32) throws {
-        try handle.seek(toOffset: 72)
-        var le = dim.littleEndian
+    /// observes a torn field. Leaves the file position after the field.
+    private static func updateHeaderField(handle: FileHandle, offset: UInt64, value: UInt32) throws {
+        try handle.seek(toOffset: offset)
+        var le = value.littleEndian
         try withUnsafeBytes(of: &le) { ptr in
             try handle.write(contentsOf: Data(bytes: ptr.baseAddress!, count: ptr.count))
         }
@@ -367,46 +402,60 @@ public struct ArticleIndexWriter {
     // MARK: - Resume
 
     private struct ResumableState {
-        let articleCount: Int
+        let rowCount: Int
+        let keyCount: Int
         let dim: Int
         let createdAt: UInt64
     }
 
     /// If `outputURL` holds a sidecar valid for the CURRENT build
     /// (matching model + MDX hashes + current format version + a file
-    /// size at least the expected committed size, with
-    /// `0 < article_count <= maxCount`), return its metadata so the
-    /// build can resume by seeking to the write head and appending.
+    /// size at least the expected committed size, with some progress and
+    /// `key_count <= maxKeyCount`), return where to continue so the build
+    /// can resume by seeking to the write head and appending.
     ///
     /// File size > expected (trailing partial bytes from a crash between
     /// body-append and the next checkpoint) is tolerated — the writer
     /// overwrites them on resume.
     private static func loadResumableState(
-        outputURL: URL, modelSHA: Data, mdxSHA: Data, maxCount: Int
+        outputURL: URL, modelSHA: Data, mdxSHA: Data, maxKeyCount: Int
     ) -> ResumableState? {
         guard FileManager.default.fileExists(atPath: outputURL.path),
-              let handle = try? FileHandle(forReadingFrom: outputURL),
-              let headerData = try? handle.read(upToCount: ArticleIndexFormat.headerSize),
-              headerData.count == ArticleIndexFormat.headerSize,
+              let handle = try? FileHandle(forReadingFrom: outputURL)
+        else { return nil }
+        defer { try? handle.close() }
+        guard let headerData = try? handle.read(upToCount: ArticleIndexFormat.headerSize),
               let header = ArticleIndexHeader.parse(headerData),
               header.formatVersion == ArticleIndexFormat.currentVersion,
               header.modelSHA256 == modelSHA,
               header.mdxHeaderSHA256 == mdxSHA,
-              header.embeddingDim > 0
+              header.embeddingDim > 0,
+              let fileSize = try? handle.seekToEnd()
         else { return nil }
-        try? handle.close()
 
-        let attrs = try? FileManager.default.attributesOfItem(atPath: outputURL.path)
-        let fileSize = (attrs?[.size] as? NSNumber)?.intValue ?? 0
-        let dim = Int(header.embeddingDim)
-        let existingCount = Int(header.articleCount)
-        let expectedSize = ArticleIndexFormat.headerSize + existingCount * dim * 2
-        guard fileSize >= expectedSize,
-              existingCount > 0, existingCount <= maxCount
+        let rows = Int(header.rowCount)
+        var keys = Int(header.keyCount)
+        guard fileSize >= UInt64(header.expectedFileSize),
+              rows > 0 || keys > 0, keys <= maxKeyCount
         else { return nil }
+
+        if rows > 0 {
+            // Rows hold ascending key indices, so the last one bounds how
+            // far the committed rows reach — past key_count when a
+            // checkpoint stopped between its two header writes.
+            let lastRowOffset = header.headerSize + (rows - 1) * header.rowStride
+            guard (try? handle.seek(toOffset: UInt64(lastRowOffset))) != nil,
+                  let raw = try? handle.read(upToCount: ArticleIndexFormat.rowKeyIndexSize),
+                  raw.count == ArticleIndexFormat.rowKeyIndexSize
+            else { return nil }
+            let lastKey = Int(UInt32(littleEndian: raw.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }))
+            guard lastKey < maxKeyCount, rows <= lastKey + 1 else { return nil }
+            keys = max(keys, lastKey + 1)
+        }
 
         return ResumableState(
-            articleCount: existingCount, dim: dim, createdAt: header.createdAt
+            rowCount: rows, keyCount: keys,
+            dim: Int(header.embeddingDim), createdAt: header.createdAt
         )
     }
 
@@ -484,10 +533,10 @@ public struct ArticleIndexWriter {
 
 // MARK: - ArticleEncoder additions for the writer
 
-extension ArticleEncoder {
+extension ArticleEncoder: ArticleIndexEncoding {
     /// Public read of the tokenizer's max_length. The writer records
     /// this in the sidecar header for diagnostics.
-    var tokenizerMaxLength: Int {
+    public var tokenizerMaxLength: Int {
         // The tokenizer is private; we know we initialized it with
         // ArticleTokenizer's default 128 unless an override was passed.
         // Phase 3.x doesn't plumb the override through, so it's always 128.

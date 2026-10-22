@@ -18,6 +18,12 @@
 //  pool that's ~60M MADs; on M-series CPU with SIMD vDSP_dotpr this
 //  runs ~50 ms; on Intel CPU maybe 200-300 ms. Acceptable v1.
 //
+//  Both on-disk layouts are served: format version 2 (one row per real
+//  article, each row carrying its key index) and the dense version 1
+//  (one row per key, aliases as zero rows), so indexes built before the
+//  format change keep answering queries until they are rebuilt. Hits
+//  carry the key index either way.
+//
 //  Future optimization (Phase 3.x): vDSP_dotpr on per-row pre-converted
 //  Float32 chunks, or batch convert + matrix multiply, or Metal kernel
 //  for the M-series boost. None needed for Phase 3.2/3.6 verification.
@@ -47,9 +53,9 @@ public enum ArticleIndexReaderError: Error, CustomStringConvertible {
 }
 
 /// One (article-index, score) hit from a query. The article index is
-/// the position in `MDictReader.allKeys`, since the sidecar uses
-/// implicit positional mapping. Caller resolves index → key via
-/// `mdict.allKeys[idx]`.
+/// the record's position in `MDictReader.allKeys` (stored in the row in
+/// format version 2, the row number in version 1). Caller resolves
+/// index → key via `mdict.allKeys[idx]`.
 public struct ArticleIndexHit: Sendable {
     public let articleIndex: Int
     public let cosineSimilarity: Float
@@ -68,7 +74,7 @@ public final class ArticleIndexReader {
     public let sidecarURL: URL
 
     /// mmap'd base pointer of the entire file. Body data starts at
-    /// `basePtr + ArticleIndexFormat.headerSize`.
+    /// `basePtr + header.headerSize`.
     private let basePtr: UnsafeRawPointer
     private let fileSize: Int
 
@@ -103,7 +109,7 @@ public final class ArticleIndexReader {
         self.basePtr = UnsafeRawPointer(mapped)
 
         // 3. Read + parse header. We need to make a Data view of the
-        // first 96 bytes to feed ArticleIndexHeader.parse, which expects
+        // header bytes to feed ArticleIndexHeader.parse, which expects
         // Data not raw pointer.
         let headerData = Data(
             bytes: basePtr,
@@ -112,7 +118,12 @@ public final class ArticleIndexReader {
         guard let parsed = ArticleIndexHeader.parse(headerData) else {
             // Don't leak the mmap on init failure.
             munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
-            throw ArticleIndexReaderError.headerInvalid("not a sidecar (magic mismatch)")
+            throw ArticleIndexReaderError.headerInvalid("not a sidecar (magic mismatch or truncated header)")
+        }
+        // Only lay rows over a layout this reader knows.
+        guard ArticleIndexFormat.isReadable(parsed.formatVersion) else {
+            munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
+            throw ArticleIndexReaderError.validationFailed(.wrongVersion(parsed.formatVersion))
         }
         self.header = parsed
 
@@ -120,13 +131,13 @@ public final class ArticleIndexReader {
         // size. Trailing bytes beyond `expectedFileSize` are tolerated —
         // they come from the streaming writer's crash window between
         // body-append and the next checkpoint (the writer overwrites
-        // them on resume, and queries only scan `article_count` rows so
+        // them on resume, and queries only scan `row_count` rows so
         // trailing is invisible to callers).
         if fileSize < header.expectedFileSize {
             munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
             throw ArticleIndexReaderError.headerInvalid(
                 "file size \(fileSize) < expected \(header.expectedFileSize) " +
-                "(article_count=\(header.articleCount), dim=\(header.embeddingDim))"
+                "(row_count=\(header.rowCount), dim=\(header.embeddingDim))"
             )
         }
 
@@ -158,17 +169,18 @@ public final class ArticleIndexReader {
     /// vDSP_dotpr per row, min-heap (well, sorted-array) of top-K.
     /// For 154k articles × 384 dim on Mac M-series this completes in
     /// ~50-100 ms; Intel CPU ~200-300 ms.
+    ///
+    /// Rows are scanned in ascending key-index order in both layouts, and
+    /// equal scores keep scan order, so a version-1 and a version-2 index
+    /// of the same dictionary return the same hits.
     public func query(_ query: [Float], topK: Int = 10) throws -> [ArticleIndexHit] {
         let dim = Int(header.embeddingDim)
         guard query.count == dim else {
             throw ArticleIndexReaderError.queryDimMismatch(query: query.count, sidecar: dim)
         }
-        let count = Int(header.articleCount)
+        let count = Int(header.rowCount)
         guard topK > 0 else { return [] }
         let k = min(topK, count)
-
-        let poolPtr = basePtr.advanced(by: ArticleIndexFormat.headerSize)
-            .assumingMemoryBound(to: UInt16.self)
 
         // Maintain a sorted-by-score-descending array of top-K hits.
         // For small K (typical: 10-50) sorted insertion is faster than
@@ -178,7 +190,7 @@ public final class ArticleIndexReader {
 
         for i in 0..<count {
             // Convert row i Float16 → Float32 into scratch buffer.
-            let rowBase = poolPtr.advanced(by: i * dim)
+            let (keyIndex, rowBase) = row(i)
             for d in 0..<dim {
                 rowScratch[d] = float32FromFloat16Bits(rowBase[d])
             }
@@ -193,22 +205,41 @@ public final class ArticleIndexReader {
                 }
             }
 
-            // All-zero rows (aliases, missing records) carry no embedding.
+            // All-zero rows (aliases and missing records in a version-1
+            // file) carry no embedding.
             if sim == 0 { continue }
 
             // Insert into top-K if it qualifies.
             if topHits.count < k {
                 // Sorted insert.
                 let insertAt = topHits.firstIndex(where: { $0.cosineSimilarity < sim }) ?? topHits.count
-                topHits.insert(ArticleIndexHit(articleIndex: i, cosineSimilarity: sim), at: insertAt)
+                topHits.insert(ArticleIndexHit(articleIndex: keyIndex, cosineSimilarity: sim), at: insertAt)
             } else if sim > topHits.last!.cosineSimilarity {
                 topHits.removeLast()
                 let insertAt = topHits.firstIndex(where: { $0.cosineSimilarity < sim }) ?? topHits.count
-                topHits.insert(ArticleIndexHit(articleIndex: i, cosineSimilarity: sim), at: insertAt)
+                topHits.insert(ArticleIndexHit(articleIndex: keyIndex, cosineSimilarity: sim), at: insertAt)
             }
         }
 
         return topHits
+    }
+
+    /// Key index and Float16 vector of stored row `r` (< `rowCount`).
+    private func row(_ r: Int) -> (keyIndex: Int, vector: UnsafePointer<UInt16>) {
+        let rowBase = basePtr.advanced(by: header.headerSize + r * header.rowStride)
+        if header.isDense {
+            return (r, rowBase.assumingMemoryBound(to: UInt16.self))
+        }
+        let keyIndex = Int(UInt32(littleEndian: rowBase.loadUnaligned(as: UInt32.self)))
+        let vector = rowBase.advanced(by: ArticleIndexFormat.rowKeyIndexSize)
+            .assumingMemoryBound(to: UInt16.self)
+        return (keyIndex, vector)
+    }
+
+    /// Stored row `r` decoded to Float32 — for tests and diagnostics.
+    func storedRow(_ r: Int) -> (keyIndex: Int, vector: [Float]) {
+        let (keyIndex, bits) = row(r)
+        return (keyIndex, (0..<Int(header.embeddingDim)).map { float32FromFloat16Bits(bits[$0]) })
     }
 }
 

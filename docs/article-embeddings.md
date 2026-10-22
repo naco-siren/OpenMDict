@@ -251,35 +251,76 @@ Path: `AppGroup/Library/Caches/SemanticIndex/<dictId>.semantic.idx`
 backed up, not synced). Source of truth:
 `Sources/OpenMDict/Semantic/ArticleEmbed/ArticleIndexFormat.swift`.
 
-**Binary layout** (96-byte little-endian header + Float16 pool):
+**Binary layout**, format version 2 (128-byte little-endian header + one
+row per real article):
 
 ```
 Off    Size  Field
 ─────────────────────────────────────────
   0      4   magic "SIDX"
-  4      2   format version (= 1)
+  4      2   format version (= 2)
   6      2   reserved
   8     32   model_sha256
  40     32   mdx_header_sha256
  72      4   embedding_dim (= 384 for MiniLM-L6)
- 76      4   article_count
+ 76      4   0 (version 1's article_count — a version-1 reader sees no rows)
  80      4   tokenizer_max_len (= 128)
  84      8   created_at (UNIX seconds)
  92      4   reserved
-─── 96 bytes ───
- 96+   N×d×2  Float16 pool, row-major, sidecar[i] ↔ MDX.allKeys[i]
+ 96      4   row_count  (vector rows committed)
+100      4   key_count  (MDX keys covered from index 0; = entryCount when complete)
+104     24   reserved
+─── 128 bytes ───
+128+   R×(4+d×2)  rows in ascending key order:
+                  u32 key_index (position in MDictReader.allKeys)
+                  d × Float16 embedding of that record
 ─────────────────────────────────────────
-file_size = 96 + (N × d × 2)
+file_size = 128 + R × (4 + d × 2)
 ```
 
-No offset table — the implicit positional mapping to
-`MDictReader.allKeys[i]` saves 4 bytes per article and keeps the file tight.
-Three-field invalidation (model SHA-256 + MDX header SHA-256 + format
-version) catches any model swap or MDX edit; a mismatch triggers a silent
-rebuild, exactly like the keyword sidecar. Same atomic-write + replace-item
-pattern.
+Only real articles get a row. A `@@@LINK=` alias (or a missing record) is
+walked past and counted in `key_count`, but stores nothing — alias-heavy
+dictionaries used to spend most of their index on all-zero rows:
 
-50k articles × (384 × 2 B) ≈ 37 MB on disk per dictionary; a 13-dictionary
+| Dictionary | Keys | Articles | v1 (dense) | v2 (sparse) |
+|---|---:|---:|---:|---:|
+| Bible-KJV-EN | 77,616 | 1,189 | 56.8 MB | 0.9 MB |
+| LSJ-GRC-EN | 343,051 | 115,717 | 251.3 MB | 85.2 MB |
+| JMdict-JA-EN | 583,290 | 223,713 | 427.2 MB | 164.7 MB |
+
+(384-dim, all-MiniLM-L6-v2. KJV and LSJ measured with `openmdict
+articleindex build`; JMdict from the formulas above.) The 4-byte key index
+costs 0.5% per row, so a dictionary without aliases grows by that much.
+Build time does not change — it is the encode of each article either way,
+and aliases were never encoded. The cosine scan reads only the article rows,
+so it shrinks in the same proportion (KJV on an Intel i7 Mac: ~55 ms → ~1 ms
+per query). The query result is unchanged: hits carry the key index, rows
+are scanned in key order, and an alias never had a non-zero row to match.
+
+**Version 1** (the dense layout used before) has the same fields up to offset
+96, where the body starts: `article_count` (offset 76) rows of `d × Float16`,
+row *i* ↔ `allKeys[i]`, aliases as all-zero rows the scan skips.
+`ArticleIndexReader` still queries it, so indexes built by older app versions
+keep working without a rebuild; they shrink when the dictionary is next
+indexed (a preset update, a re-import, or turning article search off and
+on). The writer never resumes a version-1 partial — like any other format
+mismatch it starts the build over in version 2. A version the reader does
+not know is refused (`.wrongVersion`), and the query path skips that
+dictionary.
+
+Three-field invalidation (model SHA-256 + MDX header SHA-256 + format
+version) catches any model swap or MDX edit; a mismatch makes the writer
+start over instead of resuming.
+
+**Resumable writes.** The writer appends rows to one file and checkpoints
+every 2,000 keys: truncate to the committed size, write `row_count`, then
+`key_count`, fsync. Progress and `indexedThrough` count keys (aliases
+included) against `entryCount`, which is known without reading any record.
+After a crash, trailing bytes past the committed rows are overwritten, and if
+the process died between the two header writes the resume continues after
+the last row's key index, so no record gets a second row.
+
+50k articles × (4 + 384 × 2 B) ≈ 37 MB on disk per dictionary; a 13-dictionary
 group ≈ 480 MB, mapped as clean file-backed pages (jetsam-friendly).
 
 Implementation notes:
@@ -294,7 +335,8 @@ Implementation notes:
   allocate memory IOSurface object". iOS does not need it (its run loop
   autoreleases naturally); the CLI uses it defensively.
 - Verified end-to-end on the first 500 WordNet-EN articles: 105 ips on an
-  Intel Mac (GPU path); file size 375 KB (= 96 + 500 × 384 × 2 exactly);
+  Intel Mac (GPU path); file size 375 KB (= 96 + 500 × 384 × 2 exactly, in
+  the version-1 layout);
   `articleindex info` validates the header against the MDX and the model
   and detects a model-SHA mismatch.
 
