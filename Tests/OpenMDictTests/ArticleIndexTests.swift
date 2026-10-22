@@ -33,6 +33,26 @@ struct ArticleIndexTests {
         }
     }
 
+    /// A `FakeEncoder` that throws once it has encoded `encodesBeforeDeath`
+    /// texts, ending the build without the final flush, as a kill would.
+    final class DyingEncoder: ArticleIndexEncoding {
+        struct Killed: Error {}
+        let base = FakeEncoder()
+        let encodesBeforeDeath: Int
+        private(set) var encodes = 0
+        var dimension: Int { base.dimension }
+        var tokenizerMaxLength: Int { base.tokenizerMaxLength }
+        init(encodesBeforeDeath: Int) { self.encodesBeforeDeath = encodesBeforeDeath }
+
+        func encode(_ text: String) throws -> [Float] {
+            guard encodes < encodesBeforeDeath else { throw Killed() }
+            encodes += 1
+            return try base.encode(text)
+        }
+    }
+
+    struct InjectedFault: Error {}
+
     static func unitVector(seed: UInt64, dimension: Int) -> [Float] {
         var state = seed
         var v = (0..<dimension).map { _ -> Float in
@@ -129,18 +149,50 @@ struct ArticleIndexTests {
         try data.write(to: url)
     }
 
-    static func build(_ reader: MDictReader, _ ws: Workspace, _ encoder: FakeEncoder, to url: URL,
-                      limit: Int? = nil, checkpointEvery: Int = 2000,
-                      cancelAfter: Int? = nil,
-                      progress: ArticleIndexProgress? = nil) throws -> ArticleIndexBuildOutcome {
+    static func build<E: ArticleIndexEncoding>(
+        _ reader: MDictReader, _ ws: Workspace, _ encoder: E, to url: URL,
+        limit: Int? = nil, checkpointEvery: Int = 2000,
+        cancelAfter: Int? = nil,
+        checkpointInterrupt: (() throws -> Void)? = nil,
+        progress: ArticleIndexProgress? = nil
+    ) throws -> ArticleIndexBuildOutcome {
         var isCancelled: (@Sendable () -> Bool)?
         if let cancelAfter {
             let polls = Box(0)
             isCancelled = { polls.mutate { $0 += 1 }; return polls.value > cancelAfter }
         }
-        let writer = ArticleIndexWriter(modelURL: ws.modelURL, outputURL: url, limit: limit, progress: progress)
+        var writer = ArticleIndexWriter(modelURL: ws.modelURL, outputURL: url, limit: limit, progress: progress)
+        writer.checkpointInterrupt = checkpointInterrupt
         return try writer.build(reader: reader, encoder: encoder,
                                 checkpointEvery: checkpointEvery, isCancelled: isCancelled)
+    }
+
+    /// Build again (resuming whatever is at `url`) and return the progress
+    /// values reported.
+    static func rebuild(_ reader: MDictReader, _ ws: Workspace, to url: URL,
+                        checkpointEvery: Int = 2000) throws -> [Int] {
+        let calls = Box<[Int]>([])
+        let outcome = try build(reader, ws, FakeEncoder(), to: url, checkpointEvery: checkpointEvery,
+                                progress: { done, _, _ in calls.mutate { $0.append(done) } })
+        guard case .completed = outcome else { Issue.record("not completed"); return calls.value }
+        return calls.value
+    }
+
+    /// Overwrite the little-endian u32 at `offset` of the file.
+    static func patchU32(_ url: URL, at offset: Int, _ value: UInt32) throws {
+        var data = try Data(contentsOf: url)
+        withUnsafeBytes(of: value.littleEndian) { data.replaceSubrange(offset..<offset + 4, with: $0) }
+        try data.write(to: url)
+    }
+
+    static func appendBytes(_ url: URL, _ bytes: Data) throws {
+        var data = try Data(contentsOf: url)
+        data.append(bytes)
+        try data.write(to: url)
+    }
+
+    static func createdAt(_ url: URL) throws -> UInt64 {
+        try Data(contentsOf: url).withUnsafeBytes { UInt64(littleEndian: $0.loadUnaligned(fromByteOffset: 84, as: UInt64.self)) }
     }
 
     /// File bytes with `created_at` (offset 84..<92) zeroed, for comparing
@@ -330,8 +382,18 @@ struct ArticleIndexTests {
         }
     }
 
-    @Test("Resume after a torn checkpoint or trailing bytes adds no duplicate rows")
-    func resumeAfterCrash() throws {
+    enum CrashDamage: String, CaseIterable {
+        /// row_count was written, key_count was not (still the previous
+        /// checkpoint's, here 0).
+        case tornCheckpoint
+        /// A half-written row trails the committed ones.
+        case trailingBytes
+        case both
+    }
+
+    @Test("Resume after a torn checkpoint or trailing bytes continues where it stopped, without duplicate rows",
+          arguments: CrashDamage.allCases)
+    func resumeAfterCrash(damage: CrashDamage) throws {
         let ws = try Workspace(); defer { ws.remove() }
         let reader = try Self.openFixture("homographs.mdx")
         let encoder = FakeEncoder()
@@ -340,16 +402,25 @@ struct ArticleIndexTests {
 
         let url = ws.url("crashed.semantic.idx")
         _ = try Self.build(reader, ws, encoder, to: url, cancelAfter: 30)
+        // A distinctive start time: a restarted build would write "now".
         var data = try Data(contentsOf: url)
-        // row_count was written, key_count was not (still the previous
-        // checkpoint's), and a half-written row trails the committed ones.
-        data.replaceSubrange(100..<104, with: Data(count: 4))
-        data.append(Data(repeating: 0xAB, count: 7))
+        withUnsafeBytes(of: UInt64(1_600_000_000).littleEndian) { data.replaceSubrange(84..<92, with: $0) }
+        if damage != .trailingBytes { data.replaceSubrange(100..<104, with: Data(count: 4)) }
+        if damage != .tornCheckpoint { data.append(Data(repeating: 0xAB, count: 7)) }
         try data.write(to: url)
 
-        guard case .completed = try Self.build(reader, ws, encoder, to: url) else {
-            Issue.record("not completed"); return
-        }
+        // A torn checkpoint resumes after the last committed row's key.
+        let lastRowKey = try #require(Self.articleIndices(reader).last { $0 < 30 })
+        let resumePoint = damage == .trailingBytes ? 30 : lastRowKey + 1
+        #expect(resumePoint > 0)
+
+        let calls = Box<[Int]>([])
+        guard case .completed(let header) = try Self.build(reader, ws, encoder, to: url, progress: { done, _, _ in
+            calls.mutate { $0.append(done) }
+        }) else { Issue.record("not completed"); return }
+        #expect(calls.value.first == resumePoint)   // resumed, not restarted
+        #expect(try Self.createdAt(url) == 1_600_000_000)
+        #expect(ArticleIndexHeader.parse(try Data(contentsOf: url)) == header)
         #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(reference))
     }
 
@@ -380,5 +451,386 @@ struct ArticleIndexTests {
         #expect(Int(header.rowCount) == Self.articleIndices(reader).filter { $0 < limit }.count)
         let index = try ArticleIndexReader(sidecarURL: url)
         #expect((0..<Int(header.rowCount)).allSatisfy { index.storedRow($0).keyIndex < limit })
+    }
+
+    @Test("A build killed between periodic checkpoints resumes from the last one",
+          arguments: [3, 10, 37, 69, 71])
+    func resumeAfterKillBetweenCheckpoints(encodesBeforeDeath: Int) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let articles = Self.articleIndices(reader)
+        guard encodesBeforeDeath < articles.count else { return }
+        let reference = ws.url("reference.semantic.idx")
+        _ = try Self.build(reader, ws, FakeEncoder(), to: reference)
+
+        let url = ws.url("killed.semantic.idx")
+        let every = 4
+        #expect(throws: ArticleIndexWriterError.self) {
+            _ = try Self.build(reader, ws, DyingEncoder(encodesBeforeDeath: encodesBeforeDeath), to: url,
+                               checkpointEvery: every)
+        }
+        // The kill came while encoding articles[encodesBeforeDeath]; the
+        // last checkpoint covered the keys before the last multiple of 4.
+        let checkpointed = articles[encodesBeforeDeath] / every * every
+        let data = try Data(contentsOf: url)
+        #expect(Int(Self.u32(data, at: 100)) == checkpointed)
+        #expect(Int(Self.u32(data, at: 96)) == articles.filter { $0 < checkpointed }.count)
+
+        let calls = try Self.rebuild(reader, ws, to: url, checkpointEvery: every)
+        #expect(calls.first == checkpointed)
+        #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(reference))
+    }
+
+    @Test("A kill between a checkpoint's row_count and key_count writes loses no article")
+    func killInsideCheckpoint() throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let articles = Self.articleIndices(reader)
+        let reference = ws.url("reference.semantic.idx")
+        _ = try Self.build(reader, ws, FakeEncoder(), to: reference)
+
+        let every = 4
+        // Every periodic checkpoint plus the final flush.
+        let checkpoints = reader.entryCount / every + 1
+        for fault in 1...checkpoints {
+            let url = ws.url("torn-\(fault).semantic.idx")
+            let calls = Box(0)
+            #expect(throws: InjectedFault.self) {
+                _ = try Self.build(reader, ws, FakeEncoder(), to: url, checkpointEvery: every,
+                                   checkpointInterrupt: {
+                                       calls.mutate { $0 += 1 }
+                                       if calls.value == fault { throw InjectedFault() }
+                                   })
+            }
+            // Torn as the order makes it: the new row_count, the previous key_count.
+            let keys = min(fault * every, reader.entryCount)
+            let data = try Data(contentsOf: url)
+            #expect(Int(Self.u32(data, at: 96)) == articles.filter { $0 < keys }.count)
+            #expect(Int(Self.u32(data, at: 100)) == (fault - 1) * every)
+
+            _ = try Self.rebuild(reader, ws, to: url, checkpointEvery: every)
+            #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(reference),
+                    "fault in checkpoint \(fault)")
+        }
+    }
+
+    @Test("Building over a complete index changes nothing, apart from cutting trailing bytes",
+          arguments: [0, 9])
+    func rerunOnCompleteIndex(trailingBytes: Int) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let url = ws.url("complete.semantic.idx")
+        _ = try Self.build(reader, ws, FakeEncoder(), to: url)
+        let original = try Data(contentsOf: url)
+        try Self.appendBytes(url, Data(repeating: 0xEE, count: trailingBytes))
+
+        let calls = try Self.rebuild(reader, ws, to: url)
+        #expect(calls.first == reader.entryCount)   // nothing re-encoded
+        #expect(try Data(contentsOf: url) == original)
+    }
+
+    enum PartialDamage: String, CaseIterable {
+        case lastKeyIndexPastEnd, lastKeyIndexMax, lastKeyIndexZero, keyCountPastEnd
+    }
+
+    @Test("A partial whose counts or last key index can't be right is built over, not resumed",
+          arguments: PartialDamage.allCases)
+    func implausiblePartialRebuilt(damage: PartialDamage) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let reference = ws.url("reference.semantic.idx")
+        _ = try Self.build(reader, ws, FakeEncoder(), to: reference)
+
+        let url = ws.url("partial.semantic.idx")
+        guard case .interrupted(let header, _) = try Self.build(reader, ws, FakeEncoder(), to: url,
+                                                                checkpointEvery: 4, cancelAfter: 40)
+        else { Issue.record("not interrupted"); return }
+        let rows = Int(header.rowCount)
+        #expect(rows > 1)
+        let lastRow = 128 + (rows - 1) * header.rowStride
+        switch damage {
+        case .lastKeyIndexPastEnd: try Self.patchU32(url, at: lastRow, UInt32(reader.entryCount))
+        case .lastKeyIndexMax:     try Self.patchU32(url, at: lastRow, .max)
+        case .lastKeyIndexZero:    try Self.patchU32(url, at: lastRow, 0)
+        case .keyCountPastEnd:     try Self.patchU32(url, at: 100, UInt32(reader.entryCount + 5))
+        }
+
+        let calls = try Self.rebuild(reader, ws, to: url)
+        #expect(calls.first == 0)   // started over
+        #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(reference))
+    }
+
+    @Test("A version-1 partial is never resumed, even when its last row reads as a plausible key index")
+    func densePartialNotResumed() throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let encoder = FakeEncoder()
+        let reference = ws.url("reference.semantic.idx"), url = ws.url("v1-partial.semantic.idx")
+        _ = try Self.build(reader, ws, encoder, to: reference)
+        let rows = 20
+        try Self.writeDenseV1(reader: reader, encoder: encoder, modelSHA: ws.modelSHA, rowCount: rows, to: url)
+        // Read as a version-2 row, the last row's first 4 bytes would be key 25.
+        try Self.patchU32(url, at: 96 + (rows - 1) * 2 * encoder.outputDimension, 25)
+
+        let calls = try Self.rebuild(reader, ws, to: url)
+        #expect(calls.first == 0)
+        #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(reference))
+    }
+
+    // MARK: - File size and corrupted headers
+
+    @Test("A file shorter than its rows is refused; trailing bytes are tolerated", arguments: [1, 2])
+    func fileSizeChecks(version: Int) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let encoder = FakeEncoder()
+        let url = ws.url("v\(version).semantic.idx")
+        if version == 1 {
+            try Self.writeDenseV1(reader: reader, encoder: encoder, modelSHA: ws.modelSHA, to: url)
+        } else {
+            _ = try Self.build(reader, ws, encoder, to: url)
+        }
+        let original = try Data(contentsOf: url)
+        let header = try #require(ArticleIndexHeader.parse(original))
+        func validate(_ data: Data) -> ArticleIndexValidationResult {
+            header.validate(expectedModelSHA256: ws.modelSHA, expectedMDXHeaderSHA256: Self.mdxSHA(reader),
+                            expectedEmbeddingDim: header.embeddingDim, actualFileSize: data.count)
+        }
+        let queries = try Self.queryVectors(reader, encoder)
+        let expectedHits = try { () throws -> [[Int]] in
+            let index = try ArticleIndexReader(sidecarURL: url)
+            return try queries.map { try index.query($0, topK: 5).map(\.articleIndex) }
+        }()
+
+        // One byte short.
+        let short = original.dropLast()
+        try short.write(to: url)
+        #expect(validate(short) == .sizeMismatch(expected: original.count, actual: original.count - 1))
+        #expect(throws: ArticleIndexReaderError.self) { _ = try ArticleIndexReader(sidecarURL: url) }
+        guard case .unusable = ArticleIndexSidecar.inspect(url) else {
+            Issue.record("short file not reported unusable"); return
+        }
+
+        // Trailing bytes past the committed rows.
+        let long = original + Data(repeating: 0xCD, count: 13)
+        try long.write(to: url)
+        #expect(validate(long) == .ok)
+        let index = try ArticleIndexReader(sidecarURL: url)
+        #expect(try queries.map { try index.query($0, topK: 5).map(\.articleIndex) } == expectedHits)
+    }
+
+    struct HeaderCorruption: CustomStringConvertible, Sendable {
+        let version: Int
+        let fields: [(offset: Int, value: UInt32)]
+        /// row_count × row stride exceeds `Int`.
+        var overflows = false
+        var description: String { "v\(version) " + fields.map { "@\($0.offset)=\($0.value)" }.joined(separator: " ") }
+    }
+
+    static let headerCorruptions: [HeaderCorruption] = [
+        HeaderCorruption(version: 2, fields: [(72, .max), (96, .max)], overflows: true),
+        HeaderCorruption(version: 2, fields: [(72, 1 << 31), (96, .max)], overflows: true),
+        HeaderCorruption(version: 2, fields: [(72, 0)]),
+        HeaderCorruption(version: 2, fields: [(72, ArticleIndexFormat.maxEmbeddingDim + 1), (96, 0), (100, 0)]),
+        HeaderCorruption(version: 1, fields: [(72, .max), (76, .max)], overflows: true),
+        HeaderCorruption(version: 1, fields: [(72, 0)]),
+    ]
+
+    @Test("A corrupted header is refused with an error, never an arithmetic trap",
+          arguments: headerCorruptions)
+    func corruptedHeaderRefused(corruption: HeaderCorruption) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let encoder = FakeEncoder()
+        let reference = ws.url("reference.semantic.idx"), url = ws.url("corrupt.semantic.idx")
+        _ = try Self.build(reader, ws, encoder, to: reference)
+        if corruption.version == 1 {
+            try Self.writeDenseV1(reader: reader, encoder: encoder, modelSHA: ws.modelSHA, to: url)
+        } else {
+            try FileManager.default.copyItem(at: reference, to: url)
+        }
+        for field in corruption.fields { try Self.patchU32(url, at: field.offset, field.value) }
+        let data = try Data(contentsOf: url)
+        let header = try #require(ArticleIndexHeader.parse(data))
+        #expect((header.expectedFileSize == nil) == corruption.overflows)
+
+        guard case .headerInvalid = header.checkLayout(fileSize: data.count) else {
+            Issue.record("layout not reported invalid: \(header.checkLayout(fileSize: data.count))"); return
+        }
+        let error = #expect(throws: ArticleIndexReaderError.self) { _ = try ArticleIndexReader(sidecarURL: url) }
+        guard case .headerInvalid = error else { Issue.record("unexpected error \(String(describing: error))"); return }
+        guard case .unusable = ArticleIndexSidecar.inspect(url) else {
+            Issue.record("corrupt file not reported unusable"); return
+        }
+
+        // The writer builds over it instead of resuming from it.
+        let calls = try Self.rebuild(reader, ws, to: url)
+        #expect(calls.first == 0)
+        #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(reference))
+    }
+
+    // MARK: - Launch check and version-1 conversion
+
+    @Test("Inspection tells current, dense, missing and unusable files apart")
+    func inspection() throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let encoder = FakeEncoder()
+        let v2 = ws.url("v2.semantic.idx"), v1 = ws.url("v1.semantic.idx"), other = ws.url("other.semantic.idx")
+        guard case .completed(let header) = try Self.build(reader, ws, encoder, to: v2) else {
+            Issue.record("not completed"); return
+        }
+        try Self.writeDenseV1(reader: reader, encoder: encoder, modelSHA: ws.modelSHA, to: v1)
+
+        #expect(ArticleIndexSidecar.inspect(ws.url("absent.semantic.idx")) == .missing)
+        #expect(ArticleIndexSidecar.inspect(v2) == .current(header))
+        guard case .dense(let dense) = ArticleIndexSidecar.inspect(v1) else {
+            Issue.record("v1 not dense"); return
+        }
+        #expect(Int(dense.keyCount) == reader.entryCount)
+
+        var future = try Data(contentsOf: v2)
+        future[4] = 3
+        try future.write(to: other)
+        #expect(ArticleIndexSidecar.inspect(other) == .unusable("\(ArticleIndexValidationResult.wrongVersion(3))"))
+        try Data("not a sidecar at all, but long enough to hold a header ............................................................".utf8)
+            .write(to: other)
+        guard case .unusable = ArticleIndexSidecar.inspect(other) else { Issue.record("text file not unusable"); return }
+    }
+
+    @Test("Launch decisions: keep current files, convert complete version-1 indexes, discard the rest")
+    func launchActions() throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let v2 = ws.url("v2.semantic.idx"), v1 = ws.url("v1.semantic.idx")
+        guard case .completed(let current) = try Self.build(reader, ws, FakeEncoder(), to: v2) else {
+            Issue.record("not completed"); return
+        }
+        try Self.writeDenseV1(reader: reader, encoder: FakeEncoder(), modelSHA: ws.modelSHA, to: v1)
+        guard case .dense(let dense) = ArticleIndexSidecar.inspect(v1) else { Issue.record("v1 not dense"); return }
+
+        let table: [(ArticleIndexSidecarCondition, Bool, ArticleIndexSidecarAction)] = [
+            (.current(current), true, .keep), (.current(current), false, .keep),
+            (.dense(dense), true, .convert), (.dense(dense), false, .discard),
+            (.unusable("x"), true, .discard), (.unusable("x"), false, .discard),
+            (.missing, true, .discard), (.missing, false, .discard),
+        ]
+        for (condition, indexed, action) in table {
+            #expect(ArticleIndexSidecar.launchAction(for: condition, recordIsIndexed: indexed) == action,
+                    "\(condition), indexed: \(indexed)")
+        }
+    }
+
+    @Test("A complete version-1 index converts to exactly what a fresh build writes",
+          arguments: ["homographs.mdx", "tiny.mdx"])
+    func denseConversion(fixture: String) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture(fixture)
+        let encoder = FakeEncoder()
+        let fresh = ws.url("fresh.semantic.idx"), url = ws.url("converted.semantic.idx")
+        _ = try Self.build(reader, ws, encoder, to: fresh)
+        try Self.writeDenseV1(reader: reader, encoder: encoder, modelSHA: ws.modelSHA, to: url)
+        let queries = try Self.queryVectors(reader, encoder)
+        let denseHits = try { () throws -> [[ArticleIndexHit]] in
+            let index = try ArticleIndexReader(sidecarURL: url)
+            return try queries.map { try index.query($0, topK: reader.entryCount) }
+        }()
+
+        let header = try ArticleIndexSidecar.convertDenseInPlace(at: url, reader: reader)
+        #expect(header.formatVersion == ArticleIndexFormat.currentVersion)
+        #expect(Int(header.rowCount) == Self.articleIndices(reader).count)
+        #expect(Int(header.keyCount) == reader.entryCount)
+        #expect(header.createdAt == 1_700_000_000)   // when the version-1 build started
+        #expect(try Self.bytesIgnoringCreatedAt(url) == Self.bytesIgnoringCreatedAt(fresh))
+        #expect(!FileManager.default.fileExists(atPath: ArticleIndexSidecar.conversionURL(for: url).path))
+        #expect(ArticleIndexSidecar.inspect(url) == .current(header))
+
+        let converted = try ArticleIndexReader(sidecarURL: url), rebuilt = try ArticleIndexReader(sidecarURL: fresh)
+        for (q, before) in zip(queries, denseHits) {
+            for k in [1, 5, reader.entryCount] {
+                let a = try converted.query(q, topK: k), b = try rebuilt.query(q, topK: k)
+                #expect(a.map(\.articleIndex) == b.map(\.articleIndex))
+                #expect(a.map(\.cosineSimilarity) == b.map(\.cosineSimilarity))
+                #expect(a.map(\.articleIndex) == before.prefix(k).map(\.articleIndex))
+            }
+        }
+    }
+
+    enum DenseDefect: String, CaseIterable {
+        /// Alias rows hold their target's vector (writers that embedded lookup(key)).
+        case aliasRowsHoldVectors
+        /// Both "bank" records carry the first one's vector.
+        case homographsShareVector
+        /// An article row is zero.
+        case articleRowZero
+        case incomplete
+        case otherMDX
+    }
+
+    @Test("A version-1 index whose rows don't match the records is not converted and stays untouched",
+          arguments: DenseDefect.allCases)
+    func denseConversionRefused(defect: DenseDefect) throws {
+        let ws = try Workspace(); defer { ws.remove() }
+        let reader = try Self.openFixture("homographs.mdx")
+        let encoder = FakeEncoder()
+        let url = ws.url("v1.semantic.idx")
+        let dim = encoder.outputDimension
+        let articles = Self.articleIndices(reader)
+        try Self.writeDenseV1(reader: reader, encoder: encoder, modelSHA: ws.modelSHA,
+                              rowCount: defect == .incomplete ? 20 : nil, to: url)
+        var data = try Data(contentsOf: url)
+        func row(_ i: Int) -> Range<Int> { (96 + i * dim * 2) ..< (96 + (i + 1) * dim * 2) }
+        switch defect {
+        case .aliasRowsHoldVectors:
+            let alias = try #require((0..<reader.entryCount).first { !articles.contains($0) })
+            data.replaceSubrange(row(alias), with: data[row(articles[0])])
+        case .homographsShareVector:
+            let banks = articles.filter { reader.allKeys[$0] == "bank" }
+            #expect(banks.count == 2)
+            data.replaceSubrange(row(banks[1]), with: data[row(banks[0])])
+        case .articleRowZero:
+            data.replaceSubrange(row(articles[3]), with: Data(count: dim * 2))
+        case .incomplete:
+            break
+        case .otherMDX:
+            data[40] ^= 0xFF
+        }
+        try data.write(to: url)
+
+        let error = #expect(throws: ArticleIndexConversionError.self) {
+            try ArticleIndexSidecar.convertDenseInPlace(at: url, reader: reader)
+        }
+        switch (defect, error) {
+        case (.aliasRowsHoldVectors, .rowsDisagreeWithRecords?), (.homographsShareVector, .rowsDisagreeWithRecords?),
+             (.articleRowZero, .rowsDisagreeWithRecords?), (.incomplete, .incomplete?), (.otherMDX, .mdxMismatch?):
+            break
+        default:
+            Issue.record("unexpected error \(String(describing: error))")
+        }
+        #expect(error?.requiresRebuild == true)
+        #expect(try Data(contentsOf: url) == data)
+        #expect(!FileManager.default.fileExists(atPath: ArticleIndexSidecar.conversionURL(for: url).path))
+    }
+
+    @Test("Walking records with a block cache returns what the subscript returns")
+    func recordWalker() throws {
+        for fixture in ["homographs.mdx", "tiny.mdx"] {
+            let reader = try Self.openFixture(fixture)
+            let walker = reader.recordWalker()
+            // In order, then backwards (every block change drops the cache).
+            for i in Array(0..<reader.entryCount) + (0..<reader.entryCount).reversed() {
+                #expect(walker[i]?.article.html == reader[i]?.article.html)
+                #expect(walker[i]?.key == reader[i]?.key)
+            }
+            #expect(walker[reader.entryCount] == nil && walker[-1] == nil)
+        }
+        // The walker's cache holds one block; a lookup's keeps them all.
+        let one = MDXParser.BlockCache(capacity: 1), all = MDXParser.BlockCache()
+        for cache in [one, all] {
+            cache.store(Data([1]), at: 0)
+            cache.store(Data([2]), at: 1)
+        }
+        #expect(one.blocks == [1: Data([2])])
+        #expect(all.blocks == [0: Data([1]), 1: Data([2])])
     }
 }

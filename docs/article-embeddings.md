@@ -291,8 +291,12 @@ dictionaries used to spend most of their index on all-zero rows:
 (384-dim, all-MiniLM-L6-v2. KJV and LSJ measured with `openmdict
 articleindex build`; JMdict from the formulas above.) The 4-byte key index
 costs 0.5% per row, so a dictionary without aliases grows by that much.
-Build time does not change — it is the encode of each article either way,
-and aliases were never encoded. The cosine scan reads only the article rows,
+A build costs the encode of each article plus one decompression per record
+block: aliases are never encoded, and the writer walks the keys in record
+order keeping the last decompressed block (`MDictRecordWalker`), so telling
+an alias from an article does not decompress its block again (KJV on an
+Intel i7 Mac: 137.9 G → 87.7 G instructions, 22.5 s → 15.5 s; the rows are
+identical). The cosine scan reads only the article rows,
 so it shrinks in the same proportion (KJV on an Intel i7 Mac: ~55 ms → ~1 ms
 per query). The query result is unchanged: hits carry the key index, rows
 are scanned in key order, and an alias never had a non-zero row to match.
@@ -300,13 +304,40 @@ are scanned in key order, and an alias never had a non-zero row to match.
 **Version 1** (the dense layout used before) has the same fields up to offset
 96, where the body starts: `article_count` (offset 76) rows of `d × Float16`,
 row *i* ↔ `allKeys[i]`, aliases as all-zero rows the scan skips.
-`ArticleIndexReader` still queries it, so indexes built by older app versions
-keep working without a rebuild; they shrink when the dictionary is next
-indexed (a preset update, a re-import, or turning article search off and
-on). The writer never resumes a version-1 partial — like any other format
-mismatch it starts the build over in version 2. A version the reader does
-not know is refused (`.wrongVersion`), and the query path skips that
-dictionary.
+`ArticleIndexReader` still queries it. The writer never resumes a version-1
+partial — like any other format mismatch it starts the build over in
+version 2.
+
+**Launch check.** When the app starts, `ArticleIndexCoordinator` reads every
+recorded dictionary's sidecar header (off the main actor; builds wait for
+it) and makes the record agree with the file (`ArticleIndexSidecar`):
+
+- a version-2 file stays — complete, or a partial the writer resumes;
+- a complete version-1 index is converted in place once its dictionary has
+  loaded: the article rows are copied behind their key index, aliases
+  (decided from the `@@@LINK=` records) dropped, the result written next to
+  it, read back and renamed over it. Nothing is encoded, and the result is
+  byte-identical to a fresh version-2 build apart from `created_at`. Until
+  then the version-1 index is still queried;
+- a version-1 index whose rows don't match its records is deleted and
+  rebuilt instead. Writers before 2026-10-20 (app 1.0.1 and earlier)
+  embedded `lookup(key)` for every key: alias rows hold a copy
+  of their target's vector — which made one article fill the top-K under
+  each of its alias keys — and the records of a homograph key share one
+  vector. The converter sees a non-zero alias row, or two adjacent records
+  of one key with different text but the same row;
+- anything else is deleted and the dictionary's progress restarts at 0: a
+  version-1 partial, a version this build doesn't know (a newer build wrote
+  it), a corrupt or truncated file. So is the progress of a record whose
+  file is gone (Caches/ evicted). An indexed dictionary becomes
+  `.notIndexed`, so the backfill rebuilds it.
+
+A version the reader does not know is refused (`.wrongVersion`), and so is a
+header whose `embedding_dim` is outside 1…4096 or whose sizes overflow
+(`.headerInvalid`); the query path skips such a dictionary until the launch
+check has reset it. An older app build reads a version-2 file as an empty
+version-1 index (offset 76 is 0) and never rebuilds it; turning article
+search off and on there rebuilds every index.
 
 Three-field invalidation (model SHA-256 + MDX header SHA-256 + format
 version) catches any model swap or MDX edit; a mismatch makes the writer

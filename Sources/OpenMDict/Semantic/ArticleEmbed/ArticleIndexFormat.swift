@@ -15,7 +15,7 @@
 //      6   reserved (zero)              2
 //      8   model_sha256                 32
 //     40   mdx_header_sha256            32
-//     72   embedding_dim (e.g. 384)     4
+//     72   embedding_dim (e.g. 384)     4   1...4096
 //     76   zero                         4   (v1's article_count: a v1
 //                                            reader sees an empty index)
 //     80   tokenizer_max_len (e.g. 128) 4
@@ -87,6 +87,12 @@ public enum ArticleIndexFormat {
     /// Bytes of the key index stored in front of each version-2 row.
     public static let rowKeyIndexSize: Int = 4
 
+    /// Largest `embedding_dim` a sidecar may declare. Sentence-embedding
+    /// models stay far below it (MiniLM-L6: 384); a larger value only
+    /// comes from a corrupted header, and would make the reader allocate
+    /// gigabytes and the size arithmetic overflow.
+    public static let maxEmbeddingDim: UInt32 = 4096
+
     /// File extension for sidecar files. The full filename convention is
     /// `<dictId>.semantic.idx` to mirror the M13 keyword sidecar naming.
     public static let fileExtension: String = "semantic.idx"
@@ -128,9 +134,41 @@ public struct ArticleIndexHeader: Equatable, Sendable {
     }
 
     /// Total file size implied by `rowCount` rows of `rowStride` bytes
-    /// after the header.
-    public var expectedFileSize: Int {
-        headerSize + Int(rowCount) * rowStride
+    /// after the header, or nil when that size does not fit in an `Int`
+    /// (only a corrupted header gets there).
+    public var expectedFileSize: Int? {
+        let (body, bodyOverflow) = Int(rowCount).multipliedReportingOverflow(by: rowStride)
+        let (total, totalOverflow) = headerSize.addingReportingOverflow(body)
+        return bodyOverflow || totalOverflow ? nil : total
+    }
+
+    /// Whether rows can be laid over a file of `fileSize` bytes with this
+    /// header, regardless of model and MDX: a version the reader knows, an
+    /// `embedding_dim` in 1...`maxEmbeddingDim`, and room for `row_count`
+    /// rows. Returns `.ok`, `.wrongVersion`, `.headerInvalid` or
+    /// `.sizeMismatch`. Sizes are computed with overflow checks, so a
+    /// corrupted header is reported here instead of trapping. `key_count`
+    /// takes no bytes (aliases have no row); the writer bounds it by the
+    /// dictionary's key count and the search by `allKeys`.
+    public func checkLayout(fileSize: Int) -> ArticleIndexValidationResult {
+        if !ArticleIndexFormat.isReadable(formatVersion) {
+            return .wrongVersion(formatVersion)
+        }
+        guard (1...ArticleIndexFormat.maxEmbeddingDim).contains(embeddingDim) else {
+            return .headerInvalid("embedding_dim \(embeddingDim) is outside 1...\(ArticleIndexFormat.maxEmbeddingDim)")
+        }
+        guard let expected = expectedFileSize else {
+            return .headerInvalid("row_count \(rowCount) × \(rowStride) bytes does not fit in a file")
+        }
+        // File smaller than the header claims = truncated / corrupt.
+        // File larger (trailing bytes beyond the committed rows) is OK:
+        // it's the streaming writer's crash window between body-append
+        // and the next checkpoint; queries only scan `row_count` rows,
+        // so trailing is invisible.
+        if fileSize < expected {
+            return .sizeMismatch(expected: expected, actual: fileSize)
+        }
+        return .ok
     }
 
     /// Build a fresh current-version header. `createdAt` defaults to now.
@@ -270,6 +308,7 @@ public enum ArticleIndexValidationResult: Equatable, Sendable {
     case modelMismatch            // model_sha256 != expected
     case mdxMismatch              // mdx_header_sha256 != expected
     case dimMismatch(UInt32)      // embedding_dim != expected
+    case headerInvalid(String)    // embedding_dim out of range, or sizes that overflow
     case sizeMismatch(expected: Int, actual: Int)
 }
 
@@ -295,15 +334,7 @@ extension ArticleIndexHeader {
         if embeddingDim != expectedEmbeddingDim {
             return .dimMismatch(embeddingDim)
         }
-        // File smaller than the header claims = truncated / corrupt.
-        // File larger (trailing bytes beyond the committed rows) is OK:
-        // it's the streaming writer's crash window between body-append
-        // and the next checkpoint; queries only scan `row_count` rows,
-        // so trailing is invisible.
-        if actualFileSize < expectedFileSize {
-            return .sizeMismatch(expected: expectedFileSize, actual: actualFileSize)
-        }
-        return .ok
+        return checkLayout(fileSize: actualFileSize)
     }
 }
 

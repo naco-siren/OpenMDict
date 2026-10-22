@@ -21,8 +21,8 @@
 //  Both on-disk layouts are served: format version 2 (one row per real
 //  article, each row carrying its key index) and the dense version 1
 //  (one row per key, aliases as zero rows), so indexes built before the
-//  format change keep answering queries until they are rebuilt. Hits
-//  carry the key index either way.
+//  format change keep answering queries until the app converts them
+//  (`ArticleIndexSidecar`). Hits carry the key index either way.
 //
 //  Future optimization (Phase 3.x): vDSP_dotpr on per-row pre-converted
 //  Float32 chunks, or batch convert + matrix multiply, or Metal kernel
@@ -120,26 +120,30 @@ public final class ArticleIndexReader {
             munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
             throw ArticleIndexReaderError.headerInvalid("not a sidecar (magic mismatch or truncated header)")
         }
-        // Only lay rows over a layout this reader knows.
-        guard ArticleIndexFormat.isReadable(parsed.formatVersion) else {
+        // 4. Only lay rows over a layout this reader knows, with a sane
+        // embedding_dim and a file at least as long as the committed rows
+        // (sizes computed with overflow checks — a corrupted header throws
+        // here instead of trapping). Trailing bytes beyond the committed
+        // rows are tolerated — they come from the streaming writer's crash
+        // window between body-append and the next checkpoint (the writer
+        // overwrites them on resume, and queries only scan `row_count`
+        // rows so trailing is invisible to callers).
+        let layout = parsed.checkLayout(fileSize: fileSize)
+        guard layout == .ok else {
             munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
-            throw ArticleIndexReaderError.validationFailed(.wrongVersion(parsed.formatVersion))
+            switch layout {
+            case .headerInvalid(let reason):
+                throw ArticleIndexReaderError.headerInvalid(reason)
+            case .sizeMismatch(let expected, _):
+                throw ArticleIndexReaderError.headerInvalid(
+                    "file size \(fileSize) < expected \(expected) " +
+                    "(row_count=\(parsed.rowCount), dim=\(parsed.embeddingDim))"
+                )
+            default:   // .wrongVersion
+                throw ArticleIndexReaderError.validationFailed(layout)
+            }
         }
         self.header = parsed
-
-        // 4. Sanity: file size must be at least the header's expected
-        // size. Trailing bytes beyond `expectedFileSize` are tolerated —
-        // they come from the streaming writer's crash window between
-        // body-append and the next checkpoint (the writer overwrites
-        // them on resume, and queries only scan `row_count` rows so
-        // trailing is invisible to callers).
-        if fileSize < header.expectedFileSize {
-            munmap(UnsafeMutableRawPointer(mutating: basePtr), fileSize)
-            throw ArticleIndexReaderError.headerInvalid(
-                "file size \(fileSize) < expected \(header.expectedFileSize) " +
-                "(row_count=\(header.rowCount), dim=\(header.embeddingDim))"
-            )
-        }
 
         self.rowScratch = [Float](repeating: 0, count: Int(header.embeddingDim))
     }

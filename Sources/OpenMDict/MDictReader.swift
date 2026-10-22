@@ -422,6 +422,12 @@ public final class MDictReader: @unchecked Sendable {
             index: index
         )
     }
+
+    /// A reader of records by index for walking the keys in order (see
+    /// `MDictRecordWalker`).
+    public func recordWalker() -> MDictRecordWalker {
+        MDictRecordWalker(parser: parser)
+    }
     
     // MARK: - Search API
     
@@ -506,5 +512,32 @@ public final class MDictReader: @unchecked Sendable {
         } catch {
             return nil
         }
+    }
+}
+
+/// Reads records by index like `MDictReader[index]`, but keeps the most
+/// recently decompressed record block. Records are stored in key order, so
+/// a walk over `0..<entryCount` decompresses each record block once, where
+/// the subscript decompresses the block again for every record. Holds one
+/// block in memory. Not thread-safe: use one walker per walk.
+public final class MDictRecordWalker {
+    private let parser: MDXParser
+    private let cache = MDXParser.BlockCache(capacity: 1)
+
+    init(parser: MDXParser) {
+        self.parser = parser
+    }
+
+    /// The record stored at `index` (no redirect followed), or nil if out
+    /// of bounds or unreadable.
+    public subscript(index: Int) -> MDictWordEntry? {
+        guard let (keyword, definition) = parser.entryAt(index, cache: cache) else {
+            return nil
+        }
+        return MDictWordEntry(
+            key: keyword,
+            article: MDictWordArticle(html: definition),
+            index: index
+        )
     }
 }

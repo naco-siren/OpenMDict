@@ -221,8 +221,16 @@ private func handleArticleIndexInfo(args: [String]) {
     print()
     print(colored("File:", .bold))
     print("  actual size:       \(formatByteSize(Int64(data.count)))")
-    print("  expected size:     \(formatByteSize(Int64(header.expectedFileSize)))")
+    if let expected = header.expectedFileSize {
+        print("  expected size:     \(formatByteSize(Int64(expected)))")
+    } else {
+        print("  expected size:     " + colored("overflows (corrupt header)", .red))
+    }
     print("  body bytes:        \(data.count - header.headerSize) (\(header.rowStride) per row)")
+    let layout = header.checkLayout(fileSize: data.count)
+    if layout != .ok {
+        print("  layout:            " + colored("\(layout)", .red))
+    }
     print()
 
     // Optional validation against current MDX + model.
@@ -268,6 +276,8 @@ private func handleArticleIndexInfo(args: [String]) {
         print(colored("  ✗ MDX SHA256 mismatch — rebuild needed", .yellow))
     case .dimMismatch(let d):
         print(colored("  ✗ dim mismatch (header says \(d))", .yellow))
+    case .headerInvalid(let reason):
+        print(colored("  ✗ header invalid: \(reason)", .red))
     case .sizeMismatch(let exp, let act):
         print(colored("  ✗ size mismatch: header expects \(exp) bytes, file is \(act)", .red))
     }

@@ -14,8 +14,11 @@
 //  MDictReader.allKeys order; for each real article, encode + append one
 //  row (key index + FP16 vector) directly to the file. `@@@LINK=` aliases
 //  and missing records are walked past without a row (format version 2,
-//  see ArticleIndexFormat.swift). **Peak RAM = one row's worth of FP16
-//  (~768 B for MiniLM-L6's 384-dim)** plus encoder/model overhead.
+//  see ArticleIndexFormat.swift). The walk keeps the last decompressed
+//  record block (`MDictRecordWalker`), so each block is decompressed once
+//  and the build costs the article encodes plus one decompression per
+//  block. **Peak RAM = one row's worth of FP16 (~768 B for MiniLM-L6's
+//  384-dim) plus one record block** plus encoder/model overhead.
 //
 //  This is load-bearing for the BGProcessingTask path. The previous
 //  "build the whole pool in memory then atomic-write" design blew the
@@ -131,6 +134,11 @@ public struct ArticleIndexWriter {
     /// `--limit N` flag for fast iteration on big MDXs.
     public let limit: Int?
 
+    /// Test seam: runs inside every checkpoint after `row_count` is
+    /// written and before `key_count` is. Throwing there stops the build
+    /// with the file as a kill between the two header writes leaves it.
+    var checkpointInterrupt: (() throws -> Void)?
+
     public init(modelURL: URL, outputURL: URL, limit: Int? = nil,
          progress: ArticleIndexProgress? = nil) {
         self.modelURL = modelURL
@@ -242,17 +250,26 @@ public struct ArticleIndexWriter {
         progress?(keyCursor, keyTotal, 0)
         var lastReport = buildStart
         var sinceCheckpoint = 0
+        // Keys are walked in record order: keep the last decompressed
+        // record block instead of decompressing it again for every key
+        // (KJV: 77,616 keys, all but 1,189 of them aliases).
+        let records = reader.recordWalker()
+
+        func checkpoint(rows: Int, keys: Int) throws {
+            try Self.finalizeFile(handle: handle, rowCount: rows, keyCount: keys, rowStride: stride,
+                                  betweenCounts: checkpointInterrupt)
+        }
 
         while keyCursor < keyTotal {
             let i = keyCursor
             // Cooperative cancellation: flush a valid partial + bail.
             if isCancelled?() == true {
-                try Self.finalizeFile(handle: handle, rowCount: rowCount, keyCount: i, rowStride: stride)
+                try checkpoint(rows: rowCount, keys: i)
                 progress?(i, keyTotal, Date().timeIntervalSince(buildStart))
                 return .interrupted(header: makeHeader(rows: rowCount, keys: i), indexedThrough: i)
             }
 
-            // Wrap the heavy ObjC-bridged work (reader[i] → NSString-
+            // Wrap the heavy ObjC-bridged work (records[i] → NSString-
             // backed body text; stripHTML's four `replacingOccurrences`
             // each round-trip through NSString; encoder.encode's
             // MLMultiArray scratches) so its autoreleased temporaries
@@ -263,7 +280,7 @@ public struct ArticleIndexWriter {
             // the build finished, then snapped back to ~70 MB on
             // return (the textbook autorelease-accumulation signature).
             let writtenDim: Int? = try autoreleasepool { () throws -> Int? in
-                // A row embeds the record stored at index i: `reader[i]`
+                // A row embeds the record stored at index i: `records[i]`
                 // does not follow redirects and keeps homograph records
                 // (equal keys) apart. A `@@@LINK=` alias would only
                 // re-embed its target, so alias-heavy dictionaries (a
@@ -272,7 +289,7 @@ public struct ArticleIndexWriter {
                 // with copies of one article. Aliases and missing records
                 // get no row; the key index stored in each row keeps the
                 // mapping to `allKeys`.
-                guard let entry = reader[i], !Self.isRedirect(entry.article.html) else {
+                guard let entry = records[i], !Self.isRedirect(entry.article.html) else {
                     return nil
                 }
                 let plain = Self.stripHTML(entry.article.html)
@@ -311,7 +328,7 @@ public struct ArticleIndexWriter {
             // header counts in place + fsync. After the header poke,
             // re-seek to the write head for the next batch.
             if sinceCheckpoint >= checkpointEvery {
-                try Self.finalizeFile(handle: handle, rowCount: rowCount, keyCount: keyCursor, rowStride: stride)
+                try checkpoint(rows: rowCount, keys: keyCursor)
                 sinceCheckpoint = 0
                 try handle.seek(toOffset: UInt64(ArticleIndexFormat.headerSize + rowCount * stride))
             }
@@ -325,7 +342,7 @@ public struct ArticleIndexWriter {
         }
 
         // Final flush — complete sidecar (key_count == keyTotal).
-        try Self.finalizeFile(handle: handle, rowCount: rowCount, keyCount: keyTotal, rowStride: stride)
+        try checkpoint(rows: rowCount, keys: keyTotal)
         return .completed(makeHeader(rows: rowCount, keys: keyTotal))
     }
 
@@ -375,13 +392,16 @@ public struct ArticleIndexWriter {
     /// to the exact expected size (discarding any trailing partial-row
     /// bytes), update the header's row_count and then key_count fields in
     /// place, fsync. The file is in a consistent state when this returns.
-    private static func finalizeFile(handle: FileHandle, rowCount: Int, keyCount: Int, rowStride: Int) throws {
+    /// `betweenCounts` (tests only) runs between the two header writes.
+    private static func finalizeFile(handle: FileHandle, rowCount: Int, keyCount: Int, rowStride: Int,
+                                     betweenCounts: (() throws -> Void)? = nil) throws {
         let expectedSize = UInt64(ArticleIndexFormat.headerSize + rowCount * rowStride)
         try handle.truncate(atOffset: expectedSize)
         // row_count first: if the process dies before key_count is
         // written, resume finds the newer rows through their key indices.
         try Self.updateHeaderField(handle: handle, offset: ArticleIndexFormat.rowCountOffset,
                                    value: UInt32(rowCount))
+        try betweenCounts?()
         try Self.updateHeaderField(handle: handle, offset: ArticleIndexFormat.keyCountOffset,
                                    value: UInt32(keyCount))
         try handle.synchronize()
@@ -409,10 +429,11 @@ public struct ArticleIndexWriter {
     }
 
     /// If `outputURL` holds a sidecar valid for the CURRENT build
-    /// (matching model + MDX hashes + current format version + a file
-    /// size at least the expected committed size, with some progress and
+    /// (matching model + MDX hashes + current format version + a sane
+    /// layout whose committed rows fit the file, with some progress and
     /// `key_count <= maxKeyCount`), return where to continue so the build
-    /// can resume by seeking to the write head and appending.
+    /// can resume by seeking to the write head and appending. A corrupted
+    /// header yields nil (a fresh build), never an arithmetic trap.
     ///
     /// File size > expected (trailing partial bytes from a crash between
     /// body-append and the next checkpoint) is tolerated — the writer
@@ -429,13 +450,13 @@ public struct ArticleIndexWriter {
               header.formatVersion == ArticleIndexFormat.currentVersion,
               header.modelSHA256 == modelSHA,
               header.mdxHeaderSHA256 == mdxSHA,
-              header.embeddingDim > 0,
-              let fileSize = try? handle.seekToEnd()
+              let fileSize = try? handle.seekToEnd(),
+              let size = Int(exactly: fileSize)
         else { return nil }
 
         let rows = Int(header.rowCount)
         var keys = Int(header.keyCount)
-        guard fileSize >= UInt64(header.expectedFileSize),
+        guard header.checkLayout(fileSize: size) == .ok,
               rows > 0 || keys > 0, keys <= maxKeyCount
         else { return nil }
 

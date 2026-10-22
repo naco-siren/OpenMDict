@@ -539,6 +539,11 @@ final class ArticleIndexDispatcher {
     /// with progress callbacks → service. On error or cancellation,
     /// updates service state accordingly.
     private func executeJob(dictId: String, profile: ArticleEncoder.ComputeProfile) async {
+        // 0. The coordinator's launch sidecar check may still be deleting
+        // files the writer won't resume and resetting their progress; a
+        // build must not start from a file that check is about to delete.
+        await ArticleIndexCoordinator.shared.waitForLaunchSidecarCheck()
+
         // 1. Locate the MDictReader for this dict. `reader == nil` is a
         // TRANSIENT condition — the dict is still being mmap'd by
         // DictionaryService — NOT a persistent failure. Leave the

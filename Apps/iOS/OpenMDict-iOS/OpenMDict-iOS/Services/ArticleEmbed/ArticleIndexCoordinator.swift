@@ -20,6 +20,9 @@
 //    - Per-dict state introspection — consults ArticleIndexService
 //      (CoreData-backed) first, then validates against the on-disk
 //      sidecar + model/MDX hashes
+//    - Launch check of every record's sidecar: converts complete indexes
+//      in the old dense layout, deletes files the writer won't resume or
+//      the reader can't use, and resets those records' progress
 //    - User-action APIs (index now / cancel / exclude / reorder) that
 //      forward to ArticleIndexService + ArticleIndexDispatcher
 //    - Lifecycle hooks called from DictionaryService /
@@ -33,6 +36,7 @@
 //    - Thermal / battery / memory budget gates
 //
 
+import Combine       // MDict.$state.values (wait for a dictionary to load)
 import Foundation
 import NaturalLanguage
 import OpenMDict     // ArticleIndexReader + format types live in core lib
@@ -66,6 +70,184 @@ final class ArticleIndexCoordinator {
         // Scrub the "Dictionary not loaded" legacy poison from earlier
         // dispatcher bug — see service method docstring.
         ArticleIndexService.shared.normalizeStaleNotLoadedErrors()
+        // Make every record agree with its sidecar file (header reads run
+        // off the main actor; builds wait for this — see the method).
+        launchSidecarCheck = Task { await self.checkSidecarsAtLaunch() }
+    }
+
+    // MARK: - Launch sidecar check
+
+    /// The launch check of every record's sidecar. Builds wait for it
+    /// (`waitForLaunchSidecarCheck`), so none starts from a file it is
+    /// about to delete or with progress it is about to reset.
+    private var launchSidecarCheck: Task<Void, Never>?
+
+    /// Conversions of version-1 indexes, run one at a time (each reads a
+    /// whole index and writes a new one).
+    private var conversionChain: Task<Void, Never>?
+
+    /// Suspends until the launch sidecar check has applied its resets.
+    /// Conversions it schedules may still be running.
+    func waitForLaunchSidecarCheck() async {
+        await launchSidecarCheck?.value
+    }
+
+    /// Check each record against its sidecar's header (read off the main
+    /// actor) and make the record agree with what the writer and the
+    /// reader will do with that file (`ArticleIndexSidecar.launchAction`):
+    ///
+    ///   - a current-version file stays (complete, or a partial the writer
+    ///     resumes);
+    ///   - a complete version-1 index is converted in place once its
+    ///     dictionary has loaded, and is still queried until then; one
+    ///     that can't be converted is deleted and rebuilt;
+    ///   - anything else is deleted and the record's progress restarts at
+    ///     0 — a version-1 partial (the writer starts it over in the
+    ///     current format), a version this build doesn't know (a newer
+    ///     build wrote it), a corrupt or truncated file — and so is the
+    ///     progress of a record whose file is gone. An indexed dictionary
+    ///     becomes `.notIndexed`, so backfill rebuilds it; a paused or
+    ///     failed one keeps that state.
+    private func checkSidecarsAtLaunch() async {
+        let targets = ArticleIndexService.shared.allSnapshots().map { ($0.dictId, sidecarURL(for: $0.dictId)) }
+        guard !targets.isEmpty else { return }
+        let conditions = await Task.detached(priority: .utility) {
+            targets.map { ($0.0, ArticleIndexSidecar.inspect($0.1)) }
+        }.value
+
+        var reset = 0
+        for (dictId, condition) in conditions {
+            // Deleted meanwhile, or article search turned off (records wiped).
+            guard ArticleIndexService.shared.hasRecord(for: dictId) else { continue }
+            let snap = ArticleIndexService.shared.snapshot(for: dictId)
+            switch ArticleIndexSidecar.launchAction(for: condition, recordIsIndexed: snap.state == .indexed) {
+            case .keep:
+                break
+            case .convert:
+                scheduleConversion(dictId)
+            case .discard:
+                if discardSidecar(dictId) {
+                    reset += 1
+                    debugLog("Launch sidecar check \(dictId): \(condition) → progress reset")
+                }
+            }
+        }
+        if reset > 0 {
+            backfillIfEnabled()
+        }
+    }
+
+    /// Delete the dict's sidecar and restart its progress at 0; an indexed
+    /// dict becomes `.notIndexed`, other states are kept. Returns whether
+    /// the record changed.
+    @discardableResult
+    private func discardSidecar(_ dictId: String) -> Bool {
+        try? FileManager.default.removeItem(at: sidecarURL(for: dictId))
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        let state: ArticleIndexRecordSnapshot.PersistedState = snap.state == .indexed ? .notIndexed : snap.state
+        guard state != snap.state || snap.indexedThrough != 0 else { return false }
+        ArticleIndexService.shared.setState(state, for: dictId, indexedThrough: 0)
+        return true
+    }
+
+    /// Convert the dict's version-1 index once the dictionary has loaded:
+    /// telling articles from aliases needs its records. A dictionary that
+    /// doesn't load keeps its version-1 index (still queried) until a
+    /// later launch converts it.
+    private func scheduleConversion(_ dictId: String) {
+        Task {
+            guard let reader = await self.loadedReader(for: dictId) else { return }
+            let previous = self.conversionChain
+            self.conversionChain = Task {
+                await previous?.value
+                await self.convertDenseSidecar(dictId, reader: reader)
+            }
+        }
+    }
+
+    /// The dict's reader once it has loaded; nil if it isn't in the
+    /// library or fails to load.
+    private func loadedReader(for dictId: String) async -> MDictReader? {
+        guard let dict = DictionaryService.shared.dict(id: dictId) else { return nil }
+        for await state in dict.$state.values {
+            switch state {
+            case .loaded:
+                return dict.reader
+            case .error:
+                return nil
+            case .unloaded, .loading, .metadataLoaded:
+                continue
+            }
+        }
+        return nil
+    }
+
+    /// Rewrite the dict's version-1 index in the current layout (no
+    /// encoding: the article rows are copied) next to it, then rename it
+    /// over the old file. If the version-1 rows can't be converted (an
+    /// older writer's file, an incomplete or foreign index) the index is
+    /// deleted and rebuilt; on an I/O failure the version-1 index stays.
+    private func convertDenseSidecar(_ dictId: String, reader: MDictReader) async {
+        guard let start = convertibleSnapshot(dictId, reader: reader) else { return }
+        let url = sidecarURL(for: dictId)
+        let temp = ArticleIndexSidecar.conversionURL(for: url)
+        let began = CFAbsoluteTimeGetCurrent()
+        let result = await Task.detached(priority: .utility) {
+            () -> Result<ArticleIndexHeader, ArticleIndexConversionError> in
+            do {
+                return .success(try ArticleIndexSidecar.writeCurrentFromDense(
+                    source: url, destination: temp, reader: reader))
+            } catch let error as ArticleIndexConversionError {
+                return .failure(error)
+            } catch {
+                return .failure(.ioFailed("\(error)"))
+            }
+        }.value
+
+        // The record must not have moved meanwhile (re-index requested,
+        // content replaced, dictionary deleted): the converted file would
+        // then describe nothing current.
+        guard let now = convertibleSnapshot(dictId, reader: reader),
+              now.lastUpdated == start.lastUpdated
+        else {
+            try? FileManager.default.removeItem(at: temp)
+            debugLog("ArticleIndex \(dictId): record changed during the conversion; discarded it")
+            return
+        }
+        switch result {
+        case .success(let header):
+            // The swap is a rename (atomic; a query that has the old file
+            // mapped keeps reading it), done here on the main actor so no
+            // state change can slip between the check above and the swap.
+            do {
+                try ArticleIndexSidecar.commitConversion(from: temp, to: url)
+                let ms = (CFAbsoluteTimeGetCurrent() - began) * 1000
+                debugLog("ArticleIndex \(dictId): converted the version-1 index (\(header.rowCount) articles, \(header.keyCount) keys) in \(String(format: "%.0f", ms)) ms")
+            } catch {
+                try? FileManager.default.removeItem(at: temp)
+                print("❌ ArticleIndex \(dictId): converting the version-1 index failed, kept it: \(error)")
+            }
+        case .failure(let error) where error.requiresRebuild:
+            try? FileManager.default.removeItem(at: temp)
+            debugLog("ArticleIndex \(dictId): version-1 index can't be converted (\(error)); rebuilding")
+            discardSidecar(dictId)
+            backfillIfEnabled()
+        case .failure(let error):
+            try? FileManager.default.removeItem(at: temp)
+            print("❌ ArticleIndex \(dictId): converting the version-1 index failed, kept it: \(error)")
+        }
+    }
+
+    /// The record of a dict whose version-1 index may be converted now:
+    /// still indexed, not being built, same reader. nil otherwise.
+    private func convertibleSnapshot(_ dictId: String, reader: MDictReader) -> ArticleIndexRecordSnapshot? {
+        guard ArticleIndexService.shared.hasRecord(for: dictId) else { return nil }
+        let snap = ArticleIndexService.shared.snapshot(for: dictId)
+        guard snap.state == .indexed,
+              !ArticleIndexDispatcher.shared.isInFlight(dictId),
+              DictionaryService.shared.dict(id: dictId)?.reader === reader
+        else { return nil }
+        return snap
     }
 
     // MARK: - Top-level availability
@@ -141,32 +323,24 @@ final class ArticleIndexCoordinator {
         guard FileManager.default.fileExists(atPath: url.path) else {
             return .success(.notIndexed)
         }
-        do {
-            let reader = try ArticleIndexReader(sidecarURL: url)
-            guard let mdxHashHex = mdx.metadata.headerSHA256,
-                  let mdxHash = Self.hexToData(mdxHashHex),
-                  mdxHash.count == 32 else {
-                return .success(.error(message: "MDX has no SHA256 (encrypted?)"))
-            }
-            let result = reader.validate(
-                expectedModelSHA256: modelHash,
-                expectedMDXHeaderSHA256: mdxHash
-            )
-            switch result {
-            case .ok:
-                return .success(.indexed)
-            case .modelMismatch, .mdxMismatch, .wrongVersion, .dimMismatch:
-                // Stale — needs rebuild. Surface as `notIndexed`; the
-                // dispatcher will pick it up.
-                return .success(.notIndexed)
-            case .sizeMismatch:
-                return .success(.error(message: "Sidecar file size mismatch — corrupt"))
-            case .notASidecar:
-                return .success(.error(message: "File present but not a sidecar — corrupt"))
-            }
-        } catch {
-            return .success(.error(message: "Failed to open sidecar: \(error)"))
+        guard let mdxHashHex = mdx.metadata.headerSHA256,
+              let mdxHash = Self.hexToData(mdxHashHex),
+              mdxHash.count == 32 else {
+            return .success(.error(message: "MDX has no SHA256 (encrypted?)"))
         }
+        // A file the reader refuses — not a sidecar, a version this build
+        // doesn't know, a corrupt or truncated header — is never queried
+        // and the writer starts it over (the launch check deletes it), so
+        // the dict is simply not indexed. The same goes for a stale file
+        // (model / MDX / dim mismatch) and for a partial, which covers
+        // fewer keys than the dictionary has.
+        guard let reader = try? ArticleIndexReader(sidecarURL: url),
+              reader.validate(expectedModelSHA256: modelHash, expectedMDXHeaderSHA256: mdxHash) == .ok,
+              Int(reader.header.keyCount) >= mdx.entryCount
+        else {
+            return .success(.notIndexed)
+        }
+        return .success(.indexed)
     }
 
     // MARK: - User-action APIs
@@ -387,6 +561,7 @@ final class ArticleIndexCoordinator {
     /// unconditional.
     func handleDictDeleted(_ dictId: String) {
         let url = sidecarURL(for: dictId)
+        try? FileManager.default.removeItem(at: ArticleIndexSidecar.conversionURL(for: url))
         if FileManager.default.fileExists(atPath: url.path) {
             do {
                 try FileManager.default.removeItem(at: url)
