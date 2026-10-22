@@ -416,8 +416,10 @@ GRATIS_BIBLE="https://raw.githubusercontent.com/gratis-bible/bible/252c53a7e5191
 ARC1911_COMMIT="eda2823f85894a2b09f5c191186325467410739f"
 ARC1911_CANON_SHA256="2137289fa9d4cdabb6550391448783812033eb22ed7787c333a2206a109e0df5"
 PG62383_SHA256="bf9c6053bfb441d117a2a128d4edec9fbe935f415bc8f7bf4e1f3f9121790215"
-# Wikimedia asks for a descriptive User-Agent
-WIKI_UA="OpenMDict-preset-dicts/1.0 (fetch_data.sh)"
+# Wikimedia's User-Agent policy asks for a descriptive User-Agent with
+# contact information: the project's public URL (DICTIONARY_SOURCES_URL in
+# scripts/shared/build.py)
+WIKI_UA="OpenMDict-preset-dicts/1.0 (+https://github.com/naco-siren/OpenMDict-dictionary-sources) curl"
 
 # tree_sha256 DIR -- the ARC1911_CANON_SHA256 digest of DIR/canon.
 tree_sha256() {
