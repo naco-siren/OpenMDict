@@ -53,6 +53,10 @@ struct PresetDictionary: Codable, Identifiable {
     /// SHA-256 of every earlier build that shipped. An installed copy whose
     /// file is one of these is offered an update (see `PresetVersioning`).
     let previousSha256: [String]?
+    /// Earlier catalog names of the preset (when a build replaced the text
+    /// with another one of the same work). An installed copy that still has
+    /// one of them is renamed when it is updated.
+    let previousDisplayNames: [String]?
     let license: String
     let dataSource: String
     let source: Source
@@ -515,8 +519,10 @@ final class PresetDictionaryService {
         }
         try await withPresetFile(preset, onProgress: onProgress) { sourceURL in
             for dictId in ids {
-                try await DictionaryService.shared.updatePresetFile(dictId: dictId, from: sourceURL,
-                                                                    expectedSha256: expected)
+                try await DictionaryService.shared.updatePresetFile(
+                    dictId: dictId, from: sourceURL, expectedSha256: expected,
+                    displayName: preset.displayName,
+                    previousDisplayNames: preset.previousDisplayNames ?? [])
             }
         }
         importStatus[preset.id] = .imported(libraryId: ids[0])
