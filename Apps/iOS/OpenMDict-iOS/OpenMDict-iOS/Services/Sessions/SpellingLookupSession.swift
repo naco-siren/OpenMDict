@@ -171,14 +171,16 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
         switch context {
         case .dictionary(let dict):
             if let reader = dict.reader {
-                readerInfos = [LemmaReaderInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle)]
+                readerInfos = [LemmaReaderInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle,
+                                               headwordLanguage: dict.headwordLanguage)]
             } else {
                 readerInfos = []
             }
         case .group(let group):
             readerInfos = group.active.compactMap { dict in
                 guard let reader = dict.reader else { return nil }
-                return LemmaReaderInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle)
+                return LemmaReaderInfo(reader: reader, dictId: dict.id, dictName: dict.preferredTitle,
+                                       headwordLanguage: dict.headwordLanguage)
             }
         case .none:
             readerInfos = []
@@ -362,6 +364,8 @@ private struct LemmaReaderInfo: Sendable {
     let reader: MDictReader
     let dictId: String
     let dictName: String
+    /// ISO 639 code of the headwords when known (presets).
+    let headwordLanguage: String?
 }
 
 // MARK: - Background Lemma Resolution
@@ -370,6 +374,9 @@ private struct LemmaReaderInfo: Sendable {
 ///
 /// Layer 1: Normalize + strip stopwords → search candidates → early stop if enough.
 /// Layer 2: NLTagger + English inflection rules → search candidates → merge.
+/// Layer 3: base forms in each dictionary's headword language (German as
+///          well as English; by the query's script when the language is
+///          unknown) → search that dictionary.
 ///
 /// All intermediate state is invisible to the user.
 /// Checks `Task.isCancelled` between phases for switchMap cancellation.
@@ -435,17 +442,38 @@ private nonisolated func resolveLemmaInBackground(
     }
 
     // Remove candidates we've already searched
-    let alreadySearched = Set(strippedCandidates + [normalized])
+    var alreadySearched = Set(strippedCandidates + [normalized])
     let inflectionOnly = allInflectionCandidates.filter { !alreadySearched.contains($0) }
+    guard !Task.isCancelled else { return [] }
 
-    guard !inflectionOnly.isEmpty, !Task.isCancelled else {
-        return allLemmaResults
+    if !inflectionOnly.isEmpty {
+        let inflectionResults = searchCandidates(
+            Array(inflectionOnly), in: readerInfos, limit: perDictLimit, excluding: &seenWords
+        )
+        allLemmaResults.append(contentsOf: inflectionResults)
+        guard !Task.isCancelled else { return [] }
     }
+    alreadySearched.formUnion(inflectionOnly)
 
-    let inflectionResults = searchCandidates(
-        Array(inflectionOnly), in: readerInfos, limit: perDictLimit, excluding: &seenWords
-    )
-    allLemmaResults.append(contentsOf: inflectionResults)
+    // Phase 4: base forms in each dictionary's own headword language
+    // ("ging" → "gehen" in a German dictionary), searched in that dictionary.
+    var candidatesByLanguage: [String: [String]] = [:]
+    for info in readerInfos {
+        guard !Task.isCancelled else { return [] }
+        let language = info.headwordLanguage ?? ""
+        let candidates: [String]
+        if let known = candidatesByLanguage[language] {
+            candidates = known
+        } else {
+            candidates = InflectionCandidates.candidates(for: primaryWord, headwordLanguage: info.headwordLanguage)
+                .filter { !alreadySearched.contains($0.lowercased()) }
+            candidatesByLanguage[language] = candidates
+        }
+        guard !candidates.isEmpty else { continue }
+        allLemmaResults.append(contentsOf: searchCandidates(
+            candidates, in: [info], limit: perDictLimit, excluding: &seenWords
+        ))
+    }
 
     guard !Task.isCancelled else { return [] }
     return allLemmaResults

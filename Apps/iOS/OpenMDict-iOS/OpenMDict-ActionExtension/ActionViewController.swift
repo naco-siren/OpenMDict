@@ -869,9 +869,12 @@ class ActionViewController: UIViewController {
 
                     // Stage 1: Exact match — every record of the word (case
                     // variants and homographs, one card each), with the
-                    // apostrophe fallback.
+                    // apostrophe fallback; failing that, the reader's own
+                    // fallbacks (full-width, diacritics, inflections), shown
+                    // as "word → key".
                     for entry in reader.lookupAll(word) {
-                        articleHTMLs.append((keyword: entry.key, html: entry.article.html, resolvedFrom: nil))
+                        articleHTMLs.append((keyword: entry.key, html: entry.article.html,
+                                             resolvedFrom: entry.fallback == nil ? nil : word))
                     }
 
                     // Stage 2: Lemma candidates (only if exact match found nothing)
@@ -1339,6 +1342,7 @@ class ActionViewController: UIViewController {
             if let entry = reader.lookup(trimmed) {
                 foundKeyword = entry.key
                 foundHTML = entry.article.html
+                if entry.fallback != nil { resolvedFrom = trimmed }
             } else {
                 // Lemma fallback
                 let normalized = LemmaResolver.normalize(trimmed)

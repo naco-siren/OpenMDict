@@ -720,6 +720,7 @@ final class DictionaryService: ObservableObject {
             let dict = MDict(path: mdxPath, id: metadata.dictId, mddPaths: mddPaths)
             // Inject user display name from CoreData
             dict.userDisplayName = metadata.displayName
+            dict.headwordLanguage = PresetDictionaryService.headwordLanguageByFilename[metadata.originalFileName]
 
             if !mddPaths.isEmpty {
                 print("📦 Loaded \(metadata.displayName) with \(mddPaths.count) MDD files")
@@ -1277,6 +1278,7 @@ final class DictionaryService: ObservableObject {
         // Inject user display name from CoreData metadata
         if let metadata = DictMetadataService.shared.find(dictId: id) {
             newDict.userDisplayName = metadata.displayName
+            newDict.headwordLanguage = PresetDictionaryService.headwordLanguageByFilename[metadata.originalFileName]
         }
 
         // 2. Add to dictionary list

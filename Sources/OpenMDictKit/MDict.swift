@@ -82,6 +82,11 @@ public final class MDict: ObservableObject, Identifiable {
     /// User-customized display name (from manifest)
     /// Set by DictionaryService after creating MDict instance.
     public var userDisplayName: String?
+
+    /// Language of the headwords as an ISO 639 code ("EN", "de" …), when
+    /// known (preset dictionaries). When a looked-up word is not a key, it
+    /// decides which inflections are undone to find its base form.
+    public var headwordLanguage: String?
     
     // MARK: - Published State
     
@@ -275,22 +280,26 @@ public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Lookup API
     
-    /// Look up a word
+    /// Look up a word, with the reader's fallbacks when it is not a key
+    /// (see `MDictReader.lookupAll(_:headwordLanguage:waitsForSetup:)`).
+    /// Runs on the main actor, so it never waits for the fallbacks'
+    /// one-time setup (diacritic index, lemmatizer model): that happens in
+    /// the background on first need.
     /// - Parameter key: The word to look up
     /// - Returns: Entry with article content, or nil if not found
     public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        _reader?.lookup(key)
+        _reader?.lookup(key, headwordLanguage: headwordLanguage, waitsForSetup: false)
     }
     
     /// Search for word keys with a prefix
     public func search(prefix: String, limit: Int = 20) -> [MDictWordKey] {
-        _reader?.search(prefix: prefix, limit: limit) ?? []
+        _reader?.search(prefix: prefix, limit: limit, waitsForSetup: false) ?? []
     }
     
     /// Get suggestions for a misspelled word.
     /// For background use, capture `reader` (Sendable) and call `.suggestions()` directly.
     public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [ScoredSuggestion] {
-        _reader?.suggestions(for: key, limit: limit) ?? []
+        _reader?.suggestions(for: key, limit: limit, waitsForSetup: false) ?? []
     }
     
     // MARK: - Navigation

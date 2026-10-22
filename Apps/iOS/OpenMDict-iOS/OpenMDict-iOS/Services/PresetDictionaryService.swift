@@ -358,6 +358,22 @@ final class PresetDictionaryService {
             }
     }
 
+    // MARK: - Headword Language
+
+    /// The headword language (`direction.src`, e.g. "EN") of each preset,
+    /// by MDX filename — how an installed copy is matched to its preset.
+    /// Read from the bundled catalog on first use; empty if it cannot be
+    /// read.
+    static let headwordLanguageByFilename: [String: String] = {
+        guard let url = Bundle.main.url(forResource: "preset-dictionaries", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let decoded = try? JSONDecoder().decode(PresetDictionaryCatalog.self, from: data) else {
+            return [:]
+        }
+        return Dictionary(decoded.dictionaries.map { ($0.filename, $0.direction.src) },
+                          uniquingKeysWith: { first, _ in first })
+    }()
+
     // MARK: - Catalog Loading
 
     /// Load the preset dictionary catalog from app bundle.
