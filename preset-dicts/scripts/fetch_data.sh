@@ -149,8 +149,8 @@ fetch_cedict() {
 # JMdict_e.gz is replaced daily and its URL carries no version, so each
 # download is filed under data/jmdict/<its "JMdict created" date>/.
 # JMDICT_RELEASE / JMDICT_SHA256 must match build_jmdict_mdx.py.
-JMDICT_RELEASE="2026-10-18"
-JMDICT_SHA256="9cb6cb9806e031f04e61ce0026ce7e7be06f53de259c3c4813375f561ee163f6"
+JMDICT_RELEASE="2026-10-27"
+JMDICT_SHA256="aacc8703771759ad302f01199db13e83043fdf8cabb2357df742e9e758e8aa8d"
 KANJIUM_COMMIT="685d4d723d6d20bf9beb169103aeac188eb067ad"
 KANJIUM_SHA256="8bd0dd127dab32ceec94cb03ab1ba6b68858ea73421dfa1731af2f373deb4f20"
 
@@ -524,8 +524,8 @@ fetch_perseus() {
 # data/kanjidic2-<its database_version>/ and never overwrites the release
 # the build is pinned to. KANJIDIC2_DB_VERSION / KANJIDIC2_SHA256 must match
 # scripts/build_kanjidic2_mdx.py, which checks both.
-KANJIDIC2_DB_VERSION="2026-291"
-KANJIDIC2_SHA256="6182a700e08a8f6a6646529b77f84f0d963ed33cd5c7516ff19e4ee642345446"
+KANJIDIC2_DB_VERSION="2026-300"
+KANJIDIC2_SHA256="3617aa8a34015d4283f9ac22e00d2b80448f882cbc5a8e588b5f7ceae6493589"
 
 # Download the current KANJIDIC2 release into data/kanjidic2-<version>/.
 fetch_kanjidic2_current() {

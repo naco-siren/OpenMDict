@@ -46,8 +46,8 @@ from shared.build import pack_mdx, generate_preview as _shared_preview, write_ca
 # and the SHA-256 of that kanjidic2.xml.gz. EDRDG serves only the current
 # file, at KANJIDIC2_URL.
 KANJIDIC2_URL = "https://www.edrdg.org/kanjidic/kanjidic2.xml.gz"
-KANJIDIC2_DB_VERSION = "2026-291"
-KANJIDIC2_SHA256 = "6182a700e08a8f6a6646529b77f84f0d963ed33cd5c7516ff19e4ee642345446"
+KANJIDIC2_DB_VERSION = "2026-300"
+KANJIDIC2_SHA256 = "3617aa8a34015d4283f9ac22e00d2b80448f882cbc5a8e588b5f7ceae6493589"
 MAX_DATA_AGE_DAYS = 31
 DATA_DIR = SCRIPT_DIR.parent / "data" / f"kanjidic2-{KANJIDIC2_DB_VERSION}"
 OUTPUT_DIR = SCRIPT_DIR.parent / "output" / "KANJIDIC2-JA"

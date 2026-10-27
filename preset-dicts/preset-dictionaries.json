@@ -38,18 +38,19 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 165711,
-      "headwords": 136570,
-      "sizeBytes": 24155212,
+      "entries": 165714,
+      "headwords": 136573,
+      "sizeBytes": 24155940,
       "license": "GPL-3.0-or-later",
       "dataSource": "GCIDE 0.53 (GNU Project)",
       "source": "odr",
       "odrTag": "preset-dict-gcide-en",
       "tier": 1,
-      "sha256": "9e1f47de33e258d6f16d2c1bbd993f5f9253794f73dc7bd44a53a3114ceef376",
+      "sha256": "afac7c0c4ff7ccee85a43aa3277982aae6bb7eb53d1e9abe613627e17ab7001d",
       "previousSha256": [
         "015cf5f036a00d095f6b8c32e852123522e0608ca16c4e04f650e18e7c286fe8",
-        "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a"
+        "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a",
+        "9e1f47de33e258d6f16d2c1bbd993f5f9253794f73dc7bd44a53a3114ceef376"
       ]
     },
     {
@@ -220,25 +221,26 @@
         ]
       },
       "flag": "🇯🇵",
-      "entries": 583290,
-      "headwords": 223713,
-      "sizeBytes": 40476076,
+      "entries": 583429,
+      "headwords": 223762,
+      "sizeBytes": 40477094,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "JMdict (EDRDG), release 2026-10-18; pitch accents from Kanjium (Uros O.)",
+      "dataSource": "JMdict (EDRDG), release 2026-10-27; pitch accents from Kanjium (Uros O.)",
       "source": "odr",
       "odrTag": "preset-dict-jmdict-ja-en",
       "tier": 2,
-      "sha256": "4633a61735f652a0b73bb54bed8d488926d703383622a9fd46e23f7d25fd1d79",
+      "sha256": "352fd40d385f09ebdf626a53e1381bc952faccc74a00c58b8be584f181f17155",
       "previousSha256": [
         "cd129c12f5cf94f897a8c56a6f4442d8a4c2c6cd2bb08d7a76592f1f8223211d",
-        "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f"
+        "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f",
+        "4633a61735f652a0b73bb54bed8d488926d703383622a9fd46e23f7d25fd1d79"
       ]
     },
     {
       "id": "kanjidic2-ja",
       "filename": "KANJIDIC2-JA.mdx",
       "displayName": "KANJIDIC2 漢字",
-      "description": "13,108 kanji with stroke counts, radicals, on/kun/pinyin/Korean/Vietnamese readings, English meanings, school grade, former JLPT level and variant links. KANJIDIC2 2026-291.",
+      "description": "13,108 kanji with stroke counts, radicals, on/kun/pinyin/Korean/Vietnamese readings, English meanings, school grade, former JLPT level and variant links. KANJIDIC2 2026-300.",
       "direction": {
         "src": "JA",
         "dest": [
@@ -250,13 +252,14 @@
       "headwords": 13108,
       "sizeBytes": 1935419,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "KANJIDIC2 (EDRDG), database version 2026-291",
+      "dataSource": "KANJIDIC2 (EDRDG), database version 2026-300",
       "source": "odr",
       "odrTag": "preset-dict-kanjidic2-ja",
       "tier": 2,
-      "sha256": "22d9078b9f4fe6b366bbe2528b5abf204ce22d3829b20935881e24ffe7d2e031",
+      "sha256": "0a436d202ce139032c6d026d2f9bdb84bf1c97f74a6460b152dcd32bc0a79cee",
       "previousSha256": [
-        "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a"
+        "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a",
+        "22d9078b9f4fe6b366bbe2528b5abf204ce22d3829b20935881e24ffe7d2e031"
       ]
     },
     {
@@ -537,16 +540,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 394668,
       "headwords": 367566,
-      "sizeBytes": 54356825,
+      "sizeBytes": 54357183,
       "license": "GPL-3.0-or-later AND AGPL-3.0-or-later",
       "dataSource": "FreeDict eng-deu 1.9-fd1 (from the Ding dictionary, TU Chemnitz)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-en-de",
       "tier": 3,
-      "sha256": "3c92d2c3224f12f3f1d55b56d6e4468d4637c6d9315cc8902e4a36f8d1bf2877",
+      "sha256": "eed15830918293c04600d4220ec89dd15eefeb38dcc9766cc1df493ed2b21500",
       "previousSha256": [
         "b4cacb4bcf20f15e0ba753b68957a2077f2e7a39534096a542afe5e38f20a453",
-        "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330"
+        "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330",
+        "3c92d2c3224f12f3f1d55b56d6e4468d4637c6d9315cc8902e4a36f8d1bf2877"
       ]
     },
     {
@@ -563,16 +567,17 @@
       "flag": "🇩🇪",
       "entries": 421991,
       "headwords": 385552,
-      "sizeBytes": 62380778,
+      "sizeBytes": 62381136,
       "license": "GPL-3.0-or-later AND AGPL-3.0-or-later",
       "dataSource": "FreeDict deu-eng 1.9-fd1 (from the Ding dictionary, TU Chemnitz)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-de-en",
       "tier": 3,
-      "sha256": "6e1a6193b44c16ed9fb826958a87378e0d53fdcdda68d0a82eec2b0280dceab2",
+      "sha256": "3af1ce0c2cbae98665c3d32326a372441c133173644d855834c08d8ad034fa6b",
       "previousSha256": [
         "f74478c225e7d2b968026750489a5c8bfaf9ad4386bc4828af6e85a380919525",
-        "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be"
+        "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be",
+        "6e1a6193b44c16ed9fb826958a87378e0d53fdcdda68d0a82eec2b0280dceab2"
       ]
     },
     {
