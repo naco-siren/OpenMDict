@@ -433,27 +433,10 @@ class DetailContainerViewController: UIViewController {
 
     /// When a subscribed dictionary loads, update its pending articles
     private func handleDictLoaded(_ dict: MDict) {
-        var didUpdate = false
-
-        for (index, article) in articles.enumerated() {
-            guard case .pending = article.contentState,
-                  article.dictId == dict.id else { continue }
-
-            // Try to look up the word now that dictionary is loaded
-            if let entry = dict.lookup(article.word) {
-                articles[index] = article.filled(with: entry)
-                debugLog("📖 Loaded pending article: \(article.word) from \(dict.id)")
-            } else {
-                articles[index].contentState = .notFound
-                debugLog("⚠️ Word not found: \(article.word) in \(dict.id)")
-            }
-            didUpdate = true
-        }
-
-        if didUpdate {
+        if fillPendingArticles(from: { $0.dictId == dict.id ? dict : nil }) {
             syncStateToActiveChild()
         }
-        
+
         // Cleanup subscription
         pendingDictSubscriptions.removeValue(forKey: dict.id)
     }
@@ -461,27 +444,55 @@ class DetailContainerViewController: UIViewController {
     /// Load pending articles if their dictionaries are already loaded
     /// Called on viewDidLoad to handle cases where dict loaded before this VC
     private func loadPendingArticlesIfReady() {
-        var didUpdate = false
-        for (index, article) in articles.enumerated() {
-            guard case .pending = article.contentState else { continue }
-
-            // Check if dictionary exists and is already loaded
+        let loaded = fillPendingArticles(from: { article in
             guard let dict = DictionaryService.shared.dict(id: article.dictId),
-                  dict.state == .loaded else { continue }
+                  dict.state == .loaded else { return nil }
+            return dict
+        })
+        if loaded {
+            syncStateToActiveChild()
+        }
+    }
+
+    /// Looks up every pending article whose dictionary `dictionary` gives
+    /// (loaded) and fills it with the result, or marks it not found. An
+    /// article a fallback found under another key takes that key's id; when
+    /// an article with that id is already shown, the pending one is dropped
+    /// instead (as `handleEntryLink` does) so that no two articles share an
+    /// id. Returns whether any article changed.
+    private func fillPendingArticles(from dictionary: (ArticleDisplayItem) -> MDict?) -> Bool {
+        var didUpdate = false
+        var duplicates: [Int] = []
+        for (index, article) in articles.enumerated() {
+            guard case .pending = article.contentState, let dict = dictionary(article) else { continue }
 
             if let entry = dict.lookup(article.word) {
-                articles[index] = article.filled(with: entry)
-                debugLog("📖 Loaded pending article (on init): \(article.word) from \(dict.id)")
+                let filled = article.filled(with: entry)
+                if filled.id != article.id,
+                   articles.enumerated().contains(where: { $0.offset != index && $0.element.id == filled.id }) {
+                    duplicates.append(index)
+                    debugLog("📖 Pending article \(article.word) found \(entry.key), already shown; dropped")
+                } else {
+                    articles[index] = filled
+                    debugLog("📖 Loaded pending article: \(article.word) from \(dict.id)")
+                }
             } else {
                 articles[index].contentState = .notFound
-                debugLog("⚠️ Word not found (on init): \(article.word) in \(dict.id)")
+                debugLog("⚠️ Word not found: \(article.word) in \(dict.id)")
             }
             didUpdate = true
         }
 
-        if didUpdate {
-            syncStateToActiveChild()
+        for index in duplicates.reversed() {
+            articles.remove(at: index)
+            if index < currentCompactIndex {
+                currentCompactIndex -= 1
+            }
         }
+        if !duplicates.isEmpty {
+            currentCompactIndex = articles.isEmpty ? 0 : min(currentCompactIndex, articles.count - 1)
+        }
+        return didUpdate
     }
     
     // MARK: - Child Management
