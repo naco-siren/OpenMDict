@@ -35,17 +35,44 @@ nonisolated enum ArticleContentState: Equatable, Hashable {
 /// Contains word reference and content state (pending/loaded/notFound)
 nonisolated struct ArticleDisplayItem: Identifiable, Hashable {
     let id: String
+    /// The key the article is of. Bookmarks, lookup counts and history are
+    /// kept under it.
     let word: String
     let dictId: String
     let dictName: String
     var contentState: ArticleContentState
-    
-    init(word: String, dictId: String, dictName: String, contentState: ArticleContentState = .pending) {
+    /// What was looked up when a lookup fallback (`MDictWordEntry.fallback`)
+    /// found this article under another key; nil for a direct hit. Shown
+    /// as "query → key" in the header, as the Action Extension does.
+    let resolvedFrom: String?
+
+    init(word: String, dictId: String, dictName: String, contentState: ArticleContentState = .pending,
+         resolvedFrom: String? = nil) {
         self.id = "\(dictId):\(word)"
         self.word = word
         self.dictId = dictId
         self.dictName = dictName
         self.contentState = contentState
+        self.resolvedFrom = resolvedFrom
+    }
+
+    /// The header title: the key, or "query → key" for a fallback hit.
+    var displayWord: String {
+        resolvedFrom.map { "\($0) → \(word)" } ?? word
+    }
+
+    /// This article with `entry`'s content. An entry a fallback found is
+    /// shown under the key it matched, labelled with the word looked up
+    /// (which this article was pending for).
+    func filled(with entry: MDictWordEntry) -> ArticleDisplayItem {
+        let content = ArticleContentState.loaded(html: entry.article.html, css: nil)
+        guard entry.fallback == nil else {
+            return ArticleDisplayItem(word: entry.key, dictId: dictId, dictName: dictName,
+                                      contentState: content, resolvedFrom: word)
+        }
+        var filled = self
+        filled.contentState = content
+        return filled
     }
 }
 
@@ -146,25 +173,25 @@ extension ArticleDisplayItem {
     /// Uses `preferredTitle` (userDisplayName → extractedTitle → metadata.title
     /// → originalFileName → id) so dicts without an MDX header title still
     /// get a human-readable name in the article header.
+    /// - Parameter query: The word looked up; kept as `resolvedFrom` when
+    ///   a fallback found the entry.
     @MainActor
-    init(from result: MDictLookupResult) {
-        self.init(
-            word: result.entry.key,
-            dictId: result.dict.id,
-            dictName: result.dict.preferredTitle,
-            contentState: .loaded(html: result.entry.article.html, css: nil)
-        )
+    init(from result: MDictLookupResult, query: String? = nil) {
+        self.init(from: result.entry, dict: result.dict, query: query)
     }
 
     /// Create from MDict and entry.
     /// Uses `preferredTitle` for the same reason as `init(from: MDictLookupResult)`.
+    /// - Parameter query: The word looked up; kept as `resolvedFrom` when
+    ///   a fallback found the entry.
     @MainActor
-    init(from entry: MDictWordEntry, dict: MDict, css: String? = nil) {
+    init(from entry: MDictWordEntry, dict: MDict, css: String? = nil, query: String? = nil) {
         self.init(
             word: entry.key,
             dictId: dict.id,
             dictName: dict.preferredTitle,
-            contentState: .loaded(html: entry.article.html, css: css)
+            contentState: .loaded(html: entry.article.html, css: css),
+            resolvedFrom: entry.fallback == nil ? nil : query
         )
     }
     

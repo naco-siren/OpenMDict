@@ -75,7 +75,7 @@ class ArticleCell: UICollectionViewCell {
         currentArticle = article
 
         let isBookmarked = BookmarkService.shared.isBookmarked(word: article.word, dictId: article.dictId)
-        pageView.configure(word: article.word, dictName: article.dictName,
+        pageView.configure(word: article.displayWord, dictName: article.dictName,
                           dictId: article.dictId, isBookmarked: isBookmarked)
 
         // Lookup count — compute only when the setting is on; off → 0 (hidden).

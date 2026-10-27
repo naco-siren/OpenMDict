@@ -441,7 +441,7 @@ class DetailContainerViewController: UIViewController {
 
             // Try to look up the word now that dictionary is loaded
             if let entry = dict.lookup(article.word) {
-                articles[index].contentState = .loaded(html: entry.article.html, css: nil)
+                articles[index] = article.filled(with: entry)
                 debugLog("📖 Loaded pending article: \(article.word) from \(dict.id)")
             } else {
                 articles[index].contentState = .notFound
@@ -470,7 +470,7 @@ class DetailContainerViewController: UIViewController {
                   dict.state == .loaded else { continue }
 
             if let entry = dict.lookup(article.word) {
-                articles[index].contentState = .loaded(html: entry.article.html, css: nil)
+                articles[index] = article.filled(with: entry)
                 debugLog("📖 Loaded pending article (on init): \(article.word) from \(dict.id)")
             } else {
                 articles[index].contentState = .notFound
@@ -960,11 +960,16 @@ class DetailContainerViewController: UIViewController {
 
     // MARK: - Jump Search
 
-    /// Look up selected text in the same dictionary. If found, push as new article.
-    /// If not found, fall back to the search bar via onJumpSearchFallback.
+    /// Look up selected text in the same dictionary — as typed, or with its
+    /// full-width characters folded (titled "selection → key" then). If
+    /// found, push as new article. If not found, fall back to the search
+    /// bar via onJumpSearchFallback, whose related forms and suggestions
+    /// cover inflections and spelling; a selection in a bilingual article
+    /// is mostly a translation, which the reader's other fallbacks would
+    /// map onto an unrelated headword.
     private func performJumpSearch(word: String, dictId: String) {
         guard let dict = DictionaryService.shared.dict(id: dictId),
-              let article = DictionaryService.shared.lookup(word, in: dict) else {
+              let article = DictionaryService.shared.lookup(word, in: dict, fallbacks: .width) else {
             // Not found in same dictionary → fall back to search bar
             onJumpSearchFallback?(word)
             return
@@ -972,10 +977,10 @@ class DetailContainerViewController: UIViewController {
         // Found → push as new article
         pushArticle(article, animated: true)
 
-        // Record lookup history
+        // Record lookup history under the key shown
         let ctx = lookupContext ?? (nil, "all")
         LookupHistoryService.shared.recordLookup(
-            word: word, dictId: dictId,
+            word: article.word, dictId: dictId,
             lookupContextDictId: ctx.dictId, lookupContextGroupId: ctx.groupId
         )
     }
@@ -1121,9 +1126,11 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
     /// the load-state subtleties (apply immediately if already loaded, or
     /// stash for didFinish if still loading).
     private func handleEntryLink(word: String, fragment: String?, dictId: String) {
+        // The key the article shown for this link is of: the word itself,
+        // or the key a lookup fallback matched (shown as "word → key").
+        var shownWord = word
         // Check if we already have this article
-        let articleId = "\(dictId):\(word)"
-        if let existingIndex = articles.firstIndex(where: { $0.id == articleId }) {
+        if let existingIndex = articles.firstIndex(where: { $0.id == "\(dictId):\(word)" }) {
             // Move to front
             let article = articles.remove(at: existingIndex)
             articles.insert(article, at: 0)
@@ -1138,10 +1145,15 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
 
             var article = ArticleDisplayItem.pending(word: word, dictId: dictId, dictName: dictName)
             if let dict = dict, let entry = dict.lookup(word) {
-                article.contentState = .loaded(html: entry.article.html, css: nil)
+                article = article.filled(with: entry)
             } else {
                 // Dictionary not loaded yet, subscribe to its load state
                 subscribeToDict(id: dictId)
+            }
+            shownWord = article.word
+            if let existingIndex = articles.firstIndex(where: { $0.id == article.id }) {
+                // A fallback matched a key that is already shown
+                articles.remove(at: existingIndex)
             }
             articles.insert(article, at: 0)
         }
@@ -1159,10 +1171,10 @@ extension DetailContainerViewController: ArticleCellDelegate, ArticleViewControl
             articlesVC.scrollFirstCell(toAnchor: fragment)
         }
 
-        // Record lookup history using the current lookup context
+        // Record lookup history, under the key shown, using the current lookup context
         let ctx = lookupContext ?? (nil, "all")
         LookupHistoryService.shared.recordLookup(
-            word: word, dictId: dictId,
+            word: shownWord, dictId: dictId,
             lookupContextDictId: ctx.dictId, lookupContextGroupId: ctx.groupId
         )
     }

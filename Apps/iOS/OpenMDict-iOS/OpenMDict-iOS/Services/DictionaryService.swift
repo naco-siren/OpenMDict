@@ -1564,22 +1564,25 @@ final class DictionaryService: ObservableObject {
     
     // MARK: - Lookup API (for article display)
     
-    /// Lookup in a group (returns AsyncStream for progressive results)
+    /// Lookup in a group (returns AsyncStream for progressive results).
+    /// An article a fallback found is titled "word → key".
     func lookup(_ word: String, in group: MDicts) -> AsyncStream<ArticleDisplayItem> {
         AsyncStream { continuation in
             Task {
                 for await result in group.lookup(word) {
-                    continuation.yield(ArticleDisplayItem(from: result))
+                    continuation.yield(ArticleDisplayItem(from: result, query: word))
                 }
                 continuation.finish()
             }
         }
     }
-    
-    /// Lookup in a single dictionary
-    func lookup(_ word: String, in dict: MDict) -> ArticleDisplayItem? {
-        guard let entry = dict.lookup(word) else { return nil }
-        return ArticleDisplayItem(from: entry, dict: dict)
+
+    /// Lookup in a single dictionary. `fallbacks` as in `MDict.lookup`; an
+    /// article a fallback found is titled "word → key".
+    func lookup(_ word: String, in dict: MDict,
+                fallbacks: MDictLookupFallbacks = .all) -> ArticleDisplayItem? {
+        guard let entry = dict.lookup(word, fallbacks: fallbacks) else { return nil }
+        return ArticleDisplayItem(from: entry, dict: dict, query: word)
     }
     
     // MARK: - Resource Management (Public API)
