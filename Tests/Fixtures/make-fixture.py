@@ -188,8 +188,14 @@ FALLBACKS = [
     ("فئة", "<p>فئة: group (ar)</p>"),
     ("محمد", "<p>محمد: Muhammad (ar)</p>"),
     ("هٰذَا", "<p>هٰذَا: this (ar, with superscript alef)</p>"),
-    # Hangul syllables and kana: composed keys that decomposed queries must find
+    # Hangul syllables and kana: composed keys that decomposed queries must
+    # find. The keys after 한국 in key order matter: Swift's String ordering
+    # puts decomposed jamo after them (though == treats the decomposed and
+    # composed forms as equal), so the binary search for a decomposed query
+    # passes 한국 unless the query is composed first.
     ("한국", "<p>한국: Korea (ko)</p>"),
+    ("한국 사람", "<p>한국 사람: Korean person (ko)</p>"),
+    ("한국어", "<p>한국어: Korean language (ko)</p>"),
     ("がっこう", "<p>がっこう: school (ja)</p>"),
     # Compatibility forms: ligatures and half-width katakana
     ("find", "<p>find: to discover</p>"),
