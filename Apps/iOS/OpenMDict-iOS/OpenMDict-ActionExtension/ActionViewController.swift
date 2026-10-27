@@ -31,6 +31,16 @@ private struct ArticleResult: Sendable {
     let keyword: String         // Original keyword preserving case (e.g., "Job" vs "job")
     let html: String            // Article HTML extracted during scan
     let resolvedFrom: String?   // Original query when found via lemma (e.g. "books" when keyword is "book")
+                                // or via the reader's fallbacks
+}
+
+/// A dictionary to scan, from the default group order in CoreData.
+private struct ScanRecord: Sendable {
+    let dictId: String
+    let displayName: String
+    /// The headword language of a preset (`PresetHeadwordLanguages`), as the
+    /// app gives its dictionaries; nil for an imported dictionary.
+    let headwordLanguage: String?
 }
 
 // MARK: - ActionViewController
@@ -155,8 +165,14 @@ class ActionViewController: UIViewController {
         // Path comes from `AppGroupPaths` (a small shared helper) — the
         // full `DictionaryService` / `DictionaryStorageService` facade is
         // main-app-only and not linked into this extension.
+        //
+        // The same goes for the folded-key index behind diacritic-insensitive
+        // lookups: the app saves one per dictionary after its dictionaries
+        // load, and a reader here uses a saved copy or skips that fallback,
+        // never building (and then discarding) an index per lookup.
         MDictSidecarCache.cacheDirectory = AppGroupPaths.sidecarIndexCacheURL
         MDictSidecarCache.writeMode = .disabled
+        MDictSidecarCache.buildsFoldedKeyIndexes = false
 
         // Extensions are short-lived, read-only — never need CloudKit sync.
         CoreDataStack.shared.setup(enableCloudKit: false)
@@ -768,7 +784,11 @@ class ActionViewController: UIViewController {
             // 1. Query CoreData: default group entries (user sort order) + metadata
             let context = await CoreDataStack.shared.viewContext
 
-            let records: [(dictId: String, displayName: String)] = await context.perform {
+            let records: [ScanRecord] = await context.perform {
+                func record(_ meta: DictionaryMetadataRecord, dictId: String) -> ScanRecord {
+                    ScanRecord(dictId: dictId, displayName: meta.displayName,
+                               headwordLanguage: PresetHeadwordLanguages.byFilename[meta.originalFileName])
+                }
                 do {
                     let entryRequest = GroupEntryRecord.fetchRequest()
                     entryRequest.predicate = NSPredicate(format: "groupId == %@", "all")
@@ -779,16 +799,16 @@ class ActionViewController: UIViewController {
                         let metaRequest = DictionaryMetadataRecord.fetchRequest()
                         metaRequest.sortDescriptors = [NSSortDescriptor(key: "importedAt", ascending: true)]
                         let metas = try context.fetch(metaRequest)
-                        return metas.map { (dictId: $0.dictId, displayName: $0.displayName) }
+                        return metas.map { record($0, dictId: $0.dictId) }
                     }
 
                     let metaRequest = DictionaryMetadataRecord.fetchRequest()
                     let allMeta = try context.fetch(metaRequest)
-                    let metaByDictId = Dictionary(uniqueKeysWithValues: allMeta.map { ($0.dictId, $0.displayName) })
+                    let metaByDictId = Dictionary(uniqueKeysWithValues: allMeta.map { ($0.dictId, $0) })
 
-                    return entries.compactMap { entry -> (dictId: String, displayName: String)? in
-                        guard let name = metaByDictId[entry.dictId] else { return nil }
-                        return (dictId: entry.dictId, displayName: name)
+                    return entries.compactMap { entry -> ScanRecord? in
+                        guard let meta = metaByDictId[entry.dictId] else { return nil }
+                        return record(meta, dictId: entry.dictId)
                     }
                 } catch {
                     return []
@@ -858,7 +878,7 @@ class ActionViewController: UIViewController {
                     }
                 }
 
-                // ── Phase 1: MDX lookup (3-stage: exact → lemma → suggestions) ──
+                // ── Phase 1: MDX lookup (4-stage: exact → lemma → reader fallbacks → suggestions) ──
                 // Load MDX index, lookup articles, collect HTML, then release.
                 var articleHTMLs: [(keyword: String, html: String, resolvedFrom: String?)] = []
                 do {
@@ -869,18 +889,17 @@ class ActionViewController: UIViewController {
 
                     // Stage 1: Exact match — every record of the word (case
                     // variants and homographs, one card each), with the
-                    // apostrophe fallback; failing that, the reader's own
-                    // fallbacks (full-width, diacritics, inflections), shown
-                    // as "word → key".
-                    for entry in reader.lookupAll(word) {
-                        articleHTMLs.append((keyword: entry.key, html: entry.article.html,
-                                             resolvedFrom: entry.fallback == nil ? nil : word))
+                    // apostrophe fallback.
+                    for entry in reader.lookupAll(word, fallbacks: .none) {
+                        articleHTMLs.append((keyword: entry.key, html: entry.article.html, resolvedFrom: nil))
                     }
 
-                    // Stage 2: Lemma candidates (only if exact match found nothing)
+                    // Stage 2: Lemma candidates (only if exact match found
+                    // nothing), as exact matches: a candidate the rules
+                    // made up must not reach the reader's fallbacks.
                     if articleHTMLs.isEmpty && !lemmaCandidates.isEmpty {
                         for lemma in lemmaCandidates {
-                            for entry in reader.lookupAll(lemma) {
+                            for entry in reader.lookupAll(lemma, fallbacks: .none) {
                                 articleHTMLs.append((keyword: entry.key, html: entry.article.html, resolvedFrom: word))
                             }
                             if !articleHTMLs.isEmpty { break }
@@ -890,7 +909,20 @@ class ActionViewController: UIViewController {
                         }
                     }
 
-                    // Stage 3: Spelling suggestions (only if exact + lemma both failed)
+                    // Stage 3: The reader's own fallbacks (only if exact +
+                    // lemma both failed): full-width folding, the headword
+                    // language's inflections, diacritics (from the index the
+                    // app saved; this process builds none). Shown as "word → key".
+                    if articleHTMLs.isEmpty {
+                        for entry in reader.lookupAll(word, headwordLanguage: record.headwordLanguage) {
+                            articleHTMLs.append((keyword: entry.key, html: entry.article.html, resolvedFrom: word))
+                        }
+                        if !articleHTMLs.isEmpty {
+                            print("📖 Dict[\(index)] '\(record.displayName)' — found via the reader's fallbacks")
+                        }
+                    }
+
+                    // Stage 4: Spelling suggestions (only if the stages above all failed)
                     if articleHTMLs.isEmpty {
                         let scored = reader.suggestions(for: word, limit: 5)
                         if !scored.isEmpty {
@@ -1334,12 +1366,17 @@ class ActionViewController: UIViewController {
                 return
             }
 
-            // 2. Exact match lookup, with lemma fallback
+            // 2. Lookup: the selection as typed or with its full-width
+            //    characters folded, else its lemmas as exact matches.
+            //    Anything else opens the app, whose search bar offers
+            //    related forms and suggestions — a selection in a bilingual
+            //    article is mostly a translation, which the reader's other
+            //    fallbacks would map onto an unrelated headword.
             var foundKeyword: String?
             var foundHTML: String?
             var resolvedFrom: String?
 
-            if let entry = reader.lookup(trimmed) {
+            if let entry = reader.lookup(trimmed, fallbacks: .width) {
                 foundKeyword = entry.key
                 foundHTML = entry.article.html
                 if entry.fallback != nil { resolvedFrom = trimmed }
@@ -1355,7 +1392,7 @@ class ActionViewController: UIViewController {
                 lemmaCands.subtract([normalized])
 
                 for lemma in lemmaCands {
-                    if let entry = reader.lookup(lemma) {
+                    if let entry = reader.lookup(lemma, fallbacks: .none) {
                         foundKeyword = entry.key
                         foundHTML = entry.article.html
                         resolvedFrom = trimmed
