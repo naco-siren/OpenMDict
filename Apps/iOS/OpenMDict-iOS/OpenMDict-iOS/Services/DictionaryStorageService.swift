@@ -923,9 +923,10 @@ final class DictionaryStorageService {
 
         metadataService.delete(dictId: id)
 
-        // Drop the persistent sidecar index for this dictionary so the cache
-        // does not accumulate orphans. The dict id is the MDX header SHA256.
-        MDictReader.removeSidecarCache(forHeaderSHA256: id)
+        // The persistent sidecar indexes are dropped by
+        // `DictionaryService.deleteDictionary(dictId:)` before this runs:
+        // they are named by the MDX header's SHA-256, which it reads while
+        // the file is still there.
 
         // M15 Phase 3: also drop the article-embedding sidecar (independent
         // file under `Library/Caches/SemanticIndex/<dictId>.semantic.idx`).
