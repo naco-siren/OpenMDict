@@ -24,3 +24,10 @@ repository). The inputs are synthetic (pseudo-random bytes, generated text,
 zeros, repeated blocks) and together exercise every instruction class of the
 format — short and extended literal runs, M1 in both states, M2, M3, M4 with
 offsets beyond 16 KiB, extended match lengths and the end-of-stream marker.
+
+## `casesensitive.mdx`
+
+A handful of keys in a dictionary whose header says `KeyCaseSensitive="Yes"`
+(mdict-utils always writes "No"; the script patches the header), for the
+lookup's case-sensitive branches — a lowercase rule candidate finding the
+capitalized key of a German noun.

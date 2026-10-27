@@ -14,6 +14,7 @@ Requires the `mdict` CLI from mdict-utils (pip install mdict-utils).
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import zlib
 from pathlib import Path
@@ -60,7 +61,24 @@ def entry_html(i: int, word: str) -> str:
 def main() -> None:
     if shutil.which("mdict") is None:
         raise SystemExit("mdict CLI not found — pip install mdict-utils")
+    # Name the fixtures to regenerate (tiny, homographs, fallbacks,
+    # casesensitive); with none named, all of them are.
+    targets = set(sys.argv[1:]) or {"tiny", "homographs", "fallbacks", "casesensitive"}
 
+    if "tiny" in targets:
+        make_tiny()
+    if "homographs" in targets:
+        make_homographs()
+    if "fallbacks" in targets:
+        make_fallbacks()
+    if "casesensitive" in targets:
+        make_case_sensitive()
+
+    for f in ("tiny.mdx", "tiny.mdd", "homographs.mdx", "fallbacks.mdx", "casesensitive.mdx"):
+        print(f"{f}: {os.path.getsize(HERE / f)} bytes")
+
+
+def make_tiny() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         lines = []
@@ -84,12 +102,6 @@ def main() -> None:
                         "--description", str(tmp / "desc.html"),
                         "-a", str(tmp / "tiny.txt"), str(HERE / "tiny.mdx")], check=True)
         subprocess.run(["mdict", "-a", str(res), str(HERE / "tiny.mdd")], check=True)
-
-    make_homographs()
-    make_fallbacks()
-
-    for f in ("tiny.mdx", "tiny.mdd", "homographs.mdx", "fallbacks.mdx"):
-        print(f"{f}: {os.path.getsize(HERE / f)} bytes")
 
 
 # Records sharing a key, keys differing only in case, an article plus a
@@ -157,6 +169,34 @@ FALLBACKS = [
     ("Straße", "<p>Straße: street</p>"),
     ("øre", "<p>øre: coin</p>"),
     ("łódź", "<p>łódź: boat</p>"),
+    # Marks the user typed must be on the key: keys that differ from
+    # common accented words only by a mark ("è", "está", "tenía", "χωριά",
+    # "çök", "dönmüş", "uñas" must not find them)
+    ("e", "<p>e: and (it)</p>"),
+    ("esta", "<p>esta: this (es)</p>"),
+    ("tenia", "<p>tenia: tapeworm (es)</p>"),
+    ("χώρια", "<p>χώρια: apart (el)</p>"),
+    ("çok", "<p>çok: very (tr)</p>"),
+    ("donmuş", "<p>donmuş: frozen (tr)</p>"),
+    ("unas", "<p>unas: some (es)</p>"),
+    # Cyrillic: й is a letter of its own; stress accents and ё fold
+    ("зайка", "<p>зайка: bunny (ru)</p>"),
+    ("заика", "<p>заика: stammerer (ru)</p>"),
+    ("индий", "<p>индий: indium (ru)</p>"),
+    ("ещё", "<p>ещё: still (ru)</p>"),
+    # Arabic: hamza on waw and yeh is a letter; harakat are reading aids
+    ("فئة", "<p>فئة: group (ar)</p>"),
+    ("محمد", "<p>محمد: Muhammad (ar)</p>"),
+    ("هٰذَا", "<p>هٰذَا: this (ar, with superscript alef)</p>"),
+    # Hangul syllables and kana: composed keys that decomposed queries must find
+    ("한국", "<p>한국: Korea (ko)</p>"),
+    ("がっこう", "<p>がっこう: school (ja)</p>"),
+    # Compatibility forms: ligatures and half-width katakana
+    ("find", "<p>find: to discover</p>"),
+    ("office", "<p>office: a workplace</p>"),
+    ("コーヒー", "<p>コーヒー: coffee (ja)</p>"),
+    # An apostrophe key with a mark
+    ("l'école", "<p>l'école: the school (fr)</p>"),
     # Fallback order: "machte" is an inflection of "machen" and folds to
     # "Mächte" (inflection wins); "Muller" folds to "Müller", which wins over
     # the loose noun stem "Mull"; "blorpier" only has a loose stem, "blorpy"
@@ -164,7 +204,10 @@ FALLBACKS = [
     ("Müller", "<p>Müller: miller</p>"),
     ("Mull", "<p>Mull: gauze</p>"),
     ("blorpy", "<p>blorpy: made up</p>"),
+    ("blorpen", "<p>blorpen: made up (de verb)</p>"),
     # English base forms
+    ("hue", "<p>hue: a colour</p>"),
+    ("olive", "<p>olive: a fruit</p>"),
     ("walk", "<p>walk: to go on foot</p>"),
     ("study", "<p>study: to learn</p>"),
     ("make", "<p>make: to create</p>"),
@@ -180,6 +223,21 @@ FALLBACKS = [
     ("wandern", "<p>wandern: to hike</p>"),
     ("aufmachen", "<p>aufmachen: to open</p>"),
     ("Haus", "<p>Haus: house</p>"),
+    # German forms the rules must read right: Waren, Seiten, Gerichten are
+    # nouns; wartete, kostet, gräbt are verbs; dachte and kann have irregular
+    # bases the lemma model gets wrong or writes without umlauts
+    ("Ware", "<p>Ware: goods</p>"),
+    ("sein", "<p>sein: to be</p>"),
+    ("Seite", "<p>Seite: page</p>"),
+    ("seit", "<p>seit: since</p>"),
+    ("Gericht", "<p>Gericht: court</p>"),
+    ("richten", "<p>richten: to judge</p>"),
+    ("warten", "<p>warten: to wait</p>"),
+    ("kosten", "<p>kosten: to cost</p>"),
+    ("kosen", "<p>kosen: to caress</p>"),
+    ("graben", "<p>graben: to dig</p>"),
+    ("denken", "<p>denken: to think</p>"),
+    ("können", "<p>können: to be able</p>"),
 ]
 
 
@@ -197,6 +255,53 @@ def make_fallbacks() -> None:
         subprocess.run(["mdict", "--title", str(tmp / "title.html"),
                         "--description", str(tmp / "desc.html"),
                         "-a", str(tmp / "f.txt"), str(HERE / "fallbacks.mdx")], check=True)
+
+
+# A case-sensitive dictionary (KeyCaseSensitive="Yes"): the lookup's
+# case-sensitive branches, e.g. the capitalized base form of a German noun
+# for a lowercase rule candidate (Kindern → kind → Kind).
+CASE_SENSITIVE = [
+    ("Kind", "<p>Kind: child</p>"),
+    ("Haus", "<p>Haus: house</p>"),
+    ("Müller", "<p>Müller: miller</p>"),
+    ("machen", "<p>machen: to make</p>"),
+    ("Weg", "<p>Weg: way</p>"),
+    ("weg", "<p>weg: away</p>"),
+    ("Blorp", "<p>Blorp: made up (de noun)</p>"),
+]
+
+
+def make_case_sensitive() -> None:
+    out = HERE / "casesensitive.mdx"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        lines = []
+        for key, body in CASE_SENSITIVE:
+            lines += [key, body, "</>"]
+        (tmp / "c.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (tmp / "title.html").write_text("OpenMDict Case-Sensitive Fixture", encoding="utf-8")
+        (tmp / "desc.html").write_text(
+            "Synthetic case-sensitive keys, used by the OpenMDict test suite.", encoding="utf-8")
+        out.unlink(missing_ok=True)
+        subprocess.run(["mdict", "--title", str(tmp / "title.html"),
+                        "--description", str(tmp / "desc.html"),
+                        "-a", str(tmp / "c.txt"), str(out)], check=True)
+    # mdict-utils always writes KeyCaseSensitive="No": patch the header
+    # (length-prefixed, UTF-16LE or UTF-8, followed by its adler32; the rest
+    # of the file is parsed sequentially, so its offsets do not move).
+    data = out.read_bytes()
+    length = int.from_bytes(data[:4], "big")
+    header, rest = data[4:4 + length], data[8 + length:]
+    if header[:2] == b"\xff\xfe" or header.endswith(b"\x00\x00"):
+        text = header.decode("utf-16-le")
+        patched = text.replace('KeyCaseSensitive="No"', 'KeyCaseSensitive="Yes"').encode("utf-16-le")
+    else:
+        text = header.decode("utf-8")
+        patched = text.replace('KeyCaseSensitive="No"', 'KeyCaseSensitive="Yes"').encode("utf-8")
+    if patched == header:
+        raise SystemExit("KeyCaseSensitive attribute not found in the mdict header")
+    out.write_bytes(len(patched).to_bytes(4, "big") + patched
+                    + zlib.adler32(patched).to_bytes(4, "little") + rest)
 
 
 if __name__ == "__main__":
