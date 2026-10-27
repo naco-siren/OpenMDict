@@ -13,8 +13,10 @@ import Foundation
 ///
 /// Each test sets up its own per-test sidecar cache directory under
 /// `FileManager.default.temporaryDirectory` and restores `MDictSidecarCache`
-/// global state on exit via `defer`, so the suite is safe to run alongside
-/// the other test suites.
+/// global state on exit via `defer`. The suite is a `SidecarCacheSuites`
+/// member so that no other suite opens a reader while that directory is set.
+extension SidecarCacheSuites {
+
 @Suite(.serialized)
 struct SidecarRoundTripTests {
 
@@ -640,4 +642,6 @@ struct SidecarRoundTripTests {
         #expect(reader.lookup("Muller", headwordLanguage: "DE")?.key == "Müller")
         #expect(FoldedKeyIndex.builds.value == builds + 1)   // the save built it, nothing else
     }
+}
+
 }
