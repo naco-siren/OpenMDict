@@ -22,9 +22,19 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
 
     // MARK: - Output
 
+    /// Keys that start with the query as typed. Rows the search fallbacks
+    /// found instead (`WordDisplayItem.fallback` set — full-width folding,
+    /// diacritics) are not here: they are listed after the related forms
+    /// in `lemmaResults` and count toward no threshold.
     @Published private(set) var results: [WordDisplayItem] = []
+    /// Lemma-resolved related forms, then the fallback rows of the search.
     @Published private(set) var lemmaResults: [WordDisplayItem] = []
     @Published private(set) var suggestions: [String] = []
+
+    /// Rows the search fallbacks found, when no dictionary had a direct one.
+    private var fallbackResults: [WordDisplayItem] = []
+    /// Lemma-resolved related forms, the first part of `lemmaResults`.
+    private var relatedForms: [WordDisplayItem] = []
 
     /// Whether the full search pipeline (results → lemma → suggestions) has settled
     /// for the current query. Consumers show "Searching…" when false + query non-empty.
@@ -103,17 +113,34 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
         .map { results in
             results.map { WordDisplayItem(from: $0) }
         }
-        .sink { [weak self] results in
-            self?.results = results
+        .sink { [weak self] items in
+            guard let self else { return }
+            // An emission never mixes direct and fallback rows (a group
+            // searches with the fallbacks only when no dictionary has a
+            // direct row), so this splits whole emissions.
+            let direct = items.filter { $0.fallback == nil }
+            self.fallbackResults = items.filter { $0.fallback != nil }
+            self.results = direct
+            self.publishRelatedRows()
             // Fast path: enough direct results → lemma/suggestions will be skipped.
-            if results.count >= LookupPipelineConfig.resultThreshold, self?.isSearchSettled == false {
-                self?.isSearchSettled = true
+            if direct.count >= LookupPipelineConfig.resultThreshold, self.isSearchSettled == false {
+                self.isSearchSettled = true
             }
-            if !results.isEmpty {
-                print("🔍 Results: \(results.count) items")
+            if !items.isEmpty {
+                print("🔍 Results: \(direct.count) direct, \(self.fallbackResults.count) fallback")
             }
         }
         .store(in: &cancellables)
+    }
+
+    /// Publish `lemmaResults`: the related forms, then the fallback rows
+    /// that are not among them.
+    private func publishRelatedRows() {
+        let shown = Set(relatedForms.map(\.id))
+        let rows = relatedForms + fallbackResults.filter { !shown.contains($0.id) }
+        if rows != lemmaResults {
+            lemmaResults = rows
+        }
     }
 
     // MARK: - Lemma Resolution
@@ -129,13 +156,16 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
     ///   Layer 2: NLTagger + English inflection rules → search candidates → merge
     /// - All intermediate state is invisible to user (search bar shows raw query only).
     private func setupLemmaPipeline() {
-        // 1) Immediate clear + cancel on query change (switchMap semantics)
+        // 1) Immediate clear + cancel on query change (switchMap semantics).
+        //    The fallback rows stay, like `results`, until the search for
+        //    the new query replaces them.
         querySubject
             .removeDuplicates()
             .dropFirst()
             .sink { [weak self] _ in
                 self?.lemmaTask?.cancel()
-                self?.lemmaResults = []
+                self?.relatedForms = []
+                self?.publishRelatedRows()
             }
             .store(in: &cancellables)
 
@@ -156,8 +186,9 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
             if !query.isEmpty {
                 print("🔍 Lemma: skipped (\(results.count) direct results ≥ 3)")
             }
-            lemmaResults = []
-            evaluateSuggestions(for: results, lemmaResults: [])
+            relatedForms = []
+            publishRelatedRows()
+            evaluateSuggestions(for: results, relatedForms: [])
             return
         }
         print("🔍 Lemma: resolving '\(query)' (\(results.count) direct results)")
@@ -187,8 +218,9 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
         }
 
         guard !readerInfos.isEmpty else {
-            lemmaResults = []
-            evaluateSuggestions(for: results, lemmaResults: [])
+            relatedForms = []
+            publishRelatedRows()
+            evaluateSuggestions(for: results, relatedForms: [])
             return
         }
 
@@ -201,17 +233,16 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
                 existingWords: existingWords
             )
 
-            guard !Task.isCancelled else { return }
-            self?.lemmaResults = items
+            guard !Task.isCancelled, let self else { return }
+            self.relatedForms = items
+            self.publishRelatedRows()
             if !items.isEmpty {
                 print("🔍 Lemma: found \(items.count) results")
             } else {
                 print("🔍 Lemma: no results")
             }
             // Chain to suggestions (terminal stage that marks isSearchSettled)
-            if let self {
-                self.evaluateSuggestions(for: self.results, lemmaResults: items)
-            }
+            self.evaluateSuggestions(for: self.results, relatedForms: items)
         }
     }
 
@@ -243,11 +274,13 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
 
     /// Terminal stage of the search pipeline (results → lemma → suggestions).
     /// Marks `isSearchSettled = true` on all exit paths (sync and async).
-    private func evaluateSuggestions(for results: [WordDisplayItem], lemmaResults: [WordDisplayItem]) {
+    /// The search's fallback rows count toward no threshold; suggestions
+    /// are only deduplicated against them.
+    private func evaluateSuggestions(for results: [WordDisplayItem], relatedForms: [WordDisplayItem]) {
         suggestionsTask?.cancel()
 
         let query = querySubject.value
-        let totalResults = results.count + lemmaResults.count
+        let totalResults = results.count + relatedForms.count
         guard totalResults < LookupPipelineConfig.resultThreshold, !query.isEmpty else {
             if !query.isEmpty {
                 print("🔍 Suggestions: skipped (\(totalResults) total results ≥ 3) → settled")
@@ -259,10 +292,9 @@ final class SpellingLookupSession: ObservableObject, LookupSessionProtocol {
         print("🔍 Suggestions: computing for '\(query)' (\(totalResults) total results)")
 
         let context = contextSubject.value
-        // Deduplicate against both direct results and lemma results (case-insensitive)
+        // Deduplicate against the direct, related-form and fallback rows (case-insensitive)
         let existingWords = Set(
-            results.map { $0.word.lowercased() } +
-            lemmaResults.map { $0.word.lowercased() }
+            (results + relatedForms + fallbackResults).map { $0.word.lowercased() }
         )
 
         // Capture Sendable readers on MainActor — safe to pass to background
@@ -375,8 +407,7 @@ private struct LemmaReaderInfo: Sendable {
 /// Layer 1: Normalize + strip stopwords → search candidates → early stop if enough.
 /// Layer 2: NLTagger + English inflection rules → search candidates → merge.
 /// Layer 3: base forms in each dictionary's headword language (German as
-///          well as English; by the query's script when the language is
-///          unknown) → search that dictionary.
+///          well as English), when it is known → search that dictionary.
 ///
 /// All intermediate state is invisible to the user.
 /// Checks `Task.isCancelled` between phases for switchMap cancellation.
@@ -456,16 +487,19 @@ private nonisolated func resolveLemmaInBackground(
     alreadySearched.formUnion(inflectionOnly)
 
     // Phase 4: base forms in each dictionary's own headword language
-    // ("ging" → "gehen" in a German dictionary), searched in that dictionary.
+    // ("ging" → "gehen" in a German dictionary), searched in that
+    // dictionary. A dictionary whose language is unknown (imported, not a
+    // preset) is left to Phase 3: without a language the candidates would
+    // include German base forms of an English word.
     var candidatesByLanguage: [String: [String]] = [:]
     for info in readerInfos {
         guard !Task.isCancelled else { return [] }
-        let language = info.headwordLanguage ?? ""
+        guard let language = info.headwordLanguage else { continue }
         let candidates: [String]
         if let known = candidatesByLanguage[language] {
             candidates = known
         } else {
-            candidates = InflectionCandidates.candidates(for: primaryWord, headwordLanguage: info.headwordLanguage)
+            candidates = InflectionCandidates.candidates(for: primaryWord, headwordLanguage: language)
                 .filter { !alreadySearched.contains($0.lowercased()) }
             candidatesByLanguage[language] = candidates
         }
