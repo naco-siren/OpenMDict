@@ -97,15 +97,16 @@ public enum LookupFolding {
         }
     }
 
-    /// `text` composed (NFC) when it holds a combining mark or conjoining
-    /// jamo, so that a mark typed after its letter folds like the
-    /// precomposed letter ("и" + breve is "й", a letter; "e" + acute is
-    /// "é") and decomposed Hangul is read as syllables; otherwise `text`.
+    /// `text` composed (NFC) when it holds a mark that folding handles, a
+    /// kana voicing mark or conjoining jamo, so that a mark typed after its
+    /// letter folds like the precomposed letter ("и" + breve is "й", a
+    /// letter; "e" + acute is "é") and decomposed kana and Hangul are read
+    /// as their letters and syllables; otherwise `text`.
     static func composed(_ text: String) -> String {
         let needsComposition = text.unicodeScalars.contains { scalar in
-            switch scalar.properties.generalCategory {
-            case .nonspacingMark, .spacingMark, .enclosingMark: return true
-            default: return (0x1100...0x11FF).contains(scalar.value)
+            switch scalar.value {
+            case 0x0653...0x0655, 0x3099...0x309A, 0x1100...0x11FF: return true
+            default: return isFoldedAway(scalar)
             }
         }
         return needsComposition ? text.precomposedStringWithCanonicalMapping : text
