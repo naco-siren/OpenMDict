@@ -73,6 +73,17 @@ public enum MDictSidecarCache {
     /// that does not care about delaying writes.
     public nonisolated(unsafe) static var writeMode: SidecarWriteMode = .immediate
 
+    /// Whether a lookup or search that needs the folded-key index behind
+    /// diacritic-insensitive matching may build it when no saved copy
+    /// (`<sha256>.fold`, see `MDictReader.saveFoldedKeyIndexIfNeeded`) is
+    /// beside the sidecar. Set false in short-lived processes such as the
+    /// Action Extension: they read the copies the app saved and, for a
+    /// dictionary without one, skip diacritic-insensitive matching instead
+    /// of building an index they would throw away (up to a tenth of a second
+    /// per dictionary). `MDictReader.prepareFoldedKeyIndex()` builds
+    /// regardless. Set once at launch, like `writeMode`.
+    public nonisolated(unsafe) static var buildsFoldedKeyIndexes = true
+
     /// Construct the sidecar URL for a given header SHA256, or `nil` if
     /// the cache is disabled.
     public static func sidecarURL(forHeaderSHA256 sha256: String) -> URL? {

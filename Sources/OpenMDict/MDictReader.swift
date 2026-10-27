@@ -47,15 +47,29 @@ public struct MDictWordEntry: Sendable {
 /// The fallback that found a lookup's records when the query matched no key
 /// directly. Tried in this order (`inflection` once more at the end, for the
 /// loose base forms; see `MDictReader.lookupAll`).
-public enum MDictLookupFallback: Sendable, Equatable {
-    /// Full-width ASCII and ideographic spaces read as ASCII ("ヨハネ３：１６"
-    /// finds "ヨハネ3:16").
+public enum MDictLookupFallback: Sendable, Hashable {
+    /// Full-width ASCII, ideographic spaces and other compatibility forms
+    /// read as their ordinary characters ("ヨハネ３：１６" finds "ヨハネ3:16",
+    /// "ﬁnd" finds "find").
     case widthFolded
     /// A base form of the query ("walked" finds "walk", "ging" finds "gehen").
     case inflection(lemma: String)
-    /// Equal ignoring case and diacritics ("αθηναι" finds "Ἀθῆναι", "cafe"
-    /// finds "café").
+    /// Equal ignoring case and the diacritics the query lacks ("αθηναι"
+    /// finds "Ἀθῆναι", "cafe" finds "café"; "è" does not find "e").
     case diacriticInsensitive
+}
+
+/// Which fallbacks a lookup or prefix search may use when the word is not a
+/// key (see `MDictReader.lookupAll`).
+public enum MDictLookupFallbacks: Sendable, Equatable {
+    /// Direct matches only: the word as typed, composed and trimmed, in any
+    /// case (unless the dictionary is case-sensitive) and with any apostrophe.
+    case none
+    /// Direct matches, else the word with its compatibility forms folded
+    /// (`MDictLookupFallback.widthFolded`).
+    case width
+    /// Every fallback: width folding, inflection, diacritics, loose stems.
+    case all
 }
 
 /// Lightweight dictionary metadata (can be loaded without full parsing)
@@ -364,17 +378,20 @@ public final class MDictReader: @unchecked Sendable {
     /// `homographSeparator`. `key` and `index` are those of the first one.
     ///
     /// When the word is not a key, the lookup falls back (see
-    /// `lookupAll(_:headwordLanguage:waitsForSetup:)`) and `fallback` says
-    /// how it matched.
+    /// `lookupAll(_:headwordLanguage:waitsForSetup:fallbacks:)`) and
+    /// `fallback` says how it matched.
     /// - Parameters:
     ///   - key: The word to look up
     ///   - headwordLanguage: The dictionary's headword language (ISO 639
     ///     code), when known — it decides which inflections are undone.
-    ///   - waitsForSetup: See `lookupAll(_:headwordLanguage:waitsForSetup:)`.
+    ///   - waitsForSetup: See `lookupAll(_:headwordLanguage:waitsForSetup:fallbacks:)`.
+    ///   - fallbacks: Which fallbacks may be used; `.none` for a direct
+    ///     lookup.
     /// - Returns: Entry with article content, or nil if not found
     public func lookup(_ key: MDictWordKey, headwordLanguage: String? = nil,
-                       waitsForSetup: Bool = true) -> MDictWordEntry? {
-        let matches = lookupAll(key, headwordLanguage: headwordLanguage, waitsForSetup: waitsForSetup)
+                       waitsForSetup: Bool = true, fallbacks: MDictLookupFallbacks = .all) -> MDictWordEntry? {
+        let matches = lookupAll(key, headwordLanguage: headwordLanguage, waitsForSetup: waitsForSetup,
+                                fallbacks: fallbacks)
         guard let first = matches.first else { return nil }
         guard matches.count > 1 else { return first }
         return MDictWordEntry(
@@ -425,32 +442,44 @@ public final class MDictReader: @unchecked Sendable {
         return deduped.joined(separator: homographSeparator)
     }
 
-    /// Every record for a word, separately (see `lookup(_:headwordLanguage:waitsForSetup:)`).
+    /// Every record for a word, separately (see `lookup(_:headwordLanguage:waitsForSetup:fallbacks:)`).
     ///
-    /// When no key matches the word (ignoring case, with any apostrophe),
-    /// the records of the first of these fallbacks that matches are
-    /// returned, each entry's `fallback` saying which:
-    /// 1. full-width ASCII and ideographic spaces read as ASCII;
+    /// The word is composed (NFC) and trimmed first; a key equal to that
+    /// form, ignoring case (unless the dictionary is case-sensitive) and
+    /// with any apostrophe, is a direct match. When there is none, the
+    /// records of the first of these fallbacks that matches are returned,
+    /// each entry's `fallback` saying which — as far as `fallbacks` allows:
+    /// 1. full-width ASCII, ideographic spaces and other compatibility forms
+    ///    (half-width katakana, ﬁ/ﬂ ligatures) read as their ordinary
+    ///    characters;
     /// 2. an English or German base form of the word (`InflectionCandidates`;
     ///    a `headwordLanguage` other than English or German skips this);
-    /// 3. the keys equal to the word ignoring case and diacritics;
+    /// 3. the keys equal to the word ignoring case and diacritics — but a
+    ///    letter the user typed with a mark only matches a key letter that
+    ///    has one ("Muller" finds "Müller", "cafè" finds "café"; "è" does
+    ///    not find "e", nor "tenía" "tenia");
     /// 4. a loose base form: the bare stem of a comparative or of a German
     ///    adjective or noun ending — after step 3, as these are often other
     ///    words ("Muller" finds "Müller" in step 3, not "Mull").
     ///
     /// Two steps have a one-time setup: step 2's lemmatizer loads a
     /// language's model on first use, and step 3 uses an index of the keys
-    /// with diacritics, read from beside the sidecar or built the first time
-    /// a lookup or search of this dictionary needs it (up to about a tenth
-    /// of a second for half a million keys; see `saveFoldedKeyIndexIfNeeded`). Pass `waitsForSetup: false` on the main thread: a lookup
-    /// that needs either before it is ready then starts it in the
-    /// background and goes on without it (until the index is ready only
-    /// keys without marks are found; until the model is, only the rules
-    /// undo inflections).
+    /// with diacritics, read from its copy beside the sidecar (a few
+    /// milliseconds; see `saveFoldedKeyIndexIfNeeded`) or built the first
+    /// time a lookup or search of this dictionary needs it (up to about a
+    /// tenth of a second for half a million keys). Pass `waitsForSetup:
+    /// false` on the main thread: a lookup that needs either before it is
+    /// ready then starts it in the background and goes on without it —
+    /// until the model is loaded only the rules undo inflections, and until
+    /// the index is ready steps 3 and 4 are skipped (the lookup fails rather
+    /// than return a loose stem for a word a mark would have found). A
+    /// saved copy is always read, so a dictionary whose index the app has
+    /// saved never skips them. Steps 3 and 4 are also skipped when no copy
+    /// is saved and `MDictSidecarCache.buildsFoldedKeyIndexes` is false.
     public func lookupAll(_ key: MDictWordKey, headwordLanguage: String? = nil,
-                          waitsForSetup: Bool = true) -> [MDictWordEntry] {
+                          waitsForSetup: Bool = true, fallbacks: MDictLookupFallbacks = .all) -> [MDictWordEntry] {
         let (records, fallback) = parser.lookupAllWithFallbacks(key, headwordLanguage: headwordLanguage,
-                                                                waitsForSetup: waitsForSetup)
+                                                                waitsForSetup: waitsForSetup, fallbacks: fallbacks)
         return records.map { originalKey, definition, index in
             MDictWordEntry(
                 key: originalKey,  // Use original key from dictionary
@@ -482,19 +511,34 @@ public final class MDictReader: @unchecked Sendable {
     // MARK: - Search API
     
     /// Search for word keys with a prefix. When no key has the prefix, keys
-    /// with it in full-width-folded form, then ignoring case and diacritics,
-    /// are returned.
+    /// with it in full-width-folded form, then ignoring case and diacritics
+    /// (those the prefix lacks), are returned.
     /// - Parameters:
     ///   - prefix: Prefix to match
     ///   - limit: Maximum results (default 20)
-    ///   - waitsForSetup: As in `lookupAll(_:headwordLanguage:waitsForSetup:)`.
+    ///   - waitsForSetup: As in `lookupAll(_:headwordLanguage:waitsForSetup:fallbacks:)`.
     /// - Returns: Array of matching word keys
     public func search(prefix: String, limit: Int = 20, waitsForSetup: Bool = true) -> [MDictWordKey] {
         parser.search(prefix: prefix, limit: limit, waitsForSetup: waitsForSetup)
     }
 
+    /// `search(prefix:limit:waitsForSetup:)`, with the fallback that found
+    /// the keys: nil when they start with the prefix as typed (composed and
+    /// trimmed), `.widthFolded` or `.diacriticInsensitive` otherwise. A
+    /// search never mixes the two: keys found directly are returned alone.
+    /// `fallbacks` limits the fallbacks tried, as in `lookupAll` (`.none`
+    /// for the keys with the prefix as typed only). The diacritic fallback
+    /// is skipped when the folded-key index is not available (see
+    /// `lookupAll`).
+    public func searchWithFallback(prefix: String, limit: Int = 20, waitsForSetup: Bool = true,
+                                   fallbacks: MDictLookupFallbacks = .all)
+        -> (keys: [MDictWordKey], fallback: MDictLookupFallback?) {
+        parser.searchWithFallback(prefix: prefix, limit: limit, waitsForSetup: waitsForSetup, fallbacks: fallbacks)
+    }
+
     /// Build the index behind diacritic-insensitive matching now instead of
-    /// on the first lookup or search that needs it. Safe to call from any
+    /// on the first lookup or search that needs it (regardless of
+    /// `MDictSidecarCache.buildsFoldedKeyIndexes`). Safe to call from any
     /// thread, and more than once. Returns the number of keys it holds (keys
     /// whose folded form differs from their lowercase form).
     @discardableResult
@@ -505,10 +549,12 @@ public final class MDictReader: @unchecked Sendable {
     /// Save the index behind diacritic-insensitive matching beside the
     /// sidecar if no valid copy is there, without keeping it in memory, so
     /// the first lookup that needs it — in this process or in one that never
-    /// writes, such as an extension — reads it (about a millisecond)
+    /// writes, such as an extension — reads it (a few milliseconds at most)
     /// instead of building it. For a background pass after loading; blocks
     /// while it builds. No-op without a sidecar cache, with
-    /// `MDictSidecarCache.writeMode == .disabled`, or when a copy exists.
+    /// `MDictSidecarCache.writeMode == .disabled`, when a copy exists, or
+    /// when the MDX at this reader's path has been replaced since the
+    /// reader opened it (the new file's reader saves its own).
     public func saveFoldedKeyIndexIfNeeded() {
         parser.saveFoldedKeyIndexIfNeeded()
     }
@@ -517,7 +563,7 @@ public final class MDictReader: @unchecked Sendable {
     /// - Parameters:
     ///   - key: The word to find suggestions for
     ///   - limit: Maximum suggestions
-    ///   - waitsForSetup: As in `lookupAll(_:headwordLanguage:waitsForSetup:)`
+    ///   - waitsForSetup: As in `lookupAll(_:headwordLanguage:waitsForSetup:fallbacks:)`
     ///     (candidates come from prefix searches, which fall back to folding).
     /// - Returns: Array of scored suggestions, closest matches first
     public func suggestions(for key: MDictWordKey, limit: Int = 5, waitsForSetup: Bool = true) -> [ScoredSuggestion] {
