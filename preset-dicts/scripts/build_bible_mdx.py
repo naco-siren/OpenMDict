@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Build the 14 Bible MDX dictionaries from OSIS, USFX, Zefania and SWORD sources.
+Build the 14 Bible MDX dictionaries from OSIS, USFX, Zefania, SWORD, MediaWiki
+and Markdown sources.
 
   File                 Translation                              Source (data/bible/…)
   Bible-KJV-EN         King James Version, 1769 text            open-bibles eng-kjv           kjv.osis.xml
-  Bible-CUV-ZH-Hans    新标点和合本 (simplified)                open-bibles chi-cuv-simp      cuv-simp.usfx.xml
-  Bible-CUV-ZH-Hant    新標點和合本 (traditional)               open-bibles chi-cuv           cuv-trad.usfx.xml
-  Bible-Kougo-JA       口語訳 (1954/1955)                       open-bibles jpn-kougo         kougo.osis.xml
+  Bible-CUV-ZH-Hans    官话和合译本 1919 (simplified, OpenCC)   Chinese Wikisource            zhwikisource-cuv1919/*.wiki
+  Bible-CUV-ZH-Hant    官話和合譯本 1919 (traditional)          Chinese Wikisource            zhwikisource-cuv1919/*.wiki
+  Bible-Kougo-JA       文語訳 (明治元訳 OT 1887, 大正改訳 NT 1917) CrossWire JapBungo 2.0       crosswire/JapBungo-2.0.zip
   Bible-RV1909-ES      Reina-Valera 1909                        open-bibles spa-rv1909        spa-rv1909.usfx.xml
   Bible-Darby-FR       J. N. Darby (French)                     gratis-bible fr/frdarb        fra-darby.osis.xml
   Bible-Luther1912-DE  Luther 1912                              open-bibles deu-luther1912    deu-luther1912.osis.xml
-  Bible-Almeida-PT     Almeida                                  open-bibles por-almeida       open-bibles-f257a35/por-almeida.usfx.xml
+  Bible-Almeida-PT     Almeida Revista e Corrigida (1911)       Gutenberg #62383 via          biblia-arc1911-eda2823/canon/
+                                                                mazza/biblia-arc1911
   Bible-Synodal-RU     Synodal (1876)                           open-bibles rus-synodal       rus-synodal.zefania.xml
   Bible-Korean-KO      개역한글 (1952/1961)                     CrossWire KorRV 2.0.1         crosswire/KorRV-2.0.1.zip
   Bible-SVD-AR         Smith–Van Dyck (1865)                    gratis-bible ar/arasvd        ar-svd.osis.xml
@@ -35,15 +37,19 @@ a source book is not mapped, a book or chapter is missing, a chapter count
 differs from the expected versification, a chapter holds far more or fewer
 verses than the KJV table (a mislabelled or overlaid chapter), the parsed
 verse count differs from an independent count of the source, a verse is
-empty, or a local or legacy alias collides with another chapter's key.
+empty, two neighbouring verses have the same text, or a local or legacy
+alias collides with another chapter's key.
 
 Usage:
     python3 build_bible_mdx.py [Bible-Name ...]
 
 Input:  ../data/bible/…   (see scripts/fetch_data.sh, fetch_bible)
 Output: ../output/Bible-*/Bible-*.mdx
+
+Bible-CUV-ZH-Hans needs the OpenCC Python package: pip install opencc==1.4.2
 """
 
+import hashlib
 import re
 import struct
 from collections import Counter
@@ -610,14 +616,32 @@ def hebrew_to_lxx(h: int) -> list[int]:
 # ═════════════════════════════════════════════════════════════
 #
 # A verse is a list of [kind, text] runs: 't' plain text, 'i' italic (KJV /
-# RV1909 supplied words, Byzantine OT quotations), 's' letter-spaced emphasis
-# (Byzantine), 'n' editorial note (Luther). BRK marks an element boundary
-# (line, paragraph, quotation): it becomes a space, or nothing between two
-# CJK characters or before closing punctuation.
+# RV1909 / Almeida supplied words, Byzantine OT quotations), 's' letter-spaced
+# emphasis (Byzantine), 'n' editorial note (Luther, the 1919 Union Version's
+# alternative readings), 'u' supplied words the 1919 Union Version marks with
+# dots beside the characters, 'm' small type, 'L' large type, 'x' a
+# cross-reference mark (superscript; the references follow the chapter). BRK
+# marks an element boundary (line, paragraph, quotation): it becomes a space,
+# or nothing between two CJK characters or before closing punctuation.
+#
+# Three inline marks live inside the run text as private-use characters, so
+# that normalize() keeps them intact and html() resolves them:
+# RUBY_OPEN base RUBY_SEP reading RUBY_CLOSE is a ruby annotation (the
+# furigana of the 文語訳), IDEO_SPACE is the full-width space the 1919
+# Union Version prints before 神 ("　神"), which is text, not layout, and
+# XREF_OPEN mark XREF_CLOSE is a cross-reference mark inside a note (one
+# note, not two notes around an 'x' run).
 
 BRK = '\x00'
+RUBY_OPEN, RUBY_SEP, RUBY_CLOSE, IDEO_SPACE = '\ue000', '\ue001', '\ue002', '\ue003'
+XREF_OPEN, XREF_CLOSE = '\ue004', '\ue005'
+_RUBY_RE = re.compile(f'{RUBY_OPEN}([^{RUBY_SEP}{RUBY_CLOSE}]*){RUBY_SEP}([^{RUBY_CLOSE}]*){RUBY_CLOSE}')
 _WIDE = re.compile(r'[⺀-⿿　-ヿ㄀-鿿豈-﫿︰-﹏＀-￯\u2014\u2015\u2026]')   # CJK, plus dashes and ellipsis inside CJK text
 _CLOSE_PUNCT = frozenset('.,;:!?)]”’،؛؟')
+
+
+def ruby(base: str, reading: str) -> str:
+    return f'{RUBY_OPEN}{base}{RUBY_SEP}{reading}{RUBY_CLOSE}'
 
 
 class Text:
@@ -679,7 +703,7 @@ class Text:
             p[1] = fn(p[1])
         self.parts = [p for p in self.parts if p[1]]
 
-    def html(self) -> str:
+    def html(self, note: tuple[str, str] = ('[', ']')) -> str:
         out = []
         for k, s in self.parts:
             e = esc(s)
@@ -688,10 +712,23 @@ class Text:
             elif k == 's':
                 out.append(f'<span class="sp">{e}</span>')
             elif k == 'n':
-                out.append(f'<span class="nt">[{e}]</span>')
+                out.append(f'<span class="nt">{note[0]}{e}{note[1]}</span>')
+            elif k == 'u':
+                out.append(f'<span class="ud">{e}</span>')
+            elif k == 'm':
+                out.append(f'<small>{e}</small>')
+            elif k == 'L':
+                out.append(f'<span class="lg">{e}</span>')
+            elif k == 'x':
+                out.append(f'<sup class="xr">{e}</sup>')
             else:
                 out.append(e)
-        return ''.join(out)
+        h = ''.join(out)
+        if RUBY_OPEN in h or IDEO_SPACE in h:
+            h = _RUBY_RE.sub(r'<ruby>\1<rt>\2</rt></ruby>', h).replace(IDEO_SPACE, '\u3000')
+        if XREF_OPEN in h:
+            h = h.replace(XREF_OPEN, '<sup class="xr">').replace(XREF_CLOSE, '</sup>')
+        return h
 
 
 class Verse:
@@ -710,6 +747,9 @@ class Bible:
     def __init__(self):
         self.books: dict[str, dict[int, dict[int, Verse]]] = {}
         self.skipped_books: dict[str, int] = {}
+        # (book, chapter) → [(mark, [(text, target key or None), …])]: the
+        # cross-references printed after a chapter (1919 Union Version NT)
+        self.chapter_notes: dict[tuple[str, int], list[tuple[str, list[tuple[str, str | None]]]]] = {}
 
     def verse(self, book: str, chap: int, vnum: int) -> tuple[Verse, bool]:
         chs = self.books.setdefault(book, {})
@@ -766,6 +806,7 @@ class OsisWalker:
         self.books = allowed_books(cfg)
         self.override = cfg.get('div_book_override', {})
         self.notes = cfg.get('notes', 'skip')
+        self.ruby = cfg.get('ruby', False)
         self.div_ordinal = 0
         self.div_book: str | None = None     # book of the current <div type="book">
         self.target: Text | None = None      # where character data goes
@@ -912,6 +953,10 @@ class OsisWalker:
             self.kind.append('i')
             self.children(e)
             self.kind.pop()
+            return
+        if tag == 'w' and self.ruby and e.get('gloss'):
+            # <w gloss="はじめ">元始</w>: the reading of the word, shown as ruby
+            self.add(ruby(''.join(e.itertext()), e.get('gloss')))
             return
         if tag in OSIS_BLOCKS:
             self.brk()
@@ -1169,8 +1214,11 @@ def sword_versification(name: str) -> list[tuple[str, list[int]]]:
 
 
 def read_sword_ztext(zip_path: Path, cfg: dict):
-    """Yield (book, chapter, verse, OSIS fragment) for every non-empty slot,
-    checking that the book headings match the versification table."""
+    """Yield (book, chapter, verse, OSIS fragment, linked) for every verse
+    slot, checking that the book headings match the versification table.
+    linked: the slot has the same index entry as the verse slot before it,
+    which is how SWORD stores verses printed together (Luke 2:4–5 is one
+    text in two slots); the text is then the previous verse's."""
     z = zipfile.ZipFile(zip_path)
     conf_name = next(n for n in z.namelist() if n.startswith('mods.d/') and n.endswith('.conf'))
     conf = dict(line.split('=', 1) for line in z.read(conf_name).decode('utf-8').splitlines() if '=' in line)
@@ -1186,8 +1234,11 @@ def read_sword_ztext(zip_path: Path, cfg: dict):
         blocks = [struct.unpack('<III', bzs[i:i + 12]) for i in range(0, len(bzs), 12)]
         cache: dict[int, bytes] = {}
 
+        def entry(i):
+            return struct.unpack('<IIH', bzv[i * 10:i * 10 + 10])
+
         def slot(i):
-            b, o, s = struct.unpack('<IIH', bzv[i * 10:i * 10 + 10])
+            b, o, s = entry(i)
             if not s:
                 return ''
             if b not in cache:
@@ -1199,6 +1250,7 @@ def read_sword_ztext(zip_path: Path, cfg: dict):
         if expected != len(bzv) // 10:
             raise BuildError(f'{zip_path.name} {t}: {len(bzv) // 10} slots, versification expects {expected}')
         i = 2
+        seen: dict[tuple, tuple] = {}        # index entry → first verse that uses it
         for book, vs in books:
             head = slot(i)
             osis = next(o for o, e in OSIS_BOOK_NAMES.items() if e == book)
@@ -1207,17 +1259,32 @@ def read_sword_ztext(zip_path: Path, cfg: dict):
             i += 1
             for c, n in enumerate(vs, 1):
                 i += 1                        # chapter heading
+                prev = None
                 for v in range(1, n + 1):
+                    e = entry(i)
+                    linked = bool(e[2]) and e == prev
+                    if e[2] and not linked and e in seen:
+                        raise BuildError(f'{zip_path.name}: {book} {c}:{v} shares its text with '
+                                         f'{seen[e]}, which is not the verse before it')
+                    seen.setdefault(e, (book, c, v))
                     txt = slot(i)
                     i += 1
-                    yield book, c, v, txt
+                    prev = e
+                    yield book, c, v, txt, linked
 
 
 def parse_sword(zip_path: Path, cfg: dict, log: list) -> Bible:
     bible = Bible()
     w = OsisWalker(cfg, bible, log)
     empty = []
-    for book, c, vnum, frag in read_sword_ztext(zip_path, cfg):
+    host, host_n, linked = None, None, []
+    for book, c, vnum, frag, link in read_sword_ztext(zip_path, cfg):
+        if link:
+            # printed together with the previous verse: one verse labelled "4–5"
+            host.covers.append(vnum)
+            host.label = f'{host_n}–{vnum}'
+            linked.append((book, c, vnum))
+            continue
         root = ET.fromstring(f'<r xmlns="{OSIS_NS}">{frag}</r>')
         v, _ = bible.verse(book, c, vnum)
         w.verse, w.target = v, v.text
@@ -1225,12 +1292,378 @@ def parse_sword(zip_path: Path, cfg: dict, log: list) -> Bible:
         w.close_verse()
         if v.text.empty():
             empty.append((book, c, vnum))
+        host, host_n = v, vnum
     bible.sword_empty = empty
+    if linked:
+        log.append(f'SWORD: {len(linked)} verse slots linked to the verse before them '
+                   f'(printed together), shown as one verse')
     return bible
 
 
 def count_sword_source(zip_path: Path, cfg: dict) -> int:
+    """Every verse slot, linked or not (a linked slot is a verse the merged
+    verse covers)."""
     return sum(1 for _ in read_sword_ztext(zip_path, cfg))
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+# ═════════════════════════════════════════════════════════════
+# Chinese Wikisource wikitext (官話和合譯本 1919)
+# ═════════════════════════════════════════════════════════════
+#
+# One page per book, pinned by revision id in scripts/cuv1919_wikisource.pins.
+# A page is a header template, a table of contents, and per chapter a
+# heading ({{Chapter|1|第一章}}), one paragraph per verse
+# ({{verse|1|1}}起初　神創造天地。) and, in the New Testament, the chapter's
+# Old Testament references (:{{Anchor|1a}}<sup>〡</sup>[[../以賽亞書#7:14|賽七　〡〤]]),
+# whose marks stand in the verse as <sup>[[#1a|〡]]</sup>. Inline markup:
+# {{udots|…}} words supplied by the translators (dots beside the characters),
+# {{*|…}} alternative readings and explanations (small type), {{-|…}} small
+# type (細拉, psalm titles), {{+|…}} large type, {{!|字|description}} a rare
+# character, -{…}- protected text.
+
+CUV1919_PINS = SCRIPT_DIR / 'cuv1919_wikisource.pins'
+_WS_KIND = {'udots': 'u', '*': 'n', '-': 'm', '+': 'L'}
+_WS_TOKEN = re.compile(r'\{\{|\}\}|\[\[|\]\]|\||<sup>|</sup>|-\{|\}-')
+
+
+def read_pins(path: Path) -> list[list[str]]:
+    return [line.rstrip('\n').split('\t') for line in path.read_text(encoding='utf-8').splitlines()
+            if line.strip() and not line.startswith('#')]
+
+
+def wikisource_pages(src_dir: Path) -> list[tuple[str, Path]]:
+    """[(English book, file)] in canonical order; every file must exist and
+    have its pinned SHA-256."""
+    out = []
+    for code, revid, sha, _page in read_pins(CUV1919_PINS):
+        path = src_dir / f'{code}-{revid}.wiki'
+        if not path.exists():
+            raise BuildError(f'{path.name} missing (see fetch_data.sh fetch_bible)')
+        if _sha256(path) != sha:
+            raise BuildError(f'{path.name}: sha256 differs from {CUV1919_PINS.name}')
+        out.append((USFX_BOOK_NAMES[code], path))
+    if [b for b, _ in out] != BOOK_ORDER:
+        raise BuildError(f'{CUV1919_PINS.name}: books are not the 66 books in canonical order')
+    return out
+
+
+def _ws_tree(s: str):
+    """Wikitext → nested nodes: str, ('tpl', [arg, …]), ('link', [arg, …]),
+    ('sup', children), ('raw', children); each arg is a list of nodes."""
+    stack = [('root', [[]])]
+    pos = 0
+    for m in _WS_TOKEN.finditer(s):
+        if m.start() > pos:
+            stack[-1][1][-1].append(s[pos:m.start()])
+        tok, pos = m.group(), m.end()
+        top = stack[-1][0]
+        if tok in ('{{', '[[', '<sup>', '-{'):
+            stack.append(({'{{': 'tpl', '[[': 'link', '<sup>': 'sup', '-{': 'raw'}[tok], [[]]))
+        elif tok == '|' and top in ('tpl', 'link'):
+            stack[-1][1].append([])
+        elif tok == '|':
+            stack[-1][1][-1].append(tok)
+        elif (tok, top) in (('}}', 'tpl'), (']]', 'link'), ('</sup>', 'sup'), ('}-', 'raw')):
+            kind, args = stack.pop()
+            stack[-1][1][-1].append((kind, args) if kind in ('tpl', 'link') else (kind, args[0]))
+        else:
+            raise BuildError(f'unbalanced wikitext {tok!r} near {s[max(0, m.start() - 30):m.end() + 30]!r}')
+    if len(stack) != 1:
+        raise BuildError(f'unclosed wikitext {stack[-1][0]} in {s[:80]!r}')
+    if pos < len(s):
+        stack[0][1][-1].append(s[pos:])
+    return stack[0][1][0]
+
+
+def _ws_plain(nodes) -> str:
+    out = []
+    for n in nodes:
+        if isinstance(n, str):
+            out.append(n)
+        elif n[0] in ('tpl', 'link'):
+            out.append(_ws_plain(n[1][-1]))
+        else:
+            out.append(_ws_plain(n[1]))
+    return ''.join(out)
+
+
+class WikisourceReader:
+    def __init__(self, cfg: dict, bible: Bible, log: list):
+        self.cfg, self.bible, self.log = cfg, bible, log
+        self.local_to_en = {v: k for k, v in ZH_HANT_BOOK_NAMES.items()}
+        self.stats = Counter()
+
+    def page(self, book: str, path: Path):
+        text = path.read_text(encoding='utf-8')
+        # header template and the table of contents
+        text = re.sub(r'\A\{\{header2\b.*?^\}\}', '', text, count=1, flags=re.S | re.M)
+        text = re.sub(r'<div[^>]*id="toc"[^>]*>.*?</div>', '', text, count=1, flags=re.S)
+        self.book, self.chap, self.verse, self.target = book, None, None, None
+        self.marks: dict[str, tuple[int, str]] = {}      # mark id → (chapter, label)
+        self.notes: dict[str, tuple[int, str]] = {}
+        headings = []
+        for line in text.split('\n'):
+            s = line.strip()
+            if not s:
+                self.brk()
+                continue
+            m = re.fullmatch(r'==.*\{\{Chapter\|(\d+)\|[^}]*\}\}.*==', s)
+            if m:
+                self.verse = self.target = None
+                headings.append(int(m.group(1)))
+                continue
+            if re.fullmatch(r'==.*==', s):              # 詩篇卷一 … (book divisions)
+                continue
+            if s.startswith(':{{'):
+                self.note(s[1:])
+                continue
+            if (s in ('{{gototop}}', '__NOTOC__', '</div>') or re.fullmatch(r'<div[^>]*>', s)
+                    or re.fullmatch(r'\{\{(footer|Pd/1923)\b.*\}\}', s) or re.fullmatch(r'\[\[en:[^\]]*\]\]', s)):
+                continue
+            self.inline(_ws_tree(s))
+            self.brk()
+        chs = sorted(self.bible.books.get(book, {}))
+        if headings != chs:
+            raise BuildError(f'{path.name}: chapter headings {headings[:5]}… differ from the verse chapters')
+        for mid, (c, label) in self.marks.items():
+            if self.notes.get(mid, (None, None))[0] != c:
+                raise BuildError(f'{path.name}: reference mark {mid!r} ({book} {c}) has no note in its chapter')
+        if set(self.notes) != set(self.marks):
+            raise BuildError(f'{path.name}: notes without a mark: {sorted(set(self.notes) - set(self.marks))}')
+
+    # verse text
+    def brk(self):
+        if self.target is not None:
+            self.target.add('t', BRK)
+
+    def inline(self, nodes, kind='t'):
+        for n in nodes:
+            if isinstance(n, str):
+                self.text(n, kind)
+                continue
+            typ, args = n
+            if typ == 'tpl':
+                name = _ws_plain(args[0]).strip()
+                if name == 'verse':
+                    c, v = (int(_ws_plain(a)) for a in args[1:3])
+                    self.open_verse(c, v)
+                elif name in _WS_KIND:
+                    if (name == '-' and self.book == 'Psalms' and self.vnum == 1
+                            and self.target is not None and self.target is self.verse.text
+                            and self.target.empty() and self.verse.title is None):
+                        self.verse.title = self.target = Text()      # psalm title
+                        self.inline(args[1], 't')
+                        self.target = self.verse.text
+                        self.stats['psalm titles'] += 1
+                    else:
+                        self.inline(args[1], _WS_KIND[name])
+                        self.stats[name] += 1
+                elif name == '!':                          # {{!|𤘘|牛口}}: the character
+                    self.inline(args[1], kind)
+                    self.stats['rare characters'] += 1
+                else:
+                    raise BuildError(f'{self.book}: unknown template {{{{{name}|…}}}}')
+            elif typ == 'sup':
+                link = [x for x in args if not isinstance(x, str) or x.strip()]
+                if len(link) != 1 or isinstance(link[0], str) or link[0][0] != 'link':
+                    raise BuildError(f'{self.book}: unexpected <sup> {_ws_plain(args)!r}')
+                target, label = _ws_plain(link[0][1][0]), _ws_plain(link[0][1][-1])
+                if not target.startswith('#') or self.verse is None:
+                    raise BuildError(f'{self.book}: unexpected reference mark {target!r}')
+                mid = target[1:]
+                if mid in self.marks:
+                    raise BuildError(f'{self.book}: reference mark {mid!r} used twice')
+                self.marks[mid] = (self.chap, label)
+                if kind == 'n':                            # a mark inside a {{*|…}} note
+                    self.target.add('n', XREF_OPEN + label + XREF_CLOSE)
+                    self.stats['marks inside notes'] += 1
+                else:
+                    self.target.add('x', label)
+            elif typ == 'raw':
+                self.text(_ws_plain(args), kind)
+            else:
+                raise BuildError(f'{self.book}: unexpected link in verse text {_ws_plain(args[-1])!r}')
+
+    def text(self, s: str, kind: str):
+        if self.target is None:
+            if s.strip():
+                raise BuildError(f'{self.book}: text outside a verse: {s[:40]!r}')
+            return
+        if self.target.empty():
+            s = s.lstrip(' \u3000')                         # verse-initial "　神"
+        self.stats['honorific spaces'] += s.count('\u3000')
+        self.target.add(kind, s.replace('\u3000', IDEO_SPACE))
+
+    def open_verse(self, c: int, v: int):
+        if self.chap is not None and c < self.chap:
+            raise BuildError(f'{self.book} {c}:{v} after chapter {self.chap}')
+        cur = self.verse
+        if cur is not None and c == self.chap and cur.text.empty() and v == self.vnum + 1:
+            # "{{verse|24|29}} {{verse|24|30}}…": verses printed as one
+            first = int(cur.label.split('–')[0]) if cur.label else self.vnum
+            cur.covers.append(v)
+            cur.label = f'{first}–{v}'
+            self.vnum = v
+            self.stats['verses printed together'] += 1
+            return
+        self.chap, self.vnum = c, v
+        verse, new = self.bible.verse(self.book, c, v)
+        if not new:
+            raise BuildError(f'{self.book} {c}:{v} appears twice')
+        self.verse, self.target = verse, verse.text
+
+    # chapter references
+    def note(self, s: str):
+        nodes = _ws_tree(s)
+        if not (nodes and isinstance(nodes[0], tuple) and nodes[0][0] == 'tpl'
+                and _ws_plain(nodes[0][1][0]).lower() == 'anchor'):
+            raise BuildError(f'{self.book}: unexpected indented line {s[:60]!r}')
+        mid = _ws_plain(nodes[0][1][1]).strip()
+        rest = [n for n in nodes[1:] if not (isinstance(n, str) and not n.strip())]
+        if not rest or rest[0][0] != 'sup':
+            raise BuildError(f'{self.book}: note {mid!r} has no mark')
+        label = _ws_plain(rest[0][1])
+        content: list[tuple[str, str | None]] = []
+        for n in nodes[nodes.index(rest[0]) + 1:]:
+            if isinstance(n, str):
+                content.append((n, None))
+            elif n[0] == 'link':
+                target, text = _ws_plain(n[1][0]), _ws_plain(n[1][-1])
+                m = re.fullmatch(r'\.\./([^#]+)#(\d+):\d+', target)
+                book = self.local_to_en.get(m.group(1)) if m else None
+                if book is None or not 1 <= int(m.group(2)) <= len(KJV_VERSES[book]):
+                    raise BuildError(f'{self.book}: note {mid!r} links to {target!r}')
+                content.append((text, f'{book} {int(m.group(2))}'))
+            else:
+                raise BuildError(f'{self.book}: unexpected markup in note {mid!r}')
+        if mid in self.notes:
+            raise BuildError(f'{self.book}: note {mid!r} appears twice')
+        self.notes[mid] = (self.chap, label)
+        mark = self.marks.get(mid)
+        if mark is not None and mark[1] != label:
+            raise BuildError(f'{self.book}: note {mid!r} is labelled {label!r}, its mark {mark[1]!r}')
+        self.bible.chapter_notes.setdefault((self.book, self.chap), []).append((label, content))
+        self.stats['references'] += 1
+
+
+def parse_wikisource(src_dir: Path, cfg: dict, log: list) -> Bible:
+    bible = Bible()
+    r = WikisourceReader(cfg, bible, log)
+    for book, path in wikisource_pages(src_dir):
+        r.page(book, path)
+    log.append('Wikisource: ' + ', '.join(f'{n} {k}' for k, n in sorted(r.stats.items())))
+    return bible
+
+
+def count_wikisource_source(src_dir: Path, cfg: dict) -> int:
+    """Independent count: distinct {{verse|c|v}} templates per page."""
+    seen = set()
+    for book, path in wikisource_pages(src_dir):
+        for c, v in re.findall(r'\{\{verse\|(\d+)\|(\d+)\}\}', path.read_text(encoding='utf-8')):
+            seen.add((book, int(c), int(v)))
+    return len(seen)
+
+
+# ═════════════════════════════════════════════════════════════
+# edition-canon Markdown (mazza/biblia-arc1911: Almeida 1911)
+# ═════════════════════════════════════════════════════════════
+#
+# canon/NN-BBB/CC.md, one chapter per file, built from Project Gutenberg
+# #62383 (archive/pg62383.txt): "**N** text" verse paragraphs with *italic*
+# supplied words and [^ID] footnote calls, "[^ID]: …" footnotes (references
+# and alternative readings, left out here), "## Name N", "### section title",
+# "#### psalm superscription" (or "#### (parallel passage)"), date lines
+# ("[Antes de Christo 4004]") and acrostic letters ("ALEPH."). The section
+# titles, dates and parallels are left out, as in the other Bibles; psalm
+# superscriptions and acrostic letters are shown before their verse.
+
+# SHA-256 of the canon/ tree: the "<sha256>  <path>" line of every
+# canon/*/*.md file, sorted by path (C locale), hashed together; and of the
+# Gutenberg transcription the canon was built from.
+ARC1911_CANON_SHA256 = '2137289fa9d4cdabb6550391448783812033eb22ed7787c333a2206a109e0df5'
+PG62383_SHA256 = 'bf9c6053bfb441d117a2a128d4edec9fbe935f415bc8f7bf4e1f3f9121790215'
+_EC_CUE = re.compile(r'\[\^[A-Za-z0-9_]+\]')
+# Hebrew letters of the acrostics (Psalm 119, Lamentations 1–4): "ALEPH."
+# lines, and "### Beth." headings in Psalm 119
+_EC_ACROSTIC = re.compile(r'(?:#{3,4} )?(?:ALEPH|BETH|GIMEL|DALETH|HE|VAU|ZAIN|HETH|TETH|JOD|CAPH|LAMED|'
+                          r'MEM|NUN|SAMECH|AIN|PE|TSADE|KOPH|COPH|RESCH|RES|SCHIN|SIN|TAU)\.', re.I)
+_EC_SUPERSCRIPTION = re.compile(r'^(?:Para o cantor-m[oó]r|Psalmo|Maschil|Mictam|Michtham|Michtam|'
+                                r'Schiggaion|Cantico|Cântico|Oração)\b', re.I)
+
+
+def canon_files(src_dir: Path) -> list[tuple[str, int, Path]]:
+    files = sorted((src_dir / 'canon').glob('*/*.md'))
+    listing = ''.join(f'{_sha256(f)}  {f.relative_to(src_dir).as_posix()}\n'
+                      for f in sorted(files, key=lambda f: f.relative_to(src_dir).as_posix().encode()))
+    if hashlib.sha256(listing.encode()).hexdigest() != ARC1911_CANON_SHA256:
+        raise BuildError(f'{src_dir.name}/canon differs from the pinned tree (ARC1911_CANON_SHA256)')
+    pg = src_dir / 'archive' / 'pg62383.txt'
+    if not pg.exists() or _sha256(pg) != PG62383_SHA256:
+        raise BuildError(f'{src_dir.name}/archive/pg62383.txt is not Project Gutenberg #62383 as pinned')
+    out = []
+    for f in files:
+        code = f.parent.name.split('-', 1)[1]
+        out.append((USFX_BOOK_NAMES[code], int(f.stem), f))
+    return out
+
+
+def _ec_text(s: str) -> str:
+    """Drop the footnote calls and the spaces they leave."""
+    s = _EC_CUE.sub(' ', s)
+    s = re.sub(r' {2,}', ' ', s)
+    return re.sub(r'\( ', '(', re.sub(r' (?=[,.;:!?)])', '', s)).strip()
+
+
+def _ec_add(t: Text, s: str):
+    for i, part in enumerate(re.split(r'\*([^*]+)\*', _ec_text(s))):
+        t.add('i' if i % 2 else 't', part)
+
+
+def parse_edition_canon(src_dir: Path, cfg: dict, log: list) -> Bible:
+    bible = Bible()
+    stats = Counter()
+    for book, chap, path in canon_files(src_dir):
+        pending: Text | None = None
+        for line in path.read_text(encoding='utf-8').split('\n'):
+            m = re.match(r'^\*\*(\d+)\*\* (.*)$', line)
+            if m:
+                v, new = bible.verse(book, chap, int(m.group(1)))
+                if not new:
+                    raise BuildError(f'{book} {chap}:{m.group(1)} appears twice')
+                _ec_add(v.text, m.group(2))
+                if pending is not None:
+                    v.title, pending = pending, None
+                continue
+            title = None
+            if _EC_ACROSTIC.fullmatch(line):                         # ALEPH.
+                title = line
+                stats['acrostic letters'] += 1
+            elif book == 'Psalms' and not bible.books.get(book, {}).get(chap):
+                body = _ec_text(re.sub(r'^#{3,4} ', '', line))
+                if (line.startswith('#### ') and not line.startswith('#### (')) or (
+                        not re.match(r'#|<|\[\^[A-Za-z0-9_]+\]:|\[Ant|\[Anno', line)
+                        and _EC_SUPERSCRIPTION.match(body)):
+                    title = line
+                    stats['psalm superscriptions'] += 1
+            if title is not None:
+                t = Text() if pending is None else pending
+                if pending is not None:
+                    t.add('t', BRK)
+                _ec_add(t, re.sub(r'^#{3,4} ', '', title))
+                pending = t
+        if pending is not None:
+            raise BuildError(f'{book} {chap}: title after the last verse')
+    log.append('edition-canon: ' + ', '.join(f'{n} {k}' for k, n in sorted(stats.items())))
+    return bible
+
+
+def count_edition_canon_source(src_dir: Path, cfg: dict) -> int:
+    return sum(len(re.findall(r'^\*\*\d+\*\* ', f.read_text(encoding='utf-8'), re.M))
+               for _, _, f in canon_files(src_dir))
 
 
 # ═════════════════════════════════════════════════════════════
@@ -1304,76 +1737,6 @@ def fix_darby(bible: Bible, log: list):
     log.append(f'Darby: removed {n} stray ">"')
 
 
-def fix_kougo(bible: Bible, log: list):
-    n = 0
-    for b, c, vn, v in bible.all_verses():
-        for p in v.text.parts:
-            if '{' in p[1] or '}' in p[1]:
-                n += p[1].count('{') + p[1].count('}')
-                p[1] = p[1].replace('{', '').replace('}', '')
-    log.append(f'Kougo: removed {n} stray braces')
-
-
-_ALMEIDA_GRAVE = re.compile(r'(?<![\w])Â(s?|quel[ae]s?|quilo)(?![\w])')
-
-
-# Upstream (and the Unbound Bible file it comes from) lost one verse number in
-# seven chapters, so the rest of each chapter is numbered one too low: two
-# verses printed as one (the KJV and Almeida 1911 have them apart), a verse
-# number left in the text ("inimigos? 10Também eu"), and Luke 9:61, whose text
-# is missing (the source's 9:61 is 9:62).
-ALMEIDA_MERGED = {('Genesis', 36, 4), ('Genesis', 43, 4), ('Numbers', 5, 5),
-                  ('Numbers', 25, 7), ('Ezekiel', 20, 4)}
-ALMEIDA_SPLIT = {('Nehemiah', 5, 9): '10'}
-ALMEIDA_LOST = {('Luke', 9, 61): 'Jesus'}
-
-
-def _renumber_from(vs: dict, start: int):
-    """Move verses start, start+1, … one number up."""
-    for n in sorted((n for n in vs if n >= start), reverse=True):
-        vs[n + 1] = vs.pop(n)
-
-
-def fix_almeida(bible: Bible, log: list):
-    """'Â tardinha' → 'À tardinha' (crase written with a circumflex upstream),
-    and the verse numbering of the seven chapters above."""
-    n = 0
-    for b, c, vn, v in bible.all_verses():
-        for p in v.text.parts:
-            p[1], k = _ALMEIDA_GRAVE.subn(r'À\1', p[1])
-            n += k
-    log.append(f'Almeida: {n} "Â" → "À"')
-    todo = sorted(ALMEIDA_MERGED | set(ALMEIDA_SPLIT) | set(ALMEIDA_LOST))
-    for b, c, vn in todo:
-        vs = bible.books[b][c]
-        if max(vs) != KJV_VERSES[b][c - 1] - 1:
-            raise BuildError(f'Almeida {b} {c}: {max(vs)} verses, expected one short of the KJV '
-                             '(upstream changed: review ALMEIDA_MERGED/SPLIT/LOST)')
-        if (b, c, vn) in ALMEIDA_MERGED:
-            _renumber_from(vs, vn + 1)
-            vs[vn].label, vs[vn].covers = f'{vn}–{vn + 1}', [vn + 1]
-        elif (b, c, vn) in ALMEIDA_SPLIT:
-            marker = re.compile(r'\s' + ALMEIDA_SPLIT[(b, c, vn)] + r'(?=\w)')
-            parts = vs[vn].text.parts
-            at = next((i for i, p in enumerate(parts) if marker.search(p[1])), None)
-            if at is None:
-                raise BuildError(f'Almeida {b} {c}:{vn}: verse number marker not found')
-            m = marker.search(parts[at][1])
-            head, tail = parts[at][1][:m.start()], parts[at][1][m.end():]
-            new = Verse()
-            new.text.parts = [[parts[at][0], tail]] + [list(p) for p in parts[at + 1:]]
-            vs[vn].text.parts = parts[:at] + ([[parts[at][0], head]] if head else [])
-            _renumber_from(vs, vn + 1)
-            vs[vn + 1] = new
-        else:
-            if not vs[vn].text.plain().startswith(ALMEIDA_LOST[(b, c, vn)]):
-                raise BuildError(f'Almeida {b} {c}:{vn}: unexpected text (review ALMEIDA_LOST)')
-            _renumber_from(vs, vn)
-            vs[vn] = Verse()
-            vs[vn].text.add('n', 'versículo ausente no texto de origem')
-    log.append(f'Almeida: renumbered {len(todo)} chapters (lost verse numbers; Luke 9:61 missing)')
-
-
 # KorRV slots that are empty (or hold the placeholder 상동 "ditto"/(없음)):
 # verses the 개역한글 prints as "(없음)" (omitted in its Greek text), verses
 # printed together with the previous one, and slots that exist only in the
@@ -1415,8 +1778,257 @@ def fix_korrv(bible: Bible, log: list):
                f'{len(KO_NOT_IN_EDITION)} NRSV-only slots dropped')
 
 
-FIXUPS = {'svd': fix_svd, 'diodati': fix_diodati, 'darby': fix_darby, 'kougo': fix_kougo,
-          'almeida': fix_almeida, 'korrv': fix_korrv}
+# JapBungo (文語訳): New Testament verses whose text in the module is "[なし]"
+# (none in this edition; shown as in the module), and the empty slots of
+# verses printed together with a neighbour (empty slot → the slot that holds
+# both, labelled e.g. "24–25"). The module's other way of storing verses
+# printed together, two slots linked to one text, is read by parse_sword.
+JA_NASHI = {("Matthew", 17, 21), ("Matthew", 18, 11), ("Matthew", 23, 14), ("Mark", 7, 16),
+            ("Mark", 9, 44), ("Mark", 9, 46), ("Mark", 11, 26), ("Mark", 15, 28), ("Luke", 17, 36),
+            ("Luke", 23, 17), ("Acts", 8, 37), ("Acts", 15, 34), ("Acts", 24, 7), ("Acts", 28, 29),
+            ("Romans", 16, 24)}
+JA_MERGED = {("Exodus", 7, 25): 24, ("2 Samuel", 19, 25): 26, ("2 Chronicles", 2, 13): 12}
+# The module's KJV slots 3 John 1:14 and Revelation 12:17 hold two verses of
+# the edition each (its 1:15 and 12:18); labelled "14–15" and "17–18".
+JA_TWO_IN_ONE = {("3 John", 1, 14): 15, ("Revelation", 12, 17): 18}
+# 1 Samuel 13:16–21 are one verse off in the module: slot 16 holds the second
+# sentence of verse 15 (サウル…凡そ六百人ありき), slots 17–20 hold verses
+# 16–19, and slot 21 holds verses 20–21, which the edition prints together.
+JA_SHIFT = ("1 Samuel", 13, 'サウルおのれとともにある民', '時にイスラエルの地のうち何處にも鐵工なかりき')
+# Transcription slips in the module text: (book, chapter, verse) → [(old, new)].
+JA_REPAIRS = {
+    ("Genesis", 26, 8): [('\\牖', '牖')],                           # stray backslash
+    ("Amos", 9, 11): [('傾\\圯', '傾圯')],
+    ("Exodus", 32, 11): [('モ\u2212セ', 'モーセ')],                      # minus sign for the long-vowel mark
+    ("Exodus", 32, 19): [('モ\u2212セ', 'モーセ')],
+    ("2 Samuel", 6, 13): [('行](ゆき)}', ruby('行', 'ゆき'))],           # unconverted ruby markup
+    ("2 Chronicles", 11, 7): [('ベテズル\uff40', 'ベテズル、')],         # ｀ for 、 between names
+    ("Jeremiah", 8, 13): [('つかはす.', 'つかはす')],                   # stray full stop
+    ("Mark", 16, 20): [('へり〕', 'へり］')],                             # ［…〕 → ［…］ (Mark 16:9–20)
+    ("1 Kings", 11, 33): [(ruby('法と', 'のり'), ruby('法', 'のり'))],   # reading over 法と, と twice
+}
+# Psalm 119: the module keeps the print's paragraph mark ○ before 21 of the
+# 22 Hebrew letter names (and nowhere in the verse text) and types two of the
+# names in hiragana (へ, べ); the headings are shown as the katakana name alone.
+JA_PS119_KANA = {'へ': 'ヘ', 'べ': 'ベ'}
+# Readings with a typing slip: a stray backquote, and がえｈん for がへん (肯).
+_JA_GLOSS_FIX = [(re.compile(f'{RUBY_SEP}([^{RUBY_CLOSE}`]*)`([^{RUBY_CLOSE}]*){RUBY_CLOSE}'),
+                  f'{RUBY_SEP}\\1\\2{RUBY_CLOSE}', 5),
+                 (re.compile(f'{RUBY_SEP}がえｈん{RUBY_CLOSE}'), f'{RUBY_SEP}がへん{RUBY_CLOSE}', 1)]
+
+
+def fix_bungo(bible: Bible, log: list):
+    seen = set()
+    for b, c, n, v in list(bible.all_verses()):
+        t = v.text.plain().strip()
+        key = (b, c, n)
+        if t == '[なし]':
+            if key not in JA_NASHI:
+                raise BuildError(f'JapBungo: unexpected [なし] at {key}')
+            seen.add(key)
+        elif not t:
+            if key not in JA_MERGED:
+                raise BuildError(f'JapBungo: unexpected empty verse {key}')
+            seen.add(key)
+            host = bible.books[b][c][JA_MERGED[key]]
+            host.covers.append(n)
+            nums = sorted([JA_MERGED[key], n])
+            host.label = f'{nums[0]}–{nums[1]}'
+            del bible.books[b][c][n]
+    missing = (JA_NASHI | set(JA_MERGED)) - seen
+    if missing:
+        raise BuildError(f'JapBungo: expected placeholder verses not found: {sorted(missing)}')
+    for (b, c, n), extra in JA_TWO_IN_ONE.items():
+        vs = bible.books[b][c]
+        if max(vs) != n or vs[n].covers:
+            raise BuildError(f'JapBungo {b} {c}: expected {n} as the last verse (review JA_TWO_IN_ONE)')
+        vs[n].covers.append(extra)
+        vs[n].label = f'{n}–{extra}'
+    b, c, head15b, head19 = JA_SHIFT
+    ch = bible.books[b][c]
+
+    def bare(n):
+        return _RUBY_RE.sub(r'\1', ch[n].text.plain())
+
+    if not (max(ch) == 23 and bare(16).startswith(head15b) and bare(20).startswith(head19)
+            and not any(ch[n].covers or ch[n].title for n in range(15, 22))):
+        raise BuildError(f'JapBungo {b} {c}:16–21: unexpected text (review JA_SHIFT)')
+    joined = ch.pop(16).text.parts
+    # No space where the two module slots meet (the 文語訳 OT has none).
+    if ch[15].text.parts and ch[15].text.parts[-1][0] == 't':
+        ch[15].text.parts[-1][1] = ch[15].text.parts[-1][1].rstrip()
+    if joined and joined[0][0] == 't':
+        joined[0][1] = joined[0][1].lstrip()
+    ch[15].text.parts += joined
+    for n in range(17, 22):
+        ch[n - 1] = ch.pop(n)
+    ch[20].covers.append(21)
+    ch[20].label = '20–21'
+    titles = [v.title for n, v in sorted(bible.books['Psalms'][119].items()) if v.title is not None]
+    marks = sum(t.plain().startswith('○') for t in titles)
+    for t in titles:
+        s = t.plain().removeprefix('○')
+        t.parts = [['t', JA_PS119_KANA.get(s, s)]]
+    if len(titles) != 22 or marks != 21 or not all(re.fullmatch(r'[ァ-ヺー]+', t.plain()) for t in titles):
+        raise BuildError(f'JapBungo Psalms 119: unexpected headings {[t.plain() for t in titles]}')
+    for (b, c, n), reps in JA_REPAIRS.items():
+        parts = bible.books[b][c][n].text.parts
+        for old, new in reps:
+            hits = [p for p in parts if old in p[1]]
+            if len(hits) != 1 or hits[0][1].count(old) != 1:
+                raise BuildError(f'JapBungo {b} {c}:{n}: {old!r} not found once (review JA_REPAIRS)')
+            hits[0][1] = hits[0][1].replace(old, new)
+    for rx, rep, want in _JA_GLOSS_FIX:
+        got = 0
+        for b, c, n, v in bible.all_verses():
+            for p in v.text.parts:
+                p[1], k = rx.subn(rep, p[1])
+                got += k
+        if got != want:
+            raise BuildError(f'JapBungo: {got} readings match {rx.pattern!r}, expected {want}')
+    # Spaces: in the Old Testament (no punctuation) a space marks a pause and
+    # stays, except next to 、。. In the New Testament (punctuated) the module
+    # puts a space between two words with readings of their own (聖 靈, 二 歳),
+    # which the printed text runs together, and after 、。 twice.
+    spaces = 0
+    for b, c, n, v in bible.all_verses():
+        for p in v.text.parts:
+            new = p[1].replace(' ', '') if b in NT_BOOKS else re.sub(r' *([、。]) *', r'\1', p[1])
+            spaces += len(p[1]) - len(new)
+            p[1] = new
+    log.append(f'JapBungo: {len(JA_NASHI)} verses [なし], {len(JA_MERGED)} empty slots merged with a neighbour, '
+               f'{len(JA_TWO_IN_ONE)} slots labelled as two verses, 1 Samuel 13:16–21 renumbered, '
+               f'{sum(map(len, JA_REPAIRS.values()))} text and 6 reading slips repaired, Psalm 119 headings '
+               f'({marks} ○, {len(JA_PS119_KANA)} hiragana names), {spaces} spaces between words removed')
+
+
+# Almeida 1911 (Gutenberg #62383): a transcriber's query left in Num 5:3
+# ("Desde o[_o_?] homem"). Two verse numbers as the edition prints them:
+# biblia-arc1911 joins the edition's 1 Kings 22:54 onto 22:53 and moves the
+# first clause of Revelation 13:1 ("E eu puz-me sobre a areia do mar,") into
+# a new 12:18; the edition (and the KJV at Revelation 12–13) has 22:54 and
+# 13:1 as they stand in the Gutenberg text.
+ALMEIDA_1KI_22_54 = 'E serviu a Baal'
+ALMEIDA_REV_12_18 = 'E eu puz-me sobre a areia do mar'
+
+
+def fix_almeida1911(bible: Bible, log: list):
+    v = bible.books['Numbers'][5][3]
+    parts = v.text.parts
+    if not (len(parts) >= 3 and parts[0] == ['t', 'Desde o['] and parts[1] == ['i', 'o']
+            and parts[2][0] == 't' and parts[2][1].startswith('?] ')):
+        raise BuildError(f'Almeida 1911 Numbers 5:3: unexpected text {v.text.plain()[:30]!r} (review fix_almeida1911)')
+    v.text.parts = [['t', 'Desde o' + parts[2][1][2:]]] + parts[3:]
+    ch = bible.books['1 Kings'][22]
+    last = ch[53].text.parts[-1] if max(ch) == 53 else ['', '']
+    head, sep, tail = last[1].partition(f'Israel. {ALMEIDA_1KI_22_54}')
+    if not (last[0] == 't' and sep and ALMEIDA_1KI_22_54 not in head + tail):
+        raise BuildError('Almeida 1911 1 Kings 22:53: unexpected text (review fix_almeida1911)')
+    last[1] = head + 'Israel.'
+    ch[54] = Verse()
+    ch[54].text.add('t', ALMEIDA_1KI_22_54 + tail)
+    ch12, ch13 = bible.books['Revelation'][12], bible.books['Revelation'][13]
+    first = ch13[1].text.parts[0] if ch13[1].text.parts else ['', '']
+    if not (max(ch12) == 18 and ch12[18].text.parts == [['t', ALMEIDA_REV_12_18]] and ch12[18].title is None
+            and first[0] == 't' and first[1].startswith('e vi subir do mar')):
+        raise BuildError('Almeida 1911 Revelation 12:18 / 13:1: unexpected text (review fix_almeida1911)')
+    del ch12[18]
+    first[1] = f'{ALMEIDA_REV_12_18}, {first[1]}'
+    log.append('Almeida 1911: removed the transcriber\'s "[o?]" in Numbers 5:3; 1 Kings 22:54 and '
+               'Revelation 13:1 numbered as in the edition')
+
+
+# Union Version 1919 (Wikisource): two verse-number slips, renumbered as in
+# the KJV versification and the 1988 新標點和合本. The Wikisource text numbers
+# 1 Chronicles 22:1 as 21:31 (and 22:2–19 as 22:1–18), and gives John 7:53 as
+# the first sentence of 8:1. Only the numbers change.
+def fix_cuv1919(bible: Bible, log: list):
+    ch21, ch22 = bible.books['1 Chronicles'][21], bible.books['1 Chronicles'][22]
+    if not (max(ch21) == 31 and max(ch22) == 18 and ch21[31].text.plain().startswith('大衞說、這就是')):
+        raise BuildError('CUV 1919 1 Chronicles 21–22: unexpected numbering (review fix_cuv1919)')
+    moved = ch21.pop(31)
+    for n in sorted(ch22, reverse=True):
+        ch22[n + 1] = ch22.pop(n)
+    ch22[1] = moved
+    john7, v81 = bible.books['John'][7], bible.books['John'][8][1]
+    head = '於是各人都回家去了．'
+    if not (max(john7) == 52 and v81.text.parts and v81.text.parts[0][0] == 't'
+            and v81.text.parts[0][1].startswith(head)):
+        raise BuildError('CUV 1919 John 7:53: unexpected text of 8:1 (review fix_cuv1919)')
+    v753 = Verse()
+    v753.text.add('t', head)
+    v81.text.parts[0][1] = v81.text.parts[0][1][len(head):]
+    john7[53] = v753
+    log.append('CUV 1919: renumbered 1 Chronicles 21:31–22:18 as 22:1–19; John 7:53 split from 8:1')
+
+
+# Simplified Chinese from the 1919 traditional text. OpenCC's t2s maps 爲,
+# 衆, 眞, 喫, 纔 … itself; the variant forms below it leaves as they are (or
+# maps to a character outside the common fonts), so they are first mapped to
+# the traditional form it converts to the standard simplified character
+# (衞 → 衛 → 卫, 徧 → 遍, 餧 → 餵 → 喂). The same goes for three characters
+# it reads in another sense: 鍊 (here always "chain", → 鏈 → 链, not 炼),
+# 輥 ("roll", → 滾 → 滚, not 辊 "roller") and 鎔 ("melt", → 熔). Rare
+# characters without a standard form (𤘘, 𧼮, 𤏲) stay, and so do 繸 and 鐏
+# (繸子, 槍鐏), which OpenCC maps to characters outside the common fonts
+# (U+4341, U+28C54). ZH_T2S_PHRASES: 畫 meaning "cut" and "plan" is 划.
+OPENCC_VERSION = '1.4.2'
+ZH_T2S_VARIANTS = dict(zip(
+    '衞汚塲徧毘輭寃躱愼畧痲朶燄窰醡疎躭撚繙稭鬬犂槪顚餂倂蹧蔯効摀餽粃姪尅甎煖儹跥籐顋麅啣羢銲鉋堦韮諠騌鑪賸箒缾杴蝱覩勅荳餧櫺罣咷搆鍊輥鎔',
+    '衛污場遍毗軟冤躲慎略麻朵焰窯榨疏耽捻翻秸鬥犁概顛舔併糟陳效捂饋秕侄剋磚暖攢跺藤腮狍銜絨焊刨階韭喧鬃爐剩帚瓶鍁虻睹敕豆餵欞掛啕夠鏈滾熔'))
+ZH_T2S_KEEP = '繸鐏'
+ZH_T2S_PHRASES = [('畫破', '劃破'), ('畫傷', '劃傷'), ('謀畫', '謀劃')]
+
+
+def fix_t2s(bible: Bible, log: list):
+    try:
+        import opencc
+        from importlib.metadata import version
+        got = version('opencc')
+    except ImportError:
+        raise BuildError(f'the OpenCC Python package is missing: pip install opencc=={OPENCC_VERSION}')
+    if got != OPENCC_VERSION:
+        raise BuildError(f'OpenCC {got} installed, the build is pinned to {OPENCC_VERSION}: '
+                         f'pip install opencc=={OPENCC_VERSION}')
+    conv = opencc.OpenCC('t2s')
+    keep = {ch: chr(0xE010 + i) for i, ch in enumerate(ZH_T2S_KEEP)}    # private-use stand-ins
+    pre = str.maketrans({**ZH_T2S_VARIANTS, **keep})
+    post = str.maketrans({v: k for k, v in keep.items()})
+    changed = Counter()
+
+    def convert(s: str) -> str:
+        t = s
+        for old, new in ZH_T2S_PHRASES:
+            t = t.replace(old, new)
+        out = conv.convert(t.translate(pre)).translate(post)
+        if len(out) == len(s):
+            changed.update(a for a, b in zip(s, out) if a != b)
+        return out
+
+    def text(t: Text | None):
+        if t is None:
+            return
+        joined = ''.join(p[1] for p in t.parts)
+        out = convert(joined)
+        if len(out) == len(joined):          # convert whole phrases across runs
+            i = 0
+            for p in t.parts:
+                p[1], i = out[i:i + len(p[1])], i + len(p[1])
+        else:
+            for p in t.parts:
+                p[1] = convert(p[1])
+
+    for b, c, n, v in bible.all_verses():
+        text(v.text)
+        text(v.title)
+    for key, notes in bible.chapter_notes.items():
+        bible.chapter_notes[key] = [(mark, [(convert(t), k) for t, k in content]) for mark, content in notes]
+    log.append(f'OpenCC {OPENCC_VERSION} t2s: {sum(changed.values())} characters converted '
+               f'({len(changed)} distinct)')
+
+
+FIXUPS = {'svd': fix_svd, 'diodati': fix_diodati, 'darby': fix_darby, 'korrv': fix_korrv,
+          'bungo': fix_bungo, 'almeida1911': fix_almeida1911, 'cuv1919': fix_cuv1919, 't2s': fix_t2s}
 
 
 # ═════════════════════════════════════════════════════════════
@@ -1502,6 +2114,16 @@ def check_shape(bible: Bible, cfg: dict, log: list):
     for b, c, n, v in bible.all_verses():
         if v.text.empty() and (b, c, n) not in allow_empty:
             errors.append(f'empty verse {b} {c}:{n}')
+    # Two neighbouring verses with the same text: one verse stored twice
+    # upstream (e.g. verses printed together)
+    same_ok = set(cfg.get('allow_same_text', ()))
+    for b, chs in bible.books.items():
+        for c, vs in chs.items():
+            ns = sorted(vs)
+            for n, m in zip(ns, ns[1:]):
+                t = vs[n].text.plain(notes=True).strip()
+                if t and t == vs[m].text.plain(notes=True).strip() and (b, c, n) not in same_ok:
+                    errors.append(f'{b} {c}:{n} and {m} have the same text')
     if errors:
         raise BuildError('; '.join(errors[:20]) + (f' (+{len(errors) - 20} more)' if len(errors) > 20 else ''))
     log.append(f'{odd} chapters differ from the KJV verse count (versification)'
@@ -1518,7 +2140,8 @@ def check_shape(bible: Bible, cfg: dict, log: list):
 # accent-free spelling, which beats an English name or abbreviation) and the
 # loser is counted in the build log. Losing a rank-0..3 alias is a build error.
 
-R_MAIN, R_LOCAL, R_NAME, R_LEGACY, R_ABBR, R_FOLD, R_EN, R_EN_ABBR, R_VERSE, R_VERSE_FOLD = range(10)
+(R_MAIN, R_LOCAL, R_NAME, R_LEGACY, R_ABBR, R_FOLD, R_EN, R_EN_ABBR, R_VERSE, R_VERSE_FOLD,
+ R_VERSE_EDITION) = range(11)
 
 _APOS = str.maketrans({'’': "'", 'ʼ': "'", '‘': "'"})
 
@@ -1837,6 +2460,50 @@ for _b, _a in (('Ecclesiastes', 'コヘ'), ('Zephaniah', 'ゼファ'), ('Ephesia
                ('Philippians', 'フィリ'), ('Philemon', 'フィレ'), ('1 Peter', '1ペト'),
                ('2 Peter', '2ペト'), ('Romans', 'ロー')):
     JA_ABBR[_b].append(_a)
+
+# 文語訳 book titles (明治元訳 OT, 大正改訳 NT; as in the 1950s printings) and
+# their new-style-kanji spellings
+JA_BUNGO_NAMES = _table("""
+Numbers = 民數紀略 | 民数紀略
+1 Samuel = サムエル前書
+2 Samuel = サムエル後書
+1 Kings = 列王紀略上
+2 Kings = 列王紀略下
+1 Chronicles = 歴代志略上 | 歷代志略上
+2 Chronicles = 歴代志略下 | 歷代志略下
+Ezra = エズラ書
+Esther = エステル書
+Ecclesiastes = 傳道之書 | 伝道之書
+Jeremiah = ヱレミヤ記 | エレミヤ記
+Lamentations = エレミヤの哀歌 | ヱレミヤ哀歌 | エレミヤ哀歌
+Matthew = マタイ傳福音書 | マタイ伝福音書
+Mark = マルコ傳福音書 | マルコ伝福音書
+Luke = ルカ傳福音書 | ルカ伝福音書
+John = ヨハネ傳福音書 | ヨハネ伝福音書
+Acts = 使徒行傳
+Romans = ロマ人への書
+1 Corinthians = コリント人への前の書
+2 Corinthians = コリント人への後の書
+Galatians = ガラテヤ人への書
+Ephesians = エペソ人への書
+Philippians = ピリピ人への書
+Colossians = コロサイ人への書
+1 Thessalonians = テサロニケ人への前の書
+2 Thessalonians = テサロニケ人への後の書
+1 Timothy = テモテへの前の書
+2 Timothy = テモテへの後の書
+Titus = テトスへの書
+Philemon = ピレモンへの書
+Hebrews = ヘブル人への書
+James = ヤコブの書
+1 Peter = ペテロの前の書
+2 Peter = ペテロの後の書
+1 John = ヨハネの第一の書
+2 John = ヨハネの第二の書
+3 John = ヨハネの第三の書
+Jude = ユダの書
+Revelation = ヨハネの默示録 | 默示録
+""")
 
 KO_NAMES = _table("""
 1 John = 요한1서
@@ -2230,6 +2897,58 @@ James = Tg
 3 John = 3 Jo
 Jude = Jd
 Revelation = Ap
+""")
+
+# Almeida 1911: the edition's own spellings (running heads, index, titles)
+PT_ARC1911_NAMES = _table("""
+Exodus = Exodo
+Leviticus = Levitico
+Numbers = Numeros
+Deuteronomy = Deuteronomio
+Judges = Juizes
+Ruth = Ruth
+1 Samuel = I Samuel
+2 Samuel = II Samuel
+1 Kings = I Reis
+2 Kings = II Reis
+1 Chronicles = I Chronicas
+2 Chronicles = II Chronicas
+Nehemiah = Nehemias
+Esther = Esther
+Psalms = Psalmos | Psalmo
+Proverbs = Proverbios
+Song of Solomon = Cantico dos Canticos | Cantares de Salomão
+Isaiah = Isaias
+Lamentations = Lamentações de Jeremias
+Hosea = Oseas
+Habakkuk = Habacuc
+Haggai = Aggeo
+Zechariah = Zacharias
+Malachi = Malachias
+Matthew = S. Mattheus | Mattheus | Evangelho segundo S. Mattheus | Evangelho de S. Mattheus
+Mark = S. Marcos | Evangelho segundo S. Marcos | Evangelho de S. Marcos
+Luke = S. Lucas | Evangelho segundo S. Lucas | Evangelho de S. Lucas
+John = S. João | Evangelho segundo S. João | Evangelho de S. João
+Acts = Actos | Actos dos Apostolos
+1 Corinthians = I Corinthios
+2 Corinthians = II Corinthios
+Galatians = Galatas
+Ephesians = Ephesios
+Philippians = Philippenses
+1 Thessalonians = I Thessalonicenses
+2 Thessalonians = II Thessalonicenses
+1 Timothy = I Timotheo
+2 Timothy = II Timotheo
+Philemon = Philemon
+Hebrews = Hebreos
+James = S. Thiago | Thiago
+1 Peter = I S. Pedro
+2 Peter = II S. Pedro
+1 John = I S. João
+2 John = II S. João
+3 John = III S. João
+Jude = S. Judas
+Revelation = Apocalypse
 """)
 
 IT_NAMES = _table("""
@@ -2630,7 +3349,9 @@ def make_keys(cfg: dict, bible: Bible, books: dict[str, Book]) -> KeySet:
                     sn, sv = (int(m.group(1)), int(m.group(2))) if m else (c, n)
                     for name in ('Пс', 'Псалом'):
                         add(R_VERSE, f'{name} {sn}:{sv}', B.key(c))
-        # Verse references → the chapter
+        # Verse references → the chapter; the edition's own book names
+        # ("S. João 3:16", "ヨハネ傳福音書3:16") come last, below every other form
+        edition = [f for n in cfg.get('edition_names', {}).get(b, []) for f in [n] + _forms(n, style)]
         for c in chs:
             vs = sorted({x for n, v in bible.books[b][c].items() for x in [n] + v.covers})
             for v in vs:
@@ -2638,6 +3359,10 @@ def make_keys(cfg: dict, bible: Bible, books: dict[str, Book]) -> KeySet:
                     add(R_VERSE, a, B.key(c))
                 for a in verse_refs_folded(cfg, B, c, v):
                     add(R_VERSE_FOLD, a, B.key(c))
+                for f in edition:
+                    add(R_VERSE_EDITION, f'{f} {c}:{v}', B.key(c))
+                    if style in ('zh', 'ja', 'ko'):
+                        add(R_VERSE_EDITION, f'{f}{c}:{v}', B.key(c))
         if B.lxx:
             for h in range(1, 151):
                 for v in range(1, KJV_VERSES['Psalms'][h - 1] + 1):
@@ -2715,28 +3440,57 @@ def _numbered_twins(abbr: str) -> list[str]:
 # HTML
 # ═════════════════════════════════════════════════════════════
 
-CSS = get_css(
-    SENSE_NUMBER_INLINE,
-    extra_light=(
-        f'.sub{{font-size:1.15em;color:{TEXT_SECONDARY[0]};display:block;margin-top:2px}}'
-        f'.sub2{{font-size:1.15em;color:{TEXT_LINK[0]};font-style:italic;display:block;margin-top:1px}}'
-        '.sub2 [lang=he]{font-style:normal}'
-        '.gl{font-size:1.05em}'
-        '.sp{letter-spacing:.12em}'
-        f'.pt{{font-style:italic;color:{TEXT_SECONDARY[0]};margin:10px 2px 2px}}'
-        f'.nt{{font-size:0.85em;color:{TEXT_SECONDARY[0]}}}'
-        '.nav{display:flex;justify-content:space-between;margin-top:12px;padding-top:8px;'
-        'border-top:1px solid #e5e5ea;font-size:0.9em;color:#636366}'
-        f'.nav a{{color:{TEXT_LINK[0]};text-decoration:none}}'
-    ),
-    extra_dark=(
-        f'.sub{{color:{TEXT_SECONDARY[1]}}}'
-        f'.sub2{{color:{TEXT_LINK[1]}}}'
-        f'.pt,.nt{{color:{TEXT_SECONDARY[1]}}}'
-        '.nav{border-color:#38383a;color:#98989d}'
-        f'.nav a{{color:{TEXT_LINK[1]}}}'
-    ),
+_CSS_LIGHT = (
+    f'.sub{{font-size:1.15em;color:{TEXT_SECONDARY[0]};display:block;margin-top:2px}}'
+    f'.sub2{{font-size:1.15em;color:{TEXT_LINK[0]};font-style:italic;display:block;margin-top:1px}}'
+    '.sub2 [lang=he]{font-style:normal}'
+    '.gl{font-size:1.05em}'
+    '.sp{letter-spacing:.12em}'
+    f'.pt{{font-style:italic;color:{TEXT_SECONDARY[0]};margin:10px 2px 2px}}'
+    f'.nt{{font-size:0.85em;color:{TEXT_SECONDARY[0]}}}'
+    '.nav{display:flex;justify-content:space-between;margin-top:12px;padding-top:8px;'
+    'border-top:1px solid #e5e5ea;font-size:0.9em;color:#636366}'
+    f'.nav a{{color:{TEXT_LINK[0]};text-decoration:none}}'
 )
+_CSS_DARK = (
+    f'.sub{{color:{TEXT_SECONDARY[1]}}}'
+    f'.sub2{{color:{TEXT_LINK[1]}}}'
+    f'.pt,.nt{{color:{TEXT_SECONDARY[1]}}}'
+    '.nav{border-color:#38383a;color:#98989d}'
+    f'.nav a{{color:{TEXT_LINK[1]}}}'
+)
+CSS = get_css(SENSE_NUMBER_INLINE, extra_light=_CSS_LIGHT, extra_dark=_CSS_DARK)
+
+# Extra rules a Bible config can ask for ('css': [name, …])
+CSS_EXTRA = {
+    # 1919 Union Version: supplied words (dots beside the characters, here
+    # beneath them), large type, cross-reference marks and the reference list;
+    # psalm titles upright (the CJK system fonts have no italic)
+    'cuv1919': (
+        '.pt{font-style:normal}'
+        '.ud{text-decoration:underline dotted;text-underline-offset:.25em}'
+        '.lg{font-size:1.2em}'
+        f'.xr{{font-size:.7em;color:{TEXT_LINK[0]}}}'
+        f'.xrl{{margin-top:10px;padding-top:6px;border-top:1px dashed #d1d1d6;font-size:.9em;color:{TEXT_SECONDARY[0]}}}'
+        f'.xrl a{{color:{TEXT_LINK[0]};text-decoration:none}}',
+        f'.xr,.xrl a{{color:{TEXT_LINK[1]}}}'
+        f'.xrl{{border-color:#48484a;color:{TEXT_SECONDARY[1]}}}',
+    ),
+    # 文語訳: furigana; psalm titles upright
+    'ruby': ('rt{font-size:.55em}.pt{font-style:normal}', ''),
+}
+_CSS_BY_CFG: dict[str, str] = {}
+
+
+def bible_css(cfg: dict) -> str:
+    names = tuple(cfg.get('css', ()))
+    if not names:
+        return CSS
+    if names not in _CSS_BY_CFG:
+        _CSS_BY_CFG[names] = get_css(SENSE_NUMBER_INLINE,
+                                     extra_light=_CSS_LIGHT + ''.join(CSS_EXTRA[n][0] for n in names),
+                                     extra_dark=_CSS_DARK + ''.join(CSS_EXTRA[n][1] for n in names))
+    return _CSS_BY_CFG[names]
 
 
 def _subtitle(cfg: dict, B: Book, c: int) -> str:
@@ -2763,8 +3517,9 @@ def _subtitle(cfg: dict, B: Book, c: int) -> str:
     return f'<span class="sub" lang="en">{esc(text)}</span>'
 
 
-def chapter_html(cfg: dict, B: Book, c: int, verses: dict, prev, nxt) -> str:
+def chapter_html(cfg: dict, B: Book, c: int, verses: dict, prev, nxt, notes=None) -> str:
     rtl = cfg.get('rtl', False)
+    note = cfg.get('note_brackets', ('[', ']'))
     parts = []
     if cfg.get('dir_label'):
         parts.append(f'<span class="dir">{cfg["dir_label"]}</span>')
@@ -2773,15 +3528,22 @@ def chapter_html(cfg: dict, B: Book, c: int, verses: dict, prev, nxt) -> str:
     for n in sorted(verses):
         v = verses[n]
         if v.title is not None and not v.title.empty():
-            parts.append(f'<div class="pt">{v.title.html()}</div>')
+            parts.append(f'<div class="pt">{v.title.html(note)}</div>')
         parts.append(f'<div class="sn"><span class="sn-n">{esc(v.label or str(n))}</span> '
-                     f'<span class="gl">{v.text.html()}</span></div>')
+                     f'<span class="gl">{v.text.html(note)}</span></div>')
+    if notes:
+        rows = []
+        for mark, content in notes:
+            body = ''.join(f'<a href="entry://{esc_attr(key)}">{esc(t)}</a>' if key else esc(t)
+                           for t, key in content)
+            rows.append(f'<div><sup>{esc(mark)}</sup> {body}</div>')
+        parts.append(f'<div class="xrl">{"".join(rows)}</div>')
     if prev or nxt:
         back, fwd = ('▶', '◀') if rtl else ('◀', '▶')
         a = (f'<a href="entry://{esc_attr(prev[0])}">{back} {esc(prev[1])}</a>' if prev else '<span></span>')
         b = (f'<a href="entry://{esc_attr(nxt[0])}">{esc(nxt[1])} {fwd}</a>' if nxt else '<span></span>')
         parts.append(f'<div class="nav">{a}{b}</div>')
-    return wrap_entry(''.join(parts), CSS, rtl=rtl, lang=cfg['lang'])
+    return wrap_entry(''.join(parts), bible_css(cfg), rtl=rtl, lang=cfg['lang'])
 
 
 def build_entries(cfg: dict, bible: Bible) -> tuple[list, KeySet, dict]:
@@ -2793,10 +3555,15 @@ def build_entries(cfg: dict, bible: Bible) -> tuple[list, KeySet, dict]:
         nxt = seq[i + 1] if i + 1 < len(seq) else None
         p = (books[prev[0]].key(prev[1]), books[prev[0]].title(prev[1])) if prev else None
         n = (books[nxt[0]].key(nxt[1]), books[nxt[0]].title(nxt[1])) if nxt else None
-        html = chapter_html(cfg, books[b], c, bible.books[b][c], p, n)
+        html = chapter_html(cfg, books[b], c, bible.books[b][c], p, n, bible.chapter_notes.get((b, c)))
         key = books[b].key(c)
         entries.append((key, html))
         html_by_key[key] = html
+    main_keys = set(html_by_key)
+    for (b, c), notes in bible.chapter_notes.items():
+        bad = [key for _, content in notes for _, key in content if key and key not in main_keys]
+        if bad:
+            raise BuildError(f'{b} {c}: references link to missing chapters {bad}')
     ks = make_keys(cfg, bible, books)
     return entries + ks.out, ks, html_by_key
 
@@ -2835,56 +3602,83 @@ BIBLES = [
     },
     {
         'name': 'Bible-CUV-ZH-Hans',
-        'src': DATA_DIR / 'cuv-simp.usfx.xml', 'format': 'usfx',
+        'src': DATA_DIR / 'zhwikisource-cuv1919', 'format': 'wikisource',
         'lang': 'zh-Hans', 'style': 'zh', 'script': 'cjk', 'local': ZH_HANS_BOOK_NAMES,
         'names': {b: ZH_HANS_NAMES.get(b, []) + [ZH_HANT_BOOK_NAMES[b]] for b in BOOK_ORDER},
-        'abbr': ZH_HANS_ABBR,
+        'abbr': ZH_HANS_ABBR, 'fixups': ['cuv1919', 't2s'],
+        # Verse references of the earlier text of this preset: 1 Chronicles
+        # 21:31 is 22:1 here
+        'extra_aliases': {'1 Chronicles': [(k, '1 Chronicles 22') for k in (
+            '1 Chronicles 21:31', '代上21:31', '历代志上 21:31', '历代志上21:31')]},
+        'css': ['cuv1919'], 'note_brackets': ('〈', '〉'),
         'dir_label': '✝️ → \U0001F1E8\U0001F1F3',  # ✝️ → 🇨🇳
-        'title': '新标点和合本圣经（简体）',
-        'desc': ('圣经·新标点和合本（1988 年出版，以 1919 年官话和合本为底本加新式标点修订），简体中文，“神”版。'
-                 '66 卷，每章一个词条，可查“约翰福音 3”“约3:16”。来源：'
-                 '<a href="https://ebible.org/details.php?id=cmn-cu89s">eBible.org cmn-cu89s</a>，经 '
-                 + OPEN_BIBLES + '。eBible.org 标注为公有领域。由 OpenMDict 转换。'),
-        'catalog_display_name': '新标点和合本圣经（简体）',
-        'catalog_description': ('圣经新标点和合本（1919 年和合本的新式标点版，1988），简体中文，66 卷，'
-                                '按章收录，可查“约3:16”。公有领域（据 eBible.org）。'),
+        'title': '官话和合译本圣经（1919，简体）',
+        'desc': ('圣经·官话和合译本（1919 年初版，“神”版），简体中文。66 卷，每章一个词条，可查“约翰福音 3”'
+                 '“约3:16”。标点为当时的旧式标点（『』、．）。字旁加点的补充字（原文所无、译者加上的字）以点线标示，'
+                 '小字注释置于〈〉内，诗篇标题置于第 1 节前，新约所引旧约的出处列于各章之末。底本为'
+                 '<a href="https://zh.wikisource.org/wiki/聖經_(和合本)">维基文库《圣经 (和合本)》</a>'
+                 '（繁体；维基文库本以 CCIM 电子文本为基础，按 1919 年版用字校订；各卷固定于一个修订版本），'
+                 '简体字由 OpenCC 1.4.2 转换。历代志上 21:31–22:18 依通行节数作 22:1–19，约翰福音 7:53 自 8:1 分出。'
+                 '维基文库标注为公有领域。由 OpenMDict 转换。'),
+        'catalog_display_name': '官话和合译本圣经（简体）',
+        'catalog_description': ('圣经官话和合译本（1919，“神”版），简体中文（由繁体转换），66 卷，'
+                                '按章收录，可查“约3:16”。公有领域（据维基文库）。'),
         'direction': {'src': 'ZH', 'dest': ['ZH']},
-        'data_source': 'Open Bibles (eBible.org cmn-cu89s, USFX XML)',
+        'data_source': 'Chinese Wikisource (聖經 (和合本), 66 pinned revisions; OpenCC 1.4.2 t2s)',
     },
     {
         'name': 'Bible-CUV-ZH-Hant',
-        'src': DATA_DIR / 'cuv-trad.usfx.xml', 'format': 'usfx',
+        'src': DATA_DIR / 'zhwikisource-cuv1919', 'format': 'wikisource',
         'lang': 'zh-Hant', 'style': 'zh', 'script': 'cjk', 'local': ZH_HANT_BOOK_NAMES,
         'names': {b: ZH_HANT_NAMES.get(b, []) + [ZH_HANS_BOOK_NAMES[b]] for b in BOOK_ORDER},
-        'abbr': ZH_HANT_ABBR,
+        'abbr': ZH_HANT_ABBR, 'fixups': ['cuv1919'],
+        # Verse references of the earlier text of this preset: 1 Chronicles
+        # 21:31 is 22:1 here
+        'extra_aliases': {'1 Chronicles': [(k, '1 Chronicles 22') for k in (
+            '1 Chronicles 21:31', '代上21:31', '歷代志上 21:31', '歷代志上21:31')]},
+        'css': ['cuv1919'], 'note_brackets': ('〈', '〉'),
         'dir_label': '✝️ → \U0001F1F9\U0001F1FC\U0001F1ED\U0001F1F0',  # ✝️ → 🇹🇼🇭🇰
-        'title': '新標點和合本聖經（繁體）',
-        'desc': ('聖經·新標點和合本（1988 年出版，以 1919 年官話和合本為底本加新式標點修訂），繁體中文，「神」版。'
-                 '66 卷，每章一個詞條，可查「約翰福音 3」「約3:16」。來源：'
-                 '<a href="https://ebible.org/details.php?id=cmn-cu89t">eBible.org cmn-cu89t</a>，經 '
-                 + OPEN_BIBLES + '。eBible.org 標註為公有領域。由 OpenMDict 轉換。'),
-        'catalog_display_name': '新標點和合本聖經（繁體）',
-        'catalog_description': ('聖經新標點和合本（1919 年和合本的新式標點版，1988），繁體中文，66 卷，'
-                                '按章收錄，可查「約3:16」。公有領域（據 eBible.org）。'),
+        'title': '官話和合譯本聖經（1919，繁體）',
+        'desc': ('聖經·官話和合譯本（1919 年初版，「神」版），繁體中文。66 卷，每章一個詞條，可查「約翰福音 3」'
+                 '「約3:16」。用字與標點依維基文庫本，該本以 CCIM 電子文本為基礎，按 1919 年版用字校訂'
+                 '（他、喫、纔，『』、．）。歷代志上 21:31–22:18 依通行節數作 22:1–19，約翰福音 7:53 自 8:1 分出。'
+                 '字旁加點的補充字（原文所無、譯者加上的字）以點線標示，小字註釋置於〈〉內，詩篇標題置於第 1 節前，'
+                 '新約所引舊約的出處列於各章之末。來源：'
+                 '<a href="https://zh.wikisource.org/wiki/聖經_(和合本)">維基文庫《聖經 (和合本)》</a>'
+                 '（各卷固定於一個修訂版本）。維基文庫標示為公有領域。由 OpenMDict 轉換。'),
+        'catalog_display_name': '官話和合譯本聖經（繁體）',
+        'catalog_description': ('聖經官話和合譯本（1919，「神」版），繁體中文，66 卷，按章收錄，'
+                                '可查「約3:16」。公有領域（據維基文庫）。'),
         'direction': {'src': 'ZH', 'dest': ['ZH']},
-        'data_source': 'Open Bibles (eBible.org cmn-cu89t, USFX XML)',
+        'data_source': 'Chinese Wikisource (聖經 (和合本), 66 pinned revisions)',
     },
     {
         'name': 'Bible-Kougo-JA',
-        'src': DATA_DIR / 'kougo.osis.xml', 'format': 'osis',
+        'src': DATA_DIR / 'crosswire' / 'JapBungo-2.0.zip', 'format': 'sword',
         'lang': 'ja', 'style': 'ja', 'script': 'cjk', 'local': JA_BOOK_NAMES,
-        'names': JA_NAMES, 'abbr': JA_ABBR, 'short': JA_SHORT, 'fixups': ['kougo'],
+        'names': {b: JA_NAMES.get(b, []) + JA_BUNGO_NAMES.get(b, []) for b in BOOK_ORDER},
+        'abbr': JA_ABBR, 'short': JA_SHORT, 'fixups': ['bungo'], 'edition_names': JA_BUNGO_NAMES,
+        # Verse references of the earlier text of this preset (口語訳, with a
+        # Psalm 47:10) → the chapter
+        'extra_aliases': {'Psalms': [(k, 'Psalms 47') for k in (
+            'Psalms 47:10', 'Psalm 47:10', '詩篇 47:10', '詩篇47:10')]},
+        'ruby': True, 'css': ['ruby'],
         'dir_label': '✝️ → \U0001F1EF\U0001F1F5',  # ✝️ → 🇯🇵
-        'title': '口語訳聖書',
-        'desc': ('口語訳聖書（日本聖書協会、新約 1954 年・旧約 1955 年）。66 巻、各章 1 項目。'
-                 '「ヨハネによる福音書 3」「ヨハネ 3」「ヨハネ3:16」などで引けます。'
-                 '出典：' + OPEN_BIBLES + '（jpn-kougo.osis.xml）。日本では著作権の保護期間が満了した'
-                 'パブリックドメイン。OpenMDict が変換。'),
-        'catalog_display_name': '口語訳聖書',
-        'catalog_description': ('口語訳聖書（1954/1955 年）。66 巻、章ごとの項目、「ヨハネ 3」「ヨハネ3:16」'
-                                '形式の検索に対応。パブリックドメイン（日本）。'),
+        'title': '文語訳聖書',
+        'desc': ('文語訳聖書。旧約は明治元訳（初版 1887 年、底本は 1953 年版）、新約は大正改訳（初版 1917 年、'
+                 '底本は 1950 年版）。66 巻、各章 1 項目。「ヨハネによる福音書 3」「ヨハネ傳福音書 3」「ヨハネ 3」'
+                 '「ヨハネ3:16」「ヨハネ傳福音書3:16」などで引けます。振り仮名はルビで表示します。新約の「[なし]」は'
+                 '本文のない節、「24–25」「3–5」は複数の節を 1 つにまとめた箇所です。サムエル前書 13:15–21 は '
+                 'JapBungo で 1 節ずれている節番号を直しています。出典：'
+                 '<a href="https://crosswire.org/sword/modules/ModInfo.jsp?modName=JapBungo">CrossWire SWORD '
+                 'JapBungo 2.0</a>（本文は bible.salterrae.net）。CrossWire の表示は Public Domain。'
+                 'OpenMDict が変換。'),
+        'catalog_display_name': '文語訳聖書',
+        'catalog_description': ('文語訳聖書（明治元訳 旧約 1887 年・大正改訳 新約 1917 年）。66 巻、章ごとの項目、'
+                                'ルビ付き、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン'
+                                '（CrossWire の表示）。'),
         'direction': {'src': 'JA', 'dest': ['JA']},
-        'data_source': 'Open Bibles (jpn-kougo, OSIS XML)',
+        'data_source': 'CrossWire SWORD JapBungo 2.0 (bible.salterrae.net)',
     },
     {
         'name': 'Bible-RV1909-ES',
@@ -2955,24 +3749,35 @@ BIBLES = [
     },
     {
         'name': 'Bible-Almeida-PT',
-        'src': DATA_DIR / 'open-bibles-f257a35' / 'por-almeida.usfx.xml', 'format': 'usfx',
+        'src': DATA_DIR / 'biblia-arc1911-eda2823', 'format': 'edition-canon',
         'lang': 'pt', 'style': 'latin', 'script': 'latin', 'local': PT_BOOK_NAMES,
-        'names': PT_NAMES, 'abbr': PT_ABBR, 'verse_abbr': ':', 'fixups': ['almeida'],
+        'names': {b: PT_NAMES.get(b, []) + PT_ARC1911_NAMES.get(b, []) for b in BOOK_ORDER},
+        'abbr': PT_ABBR, 'verse_abbr': ':', 'fixups': ['almeida1911'], 'edition_names': PT_ARC1911_NAMES,
+        # Verse references of the earlier text of this preset → the chapter
+        'extra_aliases': {
+            'Judges': [(k, 'Judges 5') for k in ('Judges 5:32', 'Juízes 5:32', 'Jz 5:32')],
+            '1 Samuel': [(k, '1 Samuel 20') for k in ('1 Samuel 20:43', '1 Sm 20:43', '1Sm 20:43')],
+            'Revelation': [(k, 'Revelation 12') for k in ('Revelation 12:18', 'Apocalipse 12:18', 'Ap 12:18')]},
         'dir_label': '✝️ → \U0001F1F5\U0001F1F9\U0001F1E7\U0001F1F7',  # ✝️ → 🇵🇹🇧🇷
-        'title': 'Bíblia Sagrada — Almeida',
-        'desc': ('Bíblia Sagrada, tradução de João Ferreira de Almeida com '
-                 'ortografia brasileira: 66 livros, uma '
-                 'entrada por capítulo; pesquise «João 3», «João 3:16» ou «Jo 3:16». Os colchetes [ ] são os '
-                 'do texto de origem. Em sete capítulos a fonte perdeu o número de um versículo; a numeração '
-                 'foi corrigida (versículos unidos aparecem como 4–5; Lucas 9:61 falta na fonte). Fonte: ' + OPEN_BIBLES +
-                 ' (por-almeida.usfx.xml, commit f257a35), que o declara de domínio público. '
-                 'Convertido por OpenMDict.'),
-        'catalog_display_name': 'Bíblia Sagrada — Almeida',
-        'catalog_description': ('Bíblia Sagrada, tradução de João Ferreira de Almeida'
-                                '. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». '
-                                'Domínio público.'),
+        'title': 'Bíblia Sagrada — Almeida Revista e Corrigida (1911)',
+        'desc': ('A Biblia Sagrada, tradução de João Ferreira d’Almeida, edição revista e corrigida '
+                 '(Lisboa, Deposito das Escripturas Sagradas, 1911; reimpressão da edição de 1900), na grafia '
+                 'da edição: 66 livros, uma entrada por capítulo; pesquise «João 3», «S. João 3», «João 3:16», '
+                 '«S. João 3:16» ou «Jo 3:16». As palavras em itálico são as que a edição marca como acrescentadas; os títulos '
+                 'dos salmos e as letras do acróstico vêm antes do versículo. As referências, as leituras '
+                 'alternativas da margem, os títulos de secção e as datas não estão incluídos. Fonte: '
+                 '<a href="https://www.gutenberg.org/ebooks/62383">Project Gutenberg #62383</a>, na '
+                 'estruturação de <a href="https://github.com/mazza/biblia-arc1911">mazza/biblia-arc1911</a> '
+                 '(commit eda2823, CC0 1.0), que ajusta a numeração de quatro passagens da transcrição '
+                 '(Juízes 5, 1 Samuel 20, Marcos 4, 2 Coríntios 13); 1 Reis 22:54 e Apocalipse 13:1 estão '
+                 'numerados como na edição. '
+                 'Domínio público nos EUA, segundo o Project Gutenberg. Convertido por OpenMDict.'),
+        'catalog_display_name': 'Bíblia Sagrada — Almeida 1911',
+        'catalog_description': ('Bíblia Sagrada, tradução de João Ferreira de Almeida, Revista e Corrigida '
+                                '(Lisboa, 1911), na grafia da edição. 66 livros, uma entrada por capítulo, '
+                                'pesquisa por «João 3:16». Domínio público nos EUA (Project Gutenberg).'),
         'direction': {'src': 'PT', 'dest': ['PT']},
-        'data_source': 'Open Bibles @f257a35 (por-almeida, USFX XML)',
+        'data_source': 'Project Gutenberg #62383 via mazza/biblia-arc1911 @eda2823 (Markdown)',
     },
     {
         'name': 'Bible-Synodal-RU',
@@ -3001,6 +3806,8 @@ BIBLES = [
         'src': DATA_DIR / 'crosswire' / 'KorRV-2.0.1.zip', 'format': 'sword',
         'lang': 'ko', 'style': 'ko', 'script': 'hangul', 'local': KO_BOOK_NAMES,
         'legacy': KO_NAMES, 'abbr': KO_ABBR, 'fixups': ['korrv'],
+        # Psalm 92:2 and 92:3 are both "(앞절과 동일)" (same as the verse before)
+        'allow_same_text': {('Psalms', 92, 2)},
         'dir_label': '✝️ → \U0001F1F0\U0001F1F7',  # ✝️ → 🇰🇷
         'title': '성경 (개역한글)',
         'desc': ('성경전서 개역한글판(대한성서공회, 1961): 66권, 장마다 한 항목. “요한복음 3”, “요 3장”, '
@@ -3102,7 +3909,9 @@ BIBLES = [
 # ═════════════════════════════════════════════════════════════
 
 PARSERS = {'osis': (parse_osis, count_osis_source), 'usfx': (parse_usfx, count_usfx_source),
-           'zefania': (parse_zefania, count_zefania_source), 'sword': (parse_sword, count_sword_source)}
+           'zefania': (parse_zefania, count_zefania_source), 'sword': (parse_sword, count_sword_source),
+           'wikisource': (parse_wikisource, count_wikisource_source),
+           'edition-canon': (parse_edition_canon, count_edition_canon_source)}
 SAMPLE_CHAPTERS = [('Genesis', 1), ('Psalms', 23), ('John', 3)]
 
 

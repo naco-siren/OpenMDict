@@ -81,7 +81,7 @@ notices`).
 | Bible Darby (français) | `Bible-Darby-FR.mdx` | LicenseRef-Public-Domain | [gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group)](https://github.com/gratis-bible/bible) |
 | Bible — King James Version | `Bible-KJV-EN.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
 | Biblia Sacra Vulgata | `Bible-Vulgate-LA.mdx` | LicenseRef-Public-Domain | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
-| Bíblia Sagrada — Almeida | `Bible-Almeida-PT.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
+| Bíblia Sagrada — Almeida 1911 | `Bible-Almeida-PT.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Project Gutenberg eBook #62383 (A Biblia Sagrada, João Ferreira d’Almeida, Lisbon 1911), structured by mazza/biblia-arc1911 (CC0 1.0)](https://www.gutenberg.org/ebooks/62383) |
 | CC-Canto Cantonese-English | `CC-Canto-YUE-EN.mdx` | CC-BY-SA-3.0 | [CC-Canto © 2015–2017 Pleco Inc.; includes entries adapted from CC-CEDICT (MDBG)](https://cantonese.org/) |
 | CC-CEDICT Chinese-English | `CEDICT-ZH-EN.mdx` | CC-BY-SA-4.0 | [CC-CEDICT (MDBG)](https://cc-cedict.org/) |
 | FreeDict English-German | `FreeDict-EN-DE.mdx` | GPL-3.0-or-later AND AGPL-3.0-or-later | [FreeDict, from the Ding dictionary (Frank Richter, TU Chemnitz, and contributors)](https://freedict.org/) |
@@ -138,19 +138,19 @@ notices`).
 | Синодальный перевод | `Bible-Synodal-RU.mdx` | LicenseRef-Public-Domain | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
 | الكتاب المقدس — ترجمة فان دايك | `Bible-SVD-AR.mdx` | LicenseRef-Public-Domain | [gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group)](https://github.com/gratis-bible/bible) |
 | Ἡ Καινὴ Διαθήκη (1904) | `Bible-Byzantine-GRC.mdx` | LicenseRef-Public-Domain | [eBible.org](https://ebible.org/) |
-| 口語訳聖書 | `Bible-Kougo-JA.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
-| 新标点和合本圣经（简体） | `Bible-CUV-ZH-Hans.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
-| 新標點和合本聖經（繁體） | `Bible-CUV-ZH-Hant.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
+| 官話和合譯本聖經（繁體） | `Bible-CUV-ZH-Hant.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Chinese Wikisource contributors, 聖經 (和合本) (Chinese Union Version, 1919)](https://zh.wikisource.org/wiki/聖經_%28和合本%29) |
+| 官话和合译本圣经（简体） | `Bible-CUV-ZH-Hans.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Chinese Wikisource contributors, 聖經 (和合本) (Chinese Union Version, 1919)](https://zh.wikisource.org/wiki/聖經_%28和合本%29) |
+| 文語訳聖書 | `Bible-Kougo-JA.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [CrossWire Bible Society, SWORD module JapBungo (文語訳: 明治元訳 Old Testament, 大正改訳 New Testament; text from bible.salterrae.net)](https://crosswire.org/sword/modules/ModInfo.jsp?modName=JapBungo) |
 | 성경 (개역한글) | `Bible-Korean-KO.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [CrossWire Bible Society, SWORD module KorRV (Korean Revised Version 1961, Wikisource text)](https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV) |
 
 ### License notes
 
 - **Bible — King James Version** -- Public domain outside the United Kingdom. In the UK the King James Version is under perpetual Crown copyright: printing requires letters patent (held by Cambridge University Press, Oxford University Press and Collins), as the eBible.org eng-kjv rights statement notes.
-- **Bíblia Sagrada — Almeida** -- Text: João Ferreira de Almeida translation, marked Public Domain by Open Bibles (por-almeida).
-- **口語訳聖書** -- Public domain in Japan: a work published in the name of the Japan Bible Society (NT 1954, OT 1955) whose 50-year term ended in 2005.
-- **新标点和合本圣经（简体）** -- Text: Chinese Union Version with New Punctuation (新标点和合本, 1988), marked Public Domain by eBible.org (cmn-cu89s).
-- **新標點和合本聖經（繁體）** -- Text: Chinese Union Version with New Punctuation (新標點和合本, 1988), marked Public Domain by eBible.org (cmn-cu89t).
-- **성경 (개역한글)** -- Korean Revised Version (개역한글판, Korean Bible Society 1961); copyright term expired in Korea; distributed by CrossWire as Public Domain (KorRV 2.0.1).
+- **Bíblia Sagrada — Almeida 1911** -- Text: João Ferreira d’Almeida, Revista e Corrigida (Lisbon, 1911 printing of the 1900 edition), from Project Gutenberg eBook #62383, labelled “Public domain in the USA” there; Markdown structuring by mazza/biblia-arc1911 (CC0 1.0).
+- **官話和合譯本聖經（繁體）** -- Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there.
+- **官话和合译本圣经（简体）** -- Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there; converted to Simplified Chinese with OpenCC.
+- **文語訳聖書** -- Text: 文語訳 (明治元訳 Old Testament, 1887; 大正改訳 New Testament, 1917), from the CrossWire SWORD module JapBungo 2.0, distributed by CrossWire as Public Domain.
+- **성경 (개역한글)** -- Text: Korean Revised Version (개역한글판; Korean Bible Society, 1961), distributed as Public Domain by CrossWire (KorRV 2.0.1).
 
 ### Source notices
 

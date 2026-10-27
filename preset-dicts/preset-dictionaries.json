@@ -134,8 +134,8 @@
     {
       "id": "bible-almeida-pt",
       "filename": "Bible-Almeida-PT.mdx",
-      "displayName": "Bíblia Sagrada — Almeida",
-      "description": "Bíblia Sagrada, tradução de João Ferreira de Almeida. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». Domínio público.",
+      "displayName": "Bíblia Sagrada — Almeida 1911",
+      "description": "Bíblia Sagrada, tradução de João Ferreira de Almeida, Revista e Corrigida (Lisboa, 1911), na grafia da edição. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». Domínio público nos EUA (Project Gutenberg).",
       "direction": {
         "src": "PT",
         "dest": [
@@ -143,19 +143,23 @@
         ]
       },
       "flag": "✝️",
-      "entries": 110379,
+      "entries": 149683,
       "headwords": 1189,
-      "sizeBytes": 2428863,
+      "sizeBytes": 2662422,
       "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: João Ferreira de Almeida translation, marked Public Domain by Open Bibles (por-almeida).",
-      "dataSource": "Open Bibles @f257a35 (por-almeida, USFX XML)",
+      "licenseNote": "Text: João Ferreira d’Almeida, Revista e Corrigida (Lisbon, 1911 printing of the 1900 edition), from Project Gutenberg eBook #62383, labelled “Public domain in the USA” there; Markdown structuring by mazza/biblia-arc1911 (CC0 1.0).",
+      "dataSource": "Project Gutenberg #62383 via mazza/biblia-arc1911 @eda2823 (Markdown)",
       "source": "odr",
       "odrTag": "preset-dict-bible-almeida-pt",
       "tier": 2,
-      "sha256": "df93f885860d7c79800ee368b3103aa855b85cc32d6b6a30b6f46688fac45f2d",
+      "sha256": "26be672141b7eb83df513f43b2c15b98e8579d4a37c18925ba61c382cfc2d3a2",
       "previousSha256": [
         "58ef46264af40fc3debf05fd0e1ae6ffb911e3f2e31506847e7b947e4feb0480",
-        "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa"
+        "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa",
+        "df93f885860d7c79800ee368b3103aa855b85cc32d6b6a30b6f46688fac45f2d"
+      ],
+      "previousDisplayNames": [
+        "Bíblia Sagrada — Almeida"
       ]
     },
     {
@@ -419,10 +423,72 @@
       ]
     },
     {
+      "id": "bible-cuv-zh-hant",
+      "filename": "Bible-CUV-ZH-Hant.mdx",
+      "displayName": "官話和合譯本聖經（繁體）",
+      "description": "聖經官話和合譯本（1919，「神」版），繁體中文，66 卷，按章收錄，可查「約3:16」。公有領域（據維基文庫）。",
+      "direction": {
+        "src": "ZH",
+        "dest": [
+          "ZH"
+        ]
+      },
+      "flag": "✝️",
+      "entries": 148615,
+      "headwords": 1189,
+      "sizeBytes": 2531053,
+      "license": "LicenseRef-Public-Domain",
+      "licenseNote": "Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there.",
+      "dataSource": "Chinese Wikisource (聖經 (和合本), 66 pinned revisions)",
+      "source": "odr",
+      "odrTag": "preset-dict-bible-cuv-zh-hant",
+      "tier": 2,
+      "sha256": "6cbc0560d215db85ed5f76e82db2b7261cea876c27580b3b8847a2a23c723d7f",
+      "previousSha256": [
+        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19",
+        "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c",
+        "4b5efc568ab4566b5704039f38203972813eb167833145331ef27a396b9a989b"
+      ],
+      "previousDisplayNames": [
+        "新標點和合本聖經（繁體）"
+      ]
+    },
+    {
+      "id": "bible-cuv-zh-hans",
+      "filename": "Bible-CUV-ZH-Hans.mdx",
+      "displayName": "官话和合译本圣经（简体）",
+      "description": "圣经官话和合译本（1919，“神”版），简体中文（由繁体转换），66 卷，按章收录，可查“约3:16”。公有领域（据维基文库）。",
+      "direction": {
+        "src": "ZH",
+        "dest": [
+          "ZH"
+        ]
+      },
+      "flag": "✝️",
+      "entries": 148411,
+      "headwords": 1189,
+      "sizeBytes": 2525261,
+      "license": "LicenseRef-Public-Domain",
+      "licenseNote": "Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there; converted to Simplified Chinese with OpenCC.",
+      "dataSource": "Chinese Wikisource (聖經 (和合本), 66 pinned revisions; OpenCC 1.4.2 t2s)",
+      "source": "odr",
+      "odrTag": "preset-dict-bible-cuv-zh-hans",
+      "tier": 2,
+      "sha256": "76d40e4b577c0c2bf29360e0f070b699fe3d4cf2781e7bce702fc6b19d77aac3",
+      "previousSha256": [
+        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d",
+        "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96",
+        "837948894bf487afd7e240fc2476b342a5ee2cbe59d22ef979d052efa0954729"
+      ],
+      "previousDisplayNames": [
+        "新标点和合本圣经（简体）"
+      ]
+    },
+    {
       "id": "bible-kougo-ja",
       "filename": "Bible-Kougo-JA.mdx",
-      "displayName": "口語訳聖書",
-      "description": "口語訳聖書（1954/1955 年）。66 巻、章ごとの項目、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン（日本）。",
+      "displayName": "文語訳聖書",
+      "description": "文語訳聖書（明治元訳 旧約 1887 年・大正改訳 新約 1917 年）。66 巻、章ごとの項目、ルビ付き、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン（CrossWire の表示）。",
       "direction": {
         "src": "JA",
         "dest": [
@@ -430,73 +496,23 @@
         ]
       },
       "flag": "✝️",
-      "entries": 159205,
+      "entries": 214136,
       "headwords": 1189,
-      "sizeBytes": 2780640,
+      "sizeBytes": 4162293,
       "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Public domain in Japan: a work published in the name of the Japan Bible Society (NT 1954, OT 1955) whose 50-year term ended in 2005.",
-      "dataSource": "Open Bibles (jpn-kougo, OSIS XML)",
+      "licenseNote": "Text: 文語訳 (明治元訳 Old Testament, 1887; 大正改訳 New Testament, 1917), from the CrossWire SWORD module JapBungo 2.0, distributed by CrossWire as Public Domain.",
+      "dataSource": "CrossWire SWORD JapBungo 2.0 (bible.salterrae.net)",
       "source": "odr",
       "odrTag": "preset-dict-bible-kougo-ja",
       "tier": 2,
-      "sha256": "29aa2f5fd1b9bcd9c4524005418bff9a2b80744e73764fd130917941784e9caf",
+      "sha256": "43c7810198e5b063289ebf57b1811452be9f6d5cea471037e9974dd7aa5ff1b6",
       "previousSha256": [
         "305fc6d325c9f5f2795a38aee30576887b0704d5534c2128370607bd1b5e4abc",
-        "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3"
-      ]
-    },
-    {
-      "id": "bible-cuv-zh-hans",
-      "filename": "Bible-CUV-ZH-Hans.mdx",
-      "displayName": "新标点和合本圣经（简体）",
-      "description": "圣经新标点和合本（1919 年和合本的新式标点版，1988），简体中文，66 卷，按章收录，可查“约3:16”。公有领域（据 eBible.org）。",
-      "direction": {
-        "src": "ZH",
-        "dest": [
-          "ZH"
-        ]
-      },
-      "flag": "✝️",
-      "entries": 148394,
-      "headwords": 1189,
-      "sizeBytes": 2469687,
-      "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: Chinese Union Version with New Punctuation (新标点和合本, 1988), marked Public Domain by eBible.org (cmn-cu89s).",
-      "dataSource": "Open Bibles (eBible.org cmn-cu89s, USFX XML)",
-      "source": "odr",
-      "odrTag": "preset-dict-bible-cuv-zh-hans",
-      "tier": 2,
-      "sha256": "837948894bf487afd7e240fc2476b342a5ee2cbe59d22ef979d052efa0954729",
-      "previousSha256": [
-        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d",
-        "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96"
-      ]
-    },
-    {
-      "id": "bible-cuv-zh-hant",
-      "filename": "Bible-CUV-ZH-Hant.mdx",
-      "displayName": "新標點和合本聖經（繁體）",
-      "description": "聖經新標點和合本（1919 年和合本的新式標點版，1988），繁體中文，66 卷，按章收錄，可查「約3:16」。公有領域（據 eBible.org）。",
-      "direction": {
-        "src": "ZH",
-        "dest": [
-          "ZH"
-        ]
-      },
-      "flag": "✝️",
-      "entries": 148598,
-      "headwords": 1189,
-      "sizeBytes": 2475102,
-      "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: Chinese Union Version with New Punctuation (新標點和合本, 1988), marked Public Domain by eBible.org (cmn-cu89t).",
-      "dataSource": "Open Bibles (eBible.org cmn-cu89t, USFX XML)",
-      "source": "odr",
-      "odrTag": "preset-dict-bible-cuv-zh-hant",
-      "tier": 2,
-      "sha256": "4b5efc568ab4566b5704039f38203972813eb167833145331ef27a396b9a989b",
-      "previousSha256": [
-        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19",
-        "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c"
+        "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3",
+        "29aa2f5fd1b9bcd9c4524005418bff9a2b80744e73764fd130917941784e9caf"
+      ],
+      "previousDisplayNames": [
+        "口語訳聖書"
       ]
     },
     {
@@ -515,7 +531,7 @@
       "headwords": 1189,
       "sizeBytes": 2557479,
       "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Korean Revised Version (개역한글판, Korean Bible Society 1961); copyright term expired in Korea; distributed by CrossWire as Public Domain (KorRV 2.0.1).",
+      "licenseNote": "Text: Korean Revised Version (개역한글판; Korean Bible Society, 1961), distributed as Public Domain by CrossWire (KorRV 2.0.1).",
       "dataSource": "CrossWire SWORD KorRV 2.0.1 (Wikisource)",
       "source": "odr",
       "odrTag": "preset-dict-bible-korean-ko",
