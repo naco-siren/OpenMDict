@@ -190,14 +190,14 @@ Acknowledgement as section 3 of the
 > Documentation: <https://www.edrdg.org/jmdict/j_jmdict.html>,
 > <https://www.edrdg.org/wiki/index.php/KANJIDIC_Project>.
 
-**JMdict** (release 2026-10-27): the pitch accent notation was
+**JMdict** (release 2026-10-28): the pitch accent notation was
 provided by Uros O. through his free database
 [Kanjium](https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0).
 OpenMDict converted and modified both (lookup keys for every written form and
 reading, romaji, pitch-accent rendering, HTML layout) with
 `preset-dicts/scripts/build_jmdict_mdx.py`.
 
-**KANJIDIC2** (database version 2026-300): the pinyin readings
+**KANJIDIC2** (database version 2026-301): the pinyin readings
 are © Christian Wittern and Koichi Yasuoka and the Korean readings © Charles
 Muller, included in KANJIDIC2 with their permission.
 `preset-dicts/scripts/build_kanjidic2_mdx.py` converts, abridges and

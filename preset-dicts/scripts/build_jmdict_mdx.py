@@ -65,8 +65,8 @@ OUTPUT_DIR = SCRIPT_DIR.parent / "output" / "JMdict-JA-EN"
 # Pinned upstream data. JMdict_e.gz is a daily, unversioned file at
 # JMDICT_URL; the release is identified by its "JMdict created" date.
 JMDICT_URL = "https://www.edrdg.org/pub/Nihongo/JMdict_e.gz"
-JMDICT_RELEASE = "2026-10-27"
-JMDICT_SHA256 = "aacc8703771759ad302f01199db13e83043fdf8cabb2357df742e9e758e8aa8d"
+JMDICT_RELEASE = "2026-10-28"
+JMDICT_SHA256 = "739ce5a15038e063f6db819fe61a70c0f60c2039569b651f0a0f5601fdbc0b39"
 JMDICT_FILE = DATA_DIR / "jmdict" / JMDICT_RELEASE / "JMdict_e.gz"
 MAX_DATA_AGE_DAYS = 31
 
