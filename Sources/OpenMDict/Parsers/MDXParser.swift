@@ -376,15 +376,18 @@ internal final class MDXParser {
     }
 
     /// Get entry at specific index
-    /// - Parameter index: Index in keyword list
+    /// - Parameters:
+    ///   - index: Index in keyword list
+    ///   - cache: Keeps decompressed record blocks between calls (see
+    ///     `MDictRecordWalker`); nil decompresses the record's block again.
     /// - Returns: Tuple of (keyword, definition) or nil if out of bounds
-    func entryAt(_ index: Int) -> (String, String)? {
+    func entryAt(_ index: Int, cache: BlockCache? = nil) -> (String, String)? {
         guard index >= 0, index < keywords.count else {
             return nil
         }
         
         let kw = keywords[index]
-        guard let definition = try? loadRecord(kw) else {
+        guard let definition = try? loadRecord(kw, cache: cache) else {
             return nil
         }
         
@@ -510,9 +513,23 @@ internal final class MDXParser {
     // MARK: - Private: Record Loading
     
     /// Decompressed record blocks, for the records of one lookup (they are
-    /// almost always in the same block).
+    /// almost always in the same block) or of a walk in key order.
     final class BlockCache {
         var blocks: [Int: Data] = [:]
+        /// Most blocks kept; storing one more drops the others. nil keeps
+        /// every block (a lookup touches a handful).
+        let capacity: Int?
+
+        init(capacity: Int? = nil) {
+            self.capacity = capacity
+        }
+
+        func store(_ block: Data, at index: Int) {
+            if let capacity, blocks.count >= capacity {
+                blocks.removeAll(keepingCapacity: true)
+            }
+            blocks[index] = block
+        }
     }
 
     private func loadRecord(_ entry: KeywordEntry, cache: BlockCache? = nil) throws -> String {
@@ -521,7 +538,7 @@ internal final class MDXParser {
             decompressedBlock = cached
         } else {
             decompressedBlock = try decompressBlock(entry.recordBlockIndex)
-            cache?.blocks[entry.recordBlockIndex] = decompressedBlock
+            cache?.store(decompressedBlock, at: entry.recordBlockIndex)
         }
         return try recordText(entry, in: decompressedBlock)
     }

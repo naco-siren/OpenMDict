@@ -23,10 +23,11 @@
 //  is inherently per-device. Consequently this service does NOT
 //  subscribe to CloudKit remote-change notifications (unlike
 //  LookupCountService et al.): the Local store never emits them and
-//  there's no cross-device replication to react to. The Coordinator
-//  still validates `.indexed` against actual sidecar-file presence +
-//  the model/MDX hashes, so a stale row (sidecar evicted from Caches/,
-//  or model upgraded) self-heals to `.notIndexed` at introspection.
+//  there's no cross-device replication to react to. At launch the
+//  Coordinator checks every record against its sidecar file: a row whose
+//  file is gone (evicted from Caches/), unusable, or a partial the writer
+//  won't resume is reset (`.indexed` → `.notIndexed`, progress → 0), and
+//  a complete index in the old dense layout is converted in place.
 //
 
 import Combine
@@ -143,6 +144,13 @@ final class ArticleIndexService {
     func snapshot(for dictId: String) -> ArticleIndexRecordSnapshot {
         ensureCachePopulated()
         return cache[dictId] ?? .initial(dictId: dictId)
+    }
+
+    /// Whether a record exists for the dict (`snapshot(for:)` returns a
+    /// default for one that doesn't).
+    func hasRecord(for dictId: String) -> Bool {
+        ensureCachePopulated()
+        return cache[dictId] != nil
     }
 
     /// All current snapshots, sorted by `userPriorityOrder` ascending
