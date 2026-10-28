@@ -20,7 +20,10 @@ internal struct MDictInfo {
 
 /// Internal MDX file parser
 /// Used by MDictReader facade
-internal final class MDXParser {
+///
+/// `@unchecked Sendable`: all state is immutable after init except the
+/// folded-key index, which `foldedIndexLock` guards.
+internal final class MDXParser: @unchecked Sendable {
     
     // MARK: - Properties
     
@@ -34,6 +37,11 @@ internal final class MDXParser {
     var allKeywords: [String] {
         keywords.map { $0.keyword }
     }
+
+    /// The keyword at `index` (in dictionary order).
+    func keyword(at index: Int) -> String {
+        keywords[index].keyword
+    }
     
     // MARK: - Internal State (initialized once)
 
@@ -46,6 +54,33 @@ internal final class MDXParser {
     /// lookup (binary search → tie-break by case). Replaces the per-keyword
     /// `[String: Int]` dictionaries that the slow path used to build.
     private let sortedIndices: [UInt32]
+
+    /// Keys with diacritics (or other marks) in folded order, for the
+    /// diacritic-insensitive fallback. Built on first need — most lookups
+    /// never get that far — and kept for the parser's lifetime.
+    private var foldedIndexStorage: FoldedKeyIndex?
+    private var foldedIndexBuildScheduled = false
+    private let foldedIndexLock = NSLock()
+    /// Where the folded-key index is saved (`FoldedIndexFile`); nil without
+    /// a sidecar cache.
+    private let foldedIndexFile: FoldedIndexLocation?
+
+    /// The saved folded-key index of a dictionary: its file, and the source
+    /// identity it must match — the one captured when this parser opened
+    /// the MDX. Before a write, `sourceIsUnchanged` checks that the file at
+    /// the path still has that identity: a preset updated in place while an
+    /// old reader is still around must not get the old reader's index
+    /// saved under the new file's name.
+    struct FoldedIndexLocation {
+        let url: URL
+        let identity: SidecarSourceIdentity
+        let sourcePath: String
+        let headerSHA256Hex: String
+
+        var sourceIsUnchanged: Bool {
+            SidecarSourceIdentity.capture(path: sourcePath, headerSHA256Hex: headerSHA256Hex) == identity
+        }
+    }
 
     // MARK: - Initialization
 
@@ -88,10 +123,18 @@ internal final class MDXParser {
         // pipeline and load directly from the pre-computed sidecar.
         let headerSHA256Hex = Self.sha256Hex(of: headerData)
         var sidecarPayload: SidecarPayload? = nil
-        if let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex),
-           let identity = SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex),
+        let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex)
+        let sourceIdentity = sidecarURL == nil ? nil
+            : SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex)
+        if let sidecarURL, let identity = sourceIdentity,
            let payload = SidecarLoader.load(from: sidecarURL, expectedIdentity: identity) {
             sidecarPayload = payload
+        }
+        if let sidecarURL, let identity = sourceIdentity {
+            self.foldedIndexFile = FoldedIndexLocation(url: FoldedIndexFile.url(forSidecar: sidecarURL), identity: identity,
+                                                       sourcePath: path, headerSHA256Hex: headerSHA256Hex)
+        } else {
+            self.foldedIndexFile = nil
         }
 
         let resolvedKeywords: [KeywordEntry]
@@ -139,9 +182,7 @@ internal final class MDXParser {
         // queue that the host app flushes after its initial bulk load
         // (reduces CPU contention with parsing). Captured locals are
         // immutable value types, safe to ferry to another queue.
-        if sidecarPayload == nil,
-           let sidecarURL = MDictSidecarCache.sidecarURL(forHeaderSHA256: headerSHA256Hex),
-           let identity = SidecarSourceIdentity.capture(path: path, headerSHA256Hex: headerSHA256Hex) {
+        if sidecarPayload == nil, let sidecarURL, let identity = sourceIdentity {
             let kws = resolvedKeywords
             let blks = resolvedBlocks
             let sorted = resolvedSortedIndices
@@ -203,25 +244,199 @@ internal final class MDXParser {
     /// U+2019 where nearly every dictionary key has U+0027 (and the reverse
     /// for a hardware keyboard and a dictionary with typographic keys).
     func lookupAllWithIndex(_ keyword: String, limit: Int = MDXParser.maxRecordsPerLookup) -> [(String, String, Int)] {
+        // Every apostrophe form: a dictionary may store some keys with ' and
+        // others with ’ (WikDict-FR-EN does both).
+        records(at: ApostropheVariants.of(keyword).flatMap(findKeywordIndices), limit: limit)
+    }
+
+    /// The records of the keys at `indices`, in that order, with redirects
+    /// followed and duplicates removed.
+    private func records(at indices: [Int], limit: Int) -> [(String, String, Int)] {
         let cache = BlockCache()
         var results: [(String, String, Int)] = []
         var seen = Set<Int>()
-        // Every apostrophe form: a dictionary may store some keys with ' and
-        // others with ’ (WikDict-FR-EN does both).
-        for query in ApostropheVariants.of(keyword) {
-            for idx in findKeywordIndices(query) {
-                guard results.count < limit else { return results }
-                guard let definition = try? loadRecord(keywords[idx], cache: cache),
-                      let resolved = resolveRedirect(keyword: keywords[idx].keyword, definition: definition,
-                                                     index: idx, depth: 0, cache: cache) else {
-                    continue
-                }
-                if seen.insert(resolved.2).inserted {
-                    results.append(resolved)
-                }
+        for idx in indices {
+            guard results.count < limit else { break }
+            guard let definition = try? loadRecord(keywords[idx], cache: cache),
+                  let resolved = resolveRedirect(keyword: keywords[idx].keyword, definition: definition,
+                                                 index: idx, depth: 0, cache: cache) else {
+                continue
+            }
+            if seen.insert(resolved.2).inserted {
+                results.append(resolved)
             }
         }
         return results
+    }
+
+    // MARK: - Lookup Fallbacks
+
+    /// `lookupAllWithIndex` of the query — composed (NFC) and trimmed, so
+    /// that a key found under a decomposed or padded form of it counts as a
+    /// direct hit — and when that finds nothing, the first of these that
+    /// does (as far as `fallbacks` allows):
+    ///
+    /// 1. the query with full-width ASCII, ideographic spaces and other
+    ///    compatibility forms as their ordinary characters ("ヨハネ３：１６"
+    ///    → "ヨハネ3:16", "ﬁnd" → "find");
+    /// 2. its English or German base forms (`InflectionCandidates`), the
+    ///    first that is a key ("machte" → "machen");
+    /// 3. the keys equal to it ignoring case and diacritics
+    ///    (`LookupFolding.folded`), in dictionary order, where the key has
+    ///    a mark on every letter the query has one on
+    ///    (`LookupFolding.MarkPattern`: "Muller" → "Müller", "cafè" →
+    ///    "café", but not "è" → "e"). After inflection, so that a verb form
+    ///    is not taken for a word that differs from it only by a mark
+    ///    ("machte", "Mächte"); but before the loose base forms — bare stems
+    ///    of comparatives and of German adjective and noun endings, which
+    ///    are often other words ("Muller" → "Mull") — which come last, also
+    ///    reported as `.inflection`.
+    ///
+    /// Two steps have a one-time setup: step 2's lemmatizer loads a
+    /// language's model on first use, and step 3's folded-key index is read
+    /// from its saved copy (a few milliseconds) or built on first need (up
+    /// to a tenth of a second). With `waitsForSetup` false (a caller on the
+    /// main thread), a lookup that needs either before it is ready starts
+    /// it in the background and goes on without it: without the model, the
+    /// rules alone undo inflections; without the index, steps 3 and 4 are
+    /// skipped — no loose stem is returned in place of the word a mark
+    /// would have found. The same happens when the index is not to be
+    /// built (`MDictSidecarCache.buildsFoldedKeyIndexes`) and no copy is
+    /// saved.
+    func lookupAllWithFallbacks(_ query: String, headwordLanguage: String?, waitsForSetup: Bool = true,
+                                fallbacks: MDictLookupFallbacks = .all,
+                                limit: Int = MDXParser.maxRecordsPerLookup)
+        -> (records: [(String, String, Int)], fallback: MDictLookupFallback?) {
+        let keyword = query.precomposedStringWithCanonicalMapping.trimmingCharacters(in: .whitespacesAndNewlines)
+        let direct = lookupAllWithIndex(keyword, limit: limit)
+        guard direct.isEmpty, !keyword.isEmpty, fallbacks != .none else { return (direct, nil) }
+
+        let narrow = LookupFolding.widthFolded(keyword).trimmingCharacters(in: .whitespacesAndNewlines)
+        if narrow != keyword, !narrow.isEmpty {
+            let found = lookupAllWithIndex(narrow, limit: limit)
+            if !found.isEmpty { return (found, .widthFolded) }
+        }
+        guard fallbacks == .all, !narrow.isEmpty else { return ([], nil) }
+
+        func firstBaseForm(_ lemmas: [String]) -> (records: [(String, String, Int)], fallback: MDictLookupFallback?)? {
+            for lemma in lemmas {
+                var found = lookupAllWithIndex(lemma, limit: limit)
+                if found.isEmpty, header.keyCaseSensitive {
+                    // Rules give lowercase forms; a case-sensitive dictionary
+                    // may have the base form capitalized (a German noun).
+                    found = records(at: lowercaseMatchIndices(lemma.lowercased()), limit: limit)
+                }
+                if !found.isEmpty { return (found, .inflection(lemma: lemma)) }
+            }
+            return nil
+        }
+        let baseForms = InflectionCandidates.rankedCandidates(for: narrow, headwordLanguage: headwordLanguage,
+                                                              waitsForSetup: waitsForSetup)
+        if let hit = firstBaseForm(baseForms.likely) { return hit }
+
+        // Without the folded-key index neither step 3 nor step 4 runs: the
+        // loose stems would answer for the words only a mark separates
+        // from the query ("Muller" → "Mull" instead of "Müller").
+        guard let foldedIndices = foldedMatchIndices(narrow, waitsForSetup: waitsForSetup) else { return ([], nil) }
+        let folded = records(at: foldedIndices, limit: limit)
+        if !folded.isEmpty { return (folded, .diacriticInsensitive) }
+
+        return firstBaseForm(baseForms.loose) ?? ([], nil)
+    }
+
+    /// Indices, in dictionary order, of the keys equal to `query` ignoring
+    /// case (even in a case-sensitive dictionary), width and the diacritics
+    /// the query lacks (`LookupFolding.MarkPattern`); nil when the folded-key
+    /// index is not available (`foldedKeyIndex(waits:)`).
+    private func foldedMatchIndices(_ query: String, waitsForSetup: Bool) -> [Int]? {
+        guard let markedKeys = foldedKeyIndex(waits: waitsForSetup) else { return nil }
+        var found = Set<Int>()
+        for variant in ApostropheVariants.of(query) {
+            let folded = LookupFolding.folded(variant).trimmingCharacters(in: .whitespaces)
+            guard !folded.isEmpty else { continue }
+            let marks = LookupFolding.MarkPattern(variant)
+            // Keys without marks fold to their lowercase form: the
+            // lowercase-sorted index has them — and a query with a mark
+            // matches none of them. Keys with marks are in the folded index.
+            if !marks.hasMarks { found.formUnion(lowercaseMatchIndices(folded)) }
+            found.formUnion(markedKeys.matches(folded, prefix: false, keyAt: { keywords[$0].keyword },
+                                               accept: { marks.admits(keywords[$0].keyword) }))
+        }
+        return found.sorted()
+    }
+
+    /// The folded-key index, read from its saved copy or built on the first
+    /// call (by one thread; the others wait for it) — built even when
+    /// `MDictSidecarCache.buildsFoldedKeyIndexes` is false, for callers that
+    /// ask for it by name (`MDictReader.prepareFoldedKeyIndex`). A built
+    /// index is saved for the next reader of this dictionary, as sidecar
+    /// writes are.
+    func foldedKeyIndex() -> FoldedKeyIndex {
+        foldedIndexLock.lock()
+        defer { foldedIndexLock.unlock() }
+        return loadedOrBuiltFoldedKeyIndex(building: true)!
+    }
+
+    /// The index in memory, else its saved copy (kept in memory from now
+    /// on), else — with `building` — a new one, saved in the background.
+    /// The caller holds `foldedIndexLock`.
+    private func loadedOrBuiltFoldedKeyIndex(building: Bool) -> FoldedKeyIndex? {
+        if let index = foldedIndexStorage { return index }
+        if let file = foldedIndexFile,
+           let saved = FoldedIndexFile.load(from: file.url, identity: file.identity, keywordCount: keywords.count) {
+            foldedIndexStorage = saved
+            return saved
+        }
+        guard building else { return nil }
+        let index = FoldedKeyIndex.build(count: keywords.count) { keywords[$0].keyword }
+        foldedIndexStorage = index
+        if let file = foldedIndexFile {
+            let count = keywords.count
+            MDictSidecarCache.enqueueWrite {
+                guard file.sourceIsUnchanged else { return }
+                try? FoldedIndexFile.write(index, to: file.url, identity: file.identity, keywordCount: count)
+            }
+        }
+        return index
+    }
+
+    /// Save the folded-key index beside the sidecar unless a valid copy is
+    /// there, a lookup already has the index (its write is queued), or the
+    /// MDX at the path is no longer the file this parser opened. The index
+    /// is not kept in memory: the first lookup that needs it reads the
+    /// file. No-op without a sidecar cache or with writes disabled.
+    func saveFoldedKeyIndexIfNeeded() {
+        guard let file = foldedIndexFile, MDictSidecarCache.writeMode != .disabled else { return }
+        foldedIndexLock.lock()
+        defer { foldedIndexLock.unlock() }
+        guard foldedIndexStorage == nil,
+              !FoldedIndexFile.hasValidCopy(at: file.url, identity: file.identity, keywordCount: keywords.count),
+              file.sourceIsUnchanged else { return }
+        let index = FoldedKeyIndex.build(count: keywords.count) { keywords[$0].keyword }
+        try? FoldedIndexFile.write(index, to: file.url, identity: file.identity, keywordCount: keywords.count)
+    }
+
+    /// The folded-key index for a lookup: the one in memory, else its saved
+    /// copy, loaded now (a few milliseconds at most; also with `waits`
+    /// false, on the main thread). With neither, nil — and, where
+    /// `MDictSidecarCache.buildsFoldedKeyIndexes` allows, the index is
+    /// built: now when `waits`, in the background otherwise (nil as well
+    /// while another thread builds it).
+    private func foldedKeyIndex(waits: Bool) -> FoldedKeyIndex? {
+        let builds = MDictSidecarCache.buildsFoldedKeyIndexes
+        if waits {
+            foldedIndexLock.lock()
+            defer { foldedIndexLock.unlock() }
+            return loadedOrBuiltFoldedKeyIndex(building: builds)
+        }
+        guard foldedIndexLock.try() else { return nil }     // being built
+        defer { foldedIndexLock.unlock() }
+        if let index = loadedOrBuiltFoldedKeyIndex(building: false) { return index }
+        if builds, !foldedIndexBuildScheduled {
+            foldedIndexBuildScheduled = true
+            DispatchQueue.global(qos: .userInitiated).async { [self] in _ = foldedKeyIndex() }
+        }
+        return nil
     }
 
     /// The most records one lookup returns. A few dictionaries (example
@@ -250,16 +465,9 @@ internal final class MDXParser {
     /// equal ignoring case. Each group in dictionary (index) order.
     private func findKeywordIndices(_ query: String) -> [Int] {
         let loweredQuery = query.lowercased()
-        var lo = 0
-        var hi = sortedIndices.count
-        while lo < hi {
-            let mid = (lo + hi) >> 1
-            let mk = keywords[Int(sortedIndices[mid])].keyword.lowercased()
-            if mk < loweredQuery { lo = mid + 1 } else { hi = mid }
-        }
         var exact: [Int] = []
         var others: [Int] = []
-        var i = lo
+        var i = lowerBound(loweredQuery)
         while i < sortedIndices.count {
             let idx = Int(sortedIndices[i])
             let kw = keywords[idx].keyword
@@ -272,6 +480,33 @@ internal final class MDXParser {
             i += 1
         }
         return exact.sorted() + others.sorted()
+    }
+
+    /// Indices, in dictionary order, of every key whose lowercased form
+    /// equals `lowered` — whether or not the dictionary is case-sensitive.
+    private func lowercaseMatchIndices(_ lowered: String) -> [Int] {
+        var result: [Int] = []
+        var i = lowerBound(lowered)
+        while i < sortedIndices.count {
+            let idx = Int(sortedIndices[i])
+            guard keywords[idx].keyword.lowercased() == lowered else { break }
+            result.append(idx)
+            i += 1
+        }
+        return result.sorted()
+    }
+
+    /// The first `sortedIndices` position whose lowercased keyword is not
+    /// less than `lowered`.
+    private func lowerBound(_ lowered: String) -> Int {
+        var lo = 0
+        var hi = sortedIndices.count
+        while lo < hi {
+            let mid = (lo + hi) >> 1
+            let mk = keywords[Int(sortedIndices[mid])].keyword.lowercased()
+            if mk < lowered { lo = mid + 1 } else { hi = mid }
+        }
+        return lo
     }
 
     /// Internal lookup with redirect following.
@@ -405,11 +640,42 @@ internal final class MDXParser {
     /// in their on-disk layout, `sortedIndices` is built by us during slow-path
     /// parsing (or loaded from sidecar) so binary search is always safe.
     ///
+    /// When no key starts with `prefix`, the search is repeated with
+    /// full-width ASCII read as ASCII, then ignoring case and diacritics
+    /// (`LookupFolding.folded`) — the word list's counterpart of the lookup
+    /// fallbacks. A search that finds keys does no extra work.
+    ///
     /// - Parameters:
     ///   - prefix: Prefix to search for
     ///   - limit: Maximum results (default 20)
+    ///   - waitsForSetup: As in `lookupAllWithFallbacks`.
     /// - Returns: Array of matching keywords (original case preserved)
-    func search(prefix: String, limit: Int = 20) -> [String] {
+    func search(prefix: String, limit: Int = 20, waitsForSetup: Bool = true) -> [String] {
+        searchWithFallback(prefix: prefix, limit: limit, waitsForSetup: waitsForSetup).keys
+    }
+
+    /// `search(prefix:limit:waitsForSetup:)`, saying which fallback found
+    /// the keys (nil for keys that start with the prefix as typed, composed;
+    /// a prefix is not trimmed — its trailing space selects the keys with
+    /// one). `fallbacks` limits the fallbacks tried, as in
+    /// `lookupAllWithFallbacks`; the diacritic fallback is skipped when the
+    /// folded-key index is not available.
+    func searchWithFallback(prefix query: String, limit: Int = 20, waitsForSetup: Bool = true,
+                            fallbacks: MDictLookupFallbacks = .all) -> (keys: [String], fallback: MDictLookupFallback?) {
+        let prefix = query.precomposedStringWithCanonicalMapping
+        let plain = searchAnyApostrophe(prefix: prefix, limit: limit)
+        guard plain.isEmpty, !prefix.isEmpty, fallbacks != .none else { return (plain, nil) }
+        let narrow = LookupFolding.widthFolded(prefix)
+        if narrow != prefix {
+            let found = searchAnyApostrophe(prefix: narrow, limit: limit)
+            if !found.isEmpty { return (found, .widthFolded) }
+        }
+        guard fallbacks == .all else { return ([], nil) }
+        let folded = searchFolded(prefix: narrow, limit: limit, waitsForSetup: waitsForSetup)
+        return (folded, folded.isEmpty ? nil : .diacriticInsensitive)
+    }
+
+    private func searchAnyApostrophe(prefix: String, limit: Int) -> [String] {
         let variants = ApostropheVariants.of(prefix)
         guard variants.count > 1 else { return searchExact(prefix: prefix, limit: limit) }
         // Keys may use either apostrophe: merge, in key order.
@@ -422,39 +688,52 @@ internal final class MDXParser {
 
     private func searchExact(prefix: String, limit: Int) -> [String] {
         guard !prefix.isEmpty else { return [] }
-        let loweredPrefix = prefix.lowercased()
-
-        // Binary search for first sortedIndices position whose
-        // lowercased(keyword) >= loweredPrefix.
-        var lo = 0
-        var hi = sortedIndices.count
-        while lo < hi {
-            let mid = (lo + hi) >> 1
-            let mk = keywords[Int(sortedIndices[mid])].keyword.lowercased()
-            if mk < loweredPrefix { lo = mid + 1 } else { hi = mid }
-        }
-
-        var results: [String] = []
-        results.reserveCapacity(min(limit, 100))
+        // Honour case-sensitive semantics: a case-sensitive dictionary only
+        // matches keys with the prefix as typed.
         let caseSensitive = header.keyCaseSensitive
+        return prefixIndices(lowered: prefix.lowercased(), limit: limit) { kw in
+            !caseSensitive || kw.hasPrefix(prefix)
+        }.map { keywords[$0].keyword }
+    }
 
-        var i = lo
-        while i < sortedIndices.count {
-            let kw = keywords[Int(sortedIndices[i])].keyword
-            let lowerKw = kw.lowercased()
-            // Stop as soon as we leave the prefix range.
-            guard lowerKw.hasPrefix(loweredPrefix) else { break }
-
-            if caseSensitive {
-                // Honour original case-sensitive semantics.
-                if kw.hasPrefix(prefix) {
-                    results.append(kw)
-                    if results.count >= limit { break }
-                }
-            } else {
-                results.append(kw)
-                if results.count >= limit { break }
+    /// Keys starting with `prefix` ignoring case, width and the diacritics
+    /// the prefix lacks (`LookupFolding.MarkPattern`), in folded order;
+    /// none when the folded-key index is not available.
+    private func searchFolded(prefix: String, limit: Int, waitsForSetup: Bool) -> [String] {
+        guard let markedKeys = foldedKeyIndex(waits: waitsForSetup) else { return [] }
+        var seen = Set<Int>()
+        var matches: [(folded: String, index: Int)] = []
+        for variant in ApostropheVariants.of(prefix) {
+            let folded = LookupFolding.folded(variant)
+            guard !folded.isEmpty else { continue }
+            let marks = LookupFolding.MarkPattern(variant)
+            let unmarked = marks.hasMarks ? [] : prefixIndices(lowered: folded, limit: limit)
+            let marked = markedKeys.matches(folded, prefix: true, limit: limit, keyAt: { keywords[$0].keyword },
+                                            accept: { marks.admits(keywords[$0].keyword, prefix: true) })
+            for idx in unmarked + marked where seen.insert(idx).inserted {
+                matches.append((LookupFolding.folded(keywords[idx].keyword), idx))
             }
+        }
+        matches.sort { $0.folded != $1.folded ? $0.folded < $1.folded : $0.index < $1.index }
+        return matches.prefix(limit).map { keywords[$0.index].keyword }
+    }
+
+    /// Indices, in lowercase order, of up to `limit` keys whose lowercased
+    /// form starts with `loweredPrefix` and that pass `accept`.
+    ///
+    /// Binary search over `sortedIndices` (sorted by lowercased keyword)
+    /// locates the first match in O(log n); the scan stops as soon as the
+    /// keys leave the prefix range.
+    private func prefixIndices(lowered loweredPrefix: String, limit: Int,
+                               accept: (String) -> Bool = { _ in true }) -> [Int] {
+        var results: [Int] = []
+        results.reserveCapacity(min(limit, 100))
+        var i = lowerBound(loweredPrefix)
+        while i < sortedIndices.count, results.count < limit {
+            let idx = Int(sortedIndices[i])
+            let kw = keywords[idx].keyword
+            guard kw.lowercased().hasPrefix(loweredPrefix) else { break }
+            if accept(kw) { results.append(idx) }
             i += 1
         }
         return results
@@ -472,12 +751,12 @@ internal final class MDXParser {
     ///   - keyword: The word to find suggestions for
     ///   - limit: Maximum suggestions
     /// - Returns: Array of similar keywords, closest matches first
-    func suggestions(for keyword: String, limit: Int = 5) -> [ScoredSuggestion] {
+    func suggestions(for keyword: String, limit: Int = 5, waitsForSetup: Bool = true) -> [ScoredSuggestion] {
         let lower = keyword.lowercased()
         let keyLen = lower.count
 
         guard keyLen >= 2 else {
-            return search(prefix: keyword, limit: limit)
+            return search(prefix: keyword, limit: limit, waitsForSetup: waitsForSetup)
                 .map { ScoredSuggestion(word: $0, distance: levenshteinDistance(lower, $0.lowercased())) }
         }
 
@@ -490,7 +769,7 @@ internal final class MDXParser {
 
         for prefixLen in stride(from: maxPrefixLen, through: 1, by: -1) {
             let prefix = String(lower.prefix(prefixLen))
-            for match in search(prefix: prefix, limit: candidateLimit) {
+            for match in search(prefix: prefix, limit: candidateLimit, waitsForSetup: waitsForSetup) {
                 let key = match.lowercased()
                 if seen.insert(key).inserted {
                     candidates.append(match)

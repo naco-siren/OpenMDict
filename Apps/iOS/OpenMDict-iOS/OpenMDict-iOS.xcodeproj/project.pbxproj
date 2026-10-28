@@ -136,6 +136,7 @@
 		F80DBFA72F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF552F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-cedict-zh-en", ); }; };
 		F80DBFA82F4A7B9D00ED2985 /* WikDict-ES-FR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF772F4A7B9D00ED2985 /* WikDict-ES-FR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-es-fr", ); }; };
 		F80DBFA92F4A7B9D00ED2985 /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF672F4A7B9D00ED2985 /* preset-dictionaries.json */; };
+		F8A1C0DE2FA0000100A1C0DE /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF672F4A7B9D00ED2985 /* preset-dictionaries.json */; };
 		F80DBFAA2F4A7B9D00ED2985 /* Bible-Almeida-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF452F4A7B9D00ED2985 /* Bible-Almeida-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-bible-almeida-pt", ); }; };
 		F835C6222F3C5E2D00A22FB5 /* OpenMDict.icon in Resources */ = {isa = PBXBuildFile; fileRef = F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */; };
 		F8B101012F70AB0000B10101 /* OpenMDict-West.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100012F70AB0000B10001 /* OpenMDict-West.icon */; };
@@ -380,6 +381,7 @@
 				Services/Lemma/EnglishInflectionRules.swift,
 				Services/Lemma/InflectionRules.swift,
 				Services/Lemma/LemmaResolver.swift,
+				Services/Lemma/PresetHeadwordLanguages.swift,
 				Services/LookupCountService.swift,
 				Services/LookupHistoryService.swift,
 				"Services/Persistence/ArticleIndexRecord+CoreDataClass.swift",
@@ -1006,6 +1008,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8A1C0DE2FA0000100A1C0DE /* preset-dictionaries.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -73,6 +73,17 @@ public enum MDictSidecarCache {
     /// that does not care about delaying writes.
     public nonisolated(unsafe) static var writeMode: SidecarWriteMode = .immediate
 
+    /// Whether a lookup or search that needs the folded-key index behind
+    /// diacritic-insensitive matching may build it when no saved copy
+    /// (`<sha256>.fold`, see `MDictReader.saveFoldedKeyIndexIfNeeded`) is
+    /// beside the sidecar. Set false in short-lived processes such as the
+    /// Action Extension: they read the copies the app saved and, for a
+    /// dictionary without one, skip diacritic-insensitive matching instead
+    /// of building an index they would throw away (up to a tenth of a second
+    /// per dictionary). `MDictReader.prepareFoldedKeyIndex()` builds
+    /// regardless. Set once at launch, like `writeMode`.
+    public nonisolated(unsafe) static var buildsFoldedKeyIndexes = true
+
     /// Construct the sidecar URL for a given header SHA256, or `nil` if
     /// the cache is disabled.
     public static func sidecarURL(forHeaderSHA256 sha256: String) -> URL? {
@@ -511,6 +522,106 @@ internal enum SidecarWriter {
         } else {
             try FileManager.default.moveItem(at: tmpURL, to: url)
         }
+    }
+}
+
+// MARK: - Folded-key index file
+
+/// The folded-key index (`FoldedKeyIndex`) of a dictionary, saved next to
+/// its sidecar as `<sha256>.fold` — when a lookup first builds it, or by the
+/// host app's background pass (`MDictReader.saveFoldedKeyIndexIfNeeded`) —
+/// so later launches and the extensions, which never write, read it instead
+/// of building it again. A separate file, so the sidecar format and its fast
+/// path are unchanged.
+///
+/// Layout (little-endian):
+///
+/// ```
+/// Header (64 bytes):
+///   [0..4]    magic = "MDFX"
+///   [4..8]    formatVersion       UInt32  (bump when the folding changes)
+///   [8..16]   sourceFileSize      UInt64  ┐
+///   [16..24]  sourceMTimeNanos    Int64   │ same identity as the sidecar
+///   [24..56]  sourceHeaderSHA256  32 bytes┘
+///   [56..60]  keywordCount        UInt32
+///   [60..64]  indexCount          UInt32
+/// Indices (indexCount × 4 bytes): FoldedKeyIndex.indices
+/// ```
+internal enum FoldedIndexFile {
+    /// 'M','D','F','X' read as little-endian.
+    static let magicLE: UInt32 = 0x5846444D
+    static let formatVersion: UInt32 = 1
+    static let headerSize = 64
+
+    static func url(forSidecar sidecarURL: URL) -> URL {
+        sidecarURL.deletingPathExtension().appendingPathExtension("fold")
+    }
+
+    /// The number of indices a file with this header and `fileSize` holds,
+    /// or nil if it is from another version or source, or truncated.
+    private static func indexCount(header data: Data, fileSize: Int, identity: SidecarSourceIdentity,
+                                   keywordCount: Int) -> Int? {
+        guard data.count >= headerSize,
+              data.readUInt32LE(at: 0) == magicLE,
+              data.readUInt32LE(at: 4) == formatVersion,
+              data.readUInt64LE(at: 8) == identity.fileSize,
+              Int64(bitPattern: data.readUInt64LE(at: 16)) == identity.mtimeNanos,
+              data.subdata(in: 24..<56) == identity.headerSHA256,
+              Int(data.readUInt32LE(at: 56)) == keywordCount else {
+            return nil
+        }
+        let count = Int(data.readUInt32LE(at: 60))
+        return fileSize == headerSize + count * 4 ? count : nil
+    }
+
+    /// Whether a saved index for this source is at `url`, checking the
+    /// header only.
+    static func hasValidCopy(at url: URL, identity: SidecarSourceIdentity, keywordCount: Int) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let header = try? handle.read(upToCount: headerSize),
+              let size = try? handle.seekToEnd() else { return false }
+        return indexCount(header: header, fileSize: Int(size), identity: identity, keywordCount: keywordCount) != nil
+    }
+
+    /// The saved index, or nil if the file is missing, from another version
+    /// or source, or damaged.
+    static func load(from url: URL, identity: SidecarSourceIdentity, keywordCount: Int) -> FoldedKeyIndex? {
+        guard let data = try? Data(contentsOf: url, options: .alwaysMapped),
+              let count = indexCount(header: data, fileSize: data.count, identity: identity,
+                                     keywordCount: keywordCount) else {
+            return nil
+        }
+        var indices: [UInt32] = []
+        indices.reserveCapacity(count)
+        let valid = data.withUnsafeBytes { raw -> Bool in
+            for i in 0..<count {
+                let value = UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: headerSize + i * 4, as: UInt32.self))
+                guard Int(value) < keywordCount else { return false }
+                indices.append(value)
+            }
+            return true
+        }
+        return valid ? FoldedKeyIndex(indices: indices) : nil
+    }
+
+    /// Atomic write (temporary file, then rename).
+    static func write(_ index: FoldedKeyIndex, to url: URL, identity: SidecarSourceIdentity,
+                      keywordCount: Int) throws {
+        var out = Data(count: headerSize + index.indices.count * 4)
+        out.writeUInt32LE(magicLE, at: 0)
+        out.writeUInt32LE(formatVersion, at: 4)
+        out.writeUInt64LE(identity.fileSize, at: 8)
+        out.writeUInt64LE(UInt64(bitPattern: identity.mtimeNanos), at: 16)
+        out.replaceSubrange(24..<56, with: identity.headerSHA256)
+        out.writeUInt32LE(UInt32(keywordCount), at: 56)
+        out.writeUInt32LE(UInt32(index.indices.count), at: 60)
+        for (i, value) in index.indices.enumerated() {
+            out.writeUInt32LE(value, at: headerSize + i * 4)
+        }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                 withIntermediateDirectories: true)
+        try out.write(to: url, options: .atomic)
     }
 }
 
