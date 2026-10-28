@@ -147,10 +147,10 @@ notices`).
 
 - **Bible — King James Version** -- Public domain outside the United Kingdom. In the UK the King James Version is under perpetual Crown copyright: printing requires letters patent (held by Cambridge University Press, Oxford University Press and Collins), as the eBible.org eng-kjv rights statement notes.
 - **Bíblia Sagrada — Almeida** -- Text: João Ferreira de Almeida translation, marked Public Domain by Open Bibles (por-almeida).
-- **口語訳聖書** -- Public domain in Japan: a work published in the name of the Japan Bible Society (NT 1954, OT 1955) whose 50-year term ended in 2005.
+- **口語訳聖書** -- Text: Japanese Colloquial Bible (口語訳; Japan Bible Society, NT 1954, OT 1955), marked Public Domain by Open Bibles (jpn-kougo).
 - **新标点和合本圣经（简体）** -- Text: Chinese Union Version with New Punctuation (新标点和合本, 1988), marked Public Domain by eBible.org (cmn-cu89s).
 - **新標點和合本聖經（繁體）** -- Text: Chinese Union Version with New Punctuation (新標點和合本, 1988), marked Public Domain by eBible.org (cmn-cu89t).
-- **성경 (개역한글)** -- Korean Revised Version (개역한글판, Korean Bible Society 1961); copyright term expired in Korea; distributed by CrossWire as Public Domain (KorRV 2.0.1).
+- **성경 (개역한글)** -- Text: Korean Revised Version (개역한글판; Korean Bible Society, 1961), distributed as Public Domain by CrossWire (KorRV 2.0.1).
 
 ### Source notices
 
