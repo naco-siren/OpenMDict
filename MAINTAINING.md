@@ -43,7 +43,7 @@ the four is caught before it reaches `main`.
 | `scripts/relink-project-assets.rb [--sync] [--dry-run] [--project PATH]` | Rewrite the pbxproj (defaults to the iOS app project) so every asset reference is relative (`SOURCE_ROOT`), never absolute. `--sync` additionally adds/removes `.mdx` references and `ASSET_TAGS` to match the catalog and merges `KnownAssetTags`. `--dry-run` prints what would change. Idempotent. |
 | `scripts/precompile-article-embed-model.sh` | `.mlpackage → .mlmodelc` with `xcrun coremlcompiler` (invoked by bootstrap when needed). |
 | `preset-dicts/scripts/fetch_data.sh [--refresh] [source…]` | Download the source data into `preset-dicts/data/`. Every input is pinned to a versioned URL or commit and its SHA-256; a mismatch is an error, except for the upstreams that only serve their latest release (warning). One failing source does not stop the others. `--refresh` also downloads the current JMdict / KANJIDIC2 releases. |
-| `preset-dicts/scripts/generate_preset_catalog.py [--check]` (`make catalog` / `make check-catalog`) | Regenerate the catalog: descriptive fields from the `.meta.json` sidecars, `sha256` / `sizeBytes` / `entries` measured from the `.mdx` files, `licenseNote` and the `previousSha256` history kept. Prints the diff field by field; `--check` exits 1 on any drift instead of writing. |
+| `preset-dicts/scripts/generate_preset_catalog.py [--check]` (`make catalog` / `make check-catalog`) | Regenerate the catalog: descriptive fields from the `.meta.json` sidecars, `sha256` / `sizeBytes` / `entries` / `headwords` measured from the `.mdx` files, `licenseNote` and the `previousSha256` history kept. Prints the diff field by field; `--check` exits 1 on any drift instead of writing. |
 | `preset-dicts/scripts/gen_third_party_notices.py [--check]` (`make notices`) | Regenerate the preset-dictionary part of `THIRD-PARTY-NOTICES.md` (table, license notes, per-source notices, license list) from the catalog. |
 | `preset-dicts/scripts/sync_catalog_with_output.py [--check] [--openmdict PATH]` | Make the catalog's `sha256` (recording the replaced hash in `previousSha256`), `sizeBytes` and, with `--openmdict`, `entries` match the `.mdx` files on disk without the sidecars (for example after `bootstrap-assets.sh`); also refreshes `output/manifest.json`. |
 
@@ -110,7 +110,8 @@ neither the current hash nor duplicates.
 `.meta.json` sidecars (display name, description, direction, flag, SPDX
 license, data source, tier) and from the `.mdx` files (`sha256`,
 `sizeBytes`, `entries` = the key count in the MDX header, the same number
-the `openmdict` CLI prints). It keeps `licenseNote` and `previousSha256`,
+the `openmdict` CLI prints, `headwords` = the records that are not
+`@@@LINK=` redirects, shown in the preset picker). It keeps `licenseNote` and `previousSha256`,
 refuses to drop a dictionary that has no sidecar, and fails on a license
 id or `dataSource` that `gen_third_party_notices.py` cannot attribute. Rows
 marked `!` in its diff (filename, flag, source, odrTag, tier, licenseNote)

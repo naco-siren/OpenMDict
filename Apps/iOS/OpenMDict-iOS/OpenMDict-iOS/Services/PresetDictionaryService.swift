@@ -45,7 +45,12 @@ struct PresetDictionary: Codable, Identifiable {
     /// - Bilingual:      `{src: "EN", dest: ["EN", "ZH"]}` (future)
     let direction: Direction
 
+    /// Number of lookup keys, including alternative spellings, inflected
+    /// forms and other redirects.
     let entries: Int
+    /// Number of articles (records that are not redirects). Optional:
+    /// catalogs before 2026-10 had none.
+    let headwords: Int?
     let sizeBytes: Int64
     /// SHA-256 of the MDX file this app ships. Optional: catalogs before
     /// 2026-10 had no hash.
