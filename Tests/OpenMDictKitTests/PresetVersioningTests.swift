@@ -84,6 +84,25 @@ struct PresetVersioningTests {
         #expect(!PresetVersioning.isKnownBuild(Self.userImport, latestSha256: Self.v1, previousSha256: [Self.v0]))
         #expect(!PresetVersioning.isKnownBuild(Self.userImport, latestSha256: nil, previousSha256: []))
     }
+
+    @Test("An updated preset takes the new catalog name only when it has an earlier one")
+    func adoptedDisplayName() {
+        let previous = ["口語訳聖書"]
+        #expect(PresetVersioning.adoptedDisplayName(current: "口語訳聖書", catalogName: "文語訳聖書",
+                                                    previousNames: previous) == "文語訳聖書")
+        // Renamed by the user, or already the new name: kept.
+        #expect(PresetVersioning.adoptedDisplayName(current: "My Bible", catalogName: "文語訳聖書",
+                                                    previousNames: previous) == nil)
+        #expect(PresetVersioning.adoptedDisplayName(current: "文語訳聖書", catalogName: "文語訳聖書",
+                                                    previousNames: previous) == nil)
+        // No earlier names, no catalog name, no current name: nothing to do.
+        #expect(PresetVersioning.adoptedDisplayName(current: "口語訳聖書", catalogName: "文語訳聖書",
+                                                    previousNames: []) == nil)
+        #expect(PresetVersioning.adoptedDisplayName(current: "口語訳聖書", catalogName: nil,
+                                                    previousNames: previous) == nil)
+        #expect(PresetVersioning.adoptedDisplayName(current: nil, catalogName: "文語訳聖書",
+                                                    previousNames: previous) == nil)
+    }
 }
 
 @Suite

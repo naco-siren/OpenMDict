@@ -36,7 +36,7 @@ MANIFEST := preset-dictionaries.json
 
 # ── Individual dictionary targets ─────────────────────────────
 
-.PHONY: all catalog check-catalog notices list help \
+.PHONY: all catalog check-catalog notices descriptions list help \
         wordnet moby cedict jmdict gcide kanjidic2 unihan \
         perseus cccanto bible freedict kaikki wikdict wiktionary
 
@@ -109,6 +109,13 @@ check-catalog:
 notices:
 	@$(PYTHON) $(SCRIPTS)/gen_third_party_notices.py
 
+# ── Header descriptions (no build) ──────────────────────────────
+# Every build script exposes descriptions(); this writes the HTML each
+# dictionary's MDX header will carry to output/_descriptions/ (one file
+# per dictionary plus index.html) so the text can be reviewed first.
+descriptions:
+	@$(PYTHON) $(SCRIPTS)/preview_descriptions.py --out output/_descriptions
+
 # ── Utilities ─────────────────────────────────────────────────
 
 list:
@@ -118,5 +125,6 @@ list:
 	@echo "Catalog:     catalog        (regenerate preset-dictionaries.json, print the diff)"
 	@echo "             check-catalog  (fail if the catalog or notices are stale)"
 	@echo "Notices:     notices"
+	@echo "Preview:     descriptions   (write every header description to output/_descriptions/)"
 
 help: list

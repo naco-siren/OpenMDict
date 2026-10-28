@@ -15,15 +15,16 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 158675,
       "headwords": 153888,
-      "sizeBytes": 28356513,
+      "sizeBytes": 28356945,
       "license": "CC-BY-4.0 AND LicenseRef-WordNet-3.0",
       "dataSource": "Open English WordNet 2025+ (2025-edition release)",
       "source": "bundle",
       "tier": 0,
-      "sha256": "c7c986ca32d088d1f26d0880504d815a0ff5a5b6df4533785cc95b61fd2278bc",
+      "sha256": "8832fefcd740184ef8ea65317cd08aa84e8d516ce95b8f71dacb6586f3a4c4db",
       "previousSha256": [
         "74d116179a25142ecb93dc3a8df3b219cd4e4a31ba69db1d79f847ebc41dc6c8",
-        "1bde9ce8439f764a154935a052c7df6207582aedb1e2283827afd603366cf8f5"
+        "1bde9ce8439f764a154935a052c7df6207582aedb1e2283827afd603366cf8f5",
+        "c7c986ca32d088d1f26d0880504d815a0ff5a5b6df4533785cc95b61fd2278bc"
       ]
     },
     {
@@ -38,18 +39,20 @@
         ]
       },
       "flag": "🇬🇧🇺🇸",
-      "entries": 165711,
-      "headwords": 136570,
-      "sizeBytes": 24155212,
+      "entries": 165714,
+      "headwords": 136573,
+      "sizeBytes": 24156314,
       "license": "GPL-3.0-or-later",
       "dataSource": "GCIDE 0.53 (GNU Project)",
       "source": "odr",
       "odrTag": "preset-dict-gcide-en",
       "tier": 1,
-      "sha256": "9e1f47de33e258d6f16d2c1bbd993f5f9253794f73dc7bd44a53a3114ceef376",
+      "sha256": "0ee09e3c1639d2dd2ed166c736e73862f1db6a13cc7b9f6bd1562d008f03bc1d",
       "previousSha256": [
         "015cf5f036a00d095f6b8c32e852123522e0608ca16c4e04f650e18e7c286fe8",
-        "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a"
+        "607f45c787e2e2531e2219544f48d43582f97abca29da872216621dfd619ec0a",
+        "9e1f47de33e258d6f16d2c1bbd993f5f9253794f73dc7bd44a53a3114ceef376",
+        "afac7c0c4ff7ccee85a43aa3277982aae6bb7eb53d1e9abe613627e17ab7001d"
       ]
     },
     {
@@ -66,16 +69,17 @@
       "flag": "✝️",
       "entries": 110693,
       "headwords": 1189,
-      "sizeBytes": 2486140,
+      "sizeBytes": 2486736,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "gratis-bible (frdarb, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-darby-fr",
       "tier": 2,
-      "sha256": "5e87972d27fc8cd525cc55e546f7871bd048bc52c4439bf863ad9a539c3e3415",
+      "sha256": "7929ccbe749560cadac0273e7eca7704aa895896659716d3995c2db78c6ae03f",
       "previousSha256": [
         "9fb00d4f45c2207ceebce7b9b511cb8f5cc11d31b373cb220ba6d11716b5a9a4",
-        "4bec3f0bd57066954b3334dd5888e6d6382d006b76ed548a7af5d0013f5603d8"
+        "4bec3f0bd57066954b3334dd5888e6d6382d006b76ed548a7af5d0013f5603d8",
+        "5e87972d27fc8cd525cc55e546f7871bd048bc52c4439bf863ad9a539c3e3415"
       ]
     },
     {
@@ -92,16 +96,17 @@
       "flag": "✝️",
       "entries": 77616,
       "headwords": 1189,
-      "sizeBytes": 2247390,
+      "sizeBytes": 2247982,
       "license": "LicenseRef-Public-Domain",
       "licenseNote": "Public domain outside the United Kingdom. In the UK the King James Version is under perpetual Crown copyright: printing requires letters patent (held by Cambridge University Press, Oxford University Press and Collins), as the eBible.org eng-kjv rights statement notes.",
       "dataSource": "Open Bibles (eBible.org eng-kjv, OSIS XML)",
       "source": "bundle",
       "tier": 2,
-      "sha256": "513b1125f988f48088527852abdb290f82fe46cb056479f6eefeb9af9c8f7bc7",
+      "sha256": "2a46137f2d51d6904bd567d36138ba561884912d436617fdcc3e3ef4a12aad06",
       "previousSha256": [
         "365acb8b3e57e9d807d6d6c10d1ce8127dfddfcf086f99e57f30691522ed2840",
-        "a742abe2e2872506d4d72b4e0c470924c0a160c23564ca5fbee4e4772853a87a"
+        "a742abe2e2872506d4d72b4e0c470924c0a160c23564ca5fbee4e4772853a87a",
+        "513b1125f988f48088527852abdb290f82fe46cb056479f6eefeb9af9c8f7bc7"
       ]
     },
     {
@@ -118,23 +123,24 @@
       "flag": "✝️",
       "entries": 75574,
       "headwords": 1334,
-      "sizeBytes": 2441760,
+      "sizeBytes": 2442344,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "Open Bibles @f257a35 (lat-clementine, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-vulgate-la",
       "tier": 2,
-      "sha256": "e8713fc851aabe19642e3d69a2a920363ae0da54571799363ff9e29a15e20fbf",
+      "sha256": "01499b81f3c21d6974e168024a84446e04e8469d6c879d952c6ddb25ec281202",
       "previousSha256": [
         "1172b0a1956332b8067355bd44b066ff96b1c54849898496aacdf254aba2ac43",
-        "b7a059dbab1fc25260f506814a44a1bac298d059a7b3c5637c1d2102bd0549f1"
+        "b7a059dbab1fc25260f506814a44a1bac298d059a7b3c5637c1d2102bd0549f1",
+        "e8713fc851aabe19642e3d69a2a920363ae0da54571799363ff9e29a15e20fbf"
       ]
     },
     {
       "id": "bible-almeida-pt",
       "filename": "Bible-Almeida-PT.mdx",
-      "displayName": "Bíblia Sagrada — Almeida",
-      "description": "Bíblia Sagrada, tradução de João Ferreira de Almeida. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». Domínio público.",
+      "displayName": "Bíblia Sagrada — Almeida 1911",
+      "description": "Bíblia Sagrada, tradução de João Ferreira de Almeida, Revista e Corrigida (Lisboa, 1911), na grafia da edição. 66 livros, uma entrada por capítulo, pesquisa por «João 3:16». Domínio público nos EUA (Project Gutenberg).",
       "direction": {
         "src": "PT",
         "dest": [
@@ -142,19 +148,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 110379,
+      "entries": 149683,
       "headwords": 1189,
-      "sizeBytes": 2428863,
+      "sizeBytes": 2663050,
       "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: João Ferreira de Almeida translation, marked Public Domain by Open Bibles (por-almeida).",
-      "dataSource": "Open Bibles @f257a35 (por-almeida, USFX XML)",
+      "licenseNote": "Text: João Ferreira d’Almeida, Revista e Corrigida (Lisbon, 1911 printing of the 1900 edition), from Project Gutenberg eBook #62383, labelled “Public domain in the USA” there; Markdown structuring by mazza/biblia-arc1911 (CC0 1.0).",
+      "dataSource": "Project Gutenberg #62383 via mazza/biblia-arc1911 @eda2823 (Markdown)",
       "source": "odr",
       "odrTag": "preset-dict-bible-almeida-pt",
       "tier": 2,
-      "sha256": "df93f885860d7c79800ee368b3103aa855b85cc32d6b6a30b6f46688fac45f2d",
+      "sha256": "70b3be3cb4b328239337b5c74c87835c632650b2012bf9a4a09c2f4f4fb2d922",
       "previousSha256": [
         "58ef46264af40fc3debf05fd0e1ae6ffb911e3f2e31506847e7b947e4feb0480",
-        "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa"
+        "1ba5fd00271ec3e7a7815541487bc094691e2ad88bb3cd8fdb1f406651febefa",
+        "df93f885860d7c79800ee368b3103aa855b85cc32d6b6a30b6f46688fac45f2d",
+        "26be672141b7eb83df513f43b2c15b98e8579d4a37c18925ba61c382cfc2d3a2"
+      ],
+      "previousDisplayNames": [
+        "Bíblia Sagrada — Almeida"
       ]
     },
     {
@@ -171,16 +182,17 @@
       "flag": "🇨🇳🇹🇼",
       "entries": 201487,
       "headwords": 120538,
-      "sizeBytes": 11379640,
+      "sizeBytes": 11379944,
       "license": "CC-BY-SA-4.0",
       "dataSource": "CC-CEDICT",
       "source": "odr",
       "odrTag": "preset-dict-cedict-zh-en",
       "tier": 2,
-      "sha256": "c0e56fddc70d0d3c76e05a742d07c7bd918798677ccccf3a89808b15b74fe44a",
+      "sha256": "d85218d2f19338a49bf20c3743760a3d79aee85c24e52ab0390fb868678b1638",
       "previousSha256": [
         "a210e7bb4a234c3a5ed5bd160495383e0adf3c3db77b19fadf7a7d37ae937a0c",
-        "045adcb59119066a04f4ac70607fb26783aac842e954d6f446155761b042902f"
+        "045adcb59119066a04f4ac70607fb26783aac842e954d6f446155761b042902f",
+        "c0e56fddc70d0d3c76e05a742d07c7bd918798677ccccf3a89808b15b74fe44a"
       ]
     },
     {
@@ -197,15 +209,16 @@
       "flag": "🇭🇰🇨🇳",
       "entries": 122875,
       "headwords": 30768,
-      "sizeBytes": 4406698,
+      "sizeBytes": 4407108,
       "license": "CC-BY-SA-3.0",
       "dataSource": "CC-Canto (Pleco Inc.)",
       "source": "odr",
       "odrTag": "preset-dict-cc-canto-yue-en",
       "tier": 2,
-      "sha256": "a9a24615d54b4d260a57ac0ac55816b78a45efca5c88d510699c25cbc3da0892",
+      "sha256": "294547b34f35fa72d9ea97bc50e67f719a86bbb1edc913fe4e25dbaac743a29e",
       "previousSha256": [
-        "b74398d12e064691ec801ff90f7b82073a1bef065b190b621238a532bccc0acd"
+        "b74398d12e064691ec801ff90f7b82073a1bef065b190b621238a532bccc0acd",
+        "a9a24615d54b4d260a57ac0ac55816b78a45efca5c88d510699c25cbc3da0892"
       ]
     },
     {
@@ -220,25 +233,27 @@
         ]
       },
       "flag": "🇯🇵",
-      "entries": 583290,
-      "headwords": 223713,
-      "sizeBytes": 40476076,
+      "entries": 583434,
+      "headwords": 223764,
+      "sizeBytes": 40478641,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "JMdict (EDRDG), release 2026-10-18; pitch accents from Kanjium (Uros O.)",
+      "dataSource": "JMdict (EDRDG), release 2026-10-28; pitch accents from Kanjium (Uros O.)",
       "source": "odr",
       "odrTag": "preset-dict-jmdict-ja-en",
       "tier": 2,
-      "sha256": "4633a61735f652a0b73bb54bed8d488926d703383622a9fd46e23f7d25fd1d79",
+      "sha256": "a85fb26bdf2b4516d84c675553ad1b0e5cb8d82f72bd8bd794da5c725717febf",
       "previousSha256": [
         "cd129c12f5cf94f897a8c56a6f4442d8a4c2c6cd2bb08d7a76592f1f8223211d",
-        "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f"
+        "6145348d9c4a6d1b0ad0e7a6d8590d83f0345a4f39e9ab548f5575b618b8e96f",
+        "4633a61735f652a0b73bb54bed8d488926d703383622a9fd46e23f7d25fd1d79",
+        "352fd40d385f09ebdf626a53e1381bc952faccc74a00c58b8be584f181f17155"
       ]
     },
     {
       "id": "kanjidic2-ja",
       "filename": "KANJIDIC2-JA.mdx",
       "displayName": "KANJIDIC2 漢字",
-      "description": "13,108 kanji with stroke counts, radicals, on/kun/pinyin/Korean/Vietnamese readings, English meanings, school grade, former JLPT level and variant links. KANJIDIC2 2026-291.",
+      "description": "13,108 kanji with stroke counts, radicals, on/kun/pinyin/Korean/Vietnamese readings, English meanings, school grade, former JLPT level and variant links. KANJIDIC2 2026-301.",
       "direction": {
         "src": "JA",
         "dest": [
@@ -248,15 +263,17 @@
       "flag": "🇯🇵",
       "entries": 13108,
       "headwords": 13108,
-      "sizeBytes": 1935419,
+      "sizeBytes": 1935817,
       "license": "CC-BY-SA-4.0",
-      "dataSource": "KANJIDIC2 (EDRDG), database version 2026-291",
+      "dataSource": "KANJIDIC2 (EDRDG), database version 2026-301",
       "source": "odr",
       "odrTag": "preset-dict-kanjidic2-ja",
       "tier": 2,
-      "sha256": "22d9078b9f4fe6b366bbe2528b5abf204ce22d3829b20935881e24ffe7d2e031",
+      "sha256": "b639c57173b61fae93949a17fb8d088da046adb900d1a1c27170481641f7978f",
       "previousSha256": [
-        "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a"
+        "0adf1ca897424ccdc2d8d94e7258456c26a4b36539a27b939afc6ad62ea87e3a",
+        "22d9078b9f4fe6b366bbe2528b5abf204ce22d3829b20935881e24ffe7d2e031",
+        "0a436d202ce139032c6d026d2f9bdb84bf1c97f74a6460b152dcd32bc0a79cee"
       ]
     },
     {
@@ -273,16 +290,17 @@
       "flag": "✝️",
       "entries": 108746,
       "headwords": 1189,
-      "sizeBytes": 2495490,
+      "sizeBytes": 2496072,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "gratis-bible (itadio, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-diodati-it",
       "tier": 2,
-      "sha256": "6c91587b23c73aad38be492c86c77c9598a238ca408920661e0fd67fac605a8c",
+      "sha256": "048f50dac28fee7a5b17c6f2d7616975e9bb272a17c67b62da52fcb47f824873",
       "previousSha256": [
         "7cf6b9a49908b4a41fcb392c7fde19f9a37176bdbf5e301c34d4a97e98af72bc",
-        "00dbab7fc6d431fb7a2a90e4c1274cdfbf52747450dce9499a8b1ab6f594b0d8"
+        "00dbab7fc6d431fb7a2a90e4c1274cdfbf52747450dce9499a8b1ab6f594b0d8",
+        "6c91587b23c73aad38be492c86c77c9598a238ca408920661e0fd67fac605a8c"
       ]
     },
     {
@@ -299,16 +317,17 @@
       "flag": "✝️",
       "entries": 150365,
       "headwords": 1189,
-      "sizeBytes": 2639308,
+      "sizeBytes": 2639896,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "Open Bibles (deu-luther1912, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-luther1912-de",
       "tier": 2,
-      "sha256": "ec01943558262c43f70fcec8c6c0e4648a1373dcb09979be07dc06025d431f7d",
+      "sha256": "fab781f1baa4a87a7b2358ae076fb3eddb2ae2b4509395520c7bc09c8340e001",
       "previousSha256": [
         "29c50594e2387a6a199618bf9701190895665b1d4b0b3d0a781c9c74ffb8f503",
-        "8b47bdb9a41bb79cfdd578936e687d6b7a23170c257ea297f967a74c811a1aa7"
+        "8b47bdb9a41bb79cfdd578936e687d6b7a23170c257ea297f967a74c811a1aa7",
+        "ec01943558262c43f70fcec8c6c0e4648a1373dcb09979be07dc06025d431f7d"
       ]
     },
     {
@@ -325,16 +344,17 @@
       "flag": "✝️",
       "entries": 110173,
       "headwords": 1189,
-      "sizeBytes": 2418707,
+      "sizeBytes": 2419315,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "Open Bibles (eBible.org spaRV1909, USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-rv1909-es",
       "tier": 2,
-      "sha256": "b943e29c20a0770df241b8276ba6eac0bfbeee078178e8ad63f793556ab72e20",
+      "sha256": "66e032da6de7b02ca6878550e8b02f5771e105f0021d65f721a3de4a2a9fa171",
       "previousSha256": [
         "a86fa119c3951b1ba3142b44aaffe840aa24c9bf1705d4a57b8bf238b0eaf1b0",
-        "9e8fa4ea46f44f4f6122d7c87f29d13b5724dd4ce87e84c1c4729eb20e6c2694"
+        "9e8fa4ea46f44f4f6122d7c87f29d13b5724dd4ce87e84c1c4729eb20e6c2694",
+        "b943e29c20a0770df241b8276ba6eac0bfbeee078178e8ad63f793556ab72e20"
       ]
     },
     {
@@ -351,16 +371,17 @@
       "flag": "✝️",
       "entries": 107543,
       "headwords": 1192,
-      "sizeBytes": 2724258,
+      "sizeBytes": 2724858,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "Open Bibles (rus-synodal, Zefania XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-synodal-ru",
       "tier": 2,
-      "sha256": "8e7751f132eb812578d6244b29affd1b10bf3bf374b42e816d096eb8e2c11224",
+      "sha256": "ffaadad26dd912097f9dfc2bba5f0139a0e275c0273e2acd830c593305f698b5",
       "previousSha256": [
         "1b02940d4d94010675cd7afb7716c6c22426f7e0a3cfbbd1f3feac97eb27a1fc",
-        "2acf6a7763af7a037de50ca54fce70c457ac5fe2e95028c20f494fb639c3bad0"
+        "2acf6a7763af7a037de50ca54fce70c457ac5fe2e95028c20f494fb639c3bad0",
+        "8e7751f132eb812578d6244b29affd1b10bf3bf374b42e816d096eb8e2c11224"
       ]
     },
     {
@@ -377,16 +398,17 @@
       "flag": "✝️",
       "entries": 107243,
       "headwords": 1189,
-      "sizeBytes": 2256788,
+      "sizeBytes": 2257650,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "gratis-bible (arasvd, OSIS XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-svd-ar",
       "tier": 2,
-      "sha256": "c246d4638968409f771c7e4483f7b50d0ea6c103a98c1bde2fe7378573a263c4",
+      "sha256": "90512600d4d75bef1f56ee886d53c6477667721d60fe35996552e6d6157c722f",
       "previousSha256": [
         "5681e6318db3a2044c0379f49318506a509fa64efb931e0aff9a89e2c1f327f8",
-        "76377fc2c736ecd434b93ad39c082961f8fe1b2548384a5add090bfdae826062"
+        "76377fc2c736ecd434b93ad39c082961f8fe1b2548384a5add090bfdae826062",
+        "c246d4638968409f771c7e4483f7b50d0ea6c103a98c1bde2fe7378573a263c4"
       ]
     },
     {
@@ -403,23 +425,88 @@
       "flag": "✝️",
       "entries": 38274,
       "headwords": 260,
-      "sizeBytes": 806444,
+      "sizeBytes": 807042,
       "license": "LicenseRef-Public-Domain",
       "dataSource": "eBible.org grcbyz (USFX XML)",
       "source": "odr",
       "odrTag": "preset-dict-bible-byzantine-grc",
       "tier": 2,
-      "sha256": "e2f1f7f786e4c3b6bbcc456a2b45e0801220005517e51b489d600c6606fb98e4",
+      "sha256": "4b500443e9112f06d4c1ed8509458f6a5c262ab84f3672885884319171bbafcf",
       "previousSha256": [
         "b7fe19c9e97d3ef287e4f9ff39c28795583823d3e87cfb09895258707609cf3f",
-        "3bdb30587a5af7464aec554d6bedc0b92941a8e331eb0356fefec9b6624125f3"
+        "3bdb30587a5af7464aec554d6bedc0b92941a8e331eb0356fefec9b6624125f3",
+        "e2f1f7f786e4c3b6bbcc456a2b45e0801220005517e51b489d600c6606fb98e4"
+      ]
+    },
+    {
+      "id": "bible-cuv-zh-hant",
+      "filename": "Bible-CUV-ZH-Hant.mdx",
+      "displayName": "官話和合譯本聖經（繁體）",
+      "description": "聖經官話和合譯本（1919，「神」版），繁體中文，66 卷，按章收錄，可查「約3:16」。公有領域（據維基文庫）。",
+      "direction": {
+        "src": "ZH",
+        "dest": [
+          "ZH"
+        ]
+      },
+      "flag": "✝️",
+      "entries": 148615,
+      "headwords": 1189,
+      "sizeBytes": 2531587,
+      "license": "LicenseRef-Public-Domain",
+      "licenseNote": "Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there.",
+      "dataSource": "Chinese Wikisource (聖經 (和合本), 66 pinned revisions)",
+      "source": "odr",
+      "odrTag": "preset-dict-bible-cuv-zh-hant",
+      "tier": 2,
+      "sha256": "7f43e703105dcfda893f45750da9f8d748118953fb36d5c0f0ffa80bd23787d7",
+      "previousSha256": [
+        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19",
+        "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c",
+        "4b5efc568ab4566b5704039f38203972813eb167833145331ef27a396b9a989b",
+        "6cbc0560d215db85ed5f76e82db2b7261cea876c27580b3b8847a2a23c723d7f"
+      ],
+      "previousDisplayNames": [
+        "新標點和合本聖經（繁體）"
+      ]
+    },
+    {
+      "id": "bible-cuv-zh-hans",
+      "filename": "Bible-CUV-ZH-Hans.mdx",
+      "displayName": "官话和合译本圣经（简体）",
+      "description": "圣经官话和合译本（1919，“神”版），简体中文（由繁体转换），66 卷，按章收录，可查“约3:16”。公有领域（据维基文库）。",
+      "direction": {
+        "src": "ZH",
+        "dest": [
+          "ZH"
+        ]
+      },
+      "flag": "✝️",
+      "entries": 148411,
+      "headwords": 1189,
+      "sizeBytes": 2525797,
+      "license": "LicenseRef-Public-Domain",
+      "licenseNote": "Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there; converted to Simplified Chinese with OpenCC.",
+      "dataSource": "Chinese Wikisource (聖經 (和合本), 66 pinned revisions; OpenCC 1.4.2 t2s)",
+      "source": "odr",
+      "odrTag": "preset-dict-bible-cuv-zh-hans",
+      "tier": 2,
+      "sha256": "048ff8bfa18ec693136dfddb4b76f522c7d40fbb9c7176a9b10853fcd8370b32",
+      "previousSha256": [
+        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d",
+        "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96",
+        "837948894bf487afd7e240fc2476b342a5ee2cbe59d22ef979d052efa0954729",
+        "76d40e4b577c0c2bf29360e0f070b699fe3d4cf2781e7bce702fc6b19d77aac3"
+      ],
+      "previousDisplayNames": [
+        "新标点和合本圣经（简体）"
       ]
     },
     {
       "id": "bible-kougo-ja",
       "filename": "Bible-Kougo-JA.mdx",
-      "displayName": "口語訳聖書",
-      "description": "口語訳聖書（1954/1955 年）。66 巻、章ごとの項目、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン（日本）。",
+      "displayName": "文語訳聖書",
+      "description": "文語訳聖書（明治元訳 旧約 1887 年・大正改訳 新約 1917 年）。66 巻、章ごとの項目、ルビ付き、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン（CrossWire の表示）。",
       "direction": {
         "src": "JA",
         "dest": [
@@ -427,73 +514,24 @@
         ]
       },
       "flag": "✝️",
-      "entries": 159205,
+      "entries": 214136,
       "headwords": 1189,
-      "sizeBytes": 2780640,
+      "sizeBytes": 4162797,
       "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: Japanese Colloquial Bible (口語訳; Japan Bible Society, NT 1954, OT 1955), marked Public Domain by Open Bibles (jpn-kougo).",
-      "dataSource": "Open Bibles (jpn-kougo, OSIS XML)",
+      "licenseNote": "Text: 文語訳 (明治元訳 Old Testament, 1887; 大正改訳 New Testament, 1917), from the CrossWire SWORD module JapBungo 2.0, distributed by CrossWire as Public Domain.",
+      "dataSource": "CrossWire SWORD JapBungo 2.0 (bible.salterrae.net)",
       "source": "odr",
       "odrTag": "preset-dict-bible-kougo-ja",
       "tier": 2,
-      "sha256": "29aa2f5fd1b9bcd9c4524005418bff9a2b80744e73764fd130917941784e9caf",
+      "sha256": "60fd081f2477eab6282cd70f907927624fcea8138d9005b06e2eb62dfffc3d1e",
       "previousSha256": [
         "305fc6d325c9f5f2795a38aee30576887b0704d5534c2128370607bd1b5e4abc",
-        "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3"
-      ]
-    },
-    {
-      "id": "bible-cuv-zh-hans",
-      "filename": "Bible-CUV-ZH-Hans.mdx",
-      "displayName": "新标点和合本圣经（简体）",
-      "description": "圣经新标点和合本（1919 年和合本的新式标点版，1988），简体中文，66 卷，按章收录，可查“约3:16”。公有领域（据 eBible.org）。",
-      "direction": {
-        "src": "ZH",
-        "dest": [
-          "ZH"
-        ]
-      },
-      "flag": "✝️",
-      "entries": 148394,
-      "headwords": 1189,
-      "sizeBytes": 2469687,
-      "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: Chinese Union Version with New Punctuation (新标点和合本, 1988), marked Public Domain by eBible.org (cmn-cu89s).",
-      "dataSource": "Open Bibles (eBible.org cmn-cu89s, USFX XML)",
-      "source": "odr",
-      "odrTag": "preset-dict-bible-cuv-zh-hans",
-      "tier": 2,
-      "sha256": "837948894bf487afd7e240fc2476b342a5ee2cbe59d22ef979d052efa0954729",
-      "previousSha256": [
-        "52d6fc499ff11b25f9bf8967163f51584bafa68b570ad5ab5af69063a5b4239d",
-        "ca141a5ad383d2864185f92b7b5a71fa6f5aef3baa752beb3b9f4224a1cadc96"
-      ]
-    },
-    {
-      "id": "bible-cuv-zh-hant",
-      "filename": "Bible-CUV-ZH-Hant.mdx",
-      "displayName": "新標點和合本聖經（繁體）",
-      "description": "聖經新標點和合本（1919 年和合本的新式標點版，1988），繁體中文，66 卷，按章收錄，可查「約3:16」。公有領域（據 eBible.org）。",
-      "direction": {
-        "src": "ZH",
-        "dest": [
-          "ZH"
-        ]
-      },
-      "flag": "✝️",
-      "entries": 148598,
-      "headwords": 1189,
-      "sizeBytes": 2475102,
-      "license": "LicenseRef-Public-Domain",
-      "licenseNote": "Text: Chinese Union Version with New Punctuation (新標點和合本, 1988), marked Public Domain by eBible.org (cmn-cu89t).",
-      "dataSource": "Open Bibles (eBible.org cmn-cu89t, USFX XML)",
-      "source": "odr",
-      "odrTag": "preset-dict-bible-cuv-zh-hant",
-      "tier": 2,
-      "sha256": "4b5efc568ab4566b5704039f38203972813eb167833145331ef27a396b9a989b",
-      "previousSha256": [
-        "7c2748ee4936d8c263a9d9c0e9f60e37469e84c5a6282ae490dcd049e19bcb19",
-        "9568f3faef3744252b84c4325748a830c7210d046d811b7cf77a242e42dc4f9c"
+        "3558cf0958f797c0b1a372cb42753d5b90545d257bd22c3ec3e3ea9b7048b9d3",
+        "29aa2f5fd1b9bcd9c4524005418bff9a2b80744e73764fd130917941784e9caf",
+        "43c7810198e5b063289ebf57b1811452be9f6d5cea471037e9974dd7aa5ff1b6"
+      ],
+      "previousDisplayNames": [
+        "口語訳聖書"
       ]
     },
     {
@@ -510,17 +548,18 @@
       "flag": "✝️",
       "entries": 142761,
       "headwords": 1189,
-      "sizeBytes": 2557479,
+      "sizeBytes": 2558011,
       "license": "LicenseRef-Public-Domain",
       "licenseNote": "Text: Korean Revised Version (개역한글판; Korean Bible Society, 1961), distributed as Public Domain by CrossWire (KorRV 2.0.1).",
       "dataSource": "CrossWire SWORD KorRV 2.0.1 (Wikisource)",
       "source": "odr",
       "odrTag": "preset-dict-bible-korean-ko",
       "tier": 2,
-      "sha256": "4be91e2ee2d57c2946dbf51629a48da2bc5cf4591e663e1a0f9b3d568da9c57a",
+      "sha256": "7073ff465c2f80df50dfa55a083562b9b84c8615daa194eafd617afd37a1ea4e",
       "previousSha256": [
         "c92e3d91045519060673190c4b1fff04b379bf93d38c76431b367990caa195ed",
-        "ccf24b60e144d1537859a5f1c36532175a54780da6a79a94ceee2e4ab250a20d"
+        "ccf24b60e144d1537859a5f1c36532175a54780da6a79a94ceee2e4ab250a20d",
+        "4be91e2ee2d57c2946dbf51629a48da2bc5cf4591e663e1a0f9b3d568da9c57a"
       ]
     },
     {
@@ -537,16 +576,18 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 394668,
       "headwords": 367566,
-      "sizeBytes": 54356825,
+      "sizeBytes": 54357519,
       "license": "GPL-3.0-or-later AND AGPL-3.0-or-later",
       "dataSource": "FreeDict eng-deu 1.9-fd1 (from the Ding dictionary, TU Chemnitz)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-en-de",
       "tier": 3,
-      "sha256": "3c92d2c3224f12f3f1d55b56d6e4468d4637c6d9315cc8902e4a36f8d1bf2877",
+      "sha256": "fa6bc9f2161d166c62093b9dc5db1ba31dff23efd6bc35830c07f3957043ba53",
       "previousSha256": [
         "b4cacb4bcf20f15e0ba753b68957a2077f2e7a39534096a542afe5e38f20a453",
-        "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330"
+        "f8967a15e8c10c96c80de8df33edd4063872c25aee61dba5cda5f651bb9ab330",
+        "3c92d2c3224f12f3f1d55b56d6e4468d4637c6d9315cc8902e4a36f8d1bf2877",
+        "eed15830918293c04600d4220ec89dd15eefeb38dcc9766cc1df493ed2b21500"
       ]
     },
     {
@@ -563,16 +604,18 @@
       "flag": "🇩🇪",
       "entries": 421991,
       "headwords": 385552,
-      "sizeBytes": 62380778,
+      "sizeBytes": 62381472,
       "license": "GPL-3.0-or-later AND AGPL-3.0-or-later",
       "dataSource": "FreeDict deu-eng 1.9-fd1 (from the Ding dictionary, TU Chemnitz)",
       "source": "odr",
       "odrTag": "preset-dict-freedict-de-en",
       "tier": 3,
-      "sha256": "6e1a6193b44c16ed9fb826958a87378e0d53fdcdda68d0a82eec2b0280dceab2",
+      "sha256": "3eaca9ab9ffa58ae31c8d6e1a299a607e3509511b18d077bdf948f80f86315be",
       "previousSha256": [
         "f74478c225e7d2b968026750489a5c8bfaf9ad4386bc4828af6e85a380919525",
-        "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be"
+        "8e3573aa114a13240c02f69680f59345b67dbfe0cd5b79c1d747b69d179cf2be",
+        "6e1a6193b44c16ed9fb826958a87378e0d53fdcdda68d0a82eec2b0280dceab2",
+        "3af1ce0c2cbae98665c3d32326a372441c133173644d855834c08d8ad034fa6b"
       ]
     },
     {
@@ -589,17 +632,18 @@
       "flag": "🇸🇦",
       "entries": 139385,
       "headwords": 21461,
-      "sizeBytes": 5481641,
+      "sizeBytes": 5482239,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ar-en",
       "tier": 3,
-      "sha256": "524794f87d686a52024b5c3643056088c206e21604ff2124754d2a42d6f7bb32",
+      "sha256": "42a084c23d68ef2af4550cc7609c110c20bee65c1ae8784c6496d611b49befef",
       "previousSha256": [
         "8df5148e152b07cc4f85128e79e0bbf6e330adac739663b888dd4d0a408eb088",
         "fdb991667cbe2acacd813bddd3b3a11526c90f4639cc8c2d25778811f3bbbdae",
-        "98c4c55ca6ea454878399a0aeb2d191e5ea7218789b4c73fe4da450aaba9f230"
+        "98c4c55ca6ea454878399a0aeb2d191e5ea7218789b4c73fe4da450aaba9f230",
+        "524794f87d686a52024b5c3643056088c206e21604ff2124754d2a42d6f7bb32"
       ]
     },
     {
@@ -616,17 +660,18 @@
       "flag": "🇫🇷",
       "entries": 399229,
       "headwords": 97341,
-      "sizeBytes": 13666660,
+      "sizeBytes": 13667258,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-fr-en",
       "tier": 3,
-      "sha256": "0e190f468f3b2340a0042a70a7b3b0942da087dbd2ec355416665c1869ecb2e2",
+      "sha256": "26267e19628814cbf9bc4ae3d0022c97c0cc8172ba016954a00cbaf7ab113c6b",
       "previousSha256": [
         "155dd2f9c82d6890bcbf6da65a4a651934757beccd298b38241e3df8812dce44",
         "8f6d88c31b79845a1afbe0f4dee4837545a678f6e9419d97268a6ad8520edc3d",
-        "52b8183f2a7868ea569057484189b39157ce708f287af0bbc0c1c1c4066cac3d"
+        "52b8183f2a7868ea569057484189b39157ce708f287af0bbc0c1c1c4066cac3d",
+        "0e190f468f3b2340a0042a70a7b3b0942da087dbd2ec355416665c1869ecb2e2"
       ]
     },
     {
@@ -643,17 +688,18 @@
       "flag": "🇬🇷",
       "entries": 506311,
       "headwords": 32666,
-      "sizeBytes": 7953626,
+      "sizeBytes": 7954222,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-el-en",
       "tier": 3,
-      "sha256": "6992b3db8e9274a410448f8a15aba4873561bf0e760c234060cde2acff08b772",
+      "sha256": "6cbf49031c4fb7b2593d55adc0a71853d8795f32fcdb0fb09ccc97f26411a00d",
       "previousSha256": [
         "2578340d187bb6269f3c985448ccb04c37f162037842f22c7794250bd82c3685",
         "3445e001f1089b5c9d4e575570d0454a894291595e3fee600400b4a79680dd91",
-        "6f459973b781b4ec3cdf59aad35e18625a91b9d87058d063d3d1f5f1c935412d"
+        "6f459973b781b4ec3cdf59aad35e18625a91b9d87058d063d3d1f5f1c935412d",
+        "6992b3db8e9274a410448f8a15aba4873561bf0e760c234060cde2acff08b772"
       ]
     },
     {
@@ -670,17 +716,18 @@
       "flag": "🇮🇹",
       "entries": 610689,
       "headwords": 162281,
-      "sizeBytes": 19424901,
+      "sizeBytes": 19425501,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-it-en",
       "tier": 3,
-      "sha256": "8a3e8e990f5dfffa8bb3623f29726b12b5f347eaf4e27dd3ef2c616e651e57f9",
+      "sha256": "d9f149bcf23e4c13d8267b92e3cd43e65a80057ced68d5c6d347346b11b52a4a",
       "previousSha256": [
         "1583bc74573f813b5b0ccc01269755182f81c3a2b47b54516328861e71c48be4",
         "8d03acbfb9cdf6b4c7b1bbeb47d6c4b2b8bbc730b23664bb9ac9cce4c9ca9b78",
-        "58a4de3004bf681cb0ace11c086d24296c420aef3e53625f3837b9388d16cbbe"
+        "58a4de3004bf681cb0ace11c086d24296c420aef3e53625f3837b9388d16cbbe",
+        "8a3e8e990f5dfffa8bb3623f29726b12b5f347eaf4e27dd3ef2c616e651e57f9"
       ]
     },
     {
@@ -697,17 +744,18 @@
       "flag": "🇰🇷",
       "entries": 336686,
       "headwords": 46344,
-      "sizeBytes": 7953308,
+      "sizeBytes": 7953906,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ko-en",
       "tier": 3,
-      "sha256": "7efc41d6c2e86ce69dfedccfc93f0bb914cae5dccbc4c65afdc0c72615a10d32",
+      "sha256": "b3fbeae557b3f03d1163502667bbb342863e14585fa1a60cf6cf6d7f44ec5dcb",
       "previousSha256": [
         "c0a431d2b93fdf3184cbf3f65429fe119361cef2b77edee9a01fe6645597af22",
         "c5e4d5a0a5a4870e08f362dcd840b717fda25a3133eba36e701154b3e93ad14f",
-        "f3d805c4db4412f8966473f03b42ac291a4b037ebbf4463a1ab890adcb7e346b"
+        "f3d805c4db4412f8966473f03b42ac291a4b037ebbf4463a1ab890adcb7e346b",
+        "7efc41d6c2e86ce69dfedccfc93f0bb914cae5dccbc4c65afdc0c72615a10d32"
       ]
     },
     {
@@ -724,17 +772,18 @@
       "flag": "🏛️",
       "entries": 1065269,
       "headwords": 52513,
-      "sizeBytes": 13823843,
+      "sizeBytes": 13824439,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-la-en",
       "tier": 3,
-      "sha256": "0475e62368a4d4489d5961fe0f37e83ae2d692237ef9b76785ebe34204cbc7bd",
+      "sha256": "e8c6678752dc264713e0fc5f0c1af69d90eeea476b7a1b19f15d2531285d486a",
       "previousSha256": [
         "8589681d1b5ee62b5aace69d249bf16337384544c8bc37aa7d9eac12cef4400c",
         "b0d9a414611b217c3d192793b9b353a3ba5f3168bab6211b4650eb2687feca94",
-        "ec222d54c10a3c86174a3d58c602d80d17ad57bf0dec6ec31fb7ff041d06c6ba"
+        "ec222d54c10a3c86174a3d58c602d80d17ad57bf0dec6ec31fb7ff041d06c6ba",
+        "0475e62368a4d4489d5961fe0f37e83ae2d692237ef9b76785ebe34204cbc7bd"
       ]
     },
     {
@@ -751,17 +800,18 @@
       "flag": "🇵🇹🇧🇷",
       "entries": 426435,
       "headwords": 79736,
-      "sizeBytes": 14447588,
+      "sizeBytes": 14448194,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-pt-en",
       "tier": 3,
-      "sha256": "01acbb700798f62d351bd845c9859b9f04bdae405a4213995519bf8f415dbf1f",
+      "sha256": "d830b04082161d7e82505b14582327ae714680499396a0f146bcd3ce667a5ded",
       "previousSha256": [
         "3d92863f9eaae5b28dc217586e24d00cb16a6b668b1d0192a4e4888b15480194",
         "4822ddf1a76a540e31cfb7bf71878b86d1bb15b613efe1f72003d0bc3b861831",
-        "a20442a66a652b962cd0b3915866945592e55aea97e5ae594abaddd433f3acf4"
+        "a20442a66a652b962cd0b3915866945592e55aea97e5ae594abaddd433f3acf4",
+        "01acbb700798f62d351bd845c9859b9f04bdae405a4213995519bf8f415dbf1f"
       ]
     },
     {
@@ -778,17 +828,18 @@
       "flag": "🇷🇺",
       "entries": 506079,
       "headwords": 60586,
-      "sizeBytes": 14054846,
+      "sizeBytes": 14055446,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-ru-en",
       "tier": 3,
-      "sha256": "19327731aedb2798edfd5bca0fc77c636e03e812ffc2e101d2c53a81a3d27a6f",
+      "sha256": "a51d630f6af382a3dad07a9bb66b7825d3f62771363f43a669ccf39513cc0017",
       "previousSha256": [
         "60b01b43167aee21497b13a0e5e40910475ebfa1b0d90e0c713e1df21ca9dd6b",
         "e0e11c90d1d0a3685e444c75b277dbdaad18685f561c2d563b2a4b0566cf2b69",
-        "ce877a62afd5b9d59e96c953c8f8c06de3e2af00d989b141616a48dc56eddbb2"
+        "ce877a62afd5b9d59e96c953c8f8c06de3e2af00d989b141616a48dc56eddbb2",
+        "19327731aedb2798edfd5bca0fc77c636e03e812ffc2e101d2c53a81a3d27a6f"
       ]
     },
     {
@@ -805,17 +856,18 @@
       "flag": "🇪🇸",
       "entries": 784704,
       "headwords": 115824,
-      "sizeBytes": 19281052,
+      "sizeBytes": 19281652,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-es-en",
       "tier": 3,
-      "sha256": "4d3085289c1c6c0c5b4a55b3f9151af2197cf810aeecf9628c2344a3b4905952",
+      "sha256": "834545a9d903466079eba449cc7abc55a2f8948f2f3270e5504a48e895bd6ae4",
       "previousSha256": [
         "a4be9641c1ea31b632441997636e337f01836e6807a769be87a8a16ac363f520",
         "e2e483671bc18cd8bb7d34c6422b1204cadef492519fe20a7d1cae9f559ef98c",
-        "fc3e1db023777ecad8ab2d4029f05607048b1f6dd4ee1e977d829c67dce08c2c"
+        "fc3e1db023777ecad8ab2d4029f05607048b1f6dd4ee1e977d829c67dce08c2c",
+        "4d3085289c1c6c0c5b4a55b3f9151af2197cf810aeecf9628c2344a3b4905952"
       ]
     },
     {
@@ -832,17 +884,18 @@
       "flag": "🇹🇷",
       "entries": 567912,
       "headwords": 26303,
-      "sizeBytes": 6225788,
+      "sizeBytes": 6226388,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Kaikki.org (English Wiktionary extract, © Wiktionary contributors)",
       "source": "odr",
       "odrTag": "preset-dict-kaikki-tr-en",
       "tier": 3,
-      "sha256": "479b6a045153eddaf325c052cc4345c83dcc6abedae6a03c30daf387f92048f8",
+      "sha256": "5447eb85920479bd594bd1595b481b9df2c4de000010d3aebc9037121c16b102",
       "previousSha256": [
         "5afa2876a4ceb53ac6caf8c89d5e25785ae164da2b2dcb1d1a7a06c59ac6d0b1",
         "83e4f7e3158aa9a6c42b4178e958f30ebfaa8ca44e0b24244bbd62899b25f16e",
-        "bd347bff329a92d88c6d7969e5fbe91d1ad3c0623b08fdc2e127a43c4a683068"
+        "bd347bff329a92d88c6d7969e5fbe91d1ad3c0623b08fdc2e127a43c4a683068",
+        "479b6a045153eddaf325c052cc4345c83dcc6abedae6a03c30daf387f92048f8"
       ]
     },
     {
@@ -859,17 +912,18 @@
       "flag": "🏺",
       "entries": 343051,
       "headwords": 115717,
-      "sizeBytes": 29270301,
+      "sizeBytes": 29270961,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Perseus Digital Library",
       "source": "odr",
       "odrTag": "preset-dict-lsj-grc-en",
       "tier": 3,
-      "sha256": "8b45d0ab350867bb4955603a52054d186afe8487d11e9ec4e3c1a88f19401a8f",
+      "sha256": "9ee1c3a13ad65b4ab3bc3a81eaa8708945682bf11c871a38f5e72fa28a9b250f",
       "previousSha256": [
         "49cff1ae92b4583736f7687cb00f70cabb1915a9d30246390c7408fecb22e4de",
         "5e453f5ba0d1232bcb6788a8c47e878d0ad01cda1ec4e08585eb6081d054bb77",
-        "a3e223c5d495476721ffe6a9316b1027ac67d4c2108901cb78ea85f9a0f0e9e0"
+        "a3e223c5d495476721ffe6a9316b1027ac67d4c2108901cb78ea85f9a0f0e9e0",
+        "8b45d0ab350867bb4955603a52054d186afe8487d11e9ec4e3c1a88f19401a8f"
       ]
     },
     {
@@ -886,17 +940,18 @@
       "flag": "🏛️",
       "entries": 101013,
       "headwords": 50057,
-      "sizeBytes": 18062703,
+      "sizeBytes": 18063279,
       "license": "CC-BY-SA-4.0",
       "dataSource": "Perseus Digital Library",
       "source": "odr",
       "odrTag": "preset-dict-lewis-short-la-en",
       "tier": 3,
-      "sha256": "c2e9ed49b8e3c94abe19df6776016a32adc88b44957e12c43657a0f5032ba9b4",
+      "sha256": "5db546644ad86306c7f05aeba92f54867d7de787b214eb05355950e0bf6d7e84",
       "previousSha256": [
         "4c6a58218031fb9ffa4aeb4c85f0b56537536c063d7481606187bca1dd6c9a07",
         "f80557793ca4e49102e752d6439003ba26d240c75a43692bd2c733cf964f0083",
-        "69f177502ca5baa8a668b64b49a27a12d2aa458aa609f0c7903ef8a23f1bdcef"
+        "69f177502ca5baa8a668b64b49a27a12d2aa458aa609f0c7903ef8a23f1bdcef",
+        "c2e9ed49b8e3c94abe19df6776016a32adc88b44957e12c43657a0f5032ba9b4"
       ]
     },
     {
@@ -913,16 +968,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 157037,
       "headwords": 102454,
-      "sizeBytes": 31912633,
+      "sizeBytes": 31913163,
       "license": "LicenseRef-Public-Domain AND CC-BY-4.0 AND LicenseRef-WordNet-3.0",
       "dataSource": "Moby Thesaurus II (Grady Ward)",
       "source": "odr",
       "odrTag": "preset-dict-moby-thesaurus-en",
       "tier": 3,
-      "sha256": "130dfe408daa6befc79ccb0cc4fd930765366db621d84b1da08eda7c01b72799",
+      "sha256": "594242a2d86409e79946f0c78640151eb5e80894a9af94cbb3329bad4a85fd39",
       "previousSha256": [
         "7d1b8c99796b31d33103dd1e0ae95bda54305d8dfac814523e1e8cf92ed88054",
-        "386499d70d24166ee4c59c02a2e53743f1e425484ec255dfe26fda2db3f02b22"
+        "386499d70d24166ee4c59c02a2e53743f1e425484ec255dfe26fda2db3f02b22",
+        "130dfe408daa6befc79ccb0cc4fd930765366db621d84b1da08eda7c01b72799"
       ]
     },
     {
@@ -939,15 +995,16 @@
       "flag": "🇨🇳🇹🇼🇭🇰🇯🇵🇰🇷",
       "entries": 102998,
       "headwords": 102998,
-      "sizeBytes": 11617097,
+      "sizeBytes": 11617463,
       "license": "Unicode-3.0",
       "dataSource": "Unicode Unihan Database 17.0.0",
       "source": "odr",
       "odrTag": "preset-dict-unihan-cjk",
       "tier": 3,
-      "sha256": "97f58abd4a22246b456254a239cd8a119ad9fe6f47abf63d39e3c9f09ff0a957",
+      "sha256": "ac4b8752abefcf4afff7d92443c279a07ea48fbed3fbf8fb79dc7a1eb960516b",
       "previousSha256": [
-        "7cde6eb6b08420141a9759cd3763db757131f4eefab910c9b71936cd73a6a52b"
+        "7cde6eb6b08420141a9759cd3763db757131f4eefab910c9b71936cd73a6a52b",
+        "97f58abd4a22246b456254a239cd8a119ad9fe6f47abf63d39e3c9f09ff0a957"
       ]
     },
     {
@@ -964,16 +1021,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 184572,
       "headwords": 138955,
-      "sizeBytes": 13905604,
+      "sizeBytes": 13905966,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-fr",
       "tier": 3,
-      "sha256": "67a4fd1cccc148a754e95d3668b18a78b6143dd261bdf3c339a9efe0909a48a3",
+      "sha256": "9483648def6cf58703f0a8e10dd1d5bed78828e03bd0ac8c6a79e92f8e9b92ef",
       "previousSha256": [
         "cc12f4e50c641f4f73910b2b94392868bed4ad6d8711508efa34dedb70b99717",
-        "e608e49092ef832f2f0a65022854a8d345837e6e3a893dd582ab24be4e617a6f"
+        "e608e49092ef832f2f0a65022854a8d345837e6e3a893dd582ab24be4e617a6f",
+        "67a4fd1cccc148a754e95d3668b18a78b6143dd261bdf3c339a9efe0909a48a3"
       ]
     },
     {
@@ -990,16 +1048,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 150597,
       "headwords": 106846,
-      "sizeBytes": 13557839,
+      "sizeBytes": 13558201,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-de",
       "tier": 3,
-      "sha256": "52f4b729d226a041a69d1ba26c4598b37d5ac759ab28ab8f00fbddc3d1230501",
+      "sha256": "0467c9b48c1f761038f0cd9466f1cbfd401f27bc5393943e48a319ed8a62704b",
       "previousSha256": [
         "85b2560115ec7ced5322e4ee4d534938cdf6688f80980d6dcca86095ee7a9e68",
-        "a75462d4d23d0b64e541977ede2fbaad62060faedbaed5811ab90e36c6e580c9"
+        "a75462d4d23d0b64e541977ede2fbaad62060faedbaed5811ab90e36c6e580c9",
+        "52f4b729d226a041a69d1ba26c4598b37d5ac759ab28ab8f00fbddc3d1230501"
       ]
     },
     {
@@ -1016,16 +1075,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 79645,
       "headwords": 55915,
-      "sizeBytes": 6280440,
+      "sizeBytes": 6280802,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-el",
       "tier": 3,
-      "sha256": "0db66df9936e381d6e94401df554e71628920e7eb9a029b96839c994deed32f4",
+      "sha256": "ba1e8c3d5e703f55b3ec128379a7a17fe2590ba3020d24698295ec09bd4c5391",
       "previousSha256": [
         "39e33da6fdd09b5b4da1d11104abbccd581452cc647e74f64714fbf5a873b77e",
-        "f33792253d2373b5d5112465a991432b5ab65f8147fbb2f9a1407483630c5a7d"
+        "f33792253d2373b5d5112465a991432b5ab65f8147fbb2f9a1407483630c5a7d",
+        "0db66df9936e381d6e94401df554e71628920e7eb9a029b96839c994deed32f4"
       ]
     },
     {
@@ -1042,16 +1102,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 107748,
       "headwords": 69199,
-      "sizeBytes": 8163521,
+      "sizeBytes": 8163883,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-it",
       "tier": 3,
-      "sha256": "f29ba53ae12f89b1a1aa80522b1f0fd9b032ee6730332ef984f12828a4ec15f4",
+      "sha256": "e6bf80121aef8f7c9d4532df0db8e24e81bd024333456ba4faeaac260161d80c",
       "previousSha256": [
         "b4408fd6e613082db4d7245a5a5764d0451ed42f98d62823d4c5899a158f197e",
-        "c2142c11c1b123a3b203dc390450491a6a68ff5d1e2163b1d9a6b902cc288801"
+        "c2142c11c1b123a3b203dc390450491a6a68ff5d1e2163b1d9a6b902cc288801",
+        "f29ba53ae12f89b1a1aa80522b1f0fd9b032ee6730332ef984f12828a4ec15f4"
       ]
     },
     {
@@ -1068,16 +1129,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 39350,
       "headwords": 22932,
-      "sizeBytes": 2727676,
+      "sizeBytes": 2728038,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-la",
       "tier": 3,
-      "sha256": "6ec30bc3a201b8fec489638db7aa9cbe9935e9dce36f03948fb97da2ec3bdf25",
+      "sha256": "b4fef4d8a68c88b54983eaaaca75262dc300c6591d237b4b8c13fadce5b25bed",
       "previousSha256": [
         "2a74c3940858742d1b226e48d8cb224ae9335ae5358ec95e82215aa42019bcaa",
-        "d4187c2c60a887ae02fcdb360052f95a3d6419eb0856dd3292b423698cacf133"
+        "d4187c2c60a887ae02fcdb360052f95a3d6419eb0856dd3292b423698cacf133",
+        "6ec30bc3a201b8fec489638db7aa9cbe9935e9dce36f03948fb97da2ec3bdf25"
       ]
     },
     {
@@ -1094,16 +1156,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 94053,
       "headwords": 57399,
-      "sizeBytes": 7087557,
+      "sizeBytes": 7087919,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-pt",
       "tier": 3,
-      "sha256": "25aacb5bf9a6426977bf6a2953497a573820b8e1830e4f73a2e86ca7bf782ccc",
+      "sha256": "5ff2873fbe9167cf2f967d75635ebf3ff5a479b1b8095c84abdd1a6ba49c17ba",
       "previousSha256": [
         "868f032daebccba663811154846ce5ad98725558fb4d6749534e9809466e0bd3",
-        "d7224722624e722af445de779547f2fcccebc394515866c8a7fb69b19ee99eac"
+        "d7224722624e722af445de779547f2fcccebc394515866c8a7fb69b19ee99eac",
+        "25aacb5bf9a6426977bf6a2953497a573820b8e1830e4f73a2e86ca7bf782ccc"
       ]
     },
     {
@@ -1120,16 +1183,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 124096,
       "headwords": 85532,
-      "sizeBytes": 11198880,
+      "sizeBytes": 11199242,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-ru",
       "tier": 3,
-      "sha256": "f8c1840e36ac20e09addc4fd9cbd368b39b888f2f7abd2aa103700c50a5c66b6",
+      "sha256": "dbe07bf9879f8253c48ae02e4059009feb54ad1f2e66b2ae0906b2565273ff9a",
       "previousSha256": [
         "f8a63d1100b5bd00a09df9cd7f79fa30fa80e336919cbe80fdcc9d600fa8da3e",
-        "76268b561ec7de3d9332f944e3c154c1d52eda79d1df777bc8d4160d47e9bb1f"
+        "76268b561ec7de3d9332f944e3c154c1d52eda79d1df777bc8d4160d47e9bb1f",
+        "f8c1840e36ac20e09addc4fd9cbd368b39b888f2f7abd2aa103700c50a5c66b6"
       ]
     },
     {
@@ -1146,16 +1210,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 112016,
       "headwords": 69912,
-      "sizeBytes": 8795884,
+      "sizeBytes": 8796246,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-es",
       "tier": 3,
-      "sha256": "9b0ae4872278bf2af125765000ab5263bdf76573202f5a782c683b85f6eb2cb1",
+      "sha256": "4f029099443f789eda1a0cd957e4a84eee23f45a62e46bca028d56881f7cc928",
       "previousSha256": [
         "d67c94d663ba6040149ee28e1a19af360661402e1212e443daf4683f799d56a9",
-        "9d02c957502d082157597df244774507a22b24b933ed9c24d7ec9e58f33eda9c"
+        "9d02c957502d082157597df244774507a22b24b933ed9c24d7ec9e58f33eda9c",
+        "9b0ae4872278bf2af125765000ab5263bdf76573202f5a782c683b85f6eb2cb1"
       ]
     },
     {
@@ -1172,16 +1237,17 @@
       "flag": "🇬🇧🇺🇸",
       "entries": 55990,
       "headwords": 35676,
-      "sizeBytes": 4283933,
+      "sizeBytes": 4284295,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-en-tr",
       "tier": 3,
-      "sha256": "c531ed607ed391452dff25688d09b652b884001d5b8647712f1478780360cd33",
+      "sha256": "52854aa4fdc6e0031355ca714cf316cfd5845e552e96ea14022b0d22ac8a82ef",
       "previousSha256": [
         "7199302d29fa6b6774199971a59ba44d410e2dc2bcb0392070db6dbd74c0569c",
-        "98d38caf1e22e8d7756f66f1459bc173f34534fd9b0a72197caf8f1073254580"
+        "98d38caf1e22e8d7756f66f1459bc173f34534fd9b0a72197caf8f1073254580",
+        "c531ed607ed391452dff25688d09b652b884001d5b8647712f1478780360cd33"
       ]
     },
     {
@@ -1198,16 +1264,17 @@
       "flag": "🇫🇷",
       "entries": 152484,
       "headwords": 152484,
-      "sizeBytes": 12181249,
+      "sizeBytes": 12181575,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-en",
       "tier": 3,
-      "sha256": "8a4030ee5ae5a3df8b2bae6e04ff00964e21480a6ca2848693b5efdf788ac56c",
+      "sha256": "04f27f2345aa19104c49f5e353a8fd889d74e9ef93ed50d70ab3c05d3cfc5550",
       "previousSha256": [
         "7abf1b81b5a694017d56eb25c921d31047dcb4de93111850e34c009c4865959f",
-        "0f8b95d1512b5f3be82b805f6e04590d742cdd57a771121a7f4d982e50bda1ca"
+        "0f8b95d1512b5f3be82b805f6e04590d742cdd57a771121a7f4d982e50bda1ca",
+        "8a4030ee5ae5a3df8b2bae6e04ff00964e21480a6ca2848693b5efdf788ac56c"
       ]
     },
     {
@@ -1224,16 +1291,17 @@
       "flag": "🇫🇷",
       "entries": 50527,
       "headwords": 50527,
-      "sizeBytes": 4552864,
+      "sizeBytes": 4553190,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-ru",
       "tier": 3,
-      "sha256": "3586e9a6c622836179e24f4366729b33a4c57bbd078250579a5c45039987e760",
+      "sha256": "48ea00f6ef54f07370ceec7a4c3907523378390958de5d993a6f9f53f03151dc",
       "previousSha256": [
         "4f4328f434e1da87b2e90450f3ba2aa06b0fce6c011775a76c59fd20d1bc07e7",
-        "a9ad758bac8e2f43e1572252fbba19cc74323f788365ee6655c0a4d3c628f2ae"
+        "a9ad758bac8e2f43e1572252fbba19cc74323f788365ee6655c0a4d3c628f2ae",
+        "3586e9a6c622836179e24f4366729b33a4c57bbd078250579a5c45039987e760"
       ]
     },
     {
@@ -1250,16 +1318,17 @@
       "flag": "🇫🇷",
       "entries": 65124,
       "headwords": 65124,
-      "sizeBytes": 4924764,
+      "sizeBytes": 4925090,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-fr-es",
       "tier": 3,
-      "sha256": "2532312a7136ae50598cdc6f5ed92540887c257c814ba8c420a3dd35dfe0c93d",
+      "sha256": "c000babddcdc729bf5f7a6f995d9481be609618ea89fe984d70292a4e0ba99f0",
       "previousSha256": [
         "887271368eec7e833fc21af25e38eb2896d263ee3e709a696d10ad27f81be11e",
-        "c1bdf8672e2031291a0bf46abe356749aa4831584dd4a8dc8325c87a5da398f6"
+        "c1bdf8672e2031291a0bf46abe356749aa4831584dd4a8dc8325c87a5da398f6",
+        "2532312a7136ae50598cdc6f5ed92540887c257c814ba8c420a3dd35dfe0c93d"
       ]
     },
     {
@@ -1276,16 +1345,17 @@
       "flag": "🇩🇪",
       "entries": 126530,
       "headwords": 126530,
-      "sizeBytes": 14129911,
+      "sizeBytes": 14130237,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-de-en",
       "tier": 3,
-      "sha256": "6c66c71c8394c90510a3b87a2a06ab31b6f483929cbff61b5b9c23e75365168e",
+      "sha256": "f7f9907c669fec346e772861e0b22b74922687d795f101f5991ae39dfb0062ab",
       "previousSha256": [
         "c144320d664f928180cfe30c443662c1fe08fcaf47a60878705f6cebd4175073",
-        "e819ac958cae37f6fbf7a15b3035f6ab09c358d807f81547085710e2d12e9b1f"
+        "e819ac958cae37f6fbf7a15b3035f6ab09c358d807f81547085710e2d12e9b1f",
+        "6c66c71c8394c90510a3b87a2a06ab31b6f483929cbff61b5b9c23e75365168e"
       ]
     },
     {
@@ -1302,16 +1372,17 @@
       "flag": "🇩🇪",
       "entries": 53152,
       "headwords": 53152,
-      "sizeBytes": 5857825,
+      "sizeBytes": 5858151,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-de-ru",
       "tier": 3,
-      "sha256": "de679821b9ed396fdfbc09bd0523a9515e201cdaa97b77d254eacda7e10d1250",
+      "sha256": "d8919b9f3aa4b389c9f87da0da7ce9300fd4f9c884aad5a8d6b80d8e56e9b778",
       "previousSha256": [
         "2cdf69dea426df82fc521a960701c576b2a49c3a1f5921b8f0fd0ebba79c467b",
-        "4d1d94a8c212450a3e7089920487a7cbbb5957678395ccae4ab992acd3cdd175"
+        "4d1d94a8c212450a3e7089920487a7cbbb5957678395ccae4ab992acd3cdd175",
+        "de679821b9ed396fdfbc09bd0523a9515e201cdaa97b77d254eacda7e10d1250"
       ]
     },
     {
@@ -1328,16 +1399,17 @@
       "flag": "🇬🇷",
       "entries": 57345,
       "headwords": 57319,
-      "sizeBytes": 4836116,
+      "sizeBytes": 4836442,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-el-en",
       "tier": 3,
-      "sha256": "a99861121524ceb0487374088d8767702ee39f9c126d889d71ea793720c24737",
+      "sha256": "2f68a4e47cab3bbb38bec7c4a29fce4aa080db7f8f3d777b315fe7c9ae8c2c96",
       "previousSha256": [
         "45f188600ab866a219da6ab8d39f4da062a9ebeb80db85faffcf1f3c07046c45",
-        "76abd559a60ee1132fd7adbfebe30f4cf2f35dc70108f986a7b2d9c12c9da01b"
+        "76abd559a60ee1132fd7adbfebe30f4cf2f35dc70108f986a7b2d9c12c9da01b",
+        "a99861121524ceb0487374088d8767702ee39f9c126d889d71ea793720c24737"
       ]
     },
     {
@@ -1354,16 +1426,17 @@
       "flag": "🇮🇹",
       "entries": 67498,
       "headwords": 67498,
-      "sizeBytes": 6788029,
+      "sizeBytes": 6788355,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-it-en",
       "tier": 3,
-      "sha256": "1981dbb19b13010eada6021f98c78a9e64cac6501d72afadce45225687a70e2f",
+      "sha256": "6fc43d1d03744da4c66f96155a75ace76d6002360b86db81dede67bd2cb13d99",
       "previousSha256": [
         "8bc5bae4c7afa528391befe819e9b83d0550b5b83fad3a5b1f351e6a5ba4d24a",
-        "7c3b85ffaff7d917d791fd9c2db0fd11dc1253851c9da4920a4cf4aa4a94d7d4"
+        "7c3b85ffaff7d917d791fd9c2db0fd11dc1253851c9da4920a4cf4aa4a94d7d4",
+        "1981dbb19b13010eada6021f98c78a9e64cac6501d72afadce45225687a70e2f"
       ]
     },
     {
@@ -1380,16 +1453,17 @@
       "flag": "🏛️",
       "entries": 29197,
       "headwords": 22019,
-      "sizeBytes": 2292973,
+      "sizeBytes": 2293263,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-la-en",
       "tier": 3,
-      "sha256": "1869fc190f00e9d8562b08216c50c5df34184f376b6c63f56042531676c1ec18",
+      "sha256": "725b24070026a1a0ebb9f5f3aa646ad0bfffc8271cd1d37fbfaa94f800d459be",
       "previousSha256": [
         "27313913b40c6b9cc6543022703ead5bd68acf590d5ff6a2a2dacf1fef56656c",
-        "861cfde377238380e992ba68a3960728073f22b4bedae617458089dde70bdf95"
+        "861cfde377238380e992ba68a3960728073f22b4bedae617458089dde70bdf95",
+        "1869fc190f00e9d8562b08216c50c5df34184f376b6c63f56042531676c1ec18"
       ]
     },
     {
@@ -1406,16 +1480,17 @@
       "flag": "🇵🇹🇧🇷",
       "entries": 62602,
       "headwords": 62602,
-      "sizeBytes": 5975811,
+      "sizeBytes": 5976137,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-pt-en",
       "tier": 3,
-      "sha256": "50b7d2025b57dabda201704858d627560c9138e0bdd5f66452058fcf8bbfe169",
+      "sha256": "bc86936fb4b71ed75b92dfbe1c2958d61a374d09c916d66a8fdd591f699125a8",
       "previousSha256": [
         "1fbaac33fcdf214c61543ede16513ab6e2ec924affd13355e62feac53427c759",
-        "0e3fdbed5dcc7350eb9144aa0c706ce5b7125dfd42bb794a5e5f249f9209c22a"
+        "0e3fdbed5dcc7350eb9144aa0c706ce5b7125dfd42bb794a5e5f249f9209c22a",
+        "50b7d2025b57dabda201704858d627560c9138e0bdd5f66452058fcf8bbfe169"
       ]
     },
     {
@@ -1432,16 +1507,17 @@
       "flag": "🇵🇹🇧🇷",
       "entries": 18401,
       "headwords": 18400,
-      "sizeBytes": 1308590,
+      "sizeBytes": 1308916,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-pt-es",
       "tier": 3,
-      "sha256": "2f9126a79c85a3bc7856556e0d644e82402a98f8d49f6244acf6c00ebf0d5b0b",
+      "sha256": "495711cd62c301b88dd199902d13472c9d0ba6b66e10793abecefbdd9390a836",
       "previousSha256": [
         "692604b9a4219df2eb850bed4c6b46a8cb3a0b6681d4bf1a9421a2f66cc85233",
-        "fc12a88ceaa019d9f8fbbbb6081963d79514455c1c974a1d8744990dfaaeffff"
+        "fc12a88ceaa019d9f8fbbbb6081963d79514455c1c974a1d8744990dfaaeffff",
+        "2f9126a79c85a3bc7856556e0d644e82402a98f8d49f6244acf6c00ebf0d5b0b"
       ]
     },
     {
@@ -1458,16 +1534,17 @@
       "flag": "🇷🇺",
       "entries": 99824,
       "headwords": 96645,
-      "sizeBytes": 10340510,
+      "sizeBytes": 10340836,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-en",
       "tier": 3,
-      "sha256": "fa75f2f36a6a941c5fc89a7bd28e4b46f4f1c9177cfa8eade71b2987e4909f53",
+      "sha256": "6d74bf2a0d90274412f60525cc57e6aa21d2db7b594799e93c7c50f7f9e54093",
       "previousSha256": [
         "b4e5bb03d63610924086a5acca9ba87bc2ac7c2b52ac3ee748797d9b2261d6db",
-        "9cc035570be2d54c23df73359687ae6afde39ec9d57db856886350291949e09e"
+        "9cc035570be2d54c23df73359687ae6afde39ec9d57db856886350291949e09e",
+        "fa75f2f36a6a941c5fc89a7bd28e4b46f4f1c9177cfa8eade71b2987e4909f53"
       ]
     },
     {
@@ -1484,16 +1561,17 @@
       "flag": "🇷🇺",
       "entries": 45725,
       "headwords": 44622,
-      "sizeBytes": 4068189,
+      "sizeBytes": 4068515,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-fr",
       "tier": 3,
-      "sha256": "fb4373a8946af1f28d7a7a045e9e4b28181bf9648cda21bf44e9d88977e2caa6",
+      "sha256": "5ca2be60146cb08db800ef8af52d339f47b46374bc694b26b0b5cdf0575f344d",
       "previousSha256": [
         "2b065ed5f4543b1569f30d231e4290767f440e9ec9ed17ea8d018428aebd90de",
-        "10fff5578e81433c02c8bf71f6a61f4167d3534d30dd82fec3ef6ee305dbf787"
+        "10fff5578e81433c02c8bf71f6a61f4167d3534d30dd82fec3ef6ee305dbf787",
+        "fb4373a8946af1f28d7a7a045e9e4b28181bf9648cda21bf44e9d88977e2caa6"
       ]
     },
     {
@@ -1510,16 +1588,17 @@
       "flag": "🇷🇺",
       "entries": 46150,
       "headwords": 44958,
-      "sizeBytes": 4686049,
+      "sizeBytes": 4686375,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-ru-de",
       "tier": 3,
-      "sha256": "9eba2ab5997e107ef0530351dabb0673beeffe5d879c5f9f1cb0765f692067e3",
+      "sha256": "396f8b0121a28a5076dd56bb0247fb731f2326ed392bdf8626132a6bf08bfd45",
       "previousSha256": [
         "4b7f58eb0e8f0f3329ad53a7cfccf77b5cf72a1d88c1a2c44f9a97ff976c1d2e",
-        "b5259d7dc25a43a3b42a70403f6a8f748e72c3f9e082a2802c9bdd808bf6e694"
+        "b5259d7dc25a43a3b42a70403f6a8f748e72c3f9e082a2802c9bdd808bf6e694",
+        "9eba2ab5997e107ef0530351dabb0673beeffe5d879c5f9f1cb0765f692067e3"
       ]
     },
     {
@@ -1536,16 +1615,17 @@
       "flag": "🇪🇸",
       "entries": 85277,
       "headwords": 85254,
-      "sizeBytes": 8777099,
+      "sizeBytes": 8777425,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-en",
       "tier": 3,
-      "sha256": "a9085994628fbcfc53f8ffcd0dbcb14dbca35a9b9d8128f8ab5b84a58b1d0253",
+      "sha256": "97b2e6fa41fd839749d447c5652c7b2807e1cf74dc069b174d6e66721aee1256",
       "previousSha256": [
         "8c865b7e93230833c11d865544f887fc5d38fc153f7b3dcb12b1c5c48e74613d",
-        "46a3c00c2efeeca23071f488b77e648260d2b1a680013208b137590a0a7b1ec8"
+        "46a3c00c2efeeca23071f488b77e648260d2b1a680013208b137590a0a7b1ec8",
+        "a9085994628fbcfc53f8ffcd0dbcb14dbca35a9b9d8128f8ab5b84a58b1d0253"
       ]
     },
     {
@@ -1562,16 +1642,17 @@
       "flag": "🇪🇸",
       "entries": 56623,
       "headwords": 56604,
-      "sizeBytes": 4562760,
+      "sizeBytes": 4563086,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-fr",
       "tier": 3,
-      "sha256": "40da0eef2ac11a8bca90e500c47e59652752084dc9fc50e4755d48fdc2fc9abe",
+      "sha256": "ffc2338dd01491219869ffc591c9768c97ccee5d1bf9e3c6e3e9919e0b740805",
       "previousSha256": [
         "b0084f134ad8f43701eac1f2a9935fc67fba088c49328ff6d0464ed2424f5a75",
-        "021d1454d41fef776eaf89e0464cfe2d7e93ec29a9743c8f38a8b56a5e622834"
+        "021d1454d41fef776eaf89e0464cfe2d7e93ec29a9743c8f38a8b56a5e622834",
+        "40da0eef2ac11a8bca90e500c47e59652752084dc9fc50e4755d48fdc2fc9abe"
       ]
     },
     {
@@ -1588,16 +1669,17 @@
       "flag": "🇪🇸",
       "entries": 20674,
       "headwords": 20670,
-      "sizeBytes": 1721448,
+      "sizeBytes": 1721774,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-es-pt",
       "tier": 3,
-      "sha256": "47473b0a4f844e317f99b7dc5280eff2f77bc811ee8495aa8ef2831ce9283f12",
+      "sha256": "f4cb9be6f65b12d64b20ab2e6c975ccdfd85872a4fe058959ede74331cd9e6f4",
       "previousSha256": [
         "6219f0ccc095e0dc925f8d619bb331bf1b4a93a2d198b2c6452a225420293e5d",
-        "323c137d3eeb67d5a1863e61f89f43a9bec7f47cac1e55e880dee94a9b5a51d7"
+        "323c137d3eeb67d5a1863e61f89f43a9bec7f47cac1e55e880dee94a9b5a51d7",
+        "47473b0a4f844e317f99b7dc5280eff2f77bc811ee8495aa8ef2831ce9283f12"
       ]
     },
     {
@@ -1614,16 +1696,17 @@
       "flag": "🇹🇷",
       "entries": 39303,
       "headwords": 38549,
-      "sizeBytes": 3524130,
+      "sizeBytes": 3524456,
       "license": "CC-BY-SA-4.0",
       "dataSource": "WikDict",
       "source": "odr",
       "odrTag": "preset-dict-wikdict-tr-en",
       "tier": 3,
-      "sha256": "3b635cf161612ff98fd0fae3c40bef32bce0edb0187976d0b6bd739214e8b844",
+      "sha256": "3cbefc8c6bab07e659bbb2ecce59d8a0c5f37402664343bce5ff397dd478cadf",
       "previousSha256": [
         "036b2b97a18762f6764ed894bfa639232d9ae792e32dda938d5e75d391fbfb0e",
-        "ef48c3d5ea0ac5f1fd07cf3e8fc17fa07844810f8899cb7e8d75f0c9f4864861"
+        "ef48c3d5ea0ac5f1fd07cf3e8fc17fa07844810f8899cb7e8d75f0c9f4864861",
+        "3b635cf161612ff98fd0fae3c40bef32bce0edb0187976d0b6bd739214e8b844"
       ]
     },
     {
@@ -1640,15 +1723,16 @@
       "flag": "🇸🇦",
       "entries": 278177,
       "headwords": 14099,
-      "sizeBytes": 3438515,
+      "sizeBytes": 3438867,
       "license": "CC-BY-SA-3.0 OR GFDL-1.3-or-later",
       "dataSource": "English Wiktionary via Vuizur/Wiktionary-Dictionaries (2022-11)",
       "source": "odr",
       "odrTag": "preset-dict-wiktionary-ar-en",
       "tier": 3,
-      "sha256": "b2ffa11b2d17d3bccb854e23ea8e30df3e1114798e0d5700b873af6f5c7af920",
+      "sha256": "815bd0ce15c49ac7e886ae7ad957bf3a3f27fda1fa10b93a8ea6a328931820b7",
       "previousSha256": [
-        "4fd52a962f97ca46bbf06dc5541943d7c72b476c2ba1b1815bf40ce852999844"
+        "4fd52a962f97ca46bbf06dc5541943d7c72b476c2ba1b1815bf40ce852999844",
+        "b2ffa11b2d17d3bccb854e23ea8e30df3e1114798e0d5700b873af6f5c7af920"
       ]
     },
     {
@@ -1665,16 +1749,17 @@
       "flag": "🇰🇷",
       "entries": 310982,
       "headwords": 28075,
-      "sizeBytes": 4861403,
+      "sizeBytes": 4861755,
       "license": "CC-BY-SA-3.0 OR GFDL-1.3-or-later",
       "dataSource": "English Wiktionary via Vuizur/Wiktionary-Dictionaries (2022-11)",
       "source": "odr",
       "odrTag": "preset-dict-wiktionary-ko-en",
       "tier": 3,
-      "sha256": "18484cf44f4fdce7c88470edd29cc3aa909e7a20ddc6bce483d8488fcde41dd2",
+      "sha256": "d0b501c6634954512ce943dec5080347fa9e99a1cb56a9cae949c02298adb927",
       "previousSha256": [
         "655ecebae10a6927de55af41f91cb31de4ab8c04e1306bcf0b79972a3090e96c",
-        "9e6fbabcd22bf959aee7c4a046d8a527b7dcaccec5f7ed1f0af9e5b77130d010"
+        "9e6fbabcd22bf959aee7c4a046d8a527b7dcaccec5f7ed1f0af9e5b77130d010",
+        "18484cf44f4fdce7c88470edd29cc3aa909e7a20ddc6bce483d8488fcde41dd2"
       ]
     }
   ]

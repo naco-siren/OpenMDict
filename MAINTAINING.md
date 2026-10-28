@@ -27,6 +27,7 @@ the four is caught before it reaches `main`.
 | Tool | Needed for |
 |---|---|
 | Python 3.10+ and `pip install mdict-utils==1.3.14` (provides the `mdict` CLI) | Building dictionaries |
+| `pip install opencc==1.4.2` | Building `Bible-CUV-ZH-Hans` (Traditional → Simplified) |
 | Ruby with the `xcodeproj` gem (`gem install xcodeproj`) | `scripts/relink-project-assets.rb` |
 | `jq`, `curl`, `shasum` (all on macOS 15+) | `scripts/bootstrap-assets.sh` |
 | Xcode (for `xcrun coremlcompiler`) | Compiling the model after bootstrap |
@@ -56,6 +57,7 @@ Read each script's header comment for the full option list.
 | **Dictionary content** (a build script, source data, `FORMATTING_STANDARD.md`) | `make -C preset-dicts <target>` → check the output → `make -C preset-dicts catalog notices` (review the printed diff) → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → `scripts/check-assets.sh --strict` → publish the draft | catalog, notices, lock |
 | **Added or removed a dictionary** | add/remove the build script + Makefile target + catalog entry (+ `bundle_assets` in `catalog-policy.json` if bundled) → `make -C preset-dicts <target>` → `ruby scripts/relink-project-assets.rb --sync` → `python3 preset-dicts/scripts/gen_third_party_notices.py` → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → `scripts/check-assets.sh` | catalog, pbxproj, lock, `THIRD-PARTY-NOTICES.md` |
 | **Catalog metadata only** (description, display name, tier, license) | change the `write_catalog_metadata(...)` call in the build script and rebuild (hand edits of these fields are overwritten by `make catalog`; only `licenseNote` is maintained by hand in `preset-dictionaries.json`) → `make -C preset-dicts catalog notices` → `scripts/check-assets.sh` | catalog, notices (+ lock if the `.mdx` changed) |
+| **Header description** (the `Description` HTML in the MDX header, shown on the dictionary info screen) | every build script composes it with `shared.build.description_html(...)` (one layout for all presets: title, about, Source, License, Conversion with the converter credit, verbatim notices) and exposes `descriptions()`; edit the arguments in the build script → `make -C preset-dicts descriptions` and read `output/_descriptions/index.html` → rebuild the dictionary (the header is part of the file, so the `sha256` changes) → as for dictionary content | catalog, notices, lock |
 | **Source data refresh** (new upstream release) | update the URL / SHA-256 in `fetch_data.sh` and the pin in the build script → `fetch_data.sh <source>` → rebuild → as for dictionary content. JMdict and KANJIDIC2: see "Refreshing the EDRDG data" | `fetch_data.sh`, build script, catalog, notices, lock |
 | **Embedding model** | rebuild (see below) → `scripts/precompile-article-embed-model.sh` → `scripts/publish-assets.sh --tag …` (it zips the `.mlpackage` itself) → update the model section of `THIRD-PARTY-NOTICES.md` if the model or its license changed | lock, notices |
 | **App icon family** | drop the PNGs / `.icon` bundle into `Apps/iOS/OpenMDict-iOS/Resources/AppIcons/` → add them to the "App Icons" group in Xcode → `CFBundleAlternateIcons` in `Info.plist` → the `AppIcon` enum → `ruby scripts/relink-project-assets.rb --dry-run` must report no absolute references | icons, pbxproj, Info.plist, Swift |
@@ -122,8 +124,8 @@ committing.
 
 The EDRDG licence (section 4) requires a procedure for updating JMdict and
 KANJIDIC2 regularly from the current releases; the builds warn once their
-pinned release is more than 31 days old. Refresh both about once a month
-and before every release that ships presets:
+pinned release is more than 31 days old. Refresh both before every app
+build that is uploaded (TestFlight or App Store), and at least once a month:
 
 ```bash
 cd preset-dicts
@@ -255,6 +257,33 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
   the compiled dictionaries satisfy GPLv3 §6. Older Releases keep their own
   copies: assets are never deleted from a published Release.
 
+### Publishing the dictionary sources
+
+The conversion scripts of the GPL/AGPL presets (FreeDict EN-DE, FreeDict
+DE-EN, GCIDE) and their upstream source archives are public at
+<https://github.com/naco-siren/OpenMDict-dictionary-sources>, which the three
+dictionaries' descriptions and `THIRD-PARTY-NOTICES.md` link. Whenever one of
+them is rebuilt with a different output, publish a matching tag there (the
+asset tag without its `assets-` prefix) before the app build that ships it:
+
+```bash
+git clone git@github.com:naco-siren/OpenMDict-dictionary-sources.git /tmp/ds
+scripts/export-dictionary-sources.sh /tmp/ds
+cd /tmp/ds
+make                    # fetches and verifies the archives, rebuilds, checks SHA256SUMS
+git add -A && git commit -m "Scripts for assets-YYYY.MM[.N]"
+git tag YYYY.MM[.N] && git push origin main YYYY.MM[.N]
+gh release create YYYY.MM[.N] --title YYYY.MM[.N] --notes "…" \
+  <preset-dicts/data/freedict/freedict-{eng-deu,deu-eng}.src.tar.xz> \
+  <preset-dicts/data/gcide/gcide-0.53.tar.xz>
+```
+
+`preset-dicts/dictionary-sources/` holds that repository's README, Makefile
+and fetch script; the export adds the scripts and shared modules, `LICENSE`,
+the three build pins and `SHA256SUMS` from the catalog. Keep every tag and
+Release there: each one is the source of dictionary files that an installed
+app build may carry.
+
 ### Verifying a clean clone
 
 ```bash
@@ -281,7 +310,7 @@ and keep a backup of `data/`. `bootstrap-assets.sh` can restore `output/`
 from the published assets; nothing restores `data/` except
 `fetch_data.sh`, and it cannot bring back the pinned release of the
 upstreams that serve only their latest one (CC-CEDICT, Kaikki.org,
-JMdict, KANJIDIC2, CrossWire KorRV, eBible.org grcbyz).
+JMdict, KANJIDIC2, CrossWire KorRV and JapBungo, eBible.org grcbyz).
 
 ## Documentation map
 

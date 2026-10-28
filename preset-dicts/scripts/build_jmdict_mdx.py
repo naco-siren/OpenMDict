@@ -56,7 +56,8 @@ from shared.theme import (get_css, GLOSS, ORDERED_LIST, DOMAIN_BADGE,
                           TEXT_SECONDARY, TEXT_LINK)
 from shared.html import (esc, entry_link, has_rtl, rtl_span, kana_to_romaji_morae,
                          split_morae, _KATA_TO_HIRA)
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview,
+                          write_catalog_metadata, description_html)
 
 DATA_DIR = SCRIPT_DIR.parent / "data"
 OUTPUT_DIR = SCRIPT_DIR.parent / "output" / "JMdict-JA-EN"
@@ -64,8 +65,8 @@ OUTPUT_DIR = SCRIPT_DIR.parent / "output" / "JMdict-JA-EN"
 # Pinned upstream data. JMdict_e.gz is a daily, unversioned file at
 # JMDICT_URL; the release is identified by its "JMdict created" date.
 JMDICT_URL = "https://www.edrdg.org/pub/Nihongo/JMdict_e.gz"
-JMDICT_RELEASE = "2026-10-18"
-JMDICT_SHA256 = "9cb6cb9806e031f04e61ce0026ce7e7be06f53de259c3c4813375f561ee163f6"
+JMDICT_RELEASE = "2026-10-28"
+JMDICT_SHA256 = "739ce5a15038e063f6db819fe61a70c0f60c2039569b651f0a0f5601fdbc0b39"
 JMDICT_FILE = DATA_DIR / "jmdict" / JMDICT_RELEASE / "JMdict_e.gz"
 MAX_DATA_AGE_DAYS = 31
 
@@ -865,6 +866,51 @@ def _generate_preview(records: dict[str, list[str]], articles: list[str]):
     _shared_preview(entries_html, OUTPUT_DIR / "jmdict_preview.html", 'JMdict — preview')
 
 
+# ── Header description ────────────────────────────────────────
+
+CC_BY_SA_4 = '<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>'
+
+
+def header_description() -> str:
+    """The MDX header description in the shared layout (shared.build.description_html).
+
+    Depends only on the pinned JMDICT_RELEASE, so it is the same whether or
+    not the data files are present.
+    """
+    source = (
+        'The <a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">'
+        f"JMdict</a> dictionary file (JMdict_e, release {JMDICT_RELEASE}), originally "
+        "compiled by Jim Breen. Documentation: "
+        '<a href="https://www.edrdg.org/jmdict/j_jmdict.html">JMdict project page</a>. '
+        "The pitch accent notation was provided by Uros O. through his free database "
+        '<a href="https://github.com/mifunetoshiro/kanjium">Kanjium</a>.'
+    )
+    license_text = (
+        'The JMdict file is the property of the <a href="https://www.edrdg.org/">'
+        "Electronic Dictionary Research and Development Group</a> (EDRDG) and is used "
+        "in conformance with the Group's "
+        '<a href="https://www.edrdg.org/edrdg/licence.html">licence</a> '
+        f"({CC_BY_SA_4}). Kanjium is licensed under {CC_BY_SA_4}."
+    )
+    return description_html(
+        title="JMdict Japanese-English Dictionary",
+        about=[
+            "Japanese-English dictionary from the EDRDG JMdict project: kanji and kana "
+            "forms, romaji, part of speech, usage labels and English glosses, with "
+            "Kanjium pitch accent for many words."
+        ],
+        source=source,
+        license=license_text,
+        changes="reformatted, lookup keys for every form, romaji and pitch accent added",
+        adaptation_license=f"This compilation is distributed under {CC_BY_SA_4}.",
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{"<Name>.mdx": header description} for every dictionary this script builds."""
+    return {"JMdict-JA-EN.mdx": header_description()}
+
+
 # ── Main ──────────────────────────────────────────────────────
 
 def main():
@@ -930,24 +976,8 @@ def main():
     print(f"  xrefs: {dict(renderer.stats)}")
 
     mdx_path = OUTPUT_DIR / "JMdict-JA-EN.mdx"
-    lic = "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA 4.0</a>"
-    desc_html = (
-        "<p><b>JMdict Japanese-English Dictionary</b></p>"
-        "<p>This dictionary uses the "
-        "<a href='https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project'>JMdict</a> "
-        f"dictionary file (JMdict_e, release {JMDICT_RELEASE}), originally compiled by Jim Breen. "
-        "The file is the property of the "
-        "<a href='https://www.edrdg.org/'>Electronic Dictionary Research and Development Group</a> "
-        "(EDRDG) and is used in conformance with the Group's "
-        f"<a href='https://www.edrdg.org/edrdg/licence.html'>licence</a> ({lic}). "
-        "Documentation: <a href='https://www.edrdg.org/jmdict/j_jmdict.html'>JMdict project page</a>.</p>"
-        "<p>The pitch accent notation was provided by Uros O. through his free database "
-        "<a href='https://github.com/mifunetoshiro/kanjium'>Kanjium</a> "
-        f"({lic}).</p>"
-        "<p>Converted to MDict and reformatted by OpenMDict (lookup keys for every form, "
-        f"romaji and pitch accent added). This compilation is distributed under {lic}.</p>"
-    )
-    success, size_mb, _ = pack_mdx(txt_path, "JMdict Japanese-English", desc_html, mdx_path)
+    success, size_mb, _ = pack_mdx(txt_path, "JMdict Japanese-English", header_description(),
+                                   mdx_path)
     if not success:
         raise SystemExit(1)
     print(f"  ✓ {mdx_path.name}: {size_mb:.1f} MB")

@@ -10,9 +10,12 @@ For every output/<Name>/<Name>.meta.json sidecar the build scripts wrote:
     .mdx (entries = the key count in the MDX keyword header, the number the
     `openmdict` CLI prints; headwords = the records that are not
     `@@@LINK=` redirects, which the preset picker shows);
-  * licenseNote (hand-maintained) and previousSha256 are carried over from
-    the current catalog by id; previousSha256 gains the sha256 that a rebuild
-    replaces, since the app offers an update only for the builds listed there;
+  * licenseNote (hand-maintained), previousSha256 and previousDisplayNames
+    are carried over from the current catalog by id; previousSha256 gains the
+    sha256 that a rebuild replaces, since the app offers an update only for
+    the builds listed there, and previousDisplayNames the displayName a
+    rebuild replaces, since the app renames an updated copy that still has
+    one of them;
   * source and odrTag follow catalog-policy.json.
 
 The result is compared with the current catalog field by field. The
@@ -49,7 +52,7 @@ import gen_third_party_notices as notices  # noqa: E402  (license / source table
 FIELD_ORDER = ("id", "filename", "displayName", "description", "direction",
                "flag", "entries", "headwords", "sizeBytes", "license", "licenseNote",
                "dataSource", "source", "odrTag", "tier", "sha256",
-               "previousSha256")
+               "previousSha256", "previousDisplayNames")
 
 # Fields that identify a preset to the app (or are maintained by hand); a
 # change to one of them is flagged in the diff.
@@ -275,6 +278,14 @@ def build_catalog(sidecars: list[dict], policy: dict, current: dict) -> tuple[di
         }
         if old.get("licenseNote"):
             entry["licenseNote"] = old["licenseNote"]
+        # Earlier names, so that the app renames an installed copy it updates
+        # (unless the user renamed it).
+        names = list(old.get("previousDisplayNames", []))
+        if old.get("displayName") and old["displayName"] != entry["displayName"]:
+            names.append(old["displayName"])
+        names = [n for n in dict.fromkeys(names) if n != entry["displayName"]]
+        if names:
+            entry["previousDisplayNames"] = names
         if not is_bundle:
             entry["odrTag"] = f"preset-dict-{dict_id}"
         if meta.get("tier") is not None:

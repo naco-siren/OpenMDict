@@ -81,7 +81,7 @@ notices`).
 | Bible Darby (français) | `Bible-Darby-FR.mdx` | LicenseRef-Public-Domain | [gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group)](https://github.com/gratis-bible/bible) |
 | Bible — King James Version | `Bible-KJV-EN.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
 | Biblia Sacra Vulgata | `Bible-Vulgate-LA.mdx` | LicenseRef-Public-Domain | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
-| Bíblia Sagrada — Almeida | `Bible-Almeida-PT.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
+| Bíblia Sagrada — Almeida 1911 | `Bible-Almeida-PT.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Project Gutenberg eBook #62383 (A Biblia Sagrada, João Ferreira d’Almeida, Lisbon 1911), structured by mazza/biblia-arc1911 (CC0 1.0)](https://www.gutenberg.org/ebooks/62383) |
 | CC-Canto Cantonese-English | `CC-Canto-YUE-EN.mdx` | CC-BY-SA-3.0 | [CC-Canto © 2015–2017 Pleco Inc.; includes entries adapted from CC-CEDICT (MDBG)](https://cantonese.org/) |
 | CC-CEDICT Chinese-English | `CEDICT-ZH-EN.mdx` | CC-BY-SA-4.0 | [CC-CEDICT (MDBG)](https://cc-cedict.org/) |
 | FreeDict English-German | `FreeDict-EN-DE.mdx` | GPL-3.0-or-later AND AGPL-3.0-or-later | [FreeDict, from the Ding dictionary (Frank Richter, TU Chemnitz, and contributors)](https://freedict.org/) |
@@ -138,18 +138,18 @@ notices`).
 | Синодальный перевод | `Bible-Synodal-RU.mdx` | LicenseRef-Public-Domain | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
 | الكتاب المقدس — ترجمة فان دايك | `Bible-SVD-AR.mdx` | LicenseRef-Public-Domain | [gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group)](https://github.com/gratis-bible/bible) |
 | Ἡ Καινὴ Διαθήκη (1904) | `Bible-Byzantine-GRC.mdx` | LicenseRef-Public-Domain | [eBible.org](https://ebible.org/) |
-| 口語訳聖書 | `Bible-Kougo-JA.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
-| 新标点和合本圣经（简体） | `Bible-CUV-ZH-Hans.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
-| 新標點和合本聖經（繁體） | `Bible-CUV-ZH-Hant.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Public-domain Bible texts (open-bibles collection, eBible.org)](https://github.com/seven1m/open-bibles) |
+| 官話和合譯本聖經（繁體） | `Bible-CUV-ZH-Hant.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Chinese Wikisource contributors, 聖經 (和合本) (Chinese Union Version, 1919)](https://zh.wikisource.org/wiki/聖經_%28和合本%29) |
+| 官话和合译本圣经（简体） | `Bible-CUV-ZH-Hans.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [Chinese Wikisource contributors, 聖經 (和合本) (Chinese Union Version, 1919)](https://zh.wikisource.org/wiki/聖經_%28和合本%29) |
+| 文語訳聖書 | `Bible-Kougo-JA.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [CrossWire Bible Society, SWORD module JapBungo (文語訳: 明治元訳 Old Testament, 大正改訳 New Testament; text from bible.salterrae.net)](https://crosswire.org/sword/modules/ModInfo.jsp?modName=JapBungo) |
 | 성경 (개역한글) | `Bible-Korean-KO.mdx` | LicenseRef-Public-Domain ([note](#license-notes)) | [CrossWire Bible Society, SWORD module KorRV (Korean Revised Version 1961, Wikisource text)](https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV) |
 
 ### License notes
 
 - **Bible — King James Version** -- Public domain outside the United Kingdom. In the UK the King James Version is under perpetual Crown copyright: printing requires letters patent (held by Cambridge University Press, Oxford University Press and Collins), as the eBible.org eng-kjv rights statement notes.
-- **Bíblia Sagrada — Almeida** -- Text: João Ferreira de Almeida translation, marked Public Domain by Open Bibles (por-almeida).
-- **口語訳聖書** -- Text: Japanese Colloquial Bible (口語訳; Japan Bible Society, NT 1954, OT 1955), marked Public Domain by Open Bibles (jpn-kougo).
-- **新标点和合本圣经（简体）** -- Text: Chinese Union Version with New Punctuation (新标点和合本, 1988), marked Public Domain by eBible.org (cmn-cu89s).
-- **新標點和合本聖經（繁體）** -- Text: Chinese Union Version with New Punctuation (新標點和合本, 1988), marked Public Domain by eBible.org (cmn-cu89t).
+- **Bíblia Sagrada — Almeida 1911** -- Text: João Ferreira d’Almeida, Revista e Corrigida (Lisbon, 1911 printing of the 1900 edition), from Project Gutenberg eBook #62383, labelled “Public domain in the USA” there; Markdown structuring by mazza/biblia-arc1911 (CC0 1.0).
+- **官話和合譯本聖經（繁體）** -- Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there.
+- **官话和合译本圣经（简体）** -- Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there; converted to Simplified Chinese with OpenCC.
+- **文語訳聖書** -- Text: 文語訳 (明治元訳 Old Testament, 1887; 大正改訳 New Testament, 1917), from the CrossWire SWORD module JapBungo 2.0, distributed by CrossWire as Public Domain.
 - **성경 (개역한글)** -- Text: Korean Revised Version (개역한글판; Korean Bible Society, 1961), distributed as Public Domain by CrossWire (KorRV 2.0.1).
 
 ### Source notices
@@ -190,14 +190,14 @@ Acknowledgement as section 3 of the
 > Documentation: <https://www.edrdg.org/jmdict/j_jmdict.html>,
 > <https://www.edrdg.org/wiki/index.php/KANJIDIC_Project>.
 
-**JMdict** (release 2026-10-18): the pitch accent notation was
+**JMdict** (release 2026-10-28): the pitch accent notation was
 provided by Uros O. through his free database
 [Kanjium](https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0).
 OpenMDict converted and modified both (lookup keys for every written form and
 reading, romaji, pitch-accent rendering, HTML layout) with
 `preset-dicts/scripts/build_jmdict_mdx.py`.
 
-**KANJIDIC2** (database version 2026-291): the pinyin readings
+**KANJIDIC2** (database version 2026-301): the pinyin readings
 are © Christian Wittern and Koichi Yasuoka and the Korean readings © Charles
 Muller, included in KANJIDIC2 with their permission.
 `preset-dicts/scripts/build_kanjidic2_mdx.py` converts, abridges and
@@ -439,6 +439,6 @@ keep that licensing.
 
 Every GitHub Release that hosts dictionary assets also carries this file and a `LICENSE-<id>.txt` with the full text of each license above (public domain has none): `scripts/publish-assets.sh` attaches the whole compliance payload to each new Release, including files that did not change since an earlier one. `preset-dicts/assets.lock.json` records the Release (tag) each asset was last published under.
 
-Dictionaries under `GPL-3.0-or-later` (FreeDict, GCIDE; FreeDict also under `AGPL-3.0-or-later`, which upstream applies to the ding2tei-haskell part of its combined work) are distributed as compiled `.mdx` files. Their corresponding source consists of the upstream source archives — `freedict-eng-deu.src.tar.xz`, `freedict-deu-eng.src.tar.xz` and `gcide-0.53.tar.xz`, attached to the GitHub Release that carries the `.mdx` files; FreeDict's own source form is in turn the Ding dictionary (GPLv2+) and ding2tei-haskell (AGPLv3+), which its TEI header names — together with OpenMDict's conversion scripts (`preset-dicts/scripts/`, `preset-dicts/Makefile`) at the commit that built the files.
+Dictionaries under `GPL-3.0-or-later` (FreeDict, GCIDE; FreeDict also under `AGPL-3.0-or-later`, which upstream applies to the ding2tei-haskell part of its combined work) are distributed as compiled `.mdx` files. Their corresponding source — the conversion scripts and the upstream source archives (`freedict-eng-deu.src.tar.xz`, `freedict-deu-eng.src.tar.xz`, `gcide-0.53.tar.xz`) — is published at <https://github.com/naco-siren/OpenMDict-dictionary-sources>, one tag for each set of shipped files; `make` there rebuilds each file byte for byte. FreeDict's own source form is the Ding dictionary (GPLv2+) and ding2tei-haskell (AGPLv3+), which its TEI header names. The description of each of these dictionaries links the repository.
 
 <!-- END GENERATED: preset dictionaries -->

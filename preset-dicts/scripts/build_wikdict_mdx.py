@@ -67,7 +67,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from shared.theme import get_css, GLOSS, ORDERED_LIST, DOMAIN_BADGE, TEXT_SECONDARY
 from shared.html import esc, strip_bidi_controls, wrap_entry, headword as headword_html, dir_label
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview, write_catalog_metadata,
+                          description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_ROOT = SCRIPT_DIR.parent / "data"
@@ -1666,37 +1667,82 @@ _REDIRECT_NOTE = {
 }
 
 
-def describe(src: str, tgt: str, n_redirects: int, n_inferred: int = 0) -> tuple[str, str]:
-    """(MDX header description HTML, one-line catalog description)."""
+def describe(src: str, tgt: str, has_redirects: bool, has_inferred: bool = False) -> tuple[str, str]:
+    """(MDX header description HTML, one-line catalog description).
+
+    has_redirects / has_inferred: whether the file has redirect records
+    and whether any of its cards comes from WikDict's inferred rows.
+    """
     a, b = LANGUAGES[src]['name_en'], LANGUAGES[tgt]['name_en']
     other = f'{b}–{a}'
     changes = ('translations filtered, cleaned and grouped by sense; headwords this direction lacks '
                f'rebuilt from the {other} data (marked “via …”)')
-    if n_inferred:
+    if has_inferred:
         changes += '; a few use WikDict’s own inferred translations (marked “inferred”)'
-    if n_redirects and src in _REDIRECT_NOTE:
+    if has_redirects and src in _REDIRECT_NOTE:
         changes += f'; redirects added for {_REDIRECT_NOTE[src]}'
-    desc = (
-        f"<p><b>WikDict {a}-{b}</b></p>"
-        f"<p>{a} → {b} translations from <a href=\"https://www.wiktionary.org/\">Wiktionary</a> "
-        f"(by the Wiktionary contributors), via "
-        f"<a href=\"https://kaiko.getalp.org/about-dbnary/\">DBnary</a> (Gilles Sérasset) and "
-        f"<a href=\"https://www.wikdict.com/\">WikDict</a> (Karl Bartel), "
-        f"WikDict release {WIKDICT_RELEASE}.</p>"
-        f"<p>License: <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a> "
-        f"(DBnary dataset: <a href=\"https://creativecommons.org/licenses/by-sa/3.0/\">CC BY-SA 3.0</a>).</p>"
-        f"<p>Converted to MDict and modified by OpenMDict: {changes}.</p>"
-    )
+    about = [f"{a} → {b} translations."]
+    if src == 'la':
+        about.append("Latin Wiktionary has few translations into English, so most entries are "
+                     "rebuilt from the English–Latin data.")
     if src != 'en':
-        desc += f"<p>Inflected {a} forms are not listed: look up the dictionary form.</p>"
+        about.append(f"Inflected {a} forms are not listed: look up the dictionary form.")
+    desc = description_html(
+        title=f"WikDict {a}-{b}",
+        about=[' '.join(about)],
+        source=('<a href="https://www.wiktionary.org/">Wiktionary</a> '
+                '(by the Wiktionary contributors), via '
+                '<a href="https://kaiko.getalp.org/about-dbnary/">DBnary</a> (Gilles Sérasset) and '
+                '<a href="https://www.wikdict.com/">WikDict</a> (Karl Bartel), '
+                f'WikDict release {WIKDICT_RELEASE}.'),
+        license=('<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> '
+                 '(DBnary dataset: '
+                 '<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>).'),
+        changes=changes,
+    )
     line = (f"{a}-{b} translations from Wiktionary (via DBnary and WikDict {WIKDICT_RELEASE}), "
             f"grouped by sense.")
     if src == 'la':
-        desc += ("<p>Latin Wiktionary has few translations into English, so most entries are "
-                 "rebuilt from the English–Latin data.</p>")
         line = (f"Latin-English translations from Wiktionary (via DBnary and WikDict "
                 f"{WIKDICT_RELEASE}); most entries rebuilt from the English–Latin data.")
     return desc, line
+
+
+# Two build results decide the header's wording: whether a direction wrote
+# redirect records and whether any of its cards comes from WikDict's
+# inferred rows. build_file() takes both from the build it just made;
+# descriptions() takes them as parameters so the header can be written
+# without building. The defaults match the shipped files: every direction
+# has inferred cards, and every source language in _REDIRECT_NOTE has
+# redirects except Portuguese → English.
+WITHOUT_REDIRECTS: frozenset[tuple[str, str]] = frozenset({('pt', 'en')})
+WITHOUT_INFERRED: frozenset[tuple[str, str]] = frozenset()
+
+
+def directions() -> list[tuple[str, str]]:
+    """Every (src, tgt) this script builds: EN↔XX per language, then the cross pairs."""
+    out = []
+    for code in LANGUAGES:
+        if code != 'en':
+            out += [(code, 'en'), ('en', code)]
+    for a, b in CROSS_PAIRS:
+        out += [(a, b), (b, a)]
+    return out
+
+
+def descriptions(without_redirects: frozenset = WITHOUT_REDIRECTS,
+                 without_inferred: frozenset = WITHOUT_INFERRED) -> dict[str, str]:
+    """{"WikDict-A-B.mdx": header description HTML} for every file, without building.
+
+    without_redirects / without_inferred: the (src, tgt) directions whose
+    file has no redirect records / no card from WikDict's inferred rows.
+    """
+    return {
+        f"WikDict-{src.upper()}-{tgt.upper()}.mdx":
+            describe(src, tgt, (src, tgt) not in without_redirects,
+                     (src, tgt) not in without_inferred)[0]
+        for src, tgt in directions()
+    }
 
 
 def build_file(src: str, tgt: str, direct_ab: dict, weak_ab: dict, direct_ba: dict,
@@ -1714,7 +1760,7 @@ def build_file(src: str, tgt: str, direct_ab: dict, weak_ab: dict, direct_ba: di
 
     a, b = LANGUAGES[src]['name_en'], LANGUAGES[tgt]['name_en']
     title = f"WikDict {a}-{b}"
-    desc, line = describe(src, tgt, len(redirects), stats['inferred'])
+    desc, line = describe(src, tgt, bool(redirects), bool(stats['inferred']))
     mdx_path = out_dir / f"{name}.mdx"
     ok, size, _ = pack_mdx(txt, title, desc, mdx_path, inputs=inputs)
     if not ok:

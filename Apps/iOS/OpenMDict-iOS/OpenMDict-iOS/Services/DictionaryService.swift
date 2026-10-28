@@ -1097,7 +1097,13 @@ final class DictionaryService: ObservableObject {
     /// the old file open keep using it). If the new file does not open, the
     /// old one is put back. A kill between the renames is repaired at the
     /// next launch (`recoverInterruptedMDXReplacements`).
-    func updatePresetFile(dictId: String, from sourceURL: URL, expectedSha256: String) async throws {
+    ///
+    /// When the catalog renamed the preset (the new build is another text of
+    /// the work), the dictionary takes `displayName` if its name is one of
+    /// `previousDisplayNames`, i.e. one the user did not choose. The name is
+    /// synced, so other devices show it too.
+    func updatePresetFile(dictId: String, from sourceURL: URL, expectedSha256: String,
+                          displayName: String? = nil, previousDisplayNames: [String] = []) async throws {
         guard canUpdatePresetFile(dictId), let dict = dict(id: dictId),
               let manifest = storage.loadDictManifest(id: dictId) else {
             throw PresetUpdateError(kind: .notReady, underlying: nil)
@@ -1195,6 +1201,11 @@ final class DictionaryService: ObservableObject {
         }
         LookupFallbackSetup.dictionariesDidLoad([dict])
         ArticleIndexCoordinator.shared.handleDictImported(dictId)
+        if let newName = PresetVersioning.adoptedDisplayName(current: dict.userDisplayName,
+                                                             catalogName: displayName,
+                                                             previousNames: previousDisplayNames) {
+            updateDisplayName(dictId: dictId, newName: newName)
+        }
         SpotlightIndexingService.shared.indexDictionary(dict)
         displayNameRevision += 1
         debugLog("✅ Preset file updated: \(fileName) (\(dictId.prefix(16)))")

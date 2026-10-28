@@ -50,7 +50,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from shared.theme import get_css, GLOSS, ORDERED_LIST, TEXT_SECONDARY, TEXT_LINK
 from shared.html import (esc, entry_link, dir_attr, wrap_entry, headword,
                          strip_bidi_controls)
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview, write_catalog_metadata,
+                          description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data"
@@ -1591,24 +1592,35 @@ def write_entries(records: list, txt_path: Path) -> int:
     return count
 
 
-def description_html(lang: dict, dict_name: str) -> str:
-    name_en = lang['name_en']
+def _dict_name(lang: dict) -> str:
+    """Display name of a language's dictionary ("Wiktionary Korean-English")."""
+    return f"Wiktionary {lang['name_en']}-English"
+
+
+def header_description(lang: dict) -> str:
+    """The MDX header description of a language's dictionary, in the shared layout."""
     src = (f"{UPSTREAM_REPO}/blob/{UPSTREAM_COMMIT}/"
            + lang['upstream_file'].replace(' ', '%20'))
-    return (
-        f"<p><b>{dict_name} Dictionary</b></p>"
-        f"<p>{name_en}→English glosses from the English Wiktionary "
-        f"(snapshot of November 2022), with {lang['features']}.</p>"
-        f"<p>Source: <a href='https://en.wiktionary.org/'>English Wiktionary</a> contributors, "
-        f"via <a href='{src}'>Vuizur/Wiktionary-Dictionaries</a> "
-        f"(commit {UPSTREAM_COMMIT[:10]}, {UPSTREAM_DATE}), built from "
-        f"<a href='https://kaikki.org/'>kaikki.org</a>/Wiktextract data.</p>"
-        f"<p>License: dual-licensed under "
-        f"<a href='https://creativecommons.org/licenses/by-sa/3.0/'>CC BY-SA 3.0 Unported</a> "
-        f"and the <a href='https://www.gnu.org/licenses/fdl-1.3.html'>GNU Free Documentation License</a>, "
-        f"as Wiktionary text was at the time. Converted to MDict and modified by OpenMDict "
-        f"({lang['changes']}).</p>"
+    return description_html(
+        title=f"{_dict_name(lang)} Dictionary",
+        about=[f"{lang['name_en']}→English glosses from the English Wiktionary "
+               f"(snapshot of November 2022), with {lang['features']}."],
+        source=('<a href="https://en.wiktionary.org/">English Wiktionary</a> contributors, '
+                f'via <a href="{src}">Vuizur/Wiktionary-Dictionaries</a> '
+                f"(commit {UPSTREAM_COMMIT[:10]}, {UPSTREAM_DATE}), built from "
+                '<a href="https://kaikki.org/">kaikki.org</a>/Wiktextract data.'),
+        license=('Dual-licensed under '
+                 '<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0 Unported</a> '
+                 'and the <a href="https://www.gnu.org/licenses/fdl-1.3.html">GNU Free Documentation License</a>, '
+                 'as Wiktionary text was at the time.'),
+        changes=lang['changes'],
     )
+
+
+def descriptions() -> dict[str, str]:
+    """Header description of every dictionary this script builds, by MDX file name."""
+    return {f"Wiktionary-{lang['code'].upper()}-EN.mdx": header_description(lang)
+            for lang in LANGUAGES.values()}
 
 
 # ── Main build logic ───────────────────────────────────────────
@@ -1645,9 +1657,9 @@ def build_language(lang_code: str):
     count = write_entries(records, txt_path)
     print(f"  {count:,} total entries written ({stats['articles']:,} articles)")
 
-    dict_name = f"Wiktionary {name_en}-English"
+    dict_name = _dict_name(lang)
     mdx_path = dict_dir / f"Wiktionary-{code.upper()}-EN.mdx"
-    success, size_mb, _ = pack_mdx(txt_path, dict_name, description_html(lang, dict_name),
+    success, size_mb, _ = pack_mdx(txt_path, dict_name, header_description(lang),
                                    mdx_path, inputs=[tsv_path])
     if not success:
         return None, None

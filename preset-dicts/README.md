@@ -36,7 +36,7 @@ preset-dicts/
     build_wordnet_mdx.py        English monolingual     (Open English WordNet 2025+)
     build_moby_thesaurus_mdx.py English thesaurus       (Moby Thesaurus II)
     build_gcide_mdx.py          English dictionary      (GNU CIDE / Webster's 1913)
-    build_bible_mdx.py          14 Bible translations   (OSIS/USFX/Zefania XML, SWORD)
+    build_bible_mdx.py          14 Bible translations   (OSIS/USFX/Zefania XML, SWORD, wikitext, Markdown)
     build_perseus_mdx.py        Ancient Greek, Latin    (Perseus TEI P4)
     build_kanjidic2_mdx.py      Kanji reference         (KANJIDIC2)
     build_unihan_mdx.py         CJK characters          (Unicode Unihan)
@@ -66,6 +66,8 @@ outside the checkout. **`git clean -x` deletes them** (see
 - Python 3.10+
 - [`mdict-utils`](https://github.com/liuyug/mdict-utils) 1.3.14, which
   provides the `mdict` CLI: `pip install mdict-utils==1.3.14`
+- [OpenCC](https://github.com/BYVoid/OpenCC) 1.4.2 for the Simplified
+  Chinese Bible (`Bible-CUV-ZH-Hans`): `pip install opencc==1.4.2`
 - Source data files in `data/` (see [Data Acquisition](#data-acquisition))
 
 If you only want the compiled dictionaries, run
@@ -95,8 +97,8 @@ SHA-256 of the file the published dictionaries were built from:
   file that does not match its SHA-256 is an **error** (delete it and
   re-run if a download was cut short).
 - Some upstreams serve only their latest release under a fixed URL:
-  CC-CEDICT (MDBG), Kaikki.org, CrossWire's KorRV module and eBible.org's
-  `grcbyz`. For those a different file only gives a **warning**: a rebuild
+  CC-CEDICT (MDBG), Kaikki.org, CrossWire's KorRV and JapBungo modules and
+  eBible.org's `grcbyz`. For those a different file only gives a **warning**: a rebuild
   from it will not reproduce the published `.mdx`.
 - **JMdict** and **KANJIDIC2** are replaced by EDRDG every day and older
   releases are not kept. Each download is filed under its release
@@ -104,11 +106,13 @@ SHA-256 of the file the published dictionaries were built from:
   and never overwrites the release the build is pinned to; see
   `../MAINTAINING.md`, "Refreshing the EDRDG data".
 - The **Bibles** come from commit-pinned
-  [open-bibles](https://github.com/seven1m/open-bibles) and
-  [gratis-bible](https://github.com/gratis-bible/bible) URLs, the
-  [CrossWire](https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV)
-  KorRV module and eBible.org's `grcbyz` (the build gates still check every
-  book, chapter and verse of the latter two).
+  [open-bibles](https://github.com/seven1m/open-bibles),
+  [gratis-bible](https://github.com/gratis-bible/bible) and
+  [biblia-arc1911](https://github.com/mazza/biblia-arc1911) URLs, Chinese
+  Wikisource pages pinned by revision id (`scripts/cuv1919_wikisource.pins`),
+  the [CrossWire](https://crosswire.org/sword/modules/) KorRV and JapBungo
+  modules and eBible.org's `grcbyz` (the build gates still check every book,
+  chapter and verse of the latter three).
 - The Moby and WikDict builds also need the Open English WordNet data;
   fetching either source fetches it too.
 - A source that fails is reported and the others still run; the script
@@ -163,6 +167,7 @@ make list
 | `catalog` | Regenerate `preset-dictionaries.json` and print the diff |
 | `check-catalog` | Fail if the catalog does not describe `output/` or the notices are stale |
 | `notices` | Regenerate the generated part of `../THIRD-PARTY-NOTICES.md` |
+| `descriptions` | Write every dictionary's MDX header description to `output/_descriptions/` without building (review the text first) |
 
 ### Reproducible builds
 

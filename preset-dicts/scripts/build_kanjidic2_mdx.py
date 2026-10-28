@@ -40,14 +40,15 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from shared.theme import get_css, CJK_READING_TAGS, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, entry_link, kana_to_romaji
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview, write_catalog_metadata,
+                          description_html)
 
 # The KANJIDIC2 release this build is pinned to (its <database_version>)
 # and the SHA-256 of that kanjidic2.xml.gz. EDRDG serves only the current
 # file, at KANJIDIC2_URL.
 KANJIDIC2_URL = "https://www.edrdg.org/kanjidic/kanjidic2.xml.gz"
-KANJIDIC2_DB_VERSION = "2026-291"
-KANJIDIC2_SHA256 = "6182a700e08a8f6a6646529b77f84f0d963ed33cd5c7516ff19e4ee642345446"
+KANJIDIC2_DB_VERSION = "2026-301"
+KANJIDIC2_SHA256 = "554c23fa1d4a0528c6d839017123cb752dff81f0d53696e12e2cef72dbb72dc1"
 MAX_DATA_AGE_DAYS = 31
 DATA_DIR = SCRIPT_DIR.parent / "data" / f"kanjidic2-{KANJIDIC2_DB_VERSION}"
 OUTPUT_DIR = SCRIPT_DIR.parent / "output" / "KANJIDIC2-JA"
@@ -442,6 +443,60 @@ def _generate_preview(entries: dict):
     _shared_preview(entries_html, preview_path, 'KANJIDIC2 — preview')
 
 
+# ── Description ────────────────────────────────────────────────
+
+MDX_TITLE = "KANJIDIC2 — Kanji Dictionary"
+MDX_NAME = "KANJIDIC2-JA.mdx"
+
+
+def header_description(count: int, db_version: str, db_date: str) -> str:
+    """The MDX header description, in the shared layout (shared.build).
+
+    Args:
+        count: Number of kanji entries in the MDX.
+        db_version: KANJIDIC2 <database_version> of the data file.
+        db_date: Its <date_of_creation>.
+    """
+    return description_html(
+        title=MDX_TITLE,
+        about=[
+            f"{count:,} kanji of JIS X 0208, 0212 and 0213 with stroke counts, "
+            "classical radicals, on/kun readings with romaji, Chinese (pinyin), Korean "
+            "and Vietnamese readings, English meanings, name readings (nanori), school "
+            "grade, newspaper frequency rank, former (pre-2010) JLPT level and "
+            "variant-kanji links. Non-English meanings, query codes and dictionary "
+            "index numbers are not included.",
+        ],
+        source=(
+            '<a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project">KANJIDIC '
+            f"Project</a>, KANJIDIC2 database version {db_version} ({db_date}). "
+            "Copyright James William Breen and the Electronic Dictionary Research and "
+            "Development Group (EDRDG). Pinyin readings © Christian Wittern and Koichi "
+            "Yasuoka; Korean readings © Charles Muller (included in KANJIDIC2 with their "
+            "permission)."
+        ),
+        license=(
+            "Used in conformance with the EDRDG's "
+            '<a href="https://www.edrdg.org/edrdg/licence.html">licence</a>, under '
+            '<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.'
+        ),
+        changes="abridged and reformatted",
+        adaptation_license="This adaptation is shared under CC BY-SA 4.0.",
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{"<Name>.mdx": header description} for the dictionary this script builds.
+
+    Reads the header and counts the kanji of the pinned data file the same
+    way the build does (a parse of about one second), without building.
+    """
+    header = read_header(KANJIDIC2_FILE)
+    count = len({ch['literal'] for ch in parse_kanjidic2(KANJIDIC2_FILE)})
+    return {MDX_NAME: header_description(count, header.get('database_version', ''),
+                                         header.get('date_of_creation', ''))}
+
+
 # ── Main ───────────────────────────────────────────────────────
 
 def main():
@@ -496,27 +551,9 @@ def main():
     print(f"  {count} entries written")
 
     # Pack MDX
-    mdx_path = OUTPUT_DIR / "KANJIDIC2-JA.mdx"
-    desc_html = (
-        "<p><b>KANJIDIC2 — Kanji Dictionary</b></p>"
-        f"<p>{count:,} kanji of JIS X 0208, 0212 and 0213 with stroke counts, "
-        "classical radicals, on/kun readings with romaji, Chinese (pinyin), Korean "
-        "and Vietnamese readings, English meanings, name readings (nanori), school "
-        "grade, newspaper frequency rank, former (pre-2010) JLPT level and "
-        "variant-kanji links. Non-English meanings, query codes and dictionary "
-        "index numbers are not included.</p>"
-        f"<p>KANJIDIC2 database version {db_version} ({db_date}). Copyright James "
-        "William Breen and the Electronic Dictionary Research and Development Group "
-        "(EDRDG), used in conformance with the Group's "
-        "<a href='https://www.edrdg.org/edrdg/licence.html'>licence</a>, under "
-        "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA 4.0</a>. "
-        "Pinyin readings © Christian Wittern and Koichi Yasuoka; Korean readings © "
-        "Charles Muller (included in KANJIDIC2 with their permission).</p>"
-        "<p>Source: <a href='https://www.edrdg.org/wiki/index.php/KANJIDIC_Project'>"
-        "KANJIDIC Project</a>. Converted to MDict, abridged and reformatted by "
-        "OpenMDict; this adaptation is shared under CC BY-SA 4.0.</p>"
-    )
-    success, size_mb, _ = pack_mdx(txt_path, "KANJIDIC2 — Kanji Dictionary", desc_html,
+    mdx_path = OUTPUT_DIR / MDX_NAME
+    desc_html = header_description(count, db_version, db_date)
+    success, size_mb, _ = pack_mdx(txt_path, MDX_TITLE, desc_html,
                                    mdx_path, inputs=[DATA_DIR])
     if not success:
         return

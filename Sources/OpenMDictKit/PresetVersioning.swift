@@ -96,6 +96,17 @@ public enum PresetVersioning {
         if let latest = latestSha256?.lowercased(), latest == id { return true }
         return previousSha256.contains { $0.lowercased() == id }
     }
+
+    /// The name an installed preset takes when it is updated: the catalog's
+    /// name if the dictionary still has one of the preset's earlier catalog
+    /// names (a build that is another text of the work is renamed with it);
+    /// nil to keep the current name, e.g. one the user chose.
+    public static func adoptedDisplayName(current: String?, catalogName: String?,
+                                          previousNames: [String]) -> String? {
+        guard let current, let catalogName, !catalogName.isEmpty,
+              current != catalogName, previousNames.contains(current) else { return nil }
+        return catalogName
+    }
 }
 
 // MARK: - Group membership of dictionaries that are not loaded here

@@ -4,513 +4,513 @@
     {
       "filename": "Bible-Almeida-PT.mdx",
       "dest": "preset-dicts/output/Bible-Almeida-PT/Bible-Almeida-PT.mdx",
-      "size": 2428863,
-      "sha256": "df93f885860d7c79800ee368b3103aa855b85cc32d6b6a30b6f46688fac45f2d",
-      "tag": "assets-2026.10.1",
+      "size": 2663050,
+      "sha256": "70b3be3cb4b328239337b5c74c87835c632650b2012bf9a4a09c2f4f4fb2d922",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Byzantine-GRC.mdx",
       "dest": "preset-dicts/output/Bible-Byzantine-GRC/Bible-Byzantine-GRC.mdx",
-      "size": 806444,
-      "sha256": "e2f1f7f786e4c3b6bbcc456a2b45e0801220005517e51b489d600c6606fb98e4",
-      "tag": "assets-2026.10.1",
+      "size": 807042,
+      "sha256": "4b500443e9112f06d4c1ed8509458f6a5c262ab84f3672885884319171bbafcf",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-CUV-ZH-Hans.mdx",
       "dest": "preset-dicts/output/Bible-CUV-ZH-Hans/Bible-CUV-ZH-Hans.mdx",
-      "size": 2469687,
-      "sha256": "837948894bf487afd7e240fc2476b342a5ee2cbe59d22ef979d052efa0954729",
-      "tag": "assets-2026.10.1",
+      "size": 2525797,
+      "sha256": "048ff8bfa18ec693136dfddb4b76f522c7d40fbb9c7176a9b10853fcd8370b32",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-CUV-ZH-Hant.mdx",
       "dest": "preset-dicts/output/Bible-CUV-ZH-Hant/Bible-CUV-ZH-Hant.mdx",
-      "size": 2475102,
-      "sha256": "4b5efc568ab4566b5704039f38203972813eb167833145331ef27a396b9a989b",
-      "tag": "assets-2026.10.1",
+      "size": 2531587,
+      "sha256": "7f43e703105dcfda893f45750da9f8d748118953fb36d5c0f0ffa80bd23787d7",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Darby-FR.mdx",
       "dest": "preset-dicts/output/Bible-Darby-FR/Bible-Darby-FR.mdx",
-      "size": 2486140,
-      "sha256": "5e87972d27fc8cd525cc55e546f7871bd048bc52c4439bf863ad9a539c3e3415",
-      "tag": "assets-2026.10.1",
+      "size": 2486736,
+      "sha256": "7929ccbe749560cadac0273e7eca7704aa895896659716d3995c2db78c6ae03f",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Diodati-IT.mdx",
       "dest": "preset-dicts/output/Bible-Diodati-IT/Bible-Diodati-IT.mdx",
-      "size": 2495490,
-      "sha256": "6c91587b23c73aad38be492c86c77c9598a238ca408920661e0fd67fac605a8c",
-      "tag": "assets-2026.10.1",
+      "size": 2496072,
+      "sha256": "048f50dac28fee7a5b17c6f2d7616975e9bb272a17c67b62da52fcb47f824873",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-KJV-EN.mdx",
       "dest": "preset-dicts/output/Bible-KJV-EN/Bible-KJV-EN.mdx",
-      "size": 2247390,
-      "sha256": "513b1125f988f48088527852abdb290f82fe46cb056479f6eefeb9af9c8f7bc7",
-      "tag": "assets-2026.10.1",
+      "size": 2247982,
+      "sha256": "2a46137f2d51d6904bd567d36138ba561884912d436617fdcc3e3ef4a12aad06",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Korean-KO.mdx",
       "dest": "preset-dicts/output/Bible-Korean-KO/Bible-Korean-KO.mdx",
-      "size": 2557479,
-      "sha256": "4be91e2ee2d57c2946dbf51629a48da2bc5cf4591e663e1a0f9b3d568da9c57a",
-      "tag": "assets-2026.10.1",
+      "size": 2558011,
+      "sha256": "7073ff465c2f80df50dfa55a083562b9b84c8615daa194eafd617afd37a1ea4e",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Kougo-JA.mdx",
       "dest": "preset-dicts/output/Bible-Kougo-JA/Bible-Kougo-JA.mdx",
-      "size": 2780640,
-      "sha256": "29aa2f5fd1b9bcd9c4524005418bff9a2b80744e73764fd130917941784e9caf",
-      "tag": "assets-2026.10.1",
+      "size": 4162797,
+      "sha256": "60fd081f2477eab6282cd70f907927624fcea8138d9005b06e2eb62dfffc3d1e",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Luther1912-DE.mdx",
       "dest": "preset-dicts/output/Bible-Luther1912-DE/Bible-Luther1912-DE.mdx",
-      "size": 2639308,
-      "sha256": "ec01943558262c43f70fcec8c6c0e4648a1373dcb09979be07dc06025d431f7d",
-      "tag": "assets-2026.10.1",
+      "size": 2639896,
+      "sha256": "fab781f1baa4a87a7b2358ae076fb3eddb2ae2b4509395520c7bc09c8340e001",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-RV1909-ES.mdx",
       "dest": "preset-dicts/output/Bible-RV1909-ES/Bible-RV1909-ES.mdx",
-      "size": 2418707,
-      "sha256": "b943e29c20a0770df241b8276ba6eac0bfbeee078178e8ad63f793556ab72e20",
-      "tag": "assets-2026.10.1",
+      "size": 2419315,
+      "sha256": "66e032da6de7b02ca6878550e8b02f5771e105f0021d65f721a3de4a2a9fa171",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-SVD-AR.mdx",
       "dest": "preset-dicts/output/Bible-SVD-AR/Bible-SVD-AR.mdx",
-      "size": 2256788,
-      "sha256": "c246d4638968409f771c7e4483f7b50d0ea6c103a98c1bde2fe7378573a263c4",
-      "tag": "assets-2026.10.1",
+      "size": 2257650,
+      "sha256": "90512600d4d75bef1f56ee886d53c6477667721d60fe35996552e6d6157c722f",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Synodal-RU.mdx",
       "dest": "preset-dicts/output/Bible-Synodal-RU/Bible-Synodal-RU.mdx",
-      "size": 2724258,
-      "sha256": "8e7751f132eb812578d6244b29affd1b10bf3bf374b42e816d096eb8e2c11224",
-      "tag": "assets-2026.10.1",
+      "size": 2724858,
+      "sha256": "ffaadad26dd912097f9dfc2bba5f0139a0e275c0273e2acd830c593305f698b5",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Bible-Vulgate-LA.mdx",
       "dest": "preset-dicts/output/Bible-Vulgate-LA/Bible-Vulgate-LA.mdx",
-      "size": 2441760,
-      "sha256": "e8713fc851aabe19642e3d69a2a920363ae0da54571799363ff9e29a15e20fbf",
-      "tag": "assets-2026.10.1",
+      "size": 2442344,
+      "sha256": "01499b81f3c21d6974e168024a84446e04e8469d6c879d952c6ddb25ec281202",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "CC-Canto-YUE-EN.mdx",
       "dest": "preset-dicts/output/CC-Canto-YUE-EN/CC-Canto-YUE-EN.mdx",
-      "size": 4406698,
-      "sha256": "a9a24615d54b4d260a57ac0ac55816b78a45efca5c88d510699c25cbc3da0892",
-      "tag": "assets-2026.10.1",
+      "size": 4407108,
+      "sha256": "294547b34f35fa72d9ea97bc50e67f719a86bbb1edc913fe4e25dbaac743a29e",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "CEDICT-ZH-EN.mdx",
       "dest": "preset-dicts/output/CEDICT-ZH-EN/CEDICT-ZH-EN.mdx",
-      "size": 11379640,
-      "sha256": "c0e56fddc70d0d3c76e05a742d07c7bd918798677ccccf3a89808b15b74fe44a",
-      "tag": "assets-2026.10.1",
+      "size": 11379944,
+      "sha256": "d85218d2f19338a49bf20c3743760a3d79aee85c24e52ab0390fb868678b1638",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "FreeDict-DE-EN.mdx",
       "dest": "preset-dicts/output/FreeDict-DE-EN/FreeDict-DE-EN.mdx",
-      "size": 62380778,
-      "sha256": "6e1a6193b44c16ed9fb826958a87378e0d53fdcdda68d0a82eec2b0280dceab2",
-      "tag": "assets-2026.10.1",
+      "size": 62381472,
+      "sha256": "3eaca9ab9ffa58ae31c8d6e1a299a607e3509511b18d077bdf948f80f86315be",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "FreeDict-EN-DE.mdx",
       "dest": "preset-dicts/output/FreeDict-EN-DE/FreeDict-EN-DE.mdx",
-      "size": 54356825,
-      "sha256": "3c92d2c3224f12f3f1d55b56d6e4468d4637c6d9315cc8902e4a36f8d1bf2877",
-      "tag": "assets-2026.10.1",
+      "size": 54357519,
+      "sha256": "fa6bc9f2161d166c62093b9dc5db1ba31dff23efd6bc35830c07f3957043ba53",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "GCIDE-EN.mdx",
       "dest": "preset-dicts/output/GCIDE-EN/GCIDE-EN.mdx",
-      "size": 24155212,
-      "sha256": "9e1f47de33e258d6f16d2c1bbd993f5f9253794f73dc7bd44a53a3114ceef376",
-      "tag": "assets-2026.10.1",
+      "size": 24156314,
+      "sha256": "0ee09e3c1639d2dd2ed166c736e73862f1db6a13cc7b9f6bd1562d008f03bc1d",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "JMdict-JA-EN.mdx",
       "dest": "preset-dicts/output/JMdict-JA-EN/JMdict-JA-EN.mdx",
-      "size": 40476076,
-      "sha256": "4633a61735f652a0b73bb54bed8d488926d703383622a9fd46e23f7d25fd1d79",
-      "tag": "assets-2026.10.1",
+      "size": 40478641,
+      "sha256": "a85fb26bdf2b4516d84c675553ad1b0e5cb8d82f72bd8bd794da5c725717febf",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "KANJIDIC2-JA.mdx",
       "dest": "preset-dicts/output/KANJIDIC2-JA/KANJIDIC2-JA.mdx",
-      "size": 1935419,
-      "sha256": "22d9078b9f4fe6b366bbe2528b5abf204ce22d3829b20935881e24ffe7d2e031",
-      "tag": "assets-2026.10.1",
+      "size": 1935817,
+      "sha256": "b639c57173b61fae93949a17fb8d088da046adb900d1a1c27170481641f7978f",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-AR-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-AR-EN/Kaikki-AR-EN.mdx",
-      "size": 5481641,
-      "sha256": "524794f87d686a52024b5c3643056088c206e21604ff2124754d2a42d6f7bb32",
-      "tag": "assets-2026.10.1",
+      "size": 5482239,
+      "sha256": "42a084c23d68ef2af4550cc7609c110c20bee65c1ae8784c6496d611b49befef",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-EL-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-EL-EN/Kaikki-EL-EN.mdx",
-      "size": 7953626,
-      "sha256": "6992b3db8e9274a410448f8a15aba4873561bf0e760c234060cde2acff08b772",
-      "tag": "assets-2026.10.1",
+      "size": 7954222,
+      "sha256": "6cbf49031c4fb7b2593d55adc0a71853d8795f32fcdb0fb09ccc97f26411a00d",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-ES-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-ES-EN/Kaikki-ES-EN.mdx",
-      "size": 19281052,
-      "sha256": "4d3085289c1c6c0c5b4a55b3f9151af2197cf810aeecf9628c2344a3b4905952",
-      "tag": "assets-2026.10.1",
+      "size": 19281652,
+      "sha256": "834545a9d903466079eba449cc7abc55a2f8948f2f3270e5504a48e895bd6ae4",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-FR-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-FR-EN/Kaikki-FR-EN.mdx",
-      "size": 13666660,
-      "sha256": "0e190f468f3b2340a0042a70a7b3b0942da087dbd2ec355416665c1869ecb2e2",
-      "tag": "assets-2026.10.1",
+      "size": 13667258,
+      "sha256": "26267e19628814cbf9bc4ae3d0022c97c0cc8172ba016954a00cbaf7ab113c6b",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-IT-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-IT-EN/Kaikki-IT-EN.mdx",
-      "size": 19424901,
-      "sha256": "8a3e8e990f5dfffa8bb3623f29726b12b5f347eaf4e27dd3ef2c616e651e57f9",
-      "tag": "assets-2026.10.1",
+      "size": 19425501,
+      "sha256": "d9f149bcf23e4c13d8267b92e3cd43e65a80057ced68d5c6d347346b11b52a4a",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-KO-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-KO-EN/Kaikki-KO-EN.mdx",
-      "size": 7953308,
-      "sha256": "7efc41d6c2e86ce69dfedccfc93f0bb914cae5dccbc4c65afdc0c72615a10d32",
-      "tag": "assets-2026.10.1",
+      "size": 7953906,
+      "sha256": "b3fbeae557b3f03d1163502667bbb342863e14585fa1a60cf6cf6d7f44ec5dcb",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-LA-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-LA-EN/Kaikki-LA-EN.mdx",
-      "size": 13823843,
-      "sha256": "0475e62368a4d4489d5961fe0f37e83ae2d692237ef9b76785ebe34204cbc7bd",
-      "tag": "assets-2026.10.1",
+      "size": 13824439,
+      "sha256": "e8c6678752dc264713e0fc5f0c1af69d90eeea476b7a1b19f15d2531285d486a",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-PT-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-PT-EN/Kaikki-PT-EN.mdx",
-      "size": 14447588,
-      "sha256": "01acbb700798f62d351bd845c9859b9f04bdae405a4213995519bf8f415dbf1f",
-      "tag": "assets-2026.10.1",
+      "size": 14448194,
+      "sha256": "d830b04082161d7e82505b14582327ae714680499396a0f146bcd3ce667a5ded",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-RU-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-RU-EN/Kaikki-RU-EN.mdx",
-      "size": 14054846,
-      "sha256": "19327731aedb2798edfd5bca0fc77c636e03e812ffc2e101d2c53a81a3d27a6f",
-      "tag": "assets-2026.10.1",
+      "size": 14055446,
+      "sha256": "a51d630f6af382a3dad07a9bb66b7825d3f62771363f43a669ccf39513cc0017",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Kaikki-TR-EN.mdx",
       "dest": "preset-dicts/output/Kaikki-TR-EN/Kaikki-TR-EN.mdx",
-      "size": 6225788,
-      "sha256": "479b6a045153eddaf325c052cc4345c83dcc6abedae6a03c30daf387f92048f8",
-      "tag": "assets-2026.10.1",
+      "size": 6226388,
+      "sha256": "5447eb85920479bd594bd1595b481b9df2c4de000010d3aebc9037121c16b102",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "LSJ-GRC-EN.mdx",
       "dest": "preset-dicts/output/LSJ-GRC-EN/LSJ-GRC-EN.mdx",
-      "size": 29270301,
-      "sha256": "8b45d0ab350867bb4955603a52054d186afe8487d11e9ec4e3c1a88f19401a8f",
-      "tag": "assets-2026.10.1",
+      "size": 29270961,
+      "sha256": "9ee1c3a13ad65b4ab3bc3a81eaa8708945682bf11c871a38f5e72fa28a9b250f",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Lewis-Short-LA-EN.mdx",
       "dest": "preset-dicts/output/Lewis-Short-LA-EN/Lewis-Short-LA-EN.mdx",
-      "size": 18062703,
-      "sha256": "c2e9ed49b8e3c94abe19df6776016a32adc88b44957e12c43657a0f5032ba9b4",
-      "tag": "assets-2026.10.1",
+      "size": 18063279,
+      "sha256": "5db546644ad86306c7f05aeba92f54867d7de787b214eb05355950e0bf6d7e84",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Moby-Thesaurus-EN.mdx",
       "dest": "preset-dicts/output/Moby-Thesaurus-EN/Moby-Thesaurus-EN.mdx",
-      "size": 31912633,
-      "sha256": "130dfe408daa6befc79ccb0cc4fd930765366db621d84b1da08eda7c01b72799",
-      "tag": "assets-2026.10.1",
+      "size": 31913163,
+      "sha256": "594242a2d86409e79946f0c78640151eb5e80894a9af94cbb3329bad4a85fd39",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Unihan-CJK.mdx",
       "dest": "preset-dicts/output/Unihan-CJK/Unihan-CJK.mdx",
-      "size": 11617097,
-      "sha256": "97f58abd4a22246b456254a239cd8a119ad9fe6f47abf63d39e3c9f09ff0a957",
-      "tag": "assets-2026.10.1",
+      "size": 11617463,
+      "sha256": "ac4b8752abefcf4afff7d92443c279a07ea48fbed3fbf8fb79dc7a1eb960516b",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-DE-EN.mdx",
       "dest": "preset-dicts/output/WikDict-DE-EN/WikDict-DE-EN.mdx",
-      "size": 14129911,
-      "sha256": "6c66c71c8394c90510a3b87a2a06ab31b6f483929cbff61b5b9c23e75365168e",
-      "tag": "assets-2026.10.1",
+      "size": 14130237,
+      "sha256": "f7f9907c669fec346e772861e0b22b74922687d795f101f5991ae39dfb0062ab",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-DE-RU.mdx",
       "dest": "preset-dicts/output/WikDict-DE-RU/WikDict-DE-RU.mdx",
-      "size": 5857825,
-      "sha256": "de679821b9ed396fdfbc09bd0523a9515e201cdaa97b77d254eacda7e10d1250",
-      "tag": "assets-2026.10.1",
+      "size": 5858151,
+      "sha256": "d8919b9f3aa4b389c9f87da0da7ce9300fd4f9c884aad5a8d6b80d8e56e9b778",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EL-EN.mdx",
       "dest": "preset-dicts/output/WikDict-EL-EN/WikDict-EL-EN.mdx",
-      "size": 4836116,
-      "sha256": "a99861121524ceb0487374088d8767702ee39f9c126d889d71ea793720c24737",
-      "tag": "assets-2026.10.1",
+      "size": 4836442,
+      "sha256": "2f68a4e47cab3bbb38bec7c4a29fce4aa080db7f8f3d777b315fe7c9ae8c2c96",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-DE.mdx",
       "dest": "preset-dicts/output/WikDict-EN-DE/WikDict-EN-DE.mdx",
-      "size": 13557839,
-      "sha256": "52f4b729d226a041a69d1ba26c4598b37d5ac759ab28ab8f00fbddc3d1230501",
-      "tag": "assets-2026.10.1",
+      "size": 13558201,
+      "sha256": "0467c9b48c1f761038f0cd9466f1cbfd401f27bc5393943e48a319ed8a62704b",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-EL.mdx",
       "dest": "preset-dicts/output/WikDict-EN-EL/WikDict-EN-EL.mdx",
-      "size": 6280440,
-      "sha256": "0db66df9936e381d6e94401df554e71628920e7eb9a029b96839c994deed32f4",
-      "tag": "assets-2026.10.1",
+      "size": 6280802,
+      "sha256": "ba1e8c3d5e703f55b3ec128379a7a17fe2590ba3020d24698295ec09bd4c5391",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-ES.mdx",
       "dest": "preset-dicts/output/WikDict-EN-ES/WikDict-EN-ES.mdx",
-      "size": 8795884,
-      "sha256": "9b0ae4872278bf2af125765000ab5263bdf76573202f5a782c683b85f6eb2cb1",
-      "tag": "assets-2026.10.1",
+      "size": 8796246,
+      "sha256": "4f029099443f789eda1a0cd957e4a84eee23f45a62e46bca028d56881f7cc928",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-FR.mdx",
       "dest": "preset-dicts/output/WikDict-EN-FR/WikDict-EN-FR.mdx",
-      "size": 13905604,
-      "sha256": "67a4fd1cccc148a754e95d3668b18a78b6143dd261bdf3c339a9efe0909a48a3",
-      "tag": "assets-2026.10.1",
+      "size": 13905966,
+      "sha256": "9483648def6cf58703f0a8e10dd1d5bed78828e03bd0ac8c6a79e92f8e9b92ef",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-IT.mdx",
       "dest": "preset-dicts/output/WikDict-EN-IT/WikDict-EN-IT.mdx",
-      "size": 8163521,
-      "sha256": "f29ba53ae12f89b1a1aa80522b1f0fd9b032ee6730332ef984f12828a4ec15f4",
-      "tag": "assets-2026.10.1",
+      "size": 8163883,
+      "sha256": "e6bf80121aef8f7c9d4532df0db8e24e81bd024333456ba4faeaac260161d80c",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-LA.mdx",
       "dest": "preset-dicts/output/WikDict-EN-LA/WikDict-EN-LA.mdx",
-      "size": 2727676,
-      "sha256": "6ec30bc3a201b8fec489638db7aa9cbe9935e9dce36f03948fb97da2ec3bdf25",
-      "tag": "assets-2026.10.1",
+      "size": 2728038,
+      "sha256": "b4fef4d8a68c88b54983eaaaca75262dc300c6591d237b4b8c13fadce5b25bed",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-PT.mdx",
       "dest": "preset-dicts/output/WikDict-EN-PT/WikDict-EN-PT.mdx",
-      "size": 7087557,
-      "sha256": "25aacb5bf9a6426977bf6a2953497a573820b8e1830e4f73a2e86ca7bf782ccc",
-      "tag": "assets-2026.10.1",
+      "size": 7087919,
+      "sha256": "5ff2873fbe9167cf2f967d75635ebf3ff5a479b1b8095c84abdd1a6ba49c17ba",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-RU.mdx",
       "dest": "preset-dicts/output/WikDict-EN-RU/WikDict-EN-RU.mdx",
-      "size": 11198880,
-      "sha256": "f8c1840e36ac20e09addc4fd9cbd368b39b888f2f7abd2aa103700c50a5c66b6",
-      "tag": "assets-2026.10.1",
+      "size": 11199242,
+      "sha256": "dbe07bf9879f8253c48ae02e4059009feb54ad1f2e66b2ae0906b2565273ff9a",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-EN-TR.mdx",
       "dest": "preset-dicts/output/WikDict-EN-TR/WikDict-EN-TR.mdx",
-      "size": 4283933,
-      "sha256": "c531ed607ed391452dff25688d09b652b884001d5b8647712f1478780360cd33",
-      "tag": "assets-2026.10.1",
+      "size": 4284295,
+      "sha256": "52854aa4fdc6e0031355ca714cf316cfd5845e552e96ea14022b0d22ac8a82ef",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-ES-EN.mdx",
       "dest": "preset-dicts/output/WikDict-ES-EN/WikDict-ES-EN.mdx",
-      "size": 8777099,
-      "sha256": "a9085994628fbcfc53f8ffcd0dbcb14dbca35a9b9d8128f8ab5b84a58b1d0253",
-      "tag": "assets-2026.10.1",
+      "size": 8777425,
+      "sha256": "97b2e6fa41fd839749d447c5652c7b2807e1cf74dc069b174d6e66721aee1256",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-ES-FR.mdx",
       "dest": "preset-dicts/output/WikDict-ES-FR/WikDict-ES-FR.mdx",
-      "size": 4562760,
-      "sha256": "40da0eef2ac11a8bca90e500c47e59652752084dc9fc50e4755d48fdc2fc9abe",
-      "tag": "assets-2026.10.1",
+      "size": 4563086,
+      "sha256": "ffc2338dd01491219869ffc591c9768c97ccee5d1bf9e3c6e3e9919e0b740805",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-ES-PT.mdx",
       "dest": "preset-dicts/output/WikDict-ES-PT/WikDict-ES-PT.mdx",
-      "size": 1721448,
-      "sha256": "47473b0a4f844e317f99b7dc5280eff2f77bc811ee8495aa8ef2831ce9283f12",
-      "tag": "assets-2026.10.1",
+      "size": 1721774,
+      "sha256": "f4cb9be6f65b12d64b20ab2e6c975ccdfd85872a4fe058959ede74331cd9e6f4",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-FR-EN.mdx",
       "dest": "preset-dicts/output/WikDict-FR-EN/WikDict-FR-EN.mdx",
-      "size": 12181249,
-      "sha256": "8a4030ee5ae5a3df8b2bae6e04ff00964e21480a6ca2848693b5efdf788ac56c",
-      "tag": "assets-2026.10.1",
+      "size": 12181575,
+      "sha256": "04f27f2345aa19104c49f5e353a8fd889d74e9ef93ed50d70ab3c05d3cfc5550",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-FR-ES.mdx",
       "dest": "preset-dicts/output/WikDict-FR-ES/WikDict-FR-ES.mdx",
-      "size": 4924764,
-      "sha256": "2532312a7136ae50598cdc6f5ed92540887c257c814ba8c420a3dd35dfe0c93d",
-      "tag": "assets-2026.10.1",
+      "size": 4925090,
+      "sha256": "c000babddcdc729bf5f7a6f995d9481be609618ea89fe984d70292a4e0ba99f0",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-FR-RU.mdx",
       "dest": "preset-dicts/output/WikDict-FR-RU/WikDict-FR-RU.mdx",
-      "size": 4552864,
-      "sha256": "3586e9a6c622836179e24f4366729b33a4c57bbd078250579a5c45039987e760",
-      "tag": "assets-2026.10.1",
+      "size": 4553190,
+      "sha256": "48ea00f6ef54f07370ceec7a4c3907523378390958de5d993a6f9f53f03151dc",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-IT-EN.mdx",
       "dest": "preset-dicts/output/WikDict-IT-EN/WikDict-IT-EN.mdx",
-      "size": 6788029,
-      "sha256": "1981dbb19b13010eada6021f98c78a9e64cac6501d72afadce45225687a70e2f",
-      "tag": "assets-2026.10.1",
+      "size": 6788355,
+      "sha256": "6fc43d1d03744da4c66f96155a75ace76d6002360b86db81dede67bd2cb13d99",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-LA-EN.mdx",
       "dest": "preset-dicts/output/WikDict-LA-EN/WikDict-LA-EN.mdx",
-      "size": 2292973,
-      "sha256": "1869fc190f00e9d8562b08216c50c5df34184f376b6c63f56042531676c1ec18",
-      "tag": "assets-2026.10.1",
+      "size": 2293263,
+      "sha256": "725b24070026a1a0ebb9f5f3aa646ad0bfffc8271cd1d37fbfaa94f800d459be",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-PT-EN.mdx",
       "dest": "preset-dicts/output/WikDict-PT-EN/WikDict-PT-EN.mdx",
-      "size": 5975811,
-      "sha256": "50b7d2025b57dabda201704858d627560c9138e0bdd5f66452058fcf8bbfe169",
-      "tag": "assets-2026.10.1",
+      "size": 5976137,
+      "sha256": "bc86936fb4b71ed75b92dfbe1c2958d61a374d09c916d66a8fdd591f699125a8",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-PT-ES.mdx",
       "dest": "preset-dicts/output/WikDict-PT-ES/WikDict-PT-ES.mdx",
-      "size": 1308590,
-      "sha256": "2f9126a79c85a3bc7856556e0d644e82402a98f8d49f6244acf6c00ebf0d5b0b",
-      "tag": "assets-2026.10.1",
+      "size": 1308916,
+      "sha256": "495711cd62c301b88dd199902d13472c9d0ba6b66e10793abecefbdd9390a836",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-RU-DE.mdx",
       "dest": "preset-dicts/output/WikDict-RU-DE/WikDict-RU-DE.mdx",
-      "size": 4686049,
-      "sha256": "9eba2ab5997e107ef0530351dabb0673beeffe5d879c5f9f1cb0765f692067e3",
-      "tag": "assets-2026.10.1",
+      "size": 4686375,
+      "sha256": "396f8b0121a28a5076dd56bb0247fb731f2326ed392bdf8626132a6bf08bfd45",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-RU-EN.mdx",
       "dest": "preset-dicts/output/WikDict-RU-EN/WikDict-RU-EN.mdx",
-      "size": 10340510,
-      "sha256": "fa75f2f36a6a941c5fc89a7bd28e4b46f4f1c9177cfa8eade71b2987e4909f53",
-      "tag": "assets-2026.10.1",
+      "size": 10340836,
+      "sha256": "6d74bf2a0d90274412f60525cc57e6aa21d2db7b594799e93c7c50f7f9e54093",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-RU-FR.mdx",
       "dest": "preset-dicts/output/WikDict-RU-FR/WikDict-RU-FR.mdx",
-      "size": 4068189,
-      "sha256": "fb4373a8946af1f28d7a7a045e9e4b28181bf9648cda21bf44e9d88977e2caa6",
-      "tag": "assets-2026.10.1",
+      "size": 4068515,
+      "sha256": "5ca2be60146cb08db800ef8af52d339f47b46374bc694b26b0b5cdf0575f344d",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WikDict-TR-EN.mdx",
       "dest": "preset-dicts/output/WikDict-TR-EN/WikDict-TR-EN.mdx",
-      "size": 3524130,
-      "sha256": "3b635cf161612ff98fd0fae3c40bef32bce0edb0187976d0b6bd739214e8b844",
-      "tag": "assets-2026.10.1",
+      "size": 3524456,
+      "sha256": "3cbefc8c6bab07e659bbb2ecce59d8a0c5f37402664343bce5ff397dd478cadf",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Wiktionary-AR-EN.mdx",
       "dest": "preset-dicts/output/Wiktionary-AR-EN/Wiktionary-AR-EN.mdx",
-      "size": 3438515,
-      "sha256": "b2ffa11b2d17d3bccb854e23ea8e30df3e1114798e0d5700b873af6f5c7af920",
-      "tag": "assets-2026.10.1",
+      "size": 3438867,
+      "sha256": "815bd0ce15c49ac7e886ae7ad957bf3a3f27fda1fa10b93a8ea6a328931820b7",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "Wiktionary-KO-EN.mdx",
       "dest": "preset-dicts/output/Wiktionary-KO-EN/Wiktionary-KO-EN.mdx",
-      "size": 4861403,
-      "sha256": "18484cf44f4fdce7c88470edd29cc3aa909e7a20ddc6bce483d8488fcde41dd2",
-      "tag": "assets-2026.10.1",
+      "size": 4861755,
+      "sha256": "d0b501c6634954512ce943dec5080347fa9e99a1cb56a9cae949c02298adb927",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
       "filename": "WordNet-EN.mdx",
       "dest": "preset-dicts/output/WordNet-EN/WordNet-EN.mdx",
-      "size": 28356513,
-      "sha256": "c7c986ca32d088d1f26d0880504d815a0ff5a5b6df4533785cc95b61fd2278bc",
-      "tag": "assets-2026.10.1",
+      "size": 28356945,
+      "sha256": "8832fefcd740184ef8ea65317cd08aa84e8d516ce95b8f71dacb6586f3a4c4db",
+      "tag": "assets-2026.10.2",
       "kind": "mdx"
     },
     {
@@ -533,9 +533,9 @@
     {
       "filename": "THIRD-PARTY-NOTICES.md",
       "dest": null,
-      "size": 34996,
-      "sha256": "fb4d8908c7f500950e7c84c82d202e4142beed563631d1d30314a8b5b6ad0357",
-      "tag": "assets-2026.10.1",
+      "size": 35473,
+      "sha256": "9f4c018663b6b2fa9bf47b0895838b11952be680c765625b14ae78f88df3ff80",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -543,7 +543,7 @@
       "dest": null,
       "size": 18183480,
       "sha256": "8ea17f210e15f2f999792d9560c686a3d7df43c5b1506db2e0a1a6eac01ac6cf",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -551,7 +551,7 @@
       "dest": null,
       "size": 16742600,
       "sha256": "83a02d8eace3fbb460fa96c32c2d964a9bc1e1a63ea754021ac33042ee2d1d5f",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -559,7 +559,7 @@
       "dest": null,
       "size": 14363124,
       "sha256": "d3acbd984de1ce022d5d139903887b36232e436e30eca2cb0fb1c058dd7f319f",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -567,7 +567,7 @@
       "dest": null,
       "size": 34020,
       "sha256": "d8a6cc31abc16b6748c7a21f21611f5a1ec33f67d22ca23d7da1c19b95496bee",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -575,7 +575,7 @@
       "dest": null,
       "size": 10280,
       "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -583,7 +583,7 @@
       "dest": null,
       "size": 17023,
       "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -591,7 +591,7 @@
       "dest": null,
       "size": 22240,
       "sha256": "3f941b3b89cf7b8370ceb83cc76d2120d471b58735d8ca60238a751a48d7f72f",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -599,7 +599,7 @@
       "dest": null,
       "size": 18375,
       "sha256": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -607,7 +607,7 @@
       "dest": null,
       "size": 22791,
       "sha256": "d024962f1f4966c102b40d9fd9cc834a3f0b3c1397b41444b7cd7925640dc929",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -615,7 +615,7 @@
       "dest": null,
       "size": 34674,
       "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -623,7 +623,7 @@
       "dest": null,
       "size": 1567,
       "sha256": "e95e845ba95cedf3fb62c96f656ab2d71e4404f3aa84741f1ec2862741965c98",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     },
     {
@@ -631,7 +631,7 @@
       "dest": null,
       "size": 1995,
       "sha256": "abf84f74dea2812799e1dbef7f0581adf7db244881e4febb8684f441568da0ad",
-      "tag": "assets-2026.10.1",
+      "tag": "assets-2026.10.2",
       "kind": "notice"
     }
   ]

@@ -42,7 +42,8 @@ from shared.theme import (get_css, INFLECTION, DEFINITION, SENSE_NUMBER, EXAMPLE
                           GREEK_TEXT, CROSSREF, NESTED_SENSES,
                           TEXT_SECONDARY, TEXT_LINK)
 from shared.html import esc, esc_attr
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview, write_catalog_metadata,
+                          description_html)
 
 DATA_DIR = SCRIPT_DIR.parent / "data" / "perseus"
 OUTPUT_BASE = SCRIPT_DIR.parent / "output"
@@ -1749,28 +1750,64 @@ def _generate_preview(output_dir: Path, prefix: str, name: str, articles: dict,
 # availability statement, the title/authors/publisher/ISBN of the source
 # (from the TEI <sourceDesc>), and that modifications be offered back to
 # Perseus. CC BY-SA 4.0 §3(a)(1)(B) also requires saying that the text was
-# modified.
-def perseus_credit_html(access_date: str) -> str:
-    return (
-        "<p>Text provided under a "
-        "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA</a> license "
-        "by Perseus Digital Library, "
-        "<a href='http://www.perseus.tufts.edu'>http://www.perseus.tufts.edu</a>, "
-        "with funding from The National Endowment for the Humanities. "
-        "Data accessed from "
-        "<a href='https://github.com/PerseusDL/lexica/'>https://github.com/PerseusDL/lexica/</a> "
-        f"[{access_date}].</p>"
-    )
+# modified. The header description places them in the shared layout
+# (shared.build.description_html): the bibliographic citation and the
+# access date under Source, the availability statement and the Perseus
+# credit under License, the list of modifications under Conversion.
+CC_BY_SA_URL = 'https://creativecommons.org/licenses/by-sa/4.0/'
+LEXICA_URL = 'https://github.com/PerseusDL/lexica/'
+
+PERSEUS_CREDIT = (
+    f'Text provided under a <a href="{CC_BY_SA_URL}">CC BY-SA</a> license '
+    'by Perseus Digital Library, '
+    '<a href="http://www.perseus.tufts.edu">http://www.perseus.tufts.edu</a>, '
+    'with funding from The National Endowment for the Humanities.'
+)
+
+# Modifications common to both lexica, a sentence after each lexicon's own
+# list of changes (no final period: description_html adds it), and the
+# licence of the result.
+COMMON_CHANGES_NOTE = (
+    'Page and column breaks are omitted and, where the source marks a '
+    'correction, the corrected reading is shown; the text is otherwise complete'
+)
+ADAPTATION_LICENSE = (
+    f'This adaptation is licensed under <a href="{CC_BY_SA_URL}">CC BY-SA 4.0</a>.'
+)
 
 
-def modification_note_html(changes: str) -> str:
-    """CC BY-SA 4.0 §3(a)(1)(B): say that and how the text was modified."""
-    return (
-        "<p>Converted to MDict by OpenMDict from the Perseus TEI XML and modified: "
-        f"{changes} Page and column breaks are omitted and, where the source marks a "
-        "correction, the corrected reading is shown; the text is otherwise complete. "
-        "This adaptation is licensed under "
-        "<a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA 4.0</a>.</p>"
+def perseus_access_html(access_date: str) -> str:
+    """Where the data was taken from and when."""
+    return f'Data accessed from <a href="{LEXICA_URL}">{LEXICA_URL}</a> [{access_date}].'
+
+
+def header_description(*, title: str, subtitle: str, about: str, citation: str,
+                       access_date: str, changes: str, availability: str = '') -> str:
+    """The MDX header description of one lexicon in the shared layout.
+
+    Args (HTML fragments):
+        title, subtitle: the work's title and the name it is known by.
+        about: one paragraph on the content and how to look words up.
+        citation: authors, edition, publisher, year and ISBN of the source.
+        access_date: when the data was taken from the lexica repository.
+        changes: what this conversion changed, as a lower-case list
+            without a final period.
+        availability: the upstream availability statement, when the TEI
+            header carries one.
+
+    The list of changes is followed by the sentence COMMON_CHANGES_NOTE and the
+    Conversion paragraph closes with ADAPTATION_LICENSE, which are the
+    same for every lexicon.
+    """
+    license_html = f'{availability} {PERSEUS_CREDIT}' if availability else PERSEUS_CREDIT
+    return description_html(
+        title=title,
+        subtitle=subtitle,
+        about=(about,),
+        source=f'{citation} {perseus_access_html(access_date)}',
+        license=license_html,
+        changes=f'{changes}. {COMMON_CHANGES_NOTE}',
+        adaptation_license=ADAPTATION_LICENSE,
     )
 
 
@@ -1789,18 +1826,21 @@ DICTS = [
         'xml': LSJ_PARTS,
         'expect_initials': GREEK_INITIALS,
         'title': 'LSJ — Greek-English Lexicon',
-        'desc': (
-            "<p><b>A Greek-English Lexicon</b> (Liddell–Scott–Jones)</p>"
-            "<p>Henry George Liddell and Robert Scott, revised and augmented "
-            "throughout by Sir Henry Stuart Jones with the assistance of Roderick "
-            "McKenzie. 9th edition. Oxford: Clarendon Press, 1940. ISBN 0198642261.</p>"
-            + perseus_credit_html('2026-10-17')
-            + modification_note_html(
-                "Greek converted from beta code to Unicode; entries rendered as HTML, "
-                "with cross-references linked and homograph letters shown as labels; a "
-                "few damaged headword keys repaired; redirects added for monotonic and "
-                "unaccented Greek, for the forms of the article and for alternate "
-                "spellings (variant endings written out as whole words).")
+        'desc': header_description(
+            title='A Greek-English Lexicon',
+            subtitle='Liddell–Scott–Jones',
+            about=("Ancient Greek–English lexicon (9th edition, 1940) with full citations "
+                   "and linked cross-references; type with or without accents."),
+            citation=("Henry George Liddell and Robert Scott, revised and augmented "
+                      "throughout by Sir Henry Stuart Jones with the assistance of Roderick "
+                      "McKenzie. 9th edition. Oxford: Clarendon Press, 1940. ISBN 0198642261."),
+            access_date='2026-10-17',
+            changes=("built from the Perseus TEI XML; Greek converted from beta code to "
+                     "Unicode; entries rendered as HTML, with cross-references linked and "
+                     "homograph letters shown as labels; a few damaged headword keys "
+                     "repaired; redirects added for monotonic and unaccented Greek, for the "
+                     "forms of the article and for alternate spellings (variant endings "
+                     "written out as whole words)"),
         ),
         'dir_label': f'{FLAG_GRC} Ἑλληνικά → English {FLAG_EN}',
         'is_greek': True,
@@ -1863,19 +1903,22 @@ DICTS = [
         # entry fixes); eng1 is the archival beta-code copy.
         'xml': DATA_DIR / 'ls-eng2' / 'lat.ls.perseus-eng2.xml',
         'title': 'Lewis & Short — Latin Dictionary',
-        'desc': (
-            "<p><b>A Latin Dictionary</b> (Lewis &amp; Short)</p>"
-            "<p>Founded on Andrews' edition of Freund's Latin dictionary; revised, "
-            "enlarged, and in great part rewritten by Charlton T. Lewis and Charles "
-            "Short. Oxford: Clarendon Press, 1879. ISBN 0198642016.</p>"
-            + "<p>Available under a Creative Commons Attribution-ShareAlike 4.0 "
-              "International License.</p>"
-            + perseus_credit_html('2026-10-20')
-            + modification_note_html(
-                "built from lat.ls.perseus-eng2.xml (commit edd73d8); entries rendered "
-                "as HTML, with cross-references linked; prefix compounds such as "
-                "re-sisto keyed by the whole word; redirects added for i/u spellings "
-                "of j/v words, for macronized and for alternate spellings.")
+        'desc': header_description(
+            title='A Latin Dictionary',
+            subtitle='Lewis &amp; Short',
+            about=("Latin–English dictionary (1879) with etymologies, full citations and "
+                   "cross-references; finds j/i and v/u spellings."),
+            citation=("Founded on Andrews' edition of Freund's Latin dictionary; revised, "
+                      "enlarged, and in great part rewritten by Charlton T. Lewis and Charles "
+                      "Short. Oxford: Clarendon Press, 1879. ISBN 0198642016."),
+            availability=("Available under a Creative Commons Attribution-ShareAlike 4.0 "
+                          "International License."),
+            access_date='2026-10-20',
+            changes=("built from the Perseus TEI XML (lat.ls.perseus-eng2.xml, commit "
+                     "edd73d8); entries rendered as HTML, with cross-references linked; "
+                     "prefix compounds such as re-sisto keyed by the whole word; redirects "
+                     "added for i/u spellings of j/v words, for macronized and for "
+                     "alternate spellings"),
         ),
         'dir_label': f'{FLAG_LA} Latina → English {FLAG_EN}',
         'is_greek': False,
@@ -1910,6 +1953,15 @@ DICTS = [
         'catalog_data_source': 'Perseus Digital Library',
     },
 ]
+
+
+def descriptions() -> dict[str, str]:
+    """{'<Name>.mdx': header description} for every dictionary this script builds.
+
+    The strings are the ones build_dictionary() stamps into the MDX header
+    (config['desc']); nothing is read or built.
+    """
+    return {f"{config['name']}.mdx": config['desc'] for config in DICTS}
 
 
 def main():
