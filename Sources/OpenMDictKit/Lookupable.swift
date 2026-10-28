@@ -26,12 +26,20 @@ public struct WordSearchResult: Identifiable, Hashable, Sendable {
     public let dictId: String
     public let dictName: String
 
+    /// How the key was found when no key starts with the query as typed:
+    /// nil for a key that does, `.widthFolded` or `.diacriticInsensitive`
+    /// otherwise (see `MDictReader.searchWithFallback`). A publisher's
+    /// emission never mixes the two kinds; a group emits fallback rows only
+    /// when no dictionary has a direct one.
+    public let fallback: MDictLookupFallback?
+
     public var id: String { "\(dictId):\(word)" }
 
-    public init(word: String, dictId: String, dictName: String) {
+    public init(word: String, dictId: String, dictName: String, fallback: MDictLookupFallback? = nil) {
         self.word = word
         self.dictId = dictId
         self.dictName = dictName
+        self.fallback = fallback
     }
 }
 

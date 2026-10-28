@@ -927,7 +927,7 @@ class MainSplitViewController: UISplitViewController {
         )
 
         if let dict, let entry = dict.lookup(word.word) {
-            article.contentState = .loaded(html: entry.article.html, css: nil)
+            article = article.filled(with: entry)
         }
 
         showArticle(article, animated: true)
@@ -940,7 +940,7 @@ class MainSplitViewController: UISplitViewController {
         }
         detailContainer.lookupContext = (dictId: ctxDictId, groupId: ctxGroupId)
         LookupHistoryService.shared.recordLookup(
-            word: word.word, dictId: word.dictId,
+            word: article.word, dictId: word.dictId,
             lookupContextDictId: ctxDictId, lookupContextGroupId: ctxGroupId
         )
     }
@@ -988,14 +988,14 @@ class MainSplitViewController: UISplitViewController {
                 contentState: .pending
             )
             if let dict, let entry = dict.lookup(bookmark.word) {
-                article.contentState = .loaded(html: entry.article.html, css: nil)
+                article = article.filled(with: entry)
             }
             showArticle(article, animated: true)
 
             // Record lookup so count stays accurate
             // (bookmarkListVC auto-reloads via $revision subscription)
             LookupHistoryService.shared.recordLookup(
-                word: bookmark.word, dictId: bookmark.dictId,
+                word: article.word, dictId: bookmark.dictId,
                 lookupContextDictId: nil, lookupContextGroupId: nil
             )
         }
@@ -1026,14 +1026,14 @@ class MainSplitViewController: UISplitViewController {
                 contentState: .pending
             )
             if let dict, let entry = dict.lookup(historyItem.word) {
-                article.contentState = .loaded(html: entry.article.html, css: nil)
+                article = article.filled(with: entry)
             }
             showArticle(article, animated: true)
 
             // Record lookup so history stays accurate
             // (lookupHistoryListVC auto-reloads via $revision subscription)
             LookupHistoryService.shared.recordLookup(
-                word: historyItem.word, dictId: historyItem.dictId,
+                word: article.word, dictId: historyItem.dictId,
                 lookupContextDictId: nil, lookupContextGroupId: nil
             )
         }

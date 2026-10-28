@@ -15,6 +15,8 @@
 //    --lookups N          Random-key lookups per MDX (default: 200)
 //    --purge              Clear the cache dir before starting
 //    --verify             Compare fast-path results against slow-path results
+//    --fallbacks          Only measure the lookup fallbacks (folded-key index
+//                         build time and memory, fallback lookup latency)
 //    -h, --help           Show this help
 //
 
@@ -90,6 +92,7 @@ struct BenchOptions {
     var lookupCount: Int = 200
     var purge: Bool = false
     var verify: Bool = false
+    var fallbacks: Bool = false
     var mdxPaths: [String] = []
     var dictsDirs: [URL] = []
 }
@@ -143,6 +146,8 @@ func parseArgs() -> BenchOptions {
             opts.purge = true
         case "--verify":
             opts.verify = true
+        case "--fallbacks":
+            opts.fallbacks = true
         case "-h", "--help":
             printHelp()
             exit(0)
@@ -189,6 +194,8 @@ func printHelp() {
         --lookups N           Random-key lookups per MDX (default: 200)
         --purge               Clear the cache dir before starting
         --verify              Compare fast-path lookups against slow-path lookups
+        --fallbacks           Only measure the lookup fallbacks: folded-key index
+                              build time and memory, fallback lookup latency
         -h, --help            Show this help
 
     \(yellow("Examples:"))
@@ -437,6 +444,70 @@ func runOne(_ path: String, opts: BenchOptions, index: Int, total: Int) {
     }
 }
 
+// MARK: - Lookup fallbacks
+
+/// Current and peak physical footprint of this process, in bytes.
+func memoryFootprint() -> (current: Int64, peak: Int64) {
+    var info = task_vm_info_data_t()
+    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
+    let kr = withUnsafeMutablePointer(to: &info) {
+        $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+            task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+        }
+    }
+    guard kr == KERN_SUCCESS else { return (0, 0) }
+    return (Int64(info.phys_footprint), Int64(info.ledger_phys_footprint_peak))
+}
+
+/// Folded-key index cost and fallback latency for one dictionary. Run one
+/// dictionary per process for meaningful peak-memory numbers (the peak is
+/// the process's lifetime peak).
+func runFallbacks(_ path: String, opts: BenchOptions, index: Int, total: Int) {
+    print()
+    print(bold("[\(index + 1)/\(total)] \(URL(fileURLWithPath: path).lastPathComponent)"))
+    do {
+        // Load through the sidecar so loading itself leaves no parse garbage,
+        // without a saved folded index so that it is built.
+        try primeSidecar(path: path, sidecarDir: opts.sidecarDir)
+        if let sha = MDictReader.loadMetadata(from: path)?.headerSHA256 {
+            try? FileManager.default.removeItem(at: opts.sidecarDir.appendingPathComponent("\(sha).fold"))
+        }
+        MDictSidecarCache.cacheDirectory = opts.sidecarDir
+        let reader = try MDictReader(path: path)
+        let keys = reader.allKeys
+        let before = memoryFootprint()
+        var folded = 0
+        let buildMs = measureMs { folded = reader.prepareFoldedKeyIndex() }
+        let after = memoryFootprint()
+        print("      keys: \(reader.entryCount), folded-index keys: \(folded) (\(formatBytes(Int64(folded * 4))) of indices)")
+        print(String(format: "      folded-index build: %.1f ms", buildMs))
+        print("      footprint: +\(formatBytes(after.current - before.current)) retained, "
+              + "peak +\(formatBytes(max(0, after.peak - before.current))) over the loaded reader")
+        // The built index is saved beside the sidecar; a new reader reads it.
+        Thread.sleep(forTimeInterval: 0.5)
+        let again = try MDictReader(path: path)
+        let loadMs = measureMs { _ = again.prepareFoldedKeyIndex() }
+        print(String(format: "      folded-index read from its saved file: %.1f ms", loadMs))
+
+        // Fallback latency: queries that miss every direct match.
+        var rng = SystemRandomNumberGenerator()
+        let sample = (0..<Swift.min(opts.lookupCount, keys.count)).map { _ in keys.randomElement(using: &rng)! }
+        let foldedQueries = sample.map { LookupFolding.folded($0) }.filter { !reader.contains($0) }
+        let foldedStats = Stats(foldedQueries.map { q in measureMs { _ = reader.lookupAll(q) } })
+        print("      diacritic fallback lookup (\(foldedQueries.count) unaccented keys): \(foldedStats.line())")
+        let missStats = Stats(sample.prefix(50).map { key in
+            measureMs { _ = reader.lookupAll(key + "zzq") }
+        })
+        print("      full miss (all fallbacks tried): \(missStats.line())")
+        let prefixStats = Stats(foldedQueries.prefix(50).map { q in
+            measureMs { _ = reader.search(prefix: String(q.prefix(3)) + "zq", limit: 20) }
+        })
+        print("      prefix-search miss (folded fallback): \(prefixStats.line())")
+    } catch {
+        print(red("    error: \(error)"))
+    }
+}
+
 // MARK: - Main
 
 let opts = parseArgs()
@@ -453,7 +524,11 @@ print(dim("  sidecar dir: \(opts.sidecarDir.path)"))
 if opts.verify { print(dim("  verify: enabled")) }
 
 for (i, path) in opts.mdxPaths.enumerated() {
-    runOne(path, opts: opts, index: i, total: opts.mdxPaths.count)
+    if opts.fallbacks {
+        runFallbacks(path, opts: opts, index: i, total: opts.mdxPaths.count)
+    } else {
+        runOne(path, opts: opts, index: i, total: opts.mdxPaths.count)
+    }
 }
 
 // Allow any pending background sidecar writes to flush before exit.

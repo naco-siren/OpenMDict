@@ -13,6 +13,8 @@ import CryptoKit
 ///
 ///     MDICT_DIGEST_DICTS="a.mdx:b.mdx" MDICT_DIGEST_OUT=/tmp/digest.txt \
 ///         swift test -c release --filter DictionaryDigestTests
+extension SidecarCacheSuites {
+
 @Suite(.serialized)
 struct DictionaryDigestTests {
 
@@ -67,4 +69,6 @@ struct DictionaryDigestTests {
             try (lines.joined(separator: "\n") + "\n").write(toFile: out, atomically: true, encoding: .utf8)
         }
     }
+}
+
 }

@@ -22,7 +22,7 @@ class ArticlePreviewViewController: UIViewController {
         
         // Title & subtitle
         let titleLabel = UILabel()
-        titleLabel.text = article.word
+        titleLabel.text = article.displayWord
         titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         
         let subtitleLabel = UILabel()

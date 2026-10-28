@@ -367,6 +367,13 @@ final class PresetDictionaryService {
             }
     }
 
+    // MARK: - Headword Language
+
+    /// The headword language (`direction.src`, e.g. "EN") of each preset,
+    /// by MDX filename — how an installed copy is matched to its preset.
+    /// Shared with the Action Extension (`PresetHeadwordLanguages`).
+    static var headwordLanguageByFilename: [String: String] { PresetHeadwordLanguages.byFilename }
+
     // MARK: - Catalog Loading
 
     /// Load the preset dictionary catalog from app bundle.

@@ -82,6 +82,11 @@ public final class MDict: ObservableObject, Identifiable {
     /// User-customized display name (from manifest)
     /// Set by DictionaryService after creating MDict instance.
     public var userDisplayName: String?
+
+    /// Language of the headwords as an ISO 639 code ("EN", "de" …), when
+    /// known (preset dictionaries). When a looked-up word is not a key, it
+    /// decides which inflections are undone to find its base form.
+    public var headwordLanguage: String?
     
     // MARK: - Published State
     
@@ -275,22 +280,32 @@ public final class MDict: ObservableObject, Identifiable {
     
     // MARK: - Lookup API
     
-    /// Look up a word
-    /// - Parameter key: The word to look up
+    /// Look up a word, with the reader's fallbacks when it is not a key
+    /// (see `MDictReader.lookupAll(_:headwordLanguage:waitsForSetup:fallbacks:)`;
+    /// the entry's `fallback` says which one matched). Runs on the main
+    /// actor, so it never waits for the fallbacks' one-time setup
+    /// (lemmatizer model, diacritic index): a saved diacritic index is
+    /// read, anything else is prepared in the background on first need and
+    /// that lookup goes on without it.
+    /// - Parameters:
+    ///   - key: The word to look up
+    ///   - fallbacks: Which fallbacks may be used — `.none` for a direct
+    ///     lookup, `.width` to also accept the word with its full-width
+    ///     characters folded (a jump search), `.all` by default.
     /// - Returns: Entry with article content, or nil if not found
-    public func lookup(_ key: MDictWordKey) -> MDictWordEntry? {
-        _reader?.lookup(key)
+    public func lookup(_ key: MDictWordKey, fallbacks: MDictLookupFallbacks = .all) -> MDictWordEntry? {
+        _reader?.lookup(key, headwordLanguage: headwordLanguage, waitsForSetup: false, fallbacks: fallbacks)
     }
     
     /// Search for word keys with a prefix
     public func search(prefix: String, limit: Int = 20) -> [MDictWordKey] {
-        _reader?.search(prefix: prefix, limit: limit) ?? []
+        _reader?.search(prefix: prefix, limit: limit, waitsForSetup: false) ?? []
     }
     
     /// Get suggestions for a misspelled word.
     /// For background use, capture `reader` (Sendable) and call `.suggestions()` directly.
     public func suggestions(for key: MDictWordKey, limit: Int = 5) -> [ScoredSuggestion] {
-        _reader?.suggestions(for: key, limit: limit) ?? []
+        _reader?.suggestions(for: key, limit: limit, waitsForSetup: false) ?? []
     }
     
     // MARK: - Navigation
@@ -337,7 +352,18 @@ extension MDict: @MainActor Lookupable {
     /// `MDictReader` is `@unchecked Sendable` with thread safety via internal NSLock.
     /// Reader + metadata are captured on MainActor, then the actual binary search
     /// runs on a background queue to keep the main thread responsive.
+    ///
+    /// Keys that start with the prefix as typed come alone; when there are
+    /// none, the keys the reader's search fallbacks find (full-width
+    /// folding, then diacritics) come instead, each result's `fallback` set.
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
+        lookupPublisher(prefix: prefix, limit: limit, fallbacks: .all)
+    }
+
+    /// `lookupPublisher(prefix:limit:)` with the fallbacks limited to
+    /// `fallbacks` (`.none`: keys with the prefix as typed only).
+    public func lookupPublisher(prefix: String, limit: Int,
+                                fallbacks: MDictLookupFallbacks) -> AnyPublisher<[WordSearchResult], Never> {
         let dictId = self.id
 
         return $state
@@ -361,7 +387,7 @@ extension MDict: @MainActor Lookupable {
                         Task.detached(priority: .userInitiated) {
                             let results = await performDictSearch(
                                 reader: reader, prefix: prefix, limit: limit,
-                                dictId: dictId, dictName: dictName
+                                dictId: dictId, dictName: dictName, fallbacks: fallbacks
                             )
                             box.value(.success(results))
                         }
@@ -384,10 +410,11 @@ private nonisolated func performDictSearch(
     prefix: String,
     limit: Int,
     dictId: String,
-    dictName: String
+    dictName: String,
+    fallbacks: MDictLookupFallbacks
 ) async -> [WordSearchResult] {
-    let keys = reader.search(prefix: prefix, limit: limit)
-    return keys.map { WordSearchResult(word: $0, dictId: dictId, dictName: dictName) }
+    let (keys, fallback) = reader.searchWithFallback(prefix: prefix, limit: limit, fallbacks: fallbacks)
+    return keys.map { WordSearchResult(word: $0, dictId: dictId, dictName: dictName, fallback: fallback) }
 }
 
 // MARK: - Background Loading (nonisolated)

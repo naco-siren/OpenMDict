@@ -539,6 +539,11 @@ final class ArticleIndexDispatcher {
     /// with progress callbacks → service. On error or cancellation,
     /// updates service state accordingly.
     private func executeJob(dictId: String, profile: ArticleEncoder.ComputeProfile) async {
+        // 0. The coordinator's launch sidecar check may still be deleting
+        // files the writer won't resume and resetting their progress; a
+        // build must not start from a file that check is about to delete.
+        await ArticleIndexCoordinator.shared.waitForLaunchSidecarCheck()
+
         // 1. Locate the MDictReader for this dict. `reader == nil` is a
         // TRANSIENT condition — the dict is still being mmap'd by
         // DictionaryService — NOT a persistent failure. Leave the
@@ -635,9 +640,12 @@ final class ArticleIndexDispatcher {
         // (writer will resume from the on-disk partial), and clobbering
         // to 0 would briefly flash the UI to "0/N" before the writer's
         // first progress callback restores it.
+        // `indexedThrough` and the progress total count MDX keys (entries),
+        // aliases included — the writer walks every key, embeds only real
+        // articles, and the key total is known without reading records.
         let prevIndexed = ArticleIndexService.shared.snapshot(for: dictId).indexedThrough
-        let totalArticles = reader.entryCount
-        debugLog("executeJob(\(dictId)): build starting from \(prevIndexed)/\(totalArticles)")
+        let totalKeys = reader.entryCount
+        debugLog("executeJob(\(dictId)): build starting from \(prevIndexed)/\(totalKeys)")
         ArticleIndexService.shared.setState(
             .indexing, for: dictId, indexedThrough: prevIndexed
         )
@@ -662,8 +670,8 @@ final class ArticleIndexDispatcher {
                 guard let self else { return }
                 // Hop to MainActor to write service state.
                 Task { @MainActor in
-                    // NB: `done` is the absolute row count (includes any
-                    // articles already on disk from a resume), but
+                    // NB: `done` is the absolute key count (includes any
+                    // keys already on disk from a resume), but
                     // `elapsed` is from this run's start, so `done/elapsed`
                     // reads artificially high for the first few seconds
                     // after a resume (e.g. 287/s, 166/s ... before
@@ -715,11 +723,11 @@ final class ArticleIndexDispatcher {
             let mdxHashHex = header.mdxHeaderSHA256.map { String(format: "%02x", $0) }.joined()
             ArticleIndexService.shared.setState(
                 .indexed, for: dictId,
-                indexedThrough: Int32(totalArticles),
+                indexedThrough: Int32(totalKeys),
                 modelHash: modelHashHex,
                 mdxHash: mdxHashHex
             )
-            debugLog("executeJob(\(dictId)): indexed \(header.articleCount) articles successfully")
+            debugLog("executeJob(\(dictId)): indexed \(header.rowCount) articles (\(header.keyCount) keys) successfully")
         case .success(.interrupted(_, let through)):
             // cancel() / preempt / BGTask expiry / gate fired: the writer
             // flushed a valid partial. Phase 3.5 rework: state is the

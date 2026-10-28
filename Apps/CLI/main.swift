@@ -396,6 +396,9 @@ func performLookupPretty(dict: MDictReader, word: String) {
             ? String(content.prefix(2000)) + "\n... [truncated, \(content.count) chars total — re-run with --format=raw or --format=json for full HTML]"
             : content
 
+        if let fallback = entry.fallback {
+            print(colored("Matched:", .yellow), entry.key, "(\(fallback))")
+        }
         print(colored("Result:", .green))
         print(String(repeating: "─", count: 60))
         print(displayContent)

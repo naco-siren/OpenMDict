@@ -1286,14 +1286,16 @@ extension AmongWurdsViewController: UICollectionViewDelegate {
     fileprivate func pushArticle(for word: String) {
         guard let quiz = currentQuiz,
               let dict = DictionaryService.shared.dict(id: quiz.targetDictId) else { return }
-        var resolvedWord = word
         var entry = dict.lookup(word)
         if entry == nil {
             for lemma in EnglishInflectionRules.resolve(word) {
-                if let e = dict.lookup(lemma) { entry = e; resolvedWord = lemma; break }
+                if let e = dict.lookup(lemma) { entry = e; break }
             }
         }
         guard let entry else { return }
+        // The article is titled with the key it is of: a base form, or the
+        // key the lookup's fallbacks matched.
+        let resolvedWord = entry.key
 
         let html = ArticleHTMLRenderer.renderArticle(
             html: entry.article.html, dictId: quiz.targetDictId, traitCollection: traitCollection)

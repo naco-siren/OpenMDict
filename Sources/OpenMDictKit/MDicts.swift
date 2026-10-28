@@ -276,6 +276,13 @@ extension MDicts: @MainActor Lookupable {
     ///
     /// Downstream (`SpellingLookupSession`) receives N emissions (one per dict) via
     /// `switchToLatest`, updating the word list progressively.
+    ///
+    /// The reader's search fallbacks (full-width folding, diacritics) are a
+    /// group-level decision: a first pass searches every dictionary for
+    /// keys with the prefix as typed, and only when all of them come back
+    /// empty does a second pass search them with the fallbacks, so that
+    /// another dictionary's folded keys never sort in among direct matches.
+    /// Rows of the second pass carry `WordSearchResult.fallback`.
     public func lookupPublisher(prefix: String, limit: Int = 50) -> AnyPublisher<[WordSearchResult], Never> {
         let enabledItems = items.filter { $0.isEnabled }
 
@@ -283,15 +290,51 @@ extension MDicts: @MainActor Lookupable {
             return Just([]).eraseToAnyPublisher()
         }
 
-        // Create one publisher per enabled dictionary. Each MDict.lookupPublisher
-        // waits for that dict to load ($state.first { .loaded }) then searches.
-        // All captured on MainActor here; background work happens inside each dict's publisher.
-        let publishers = enabledItems.map { $0.lookupPublisher(prefix: prefix, limit: limit) }
+        // Create one publisher per enabled dictionary and pass. Each
+        // MDict.lookupPublisher waits for that dict to load ($state.first
+        // { .loaded }) then searches. All captured on MainActor here;
+        // background work happens inside each dict's publisher.
+        let direct = enabledItems.map { $0.lookupPublisher(prefix: prefix, limit: limit, fallbacks: .none) }
+        let withFallbacks = enabledItems.map { $0.lookupPublisher(prefix: prefix, limit: limit, fallbacks: .all) }
+        return twoPassLookupPublisher(direct: direct, withFallbacks: withFallbacks)
+    }
+}
 
-        return Publishers.MergeMany(publishers)
+// MARK: - Two-Pass Group Search
+
+/// The merged, accumulated emissions of `direct`, then — if they amounted
+/// to nothing — those of `withFallbacks`. A file-scope `nonisolated`
+/// function, so the closures below are not `@MainActor`: Combine runs them
+/// on the threads the dictionaries' searches finish on.
+private nonisolated func twoPassLookupPublisher(
+    direct: [AnyPublisher<[WordSearchResult], Never>],
+    withFallbacks: [AnyPublisher<[WordSearchResult], Never>]
+) -> AnyPublisher<[WordSearchResult], Never> {
+    let found = FoundFlag()
+    let firstPass = Publishers.MergeMany(direct)
+        .scan([WordSearchResult](), accumulateLookupResults)
+        .handleEvents(receiveOutput: { results in if !results.isEmpty { found.set() } })
+    // `Deferred` runs when `firstPass` has completed, so `found` is final.
+    // It is subscribed on the main queue: each dictionary's publisher reads
+    // the dictionary's main-actor state when subscribed, and the first pass
+    // completes on the thread its last search finished on.
+    let secondPass = Deferred { () -> AnyPublisher<[WordSearchResult], Never> in
+        guard !found.isSet else { return Empty().eraseToAnyPublisher() }
+        return Publishers.MergeMany(withFallbacks)
             .scan([WordSearchResult](), accumulateLookupResults)
             .eraseToAnyPublisher()
     }
+    .subscribe(on: DispatchQueue.main)
+    return firstPass.append(secondPass).eraseToAnyPublisher()
+}
+
+/// Whether the first pass found anything; set from the threads the
+/// searches finish on, read when the second pass starts.
+private final class FoundFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    var isSet: Bool { lock.lock(); defer { lock.unlock() }; return value }
+    func set() { lock.lock(); value = true; lock.unlock() }
 }
 
 // MARK: - Lookup Result Accumulation

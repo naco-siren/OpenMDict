@@ -635,7 +635,7 @@ class CompactTabBarController: UITabBarController {
         )
 
         if let dict, let entry = dict.lookup(word.word) {
-            article.contentState = .loaded(html: entry.article.html, css: nil)
+            article = article.filled(with: entry)
         }
 
         // Push detail container if not already on the nav stack
@@ -655,7 +655,7 @@ class CompactTabBarController: UITabBarController {
         }
         lookupDetailContainer.lookupContext = (dictId: ctxDictId, groupId: ctxGroupId)
         LookupHistoryService.shared.recordLookup(
-            word: word.word, dictId: word.dictId,
+            word: article.word, dictId: word.dictId,
             lookupContextDictId: ctxDictId, lookupContextGroupId: ctxGroupId
         )
     }
@@ -672,7 +672,7 @@ class CompactTabBarController: UITabBarController {
         )
 
         if let dict, let entry = dict.lookup(bookmark.word) {
-            article.contentState = .loaded(html: entry.article.html, css: nil)
+            article = article.filled(with: entry)
         }
 
         // Push a fresh detail container for single-article view
@@ -692,7 +692,7 @@ class CompactTabBarController: UITabBarController {
 
         // Record lookup history (bookmarkListVC auto-reloads via $revision)
         LookupHistoryService.shared.recordLookup(
-            word: bookmark.word, dictId: bookmark.dictId,
+            word: article.word, dictId: bookmark.dictId,
             lookupContextDictId: nil, lookupContextGroupId: nil
         )
     }
@@ -709,7 +709,7 @@ class CompactTabBarController: UITabBarController {
         )
 
         if let dict, let entry = dict.lookup(historyItem.word) {
-            article.contentState = .loaded(html: entry.article.html, css: nil)
+            article = article.filled(with: entry)
         }
 
         let detailVC = DetailContainerViewController()
@@ -728,7 +728,7 @@ class CompactTabBarController: UITabBarController {
 
         // Record lookup history (lookupHistoryListVC auto-reloads via $revision)
         LookupHistoryService.shared.recordLookup(
-            word: historyItem.word, dictId: historyItem.dictId,
+            word: article.word, dictId: historyItem.dictId,
             lookupContextDictId: nil, lookupContextGroupId: nil
         )
     }

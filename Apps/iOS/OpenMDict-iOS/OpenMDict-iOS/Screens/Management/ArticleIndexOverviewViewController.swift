@@ -76,7 +76,8 @@ final class ArticleIndexOverviewViewController: UIViewController {
 
     /// id → display name (from `DictionaryService.allDictionaries`).
     private var dictNames: [String: String] = [:]
-    /// id → article total (`reader.entryCount`), the progress denominator.
+    /// id → entry total (`reader.entryCount`), the progress denominator.
+    /// `indexedThrough` counts entries (MDX keys, aliases included) too.
     private var dictTotals: [String: Int] = [:]
     /// All dict ids, partitioned by `userExcluded` and each partition
     /// sorted by default-group order.

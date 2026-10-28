@@ -643,17 +643,15 @@ final class DictionaryService: ObservableObject {
 
     /// Remove a dictionary that another device deleted (confirmed).
     private func applyRemoteDelete(_ dictId: String) {
+        // Drop the persistent sidecar indexes so the cache doesn't
+        // accumulate orphans — before the files go, while the header can
+        // still be read. `deleteDictionary(dictId:)` does the same for the
+        // user-initiated delete path.
+        removeSidecarCache(ofDictionary: dictId)
         // Remove local files
         let dictDir = storage.dictionaryDirectoryURL(id: dictId)
         try? FileManager.default.removeItem(at: dictDir)
         storage.invalidateDictManifestCache(id: dictId)
-        // Drop the persistent sidecar index so the cache doesn't
-        // accumulate orphans. dictId == MDX header SHA256 in this
-        // app, so it doubles as the sidecar file name.
-        // `DictionaryStorageService.deleteDictionary()` already does
-        // this for the user-initiated delete path — mirror it here
-        // for the iCloud remote-delete path.
-        MDictReader.removeSidecarCache(forHeaderSHA256: dictId)
         // M15 Phase 3: same cleanup for the article-embedding sidecar.
         // Unconditional (runs even on iOS < 26) — see Coordinator.
         ArticleIndexCoordinator.shared.handleDictDeleted(dictId)
@@ -720,6 +718,7 @@ final class DictionaryService: ObservableObject {
             let dict = MDict(path: mdxPath, id: metadata.dictId, mddPaths: mddPaths)
             // Inject user display name from CoreData
             dict.userDisplayName = metadata.displayName
+            dict.headwordLanguage = PresetDictionaryService.headwordLanguageByFilename[metadata.originalFileName]
 
             if !mddPaths.isEmpty {
                 print("📦 Loaded \(metadata.displayName) with \(mddPaths.count) MDD files")
@@ -905,6 +904,9 @@ final class DictionaryService: ObservableObject {
         }
         MDictSidecarCache.flushPendingWrites()
         MDictSidecarCache.writeMode = .immediate
+
+        // Lookup fallbacks: saved diacritic indexes, German lemma model.
+        LookupFallbackSetup.dictionariesDidLoad(allDictionaries.filter(\.isLoaded))
     }
 
     /// Single-dict load wrapper used by both the parallel TaskGroup path
@@ -1197,6 +1199,7 @@ final class DictionaryService: ObservableObject {
         if let oldHeaderSHA, oldHeaderSHA != dict.metadata?.headerSHA256 {
             MDictReader.removeSidecarCache(forHeaderSHA256: oldHeaderSHA)
         }
+        LookupFallbackSetup.dictionariesDidLoad([dict])
         ArticleIndexCoordinator.shared.handleDictImported(dictId)
         if let newName = PresetVersioning.adoptedDisplayName(current: dict.userDisplayName,
                                                              catalogName: displayName,
@@ -1211,7 +1214,9 @@ final class DictionaryService: ObservableObject {
     /// Delete a dictionary
     /// - Parameter dictId: Dictionary ID to delete
     func deleteDictionary(dictId: String) throws {
-        // 1. Remove from storage
+        // 1. Drop the sidecar indexes (while the MDX header can still be
+        //    read), then remove from storage
+        removeSidecarCache(ofDictionary: dictId)
         try storage.deleteDictionary(id: dictId)
 
         // 2. Remove from memory and update groups
@@ -1288,6 +1293,7 @@ final class DictionaryService: ObservableObject {
         // Inject user display name from CoreData metadata
         if let metadata = DictMetadataService.shared.find(dictId: id) {
             newDict.userDisplayName = metadata.displayName
+            newDict.headwordLanguage = PresetDictionaryService.headwordLanguageByFilename[metadata.originalFileName]
         }
 
         // 2. Add to dictionary list
@@ -1325,6 +1331,7 @@ final class DictionaryService: ObservableObject {
 
         do {
             try await newDict.load()
+            LookupFallbackSetup.dictionariesDidLoad([newDict])
             // Debug: show raw title vs resolved title
             if let meta = newDict.metadata {
                 debugLog("✅ Loaded imported dictionary:")
@@ -1362,6 +1369,21 @@ final class DictionaryService: ObservableObject {
     /// - Parameter persistGroups: Write the updated group membership to
     ///   CoreData. `false` on the CloudKit remote-delete path, where the
     ///   originating device already removed the entries.
+    /// Remove the sidecar index and the folded-key index saved beside it of
+    /// a dictionary about to be deleted. Both files are named by the MDX
+    /// header's SHA-256, which is an imported dictionary's id but not a
+    /// preset's (the hash of its whole file), so the hash comes from the
+    /// loaded reader or, failing that, from the file's header. Call before
+    /// the files are removed.
+    private func removeSidecarCache(ofDictionary dictId: String) {
+        let headerSHA = dict(id: dictId)?.metadata?.headerSHA256
+            ?? storage.mdxURL(id: dictId).flatMap { MDictReader.loadMetadata(from: $0.path)?.headerSHA256 }
+        if let headerSHA, headerSHA != dictId {
+            MDictReader.removeSidecarCache(forHeaderSHA256: headerSHA)
+        }
+        MDictReader.removeSidecarCache(forHeaderSHA256: dictId)
+    }
+
     private func refreshAfterDelete(_ id: String, persistGroups: Bool = true) {
         // 1. Remove from allDictionaries
         allDictionaries.removeAll { $0.id == id }
@@ -1553,22 +1575,25 @@ final class DictionaryService: ObservableObject {
     
     // MARK: - Lookup API (for article display)
     
-    /// Lookup in a group (returns AsyncStream for progressive results)
+    /// Lookup in a group (returns AsyncStream for progressive results).
+    /// An article a fallback found is titled "word → key".
     func lookup(_ word: String, in group: MDicts) -> AsyncStream<ArticleDisplayItem> {
         AsyncStream { continuation in
             Task {
                 for await result in group.lookup(word) {
-                    continuation.yield(ArticleDisplayItem(from: result))
+                    continuation.yield(ArticleDisplayItem(from: result, query: word))
                 }
                 continuation.finish()
             }
         }
     }
-    
-    /// Lookup in a single dictionary
-    func lookup(_ word: String, in dict: MDict) -> ArticleDisplayItem? {
-        guard let entry = dict.lookup(word) else { return nil }
-        return ArticleDisplayItem(from: entry, dict: dict)
+
+    /// Lookup in a single dictionary. `fallbacks` as in `MDict.lookup`; an
+    /// article a fallback found is titled "word → key".
+    func lookup(_ word: String, in dict: MDict,
+                fallbacks: MDictLookupFallbacks = .all) -> ArticleDisplayItem? {
+        guard let entry = dict.lookup(word, fallbacks: fallbacks) else { return nil }
+        return ArticleDisplayItem(from: entry, dict: dict, query: word)
     }
     
     // MARK: - Resource Management (Public API)

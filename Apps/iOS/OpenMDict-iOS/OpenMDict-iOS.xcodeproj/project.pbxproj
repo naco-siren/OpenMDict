@@ -136,6 +136,7 @@
 		F80DBFA72F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF552F4A7B9D00ED2985 /* CEDICT-ZH-EN.mdx */; settings = {ASSET_TAGS = ("preset-dict-cedict-zh-en", ); }; };
 		F80DBFA82F4A7B9D00ED2985 /* WikDict-ES-FR.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF772F4A7B9D00ED2985 /* WikDict-ES-FR.mdx */; settings = {ASSET_TAGS = ("preset-dict-wikdict-es-fr", ); }; };
 		F80DBFA92F4A7B9D00ED2985 /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF672F4A7B9D00ED2985 /* preset-dictionaries.json */; };
+		F8A1C0DE2FA0000100A1C0DE /* preset-dictionaries.json in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF672F4A7B9D00ED2985 /* preset-dictionaries.json */; };
 		F80DBFAA2F4A7B9D00ED2985 /* Bible-Almeida-PT.mdx in Resources */ = {isa = PBXBuildFile; fileRef = F80DBF452F4A7B9D00ED2985 /* Bible-Almeida-PT.mdx */; settings = {ASSET_TAGS = ("preset-dict-bible-almeida-pt", ); }; };
 		F835C6222F3C5E2D00A22FB5 /* OpenMDict.icon in Resources */ = {isa = PBXBuildFile; fileRef = F835C6212F3C5E2D00A22FB5 /* OpenMDict.icon */; };
 		F8B101012F70AB0000B10101 /* OpenMDict-West.icon in Resources */ = {isa = PBXBuildFile; fileRef = F8B100012F70AB0000B10001 /* OpenMDict-West.icon */; };
@@ -380,6 +381,7 @@
 				Services/Lemma/EnglishInflectionRules.swift,
 				Services/Lemma/InflectionRules.swift,
 				Services/Lemma/LemmaResolver.swift,
+				Services/Lemma/PresetHeadwordLanguages.swift,
 				Services/LookupCountService.swift,
 				Services/LookupHistoryService.swift,
 				"Services/Persistence/ArticleIndexRecord+CoreDataClass.swift",
@@ -1006,6 +1008,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8A1C0DE2FA0000100A1C0DE /* preset-dictionaries.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1058,7 +1061,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1073,7 +1076,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1096,7 +1099,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1111,7 +1114,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1313,7 +1316,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-iOS/OpenMDict_iOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-iOS/Info.plist";
@@ -1329,7 +1332,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1350,7 +1353,7 @@
 			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1361,7 +1364,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1381,7 +1384,7 @@
 			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1392,7 +1395,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1412,7 +1415,7 @@
 			baseConfigurationReference = 719DFBD7A62C99CCFF367932 /* Local.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ShareExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = OpenMDict;
@@ -1423,7 +1426,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1444,7 +1447,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1455,7 +1458,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1477,7 +1480,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1488,7 +1491,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1510,7 +1513,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "OpenMDict-ActionExtension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Look up this word";
@@ -1521,7 +1524,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
