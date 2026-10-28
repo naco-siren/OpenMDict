@@ -39,7 +39,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from shared.theme import (get_css, PRONUNCIATION, SENSE_NUMBER_INLINE, GLOSS,
                           EXAMPLES, TEXT_SECONDARY, TEXT_LINK)
 from shared.html import esc, entry_link, wrap_entry, dir_label, headword
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview,
+                          write_catalog_metadata, description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data"
@@ -640,6 +641,64 @@ def plan_redirects(lex: Lexicon):
     return redirects, notes
 
 
+# ── Header description ────────────────────────────────────────
+
+MDX_FILENAME = "WordNet-EN.mdx"
+
+# The Princeton WordNet copyright notice and disclaimer, reproduced verbatim.
+PRINCETON_NOTICE = (
+    "WordNet 3.1 Copyright 2011 by Princeton University. All rights reserved. "
+    "THIS SOFTWARE AND DATABASE IS PROVIDED \"AS IS\" AND PRINCETON UNIVERSITY "
+    "MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF "
+    "EXAMPLE, BUT NOT LIMITATION, PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS "
+    "OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR "
+    "THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT "
+    "INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS. "
+    "The name of Princeton University or Princeton may not be used in "
+    "advertising or publicity pertaining to distribution of the software "
+    "and/or database. Title to copyright in this software, database and any "
+    "associated documentation shall at all times remain with Princeton "
+    "University and LICENSEE agrees to preserve same."
+)
+
+
+def header_description() -> str:
+    """The MDX header description of WordNet-EN.mdx, in the shared layout."""
+    return description_html(
+        title="Open English WordNet 2025+",
+        subtitle="release 2025-edition",
+        about=[
+            "A lexical database of English content words (nouns, verbs, "
+            "adjectives and adverbs) grouped into sets of synonyms, with "
+            "definitions, examples, antonyms and related words. It has no "
+            "function words such as <i>the</i>, <i>of</i> or <i>and</i>.",
+        ],
+        source=(
+            '<a href="https://en-word.net/">Open English WordNet</a>, '
+            '<a href="https://github.com/globalwordnet/english-wordnet">'
+            "github.com/globalwordnet/english-wordnet</a>. "
+            "Copyright © 2019–present, The Open English WordNet Team. "
+            "This work is based on Princeton WordNet."
+        ),
+        license=(
+            '<a href="https://creativecommons.org/licenses/by/4.0/">'
+            "Creative Commons Attribution 4.0 International (CC BY 4.0)</a>, "
+            "provided as is, without warranties. Princeton WordNet is used "
+            'under the <a href="https://wordnet.princeton.edu/license-and-commercial-use">'
+            "WordNet License</a>."
+        ),
+        changes="senses grouped per headword, relations shown as links, "
+                "inflected forms and alternative spellings (café, Wi-Fi) added "
+                "as cross-references",
+        notices=[PRINCETON_NOTICE],
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{"<Name>.mdx": header description} for every dictionary this script builds."""
+    return {MDX_FILENAME: header_description()}
+
+
 # ── Main ──────────────────────────────────────────────────────
 
 def main():
@@ -677,39 +736,8 @@ def main():
     print(f"  {count} articles + {len(redirects)} redirects = {total} entries written")
 
     # ── Pack MDX ──
-    mdx_path = OUTPUT_DIR / "WordNet-EN.mdx"
-    desc_html = (
-        "<p><b>Open English WordNet 2025+</b> (release 2025-edition)</p>"
-        "<p>A lexical database of English content words (nouns, verbs, "
-        "adjectives and adverbs) grouped into sets of synonyms, with "
-        "definitions, examples, antonyms and related words. It has no "
-        "function words such as <i>the</i>, <i>of</i> or <i>and</i>.</p>"
-        "<p>Source: <a href='https://en-word.net/'>Open English WordNet</a>, "
-        "<a href='https://github.com/globalwordnet/english-wordnet'>"
-        "github.com/globalwordnet/english-wordnet</a>. "
-        "Copyright © 2019–present, The Open English WordNet Team. "
-        "Licensed under <a href='https://creativecommons.org/licenses/by/4.0/'>"
-        "Creative Commons Attribution 4.0 International (CC BY 4.0)</a>, "
-        "provided as is, without warranties.</p>"
-        "<p>This work is based on Princeton WordNet, used under the "
-        "<a href='https://wordnet.princeton.edu/license-and-commercial-use'>"
-        "WordNet License</a>. WordNet 3.1 Copyright 2011 by Princeton "
-        "University. All rights reserved. THIS SOFTWARE AND DATABASE IS "
-        "PROVIDED \"AS IS\" AND PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS "
-        "OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE, BUT NOT "
-        "LIMITATION, PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR "
-        "WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE "
-        "OR THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION "
-        "WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR "
-        "OTHER RIGHTS. The name of Princeton University or Princeton may not "
-        "be used in advertising or publicity pertaining to distribution of "
-        "the software and/or database. Title to copyright in this software, "
-        "database and any associated documentation shall at all times remain "
-        "with Princeton University and LICENSEE agrees to preserve same.</p>"
-        "<p>Converted to MDict and reformatted by OpenMDict: senses grouped "
-        "per headword, relations shown as links, inflected forms and "
-        "alternative spellings (café, Wi-Fi) added as cross-references.</p>"
-    )
+    mdx_path = OUTPUT_DIR / MDX_FILENAME
+    desc_html = descriptions()[MDX_FILENAME]
     success, size_mb, _ = pack_mdx(txt_path, "Open English WordNet", desc_html, mdx_path)
     if not success:
         sys.exit(1)

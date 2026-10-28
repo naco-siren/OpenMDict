@@ -66,12 +66,15 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from shared.theme import get_css, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, entry_link, wrap_entry
-from shared.build import pack_mdx, generate_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview, write_catalog_metadata,
+                          description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data"
 OUTPUT_DIR = SCRIPT_DIR.parent / "output" / "Moby-Thesaurus-EN"
 DATA_FILE = DATA_DIR / "mthesaur.txt"
+MDX_NAME = "Moby-Thesaurus-EN.mdx"
+TITLE = "Moby Thesaurus II"
 OEWN_ENTRY_GLOB = "entries-*.json"
 OEWN_SYNSET_GLOBS = ("noun.*.json", "verb.*.json", "adj.*.json", "adv.*.json")
 
@@ -88,31 +91,38 @@ USE_OEWN = True
 # Attribution both OEWN licences require (OEWN LICENSE.md: credit both
 # Princeton WordNet and the Open English WordNet team; the Princeton
 # notice and disclaimer must appear on all copies, including modifications).
-OEWN_NOTICE = (
-    "<p>The redirects from inflected forms and from British and compound "
+# The header description carries them in its Source and License
+# paragraphs and as a verbatim notice (see description()).
+OEWN_SOURCE = (
+    "The redirects from inflected forms and from British and compound "
     "spellings use word forms, parts of speech and spelling variants from "
-    "<a href='https://en-word.net/'>Open English WordNet</a> 2025, "
-    "<a href='https://github.com/globalwordnet/english-wordnet'>"
+    '<a href="https://en-word.net/">Open English WordNet</a> 2025, '
+    '<a href="https://github.com/globalwordnet/english-wordnet">'
     "github.com/globalwordnet/english-wordnet</a>. "
-    "Copyright © 2019–present, The Open English WordNet Team. "
-    "Licensed under <a href='https://creativecommons.org/licenses/by/4.0/'>"
+    "Copyright © 2019–present, The Open English WordNet Team."
+)
+OEWN_LICENSE = (
+    "Open English WordNet is licensed under "
+    '<a href="https://creativecommons.org/licenses/by/4.0/">'
     "Creative Commons Attribution 4.0 International (CC BY 4.0)</a>, "
-    "provided as is, without warranties; selected and adapted by OpenMDict.</p>"
-    "<p>Open English WordNet is based on Princeton WordNet, used under the "
-    "<a href='https://wordnet.princeton.edu/license-and-commercial-use'>"
-    "WordNet License</a>. WordNet 3.1 Copyright 2011 by Princeton "
-    "University. All rights reserved. THIS SOFTWARE AND DATABASE IS "
-    "PROVIDED \"AS IS\" AND PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS "
-    "OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE, BUT NOT "
-    "LIMITATION, PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR "
-    "WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE "
-    "OR THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION "
-    "WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR "
-    "OTHER RIGHTS. The name of Princeton University or Princeton may not "
-    "be used in advertising or publicity pertaining to distribution of "
-    "the software and/or database. Title to copyright in this software, "
-    "database and any associated documentation shall at all times remain "
-    "with Princeton University and LICENSEE agrees to preserve same.</p>"
+    "provided as is, without warranties; it is based on Princeton WordNet, "
+    'used under the <a href="https://wordnet.princeton.edu/license-and-commercial-use">'
+    "WordNet License</a>."
+)
+# The Princeton WordNet copyright notice and disclaimer, reproduced verbatim.
+PRINCETON_NOTICE = (
+    "WordNet 3.1 Copyright 2011 by Princeton University. All rights reserved. "
+    "THIS SOFTWARE AND DATABASE IS PROVIDED \"AS IS\" AND PRINCETON UNIVERSITY "
+    "MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF "
+    "EXAMPLE, BUT NOT LIMITATION, PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS "
+    "OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR "
+    "THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT "
+    "INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS. "
+    "The name of Princeton University or Princeton may not be used in "
+    "advertising or publicity pertaining to distribution of the software "
+    "and/or database. Title to copyright in this software, database and any "
+    "associated documentation shall at all times remain with Princeton "
+    "University and LICENSEE agrees to preserve same."
 )
 
 FLAG_EN = '\U0001F1EC\U0001F1E7\U0001F1FA\U0001F1F8'  # 🇬🇧🇺🇸
@@ -400,6 +410,40 @@ class Linker:
         if not any(k != root for k in self.by_norm.get(norm(item), ())):
             return False
         return self.resolve(item, root, count=False) is None
+
+
+def clean_lists(entries: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Items per root: no self-reference, no repeats, alphabetical."""
+    lists: dict[str, list[str]] = {}
+    for root, items in entries.items():
+        seen: set[str] = set()
+        clean = []
+        for s in items:
+            if s != root and s not in seen:
+                seen.add(s)
+                clean.append(s)
+        lists[root] = sorted(clean, key=sort_key)
+    return lists
+
+
+def listed_under_terms(lists: dict[str, list[str]],
+                       linker: Linker) -> dict[str, list[str]]:
+    """Term -> the root words (sorted) whose lists carry it, for every term
+    that gets a "listed under" entry: terms that occur only inside lists (not
+    a root even ignoring case, hyphens and spaces) and case homographs of a
+    root that some list uses in an unrelated sense ('Here', 'CAT', 'China',
+    'bo'). Their own key sits next to the root's, and the app shows the
+    exact-case record first."""
+    homographs = {s for root, items in lists.items() for s in items
+                  if linker.case_homograph(s, root)}
+    listed_under: dict[str, list[str]] = defaultdict(list)
+    for root, items in lists.items():
+        for s in items:
+            if s in homographs or not linker.matches_entry(s):
+                listed_under[s].append(root)
+    for roots in listed_under.values():
+        roots.sort(key=sort_key)
+    return listed_under
 
 
 # ── Rendering ─────────────────────────────────────────────────
@@ -1017,6 +1061,56 @@ class Redirects:
         return out
 
 
+# ── Header description ────────────────────────────────────────
+
+def description(n_roots: int, slots: int, distinct_terms: int, n_listed: int) -> str:
+    """The MDX header description in the shared layout.
+
+    n_roots: root-word entries; slots: list items in all; distinct_terms:
+    distinct terms in the lists; n_listed: "listed under" entries for the
+    terms that appear only inside the lists.
+    """
+    about = [
+        f"Grady Ward's English thesaurus (American spelling): {n_roots:,} root "
+        f"words, each with a list of synonyms and related words; {slots:,} list "
+        f"items in all ({distinct_terms:,} distinct terms).",
+        "Known slurs are labelled <i>offensive</i>, listed separately and not "
+        "linked; this older source has no usage labels and may contain other "
+        "dated or offensive terms.",
+    ]
+    source = ('Moby Thesaurus II by Grady Ward, <a href="https://www.gutenberg.org/'
+              'ebooks/3202">Project Gutenberg eBook #3202</a>.')
+    license = "Public Domain by grant from the author, January 2001."
+    changes = (f"reformatted; added an entry for each of the {n_listed:,} terms "
+               "that appear only inside the lists, showing the root words that "
+               "list them, and redirects from "
+               + ("inflected forms and from British, hyphenated and accented "
+                  if USE_OEWN else "hyphenated, British and accented ")
+               + "spellings")
+    notices = []
+    if USE_OEWN:
+        source += " " + OEWN_SOURCE
+        license += " " + OEWN_LICENSE
+        changes += ("; selected and adapted the Open English WordNet data "
+                    "behind those redirects")
+        notices.append(PRINCETON_NOTICE)
+    changes += "; lists sorted alphabetically"
+    return description_html(title=TITLE, about=about, source=source,
+                            license=license, changes=changes, notices=notices)
+
+
+def descriptions() -> dict[str, str]:
+    """{"<Name>.mdx": header description} for the dictionary this script
+    builds, with the counts derived from the data file as the build does."""
+    entries = parse_moby(DATA_FILE)
+    listed_under = listed_under_terms(clean_lists(entries), Linker(entries))
+    return {MDX_NAME: description(
+        n_roots=len(entries),
+        slots=sum(len(v) for v in entries.values()),
+        distinct_terms=len({s for v in entries.values() for s in v}),
+        n_listed=len(listed_under))}
+
+
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1040,33 +1134,9 @@ def main():
         print("  OEWN: not used (USE_OEWN = False)")
 
     linker = Linker(entries)
-
-    # Items per root: no self-reference, no repeats, alphabetical.
-    lists: dict[str, list[str]] = {}
-    for root, items in entries.items():
-        seen: set[str] = set()
-        clean = []
-        for s in items:
-            if s != root and s not in seen:
-                seen.add(s)
-                clean.append(s)
-        lists[root] = sorted(clean, key=sort_key)
+    lists = clean_lists(entries)
     self_refs = sum(1 for r, v in entries.items() if r in v)
-
-    # Terms that occur only inside lists (not a root even ignoring case,
-    # hyphens and spaces) get a "listed under" entry. So do case homographs
-    # of a root that some list uses in an unrelated sense ('Here', 'CAT',
-    # 'China', 'bo'): their own key sits next to the root's, and the app
-    # shows the exact-case record first.
-    homographs = {s for root, items in lists.items() for s in items
-                  if linker.case_homograph(s, root)}
-    listed_under: dict[str, list[str]] = defaultdict(list)
-    for root, items in lists.items():
-        for s in items:
-            if s in homographs or not linker.matches_entry(s):
-                listed_under[s].append(root)
-    for roots in listed_under.values():
-        roots.sort(key=sort_key)
+    listed_under = listed_under_terms(lists, linker)
     article_keys = set(entries) | set(listed_under)
 
     # ── Phase 2: Articles ──
@@ -1205,32 +1275,12 @@ def main():
 
     # ── Phase 5: Pack MDX ──
     distinct_terms = len({s for v in entries.values() for s in v})
-    mdx_path = OUTPUT_DIR / "Moby-Thesaurus-EN.mdx"
-    added_by = (f"an entry for each of the {n_listed:,} terms that appear only "
-                "inside the lists, showing the root words that list them, and "
-                "redirects from "
-                + ("inflected forms and from British, hyphenated and accented "
-                   if USE_OEWN else "hyphenated, British and accented ")
-                + "spellings")
-    description = (
-        "<p><b>Moby Thesaurus II</b></p>"
-        f"<p>Grady Ward's English thesaurus (American spelling): {n_roots:,} root "
-        f"words, each with a list of synonyms and related words; {slots:,} list "
-        f"items in all ({distinct_terms:,} distinct terms).</p>"
-        f"<p>Added by OpenMDict: {added_by}. Lists are sorted alphabetically. "
-        "Known slurs are labelled <i>offensive</i>, listed separately and not "
-        "linked; this older source has no usage labels and may contain other "
-        "dated or offensive terms.</p>"
-        "<p><b>Public Domain</b> by grant from the author, January 2001. Source: "
-        "<a href='https://www.gutenberg.org/ebooks/3202'>Project Gutenberg "
-        "eBook #3202</a>. Converted to MDict and reformatted by OpenMDict.</p>"
-        + (OEWN_NOTICE if USE_OEWN else "")
-    )
+    mdx_path = OUTPUT_DIR / MDX_NAME
+    desc = description(n_roots, slots, distinct_terms, n_listed)
     inputs = [DATA_FILE]
     if USE_OEWN:
         inputs += [Path(p) for p in sorted(glob.glob(str(DATA_DIR / OEWN_ENTRY_GLOB)))]
-    success, size_mb, _ = pack_mdx(txt_path, "Moby Thesaurus II", description,
-                                   mdx_path, inputs=inputs)
+    success, size_mb, _ = pack_mdx(txt_path, TITLE, desc, mdx_path, inputs=inputs)
     if not success:
         sys.exit(1)
     print(f"  ✓ {mdx_path.name}: {size_mb:.1f} MB, {count} entries")

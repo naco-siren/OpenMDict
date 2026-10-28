@@ -36,7 +36,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from shared.theme import get_css, ORDERED_LIST, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, esc_attr, wrap_entry
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview, write_catalog_metadata,
+                          description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data"
@@ -512,6 +513,43 @@ def _generate_preview(articles: dict[str, str]):
     _shared_preview(entries_html, preview_path, 'CC-CEDICT — preview')
 
 
+# ── Header description ────────────────────────────────────────
+
+def header_description(release: str, entries: int) -> str:
+    """The MDX header description in the shared layout (shared.build.description_html).
+
+    Args:
+        release: CC-CEDICT release date, the first 10 characters of the
+            header's '#! date=' value ('' when the header has none).
+        entries: Number of CC-CEDICT rows in the data file.
+    """
+    works = ''.join(f"<br>{esc(w)}" for w in read_referenced_works(CEDICT_FILE))
+    return description_html(
+        title="CC-CEDICT Chinese-English Dictionary",
+        about=[f"The community-maintained free Chinese-English dictionary: {entries:,} entries."],
+        source=((f"CC-CEDICT release {release}" if release else "CC-CEDICT") + ", published by MDBG: "
+                '<a href="https://www.mdbg.net/chinese/dictionary?page=cc-cedict">mdbg.net</a> · '
+                '<a href="https://cc-cedict.org/wiki/">cc-cedict.org</a>.'
+                + (f" Referenced works:{works}" if works else "")),
+        license=('<a href="https://creativecommons.org/licenses/by-sa/4.0/">'
+                 "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</a>."),
+        changes="readings grouped and reordered by headword, pinyin shown with tone marks, "
+                "cross-references linked, and lookup redirects added for Traditional, variant "
+                "and punctuation-free spellings",
+        adaptation_license="The modified data is shared under the same license.",
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{"<Name>.mdx": header description} for every dictionary this script builds.
+
+    Reads the release date and row count from CEDICT_FILE the way the build
+    does (parse_cedict, well under a second); nothing is built.
+    """
+    rows, header = parse_cedict(CEDICT_FILE)
+    return {"CEDICT-ZH-EN.mdx": header_description(header.get('date', '')[:10], len(rows))}
+
+
 # ── Main ──────────────────────────────────────────────────────
 
 def main():
@@ -616,22 +654,7 @@ def main():
 
     # Pack MDX
     mdx_path = OUTPUT_DIR / "CEDICT-ZH-EN.mdx"
-    works = ''.join(f"<br>{esc(w)}" for w in read_referenced_works(CEDICT_FILE))
-    release_text = f"release {release}, " if release else ""
-    desc_html = (
-        "<p><b>CC-CEDICT Chinese-English Dictionary</b></p>"
-        f"<p>CC-CEDICT ({release_text}{len(rows):,} entries), the community-maintained "
-        "free Chinese-English dictionary, published by MDBG. "
-        "Source: <a href='https://www.mdbg.net/chinese/dictionary?page=cc-cedict'>"
-        "mdbg.net</a> · <a href='https://cc-cedict.org/wiki/'>cc-cedict.org</a></p>"
-        f"<p>Referenced works:{works}</p>"
-        "<p>Licensed under <a href='https://creativecommons.org/licenses/by-sa/4.0/'>"
-        "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</a>.</p>"
-        "<p>Converted to MDict and modified by OpenMDict: readings grouped and reordered "
-        "by headword, pinyin shown with tone marks, cross-references linked, and "
-        "lookup redirects added for Traditional, variant and punctuation-free spellings. "
-        "The modified data is shared under the same license.</p>"
-    )
+    desc_html = header_description(release, len(rows))
     success, size_mb, _ = pack_mdx(txt_path, "CC-CEDICT Chinese-English", desc_html, mdx_path,
                                    inputs=[CEDICT_FILE])
     if not success:

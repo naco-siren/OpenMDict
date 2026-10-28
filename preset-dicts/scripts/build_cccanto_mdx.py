@@ -67,7 +67,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from shared.theme import get_css, ORDERED_LIST, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, entry_link, headword, mark_badge
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview, write_catalog_metadata,
+                          description_html)
 
 DATA_ROOT = SCRIPT_DIR.parent / "data"
 DATA_DIR = DATA_ROOT / "cc-canto"
@@ -1114,6 +1115,52 @@ def _generate_preview(articles: dict[str, Article], keys: set[str]):
                     preview_path, f'{DICT_NAME} — preview')
 
 
+# ── Header description ────────────────────────────────────────
+
+def header_description() -> str:
+    """The MDX header description in the shared layout (shared.build.description_html).
+
+    Depends only on INCLUDE_READINGS, so it is the same whether or not the
+    data files are present.
+    """
+    about = [
+        "Cantonese words, slang and idioms with Jyutping, Mandarin pinyin and "
+        "English definitions. CC-Canto is a Cantonese supplement to CC-CEDICT: words "
+        "that mean the same as in Mandarin (香港, 多謝) are left to CC-CEDICT. "
+        "Search by traditional or simplified characters, or by Jyutping "
+        "(<i>m4 goi1</i>, <i>m4goi1</i>, <i>mgoi</i>).",
+    ]
+    source = (
+        "CC-Canto © 2015–2017 Pleco Inc., "
+        '<a href="https://cantonese.org/">cantonese.org</a>. '
+        "Entries marked “adapted from CC-CEDICT” are based on "
+        '<a href="https://cc-cedict.org/">CC-CEDICT</a>, © its maintainers (MDBG), '
+        "portions © 1997, 1998 Paul Andrew Denisowski."
+    )
+    if INCLUDE_READINGS:
+        about.append(
+            "Also includes the <i>CC-CEDICT Cantonese Readings</i>: Jyutping for about "
+            "100,000 CC-CEDICT words that CC-Canto does not define, shown without "
+            "definitions.")
+        source += " CC-CEDICT Cantonese Readings version 2015-09-23, © 2015 Pleco Inc."
+    return description_html(
+        title="CC-Canto Cantonese-English Dictionary",
+        subtitle="version 2017-02-02",
+        about=about,
+        source=source,
+        license='CC-Canto is licensed under '
+                '<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>.',
+        changes="records merged per traditional headword, Jyutping and pinyin cleaned, "
+                "simplified spellings corrected, lookup keys added",
+        adaptation_license="This adaptation is also licensed under CC BY-SA 3.0.",
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{"<Name>.mdx": header description} for every dictionary this script builds."""
+    return {f"{DICT_NAME}.mdx": header_description()}
+
+
 # ── Main ──────────────────────────────────────────────────────
 
 def check_cedict_release(path: Path) -> None:
@@ -1434,30 +1481,7 @@ def main():
 
     # ── Pack MDX ──
     mdx_path = OUTPUT_DIR / f"{DICT_NAME}.mdx"
-    readings_html = (
-        "<p>Also includes the <i>CC-CEDICT Cantonese Readings</i> (version 2015-09-23, "
-        "© 2015 Pleco Inc., CC BY-SA 3.0): Jyutping for about 100,000 CC-CEDICT words "
-        "that CC-Canto does not define, shown without definitions.</p>"
-        if INCLUDE_READINGS else "")
-    desc_html = (
-        "<p><b>CC-Canto Cantonese-English Dictionary</b> (version 2017-02-02)</p>"
-        "<p>Cantonese words, slang and idioms with Jyutping, Mandarin pinyin and "
-        "English definitions. CC-Canto is a Cantonese supplement to CC-CEDICT: words "
-        "that mean the same as in Mandarin (香港, 多謝) are left to CC-CEDICT. "
-        "Search by traditional or simplified characters, or by Jyutping "
-        "(<i>m4 goi1</i>, <i>m4goi1</i>, <i>mgoi</i>).</p>"
-        + readings_html +
-        "<p>CC-Canto © 2015–2017 Pleco Inc., "
-        "<a href='https://cantonese.org/'>cantonese.org</a>, licensed under "
-        "<a href='https://creativecommons.org/licenses/by-sa/3.0/'>CC BY-SA 3.0</a>. "
-        "Entries marked “adapted from CC-CEDICT” are based on "
-        "<a href='https://cc-cedict.org/'>CC-CEDICT</a>, © its maintainers (MDBG), "
-        "portions © 1997, 1998 Paul Andrew Denisowski.</p>"
-        "<p>Converted to MDict and modified by OpenMDict (records merged per "
-        "traditional headword, Jyutping and pinyin cleaned, simplified spellings "
-        "corrected, lookup keys added); this adaptation is also licensed under "
-        "CC BY-SA 3.0.</p>"
-    )
+    desc_html = descriptions()[mdx_path.name]
     success, size_mb, _ = pack_mdx(txt_path, "CC-Canto Cantonese-English", desc_html, mdx_path)
     if not success:
         raise SystemExit(1)

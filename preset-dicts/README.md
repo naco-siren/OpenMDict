@@ -167,6 +167,7 @@ make list
 | `catalog` | Regenerate `preset-dictionaries.json` and print the diff |
 | `check-catalog` | Fail if the catalog does not describe `output/` or the notices are stale |
 | `notices` | Regenerate the generated part of `../THIRD-PARTY-NOTICES.md` |
+| `descriptions` | Write every dictionary's MDX header description to `output/_descriptions/` without building (review the text first) |
 
 ### Reproducible builds
 

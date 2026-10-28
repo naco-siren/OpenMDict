@@ -67,7 +67,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from shared.theme import get_css, SENSE_NUMBER_INLINE, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, esc_attr, dir_attr, wrap_entry, strip_bidi_controls
 from shared.build import (pack_mdx as _shared_pack_mdx, generate_preview as _shared_preview,
-                          write_mdict_source, write_catalog_metadata)
+                          write_mdict_source, write_catalog_metadata, description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data" / "bible"
@@ -3574,6 +3574,7 @@ def build_entries(cfg: dict, bible: Bible) -> tuple[list, KeySet, dict]:
 
 OPEN_BIBLES = '<a href="https://github.com/seven1m/open-bibles">Open Bibles</a>'
 GRATIS = '<a href="https://github.com/gratis-bible/bible">gratis-bible</a>'
+ARB_VD = '<a href="https://ebible.org/details.php?id=arb-vd">eBible.org arb-vd</a>'
 KJV_APOCRYPHA = frozenset({'Tob', 'Jdt', 'EsthGr', 'AddEsth', 'Wis', 'Sir', 'Bar', 'EpJer', 'PrAzar',
                            'Sus', 'Bel', '1Macc', '2Macc', '1Esd', '2Esd', 'PrMan'})
 
@@ -3587,12 +3588,14 @@ BIBLES = [
         'en_verse_abbr': {b: EN_ABBR[b][:1] + (['Mt'] if b == 'Matthew' else []) for b in BOOK_ORDER},
         'dir_label': '✝️ → \U0001F1EC\U0001F1E7\U0001F1FA\U0001F1F8',  # ✝️ → 🇬🇧🇺🇸
         'title': 'King James Version (KJV)',
-        'desc': ('The Holy Bible, King James Version (Authorized Version, 1611) in the standardized '
-                 'text of 1769: the 66 books of the Old and New Testaments, one entry per chapter '
-                 '(the Apocrypha is not included); look up “John 3” or “John 3:16”. Words supplied by '
-                 'the translators are in italics. Source: <a href="https://ebible.org/details.php?id=eng-kjv">'
-                 'eBible.org eng-kjv</a> via ' + OPEN_BIBLES + '. Public domain; in the United Kingdom the '
-                 'King James Version is under perpetual Crown copyright (letters patent). Converted by OpenMDict.'),
+        'about': ('The Holy Bible, King James Version (Authorized Version, 1611) in the standardized '
+                  'text of 1769: the 66 books of the Old and New Testaments, one entry per chapter '
+                  '(the Apocrypha is not included); look up “John 3” or “John 3:16”. Words supplied by '
+                  'the translators are in italics.'),
+        'source': ('<a href="https://ebible.org/details.php?id=eng-kjv">eBible.org eng-kjv</a> via '
+                   + OPEN_BIBLES + '.'),
+        'license': ('Public domain; in the United Kingdom the King James Version is under perpetual '
+                    'Crown copyright (letters patent).'),
         'catalog_display_name': 'Bible — King James Version',
         'catalog_description': ('The King James Version of the Holy Bible (1769 standard text): 66 books, '
                                 'one entry per chapter, verse references such as “John 3:16”. Public domain '
@@ -3613,13 +3616,14 @@ BIBLES = [
         'css': ['cuv1919'], 'note_brackets': ('〈', '〉'),
         'dir_label': '✝️ → \U0001F1E8\U0001F1F3',  # ✝️ → 🇨🇳
         'title': '官话和合译本圣经（1919，简体）',
-        'desc': ('圣经·官话和合译本（1919 年初版，“神”版），简体中文。66 卷，每章一个词条，可查“约翰福音 3”'
-                 '“约3:16”。标点为当时的旧式标点（『』、．）。字旁加点的补充字（原文所无、译者加上的字）以点线标示，'
-                 '小字注释置于〈〉内，诗篇标题置于第 1 节前，新约所引旧约的出处列于各章之末。底本为'
-                 '<a href="https://zh.wikisource.org/wiki/聖經_(和合本)">维基文库《圣经 (和合本)》</a>'
-                 '（繁体；维基文库本以 CCIM 电子文本为基础，按 1919 年版用字校订；各卷固定于一个修订版本），'
-                 '简体字由 OpenCC 1.4.2 转换。历代志上 21:31–22:18 依通行节数作 22:1–19，约翰福音 7:53 自 8:1 分出。'
-                 '维基文库标注为公有领域。由 OpenMDict 转换。'),
+        'about': ('圣经·官话和合译本（1919 年初版，“神”版），简体中文。66 卷，每章一个词条，可查“约翰福音 3”'
+                  '“约3:16”。标点为当时的旧式标点（『』、．）。字旁加点的补充字（原文所无、译者加上的字）以点线标示，'
+                  '小字注释置于〈〉内，诗篇标题置于第 1 节前，新约所引旧约的出处列于各章之末。'),
+        'source': ('<a href="https://zh.wikisource.org/wiki/聖經_(和合本)">维基文库《圣经 (和合本)》</a>'
+                   '（繁体；维基文库本以 CCIM 电子文本为基础，按 1919 年版用字校订；各卷固定于一个修订版本）。'),
+        'license': '维基文库标注为公有领域。',
+        'changes': ('简体字由 OpenCC ' + OPENCC_VERSION + ' 转换，历代志上 21:31–22:18 依通行节数作 22:1–19，'
+                    '约翰福音 7:53 自 8:1 分出'),
         'catalog_display_name': '官话和合译本圣经（简体）',
         'catalog_description': ('圣经官话和合译本（1919，“神”版），简体中文（由繁体转换），66 卷，'
                                 '按章收录，可查“约3:16”。公有领域（据维基文库）。'),
@@ -3639,13 +3643,14 @@ BIBLES = [
         'css': ['cuv1919'], 'note_brackets': ('〈', '〉'),
         'dir_label': '✝️ → \U0001F1F9\U0001F1FC\U0001F1ED\U0001F1F0',  # ✝️ → 🇹🇼🇭🇰
         'title': '官話和合譯本聖經（1919，繁體）',
-        'desc': ('聖經·官話和合譯本（1919 年初版，「神」版），繁體中文。66 卷，每章一個詞條，可查「約翰福音 3」'
-                 '「約3:16」。用字與標點依維基文庫本，該本以 CCIM 電子文本為基礎，按 1919 年版用字校訂'
-                 '（他、喫、纔，『』、．）。歷代志上 21:31–22:18 依通行節數作 22:1–19，約翰福音 7:53 自 8:1 分出。'
-                 '字旁加點的補充字（原文所無、譯者加上的字）以點線標示，小字註釋置於〈〉內，詩篇標題置於第 1 節前，'
-                 '新約所引舊約的出處列於各章之末。來源：'
-                 '<a href="https://zh.wikisource.org/wiki/聖經_(和合本)">維基文庫《聖經 (和合本)》</a>'
-                 '（各卷固定於一個修訂版本）。維基文庫標示為公有領域。由 OpenMDict 轉換。'),
+        'about': ('聖經·官話和合譯本（1919 年初版，「神」版），繁體中文。66 卷，每章一個詞條，可查「約翰福音 3」'
+                  '「約3:16」。用字與標點依維基文庫本，該本以 CCIM 電子文本為基礎，按 1919 年版用字校訂'
+                  '（他、喫、纔，『』、．）。字旁加點的補充字（原文所無、譯者加上的字）以點線標示，小字註釋置於〈〉內，'
+                  '詩篇標題置於第 1 節前，新約所引舊約的出處列於各章之末。'),
+        'source': ('<a href="https://zh.wikisource.org/wiki/聖經_(和合本)">維基文庫《聖經 (和合本)》</a>'
+                   '（各卷固定於一個修訂版本）。'),
+        'license': '維基文庫標示為公有領域。',
+        'changes': '歷代志上 21:31–22:18 依通行節數作 22:1–19，約翰福音 7:53 自 8:1 分出',
         'catalog_display_name': '官話和合譯本聖經（繁體）',
         'catalog_description': ('聖經官話和合譯本（1919，「神」版），繁體中文，66 卷，按章收錄，'
                                 '可查「約3:16」。公有領域（據維基文庫）。'),
@@ -3665,14 +3670,14 @@ BIBLES = [
         'ruby': True, 'css': ['ruby'],
         'dir_label': '✝️ → \U0001F1EF\U0001F1F5',  # ✝️ → 🇯🇵
         'title': '文語訳聖書',
-        'desc': ('文語訳聖書。旧約は明治元訳（初版 1887 年、底本は 1953 年版）、新約は大正改訳（初版 1917 年、'
-                 '底本は 1950 年版）。66 巻、各章 1 項目。「ヨハネによる福音書 3」「ヨハネ傳福音書 3」「ヨハネ 3」'
-                 '「ヨハネ3:16」「ヨハネ傳福音書3:16」などで引けます。振り仮名はルビで表示します。新約の「[なし]」は'
-                 '本文のない節、「24–25」「3–5」は複数の節を 1 つにまとめた箇所です。サムエル前書 13:15–21 は '
-                 'JapBungo で 1 節ずれている節番号を直しています。出典：'
-                 '<a href="https://crosswire.org/sword/modules/ModInfo.jsp?modName=JapBungo">CrossWire SWORD '
-                 'JapBungo 2.0</a>（本文は bible.salterrae.net）。CrossWire の表示は Public Domain。'
-                 'OpenMDict が変換。'),
+        'about': ('旧約は明治元訳（初版 1887 年、底本は 1953 年版）、新約は大正改訳（初版 1917 年、'
+                  '底本は 1950 年版）。66 巻、各章 1 項目。「ヨハネによる福音書 3」「ヨハネ傳福音書 3」「ヨハネ 3」'
+                  '「ヨハネ3:16」「ヨハネ傳福音書3:16」などで引けます。振り仮名はルビで表示します。新約の「[なし]」は'
+                  '本文のない節、「24–25」「3–5」は複数の節を 1 つにまとめた箇所です。'),
+        'source': ('<a href="https://crosswire.org/sword/modules/ModInfo.jsp?modName=JapBungo">CrossWire SWORD '
+                   'JapBungo 2.0</a>（本文は bible.salterrae.net）。'),
+        'license': 'CrossWire ではパブリックドメインと表示されています。',
+        'changes': 'JapBungo で 1 節ずれているサムエル前書 13:15–21 の節番号を修正',
         'catalog_display_name': '文語訳聖書',
         'catalog_description': ('文語訳聖書（明治元訳 旧約 1887 年・大正改訳 新約 1917 年）。66 巻、章ごとの項目、'
                                 'ルビ付き、「ヨハネ 3」「ヨハネ3:16」形式の検索に対応。パブリックドメイン'
@@ -3695,10 +3700,12 @@ BIBLES = [
                         ('2 Corinthians', 13, 14)},
         'dir_label': '✝️ → \U0001F1EA\U0001F1F8',  # ✝️ → 🇪🇸
         'title': 'Santa Biblia — Reina-Valera 1909',
-        'desc': ('La Santa Biblia, versión Reina-Valera revisada en 1909: 66 libros, una entrada por '
-                 'capítulo; busque «Juan 3», «Juan 3:16» o «Jn 3:16». Las palabras en cursiva son añadidas por los '
-                 'traductores. Fuente: <a href="https://ebible.org/details.php?id=spaRV1909">eBible.org '
-                 'spaRV1909</a> vía ' + OPEN_BIBLES + '. Dominio público. Convertido por OpenMDict.'),
+        'about': ('La Santa Biblia, versión Reina-Valera revisada en 1909: 66 libros, una entrada por '
+                  'capítulo; busque «Juan 3», «Juan 3:16» o «Jn 3:16». Las palabras en cursiva son añadidas por los '
+                  'traductores.'),
+        'source': ('<a href="https://ebible.org/details.php?id=spaRV1909">eBible.org spaRV1909</a> vía '
+                   + OPEN_BIBLES + '.'),
+        'license': 'Dominio público.',
         'catalog_display_name': 'Santa Biblia — Reina-Valera 1909',
         'catalog_description': ('La Santa Biblia, versión Reina-Valera (1909). 66 libros, una entrada por '
                                 'capítulo, búsqueda por «Juan 3:16». Dominio público.'),
@@ -3712,11 +3719,12 @@ BIBLES = [
         'names': FR_NAMES, 'abbr': FR_ABBR, 'verse_abbr': ':', 'fixups': ['darby'],
         'dir_label': '✝️ → \U0001F1EB\U0001F1F7',  # ✝️ → 🇫🇷
         'title': 'Bible Darby (français)',
-        'desc': ('La Sainte Bible, traduction de J. N. Darby (Nouveau Testament 1859, Bible complète '
-                 '1885) : 66 livres, une entrée par chapitre ; cherchez « Jean 3 », « Jean 3:16 » ou « Jn 3:16 ». '
-                 'Les astérisques (*Dieu, *Seigneur) sont ceux du texte de Darby ; les références entre '
-                 'parenthèses, p. ex. (5:20), donnent la numérotation hébraïque. Source : ' + GRATIS +
-                 ' (fr/frdarb.xml, d’après The Unbound Bible). Domaine public. Converti par OpenMDict.'),
+        'about': ('La Sainte Bible, traduction de J. N. Darby (Nouveau Testament 1859, Bible complète '
+                  '1885) : 66 livres, une entrée par chapitre ; cherchez « Jean 3 », « Jean 3:16 » ou « Jn 3:16 ». '
+                  'Les astérisques (*Dieu, *Seigneur) sont ceux du texte de Darby ; les références entre '
+                  'parenthèses, p. ex. (5:20), donnent la numérotation hébraïque.'),
+        'source': GRATIS + ' (fr/frdarb.xml, d’après The Unbound Bible).',
+        'license': 'Domaine public.',
         'catalog_display_name': 'Bible Darby (français)',
         'catalog_description': ('La Bible, traduction J. N. Darby (1859/1885). 66 livres, une entrée par '
                                 'chapitre, recherche « Jean 3:16 ». Domaine public.'),
@@ -3736,11 +3744,12 @@ BIBLES = [
         'shape_skip': {('Numbers', 17), ('1 Kings', 5), ('Joel', 2), ('Joel', 3), ('Malachi', 3)},
         'dir_label': '✝️ → \U0001F1E9\U0001F1EA',  # ✝️ → 🇩🇪
         'title': 'Lutherbibel 1912',
-        'desc': ('Die Bibel nach der Übersetzung Martin Luthers, revidierter Text von 1912: 66 Bücher, '
-                 'ein Eintrag pro Kapitel; suchen Sie „Johannes 3“, „Joh 3“, „Johannes 3,16“ oder „Joh 3,16“. '
-                 'Kapitelzählung nach der hebräischen Bibel (Joel 4, Maleachi 3). Worterklärungen der '
-                 'Vorlage stehen in eckigen Klammern. Quelle: ' + OPEN_BIBLES + ' (deu-luther1912.osis.xml, '
-                 'Free Bible Software Group). Gemeinfrei. Konvertiert von OpenMDict.'),
+        'about': ('Die Bibel nach der Übersetzung Martin Luthers, revidierter Text von 1912: 66 Bücher, '
+                  'ein Eintrag pro Kapitel; suchen Sie „Johannes 3“, „Joh 3“, „Johannes 3,16“ oder „Joh 3,16“. '
+                  'Kapitelzählung nach der hebräischen Bibel (Joel 4, Maleachi 3). Worterklärungen der '
+                  'Vorlage stehen in eckigen Klammern.'),
+        'source': OPEN_BIBLES + ' (deu-luther1912.osis.xml, Free Bible Software Group).',
+        'license': 'Gemeinfrei.',
         'catalog_display_name': 'Lutherbibel 1912',
         'catalog_description': ('Die Bibel, Lutherübersetzung (1912). 66 Bücher, ein Eintrag pro Kapitel, '
                                 'Suche nach „Joh 3“ oder „Joh 3,16“. Gemeinfrei.'),
@@ -3760,18 +3769,18 @@ BIBLES = [
             'Revelation': [(k, 'Revelation 12') for k in ('Revelation 12:18', 'Apocalipse 12:18', 'Ap 12:18')]},
         'dir_label': '✝️ → \U0001F1F5\U0001F1F9\U0001F1E7\U0001F1F7',  # ✝️ → 🇵🇹🇧🇷
         'title': 'Bíblia Sagrada — Almeida Revista e Corrigida (1911)',
-        'desc': ('A Biblia Sagrada, tradução de João Ferreira d’Almeida, edição revista e corrigida '
-                 '(Lisboa, Deposito das Escripturas Sagradas, 1911; reimpressão da edição de 1900), na grafia '
-                 'da edição: 66 livros, uma entrada por capítulo; pesquise «João 3», «S. João 3», «João 3:16», '
-                 '«S. João 3:16» ou «Jo 3:16». As palavras em itálico são as que a edição marca como acrescentadas; os títulos '
-                 'dos salmos e as letras do acróstico vêm antes do versículo. As referências, as leituras '
-                 'alternativas da margem, os títulos de secção e as datas não estão incluídos. Fonte: '
-                 '<a href="https://www.gutenberg.org/ebooks/62383">Project Gutenberg #62383</a>, na '
-                 'estruturação de <a href="https://github.com/mazza/biblia-arc1911">mazza/biblia-arc1911</a> '
-                 '(commit eda2823, CC0 1.0), que ajusta a numeração de quatro passagens da transcrição '
-                 '(Juízes 5, 1 Samuel 20, Marcos 4, 2 Coríntios 13); 1 Reis 22:54 e Apocalipse 13:1 estão '
-                 'numerados como na edição. '
-                 'Domínio público nos EUA, segundo o Project Gutenberg. Convertido por OpenMDict.'),
+        'about': ('A Biblia Sagrada, tradução de João Ferreira d’Almeida, edição revista e corrigida '
+                  '(Lisboa, Deposito das Escripturas Sagradas, 1911; reimpressão da edição de 1900), na grafia '
+                  'da edição: 66 livros, uma entrada por capítulo; pesquise «João 3», «S. João 3», «João 3:16», '
+                  '«S. João 3:16» ou «Jo 3:16». As palavras em itálico são as que a edição marca como acrescentadas; '
+                  'os títulos dos salmos e as letras do acróstico vêm antes do versículo. As referências, as leituras '
+                  'alternativas da margem, os títulos de secção e as datas não estão incluídos.'),
+        'source': ('<a href="https://www.gutenberg.org/ebooks/62383">Project Gutenberg #62383</a>, na '
+                   'estruturação de <a href="https://github.com/mazza/biblia-arc1911">mazza/biblia-arc1911</a> '
+                   '(commit eda2823, CC0 1.0), que ajusta a numeração de quatro passagens da transcrição '
+                   '(Juízes 5, 1 Samuel 20, Marcos 4, 2 Coríntios 13).'),
+        'license': 'Domínio público nos EUA, segundo o Project Gutenberg.',
+        'changes': '1 Reis 22:54 e Apocalipse 13:1 numerados como na edição',
         'catalog_display_name': 'Bíblia Sagrada — Almeida 1911',
         'catalog_description': ('Bíblia Sagrada, tradução de João Ferreira de Almeida, Revista e Corrigida '
                                 '(Lisboa, 1911), na grafia da edição. 66 livros, uma entrada por capítulo, '
@@ -3789,12 +3798,12 @@ BIBLES = [
         'shape_skip': {('Numbers', 17), ('1 Kings', 5), ('Daniel', 3), ('Joel', 3)},
         'dir_label': '✝️ → \U0001F1F7\U0001F1FA',  # ✝️ → 🇷🇺
         'title': 'Синодальный перевод',
-        'desc': ('Библия, Синодальный перевод (1876; текст издания 1956 г.): 66 книг, по одной статье на '
-                 'главу; ищите «Иоанн 3», «От Иоанна 3», «Ин 3:16». Главы Псалтири пронумерованы по '
-                 'еврейскому тексту, синодальный номер стиха стоит в скобках, например (22:1); '
-                 '«Псалом 22» и «Пс 22» открывают псалом по синодальной нумерации. Источник: ' + OPEN_BIBLES +
-                 ' (rus-synodal.zefania.xml; текст предоставлен «Light in East Germany»). Общественное '
-                 'достояние. Преобразовано OpenMDict.'),
+        'about': ('Библия, Синодальный перевод (1876; текст издания 1956 г.): 66 книг, по одной статье на '
+                  'главу; ищите «Иоанн 3», «От Иоанна 3», «Ин 3:16». Главы Псалтири пронумерованы по '
+                  'еврейскому тексту, синодальный номер стиха стоит в скобках, например (22:1); '
+                  '«Псалом 22» и «Пс 22» открывают псалом по синодальной нумерации.'),
+        'source': OPEN_BIBLES + ' (rus-synodal.zefania.xml; текст предоставлен «Light in East Germany»).',
+        'license': 'Общественное достояние.',
         'catalog_display_name': 'Синодальный перевод',
         'catalog_description': ('Библия, Синодальный перевод (1876). 66 книг, по одной статье на главу, '
                                 'поиск «Ин 3:16» и «Псалом 22». Общественное достояние.'),
@@ -3810,11 +3819,11 @@ BIBLES = [
         'allow_same_text': {('Psalms', 92, 2)},
         'dir_label': '✝️ → \U0001F1F0\U0001F1F7',  # ✝️ → 🇰🇷
         'title': '성경 (개역한글)',
-        'desc': ('성경전서 개역한글판(대한성서공회, 1961): 66권, 장마다 한 항목. “요한복음 3”, “요 3장”, '
-                 '“요한복음 3:16”으로 찾을 수 있습니다. 개역한글판에 없는 절은 “(없음)”으로 표시합니다. 출처: '
-                 '<a href="https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV">CrossWire SWORD '
-                 'KorRV 2.0.1</a>(위키문헌 텍스트). 한국에서 저작권 보호기간이 끝난 퍼블릭 도메인. '
-                 'OpenMDict 변환.'),
+        'about': ('성경전서 개역한글판(대한성서공회, 1961): 66권, 장마다 한 항목. “요한복음 3”, “요 3장”, '
+                  '“요한복음 3:16”으로 찾을 수 있습니다. 개역한글판에 없는 절은 “(없음)”으로 표시합니다.'),
+        'source': ('<a href="https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV">CrossWire SWORD '
+                   'KorRV 2.0.1</a>(위키문헌 텍스트).'),
+        'license': '한국에서 저작권 보호기간이 끝난 퍼블릭 도메인.',
         'catalog_display_name': '성경 (개역한글)',
         'catalog_description': ('성경전서 개역한글판 (1961). 66권, 장별 항목, “요 3:16” 형식 검색. '
                                 '퍼블릭 도메인 (한국).'),
@@ -3830,11 +3839,11 @@ BIBLES = [
         'div_book_override': {13: ('2Chr', '1Chr'), 14: ('Ezra', '2Chr'), 15: ('Ezra', 'Ezra')},
         'dir_label': '✝️ ← \U0001F1F8\U0001F1E6',  # ✝️ ← 🇸🇦 (reads right to left)
         'title': 'الكتاب المقدس — ترجمة فان دايك',
-        'desc': ('الكتاب المقدس، ترجمة سميث وفان دايك (1865): 66 سفرًا، مدخل لكل أصحاح؛ ابحث عن «يوحنا 3» '
-                 'أو «يوحنا ٣:١٦». المصدر: ' + GRATIS + ' (ar/arasvd.xml)، مع تصحيح تسمية سفري أخبار الأيام '
-                 'الأول والثاني، وإكمال رسالة يوحنا الثالثة 1:1 من '
-                 '<a href="https://ebible.org/details.php?id=arb-vd">eBible.org arb-vd</a>. ملكية عامة. '
-                 'حوّله OpenMDict.'),
+        'about': ('الكتاب المقدس، ترجمة سميث وفان دايك (1865): 66 سفرًا، مدخل لكل أصحاح؛ ابحث عن «يوحنا 3» '
+                  'أو «يوحنا ٣:١٦».'),
+        'source': GRATIS + ' (ar/arasvd.xml)، ورسالة يوحنا الثالثة 1:1 من ' + ARB_VD + '.',
+        'license': 'ملكية عامة.',
+        'changes': 'تصحيح تسمية سفري أخبار الأيام الأول والثاني، وإكمال رسالة يوحنا الثالثة 1:1 من ' + ARB_VD,
         'catalog_display_name': 'الكتاب المقدس — ترجمة فان دايك',
         'catalog_description': ('الكتاب المقدس، ترجمة سميث-فان دايك (1865). 66 سفرًا، مدخل لكل أصحاح، '
                                 'والبحث بصيغة «يوحنا 3:16». ملكية عامة.'),
@@ -3848,9 +3857,10 @@ BIBLES = [
         'names': IT_NAMES, 'abbr': IT_ABBR, 'verse_abbr': ':', 'fixups': ['diodati'],
         'dir_label': '✝️ → \U0001F1EE\U0001F1F9',  # ✝️ → 🇮🇹
         'title': 'La Bibbia — Diodati',
-        'desc': ('La Sacra Bibbia, traduzione di Giovanni Diodati: 66 libri, una voce per capitolo; '
-                 'cercate «Giovanni 3», «Giovanni 3:16» o «Gv 3:16». Fonte: ' + GRATIS + ' (it/itadio.xml). '
-                 'Pubblico dominio. Convertito da OpenMDict.'),
+        'about': ('La Sacra Bibbia, traduzione di Giovanni Diodati: 66 libri, una voce per capitolo; '
+                  'cercate «Giovanni 3», «Giovanni 3:16» o «Gv 3:16».'),
+        'source': GRATIS + ' (it/itadio.xml).',
+        'license': 'Pubblico dominio.',
         'catalog_display_name': 'La Bibbia — Diodati',
         'catalog_description': ('La Sacra Bibbia, traduzione di Giovanni Diodati. 66 libri, una voce per '
                                 'capitolo, ricerca «Giovanni 3:16». Pubblico dominio.'),
@@ -3869,11 +3879,12 @@ BIBLES = [
         'shape_skip': {'Psalms', ('Esther', 10), ('Daniel', 3)},
         'dir_label': '✝️ → \U0001F3DB️',  # ✝️ → 🏛️
         'title': 'Biblia Sacra Vulgata',
-        'desc': ('Biblia Sacra juxta Vulgatam Clementinam (1592): 73 libri, inter quos Tobiæ, Judith, '
-                 'Sapientia, Ecclesiasticus, Baruch et Machabæorum I–II; singula capita singulis articulis. '
-                 'Psalmi secundum numerationem Vulgatæ numerantur (Psalmi 22 = Hebr. 23); Anglice “Psalms 23” '
-                 'numerationem Hebraicam sequitur. Regum I–IV = 1–2 Samuel et 1–2 Kings. Fons: ' + OPEN_BIBLES +
-                 ' (lat-clementine.usfx.xml, commit f257a35). In publico dominio. OpenMDict convertit.'),
+        'about': ('Biblia Sacra juxta Vulgatam Clementinam (1592): 73 libri, inter quos Tobiæ, Judith, '
+                  'Sapientia, Ecclesiasticus, Baruch et Machabæorum I–II; singula capita singulis articulis. '
+                  'Psalmi secundum numerationem Vulgatæ numerantur (Psalmi 22 = Hebr. 23); Anglice “Psalms 23” '
+                  'numerationem Hebraicam sequitur. Regum I–IV = 1–2 Samuel et 1–2 Kings.'),
+        'source': OPEN_BIBLES + ' (lat-clementine.usfx.xml, commit f257a35).',
+        'license': 'In publico dominio.',
         'catalog_display_name': 'Biblia Sacra Vulgata',
         'catalog_description': ('Biblia Sacra Vulgata (Clementina, 1592): 73 libri cum deuterocanonicis, '
                                 'singula capita; Psalmi secundum Vulgatam. In publico dominio.'),
@@ -3889,11 +3900,12 @@ BIBLES = [
         'usfx_italic': ('bdit',), 'usfx_spaced': ('it',),
         'dir_label': '✝️ → \U0001F1EC\U0001F1F7',  # ✝️ → 🇬🇷
         'title': 'Ἡ Καινὴ Διαθήκη (1904)',
-        'desc': ('Ἡ Καινὴ Διαθήκη, Πατριαρχικὸν κείμενον (1904): 27 βιβλία, ἓν λῆμμα ἀνὰ κεφάλαιον· '
-                 'αναζήτηση «Ιωάννης 3», «Κατά Ιωάννην 3», «Ιω 3:16» ή «John 3:16». Οι παραθέσεις από την '
-                 'Παλαιά Διαθήκη σε πλάγια· οι λέξεις που η έκδοση του 1904 τονίζει με αραιά στοιχεία '
-                 'εμφανίζονται αραιωμένες. Πηγή: <a href="https://ebible.org/details.php?id=grcbyz">'
-                 'eBible.org grcbyz</a>. Δημόσιος τομέας. Μετατροπή: OpenMDict.'),
+        'about': ('Ἡ Καινὴ Διαθήκη, Πατριαρχικὸν κείμενον (1904): 27 βιβλία, ένα λήμμα ανά κεφάλαιο· '
+                  'αναζήτηση «Ιωάννης 3», «Κατά Ιωάννην 3», «Ιω 3:16» ή «John 3:16». Οι παραθέσεις από την '
+                  'Παλαιά Διαθήκη σε πλάγια· οι λέξεις που η έκδοση του 1904 τονίζει με αραιά στοιχεία '
+                  'εμφανίζονται αραιωμένες.'),
+        'source': '<a href="https://ebible.org/details.php?id=grcbyz">eBible.org grcbyz</a>.',
+        'license': 'Κοινό κτήμα.',
         'catalog_display_name': 'Ἡ Καινὴ Διαθήκη (1904)',
         'catalog_description': ('Πατριαρχικὸν Κείμενον τῆς Καινῆς Διαθήκης (1904): the Greek New Testament '
                                 '(27 books), one entry per chapter, searchable as «Ιωάννης 3» or “John 3:16”. '
@@ -3902,6 +3914,30 @@ BIBLES = [
         'data_source': 'eBible.org grcbyz (USFX XML)',
     },
 ]
+
+
+def description(cfg: dict) -> str:
+    """The MDX header description of one Bible, in the Bible's own language.
+
+    Each BIBLES entry carries the description in parts: 'about' (the
+    content and how to look chapters up), 'source' (where the text comes
+    from), 'license' (its public-domain statement) and, where the
+    conversion altered the text, 'changes'; description_html() lays them
+    out and adds the converter credit in the language cfg['lang'].
+    """
+    return description_html(
+        title=cfg['title'],
+        about=(cfg['about'],),
+        source=cfg['source'],
+        license=cfg['license'],
+        changes=cfg.get('changes', ''),
+        lang=cfg['lang'],
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{'<Name>.mdx': header description} for every Bible, without building."""
+    return {f"{cfg['name']}.mdx": description(cfg) for cfg in BIBLES}
 
 
 # ═════════════════════════════════════════════════════════════
@@ -3961,7 +3997,7 @@ def build_one(cfg: dict) -> Path:
     txt_path = dict_dir / f'{slug}_entries.txt'
     mdx_path = dict_dir / f'{name}.mdx'
     write_mdict_source(entries, txt_path)
-    ok, size_mb, _ = _shared_pack_mdx(txt_path, cfg['title'], f'<p>{cfg["desc"]}</p>', mdx_path)
+    ok, size_mb, _ = _shared_pack_mdx(txt_path, cfg['title'], description(cfg), mdx_path)
     if not ok:
         raise BuildError(f'{name}: packing failed')
     n_links = sum(1 for _, body in entries if body.startswith('@@@LINK='))

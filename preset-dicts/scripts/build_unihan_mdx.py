@@ -52,7 +52,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from shared.theme import get_css, CJK_READING_TAGS, TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, entry_link, kana_to_romaji
-from shared.build import pack_mdx, generate_preview as _shared_preview, write_catalog_metadata
+from shared.build import (pack_mdx, generate_preview as _shared_preview,
+                          write_catalog_metadata, description_html)
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data" / "unihan"
@@ -716,6 +717,64 @@ def load_unihan() -> dict:
     return data
 
 
+# ── Header description ─────────────────────────────────────────
+
+MDX_TITLE = "Unihan — CJK Character Database"
+MDX_FILENAME = "Unihan-CJK.mdx"
+
+
+def entry_stats(data: dict) -> tuple[int, int, int]:
+    """(entries, entries with an English definition, entries with neither a
+    reading nor a definition) of the loaded database. Every code point is
+    one entry."""
+    count = len(data)
+    n_def = sum(1 for p in data.values() if 'kDefinition' in p)
+    n_bare = sum(1 for p in data.values() if not has_reading_or_definition(p))
+    return count, n_def, n_bare
+
+
+def description(count: int, n_def: int, n_bare: int) -> str:
+    """The MDX header description for the given entry statistics."""
+    return description_html(
+        title=MDX_TITLE,
+        subtitle=f"Unicode {UNIHAN_VERSION}",
+        about=[
+            f"All {count:,} CJK ideographs of the Unicode Han Database, each with its "
+            "radical-stroke index, total strokes and IRG sources. Readings: Mandarin "
+            "(pinyin, incl. the other readings of the 通用规范汉字字典, 现代汉语词典 and "
+            "汉语大字典), Cantonese (jyutping), Tang-era Middle Chinese, fanqie, Japanese "
+            "on/kun, Korean Hangul (readings found only in kKorean, which Unicode does "
+            "not recommend, are listed separately as 참고), Vietnamese and Zhuang; "
+            f"simplified, traditional and semantic variant links. Only {n_def:,} "
+            "characters have an English "
+            f"definition, and {n_bare:,} (about {round(100 * n_bare / count)}%) have no "
+            "reading or definition, only the radical-stroke, block and IRG-source "
+            "lines.",
+        ],
+        source=(
+            "Unicode® Han Database (Unihan), "
+            '<a href="https://www.unicode.org/reports/tr38/">unicode.org/reports/tr38</a>, '
+            f'<a href="https://www.unicode.org/Public/{UNIHAN_VERSION}/ucd/">Unihan.zip '
+            f"{UNIHAN_VERSION}</a>. Copyright © {UNIHAN_COPYRIGHT_YEARS} Unicode, Inc."
+        ),
+        license=(
+            'Distributed under the <a href="https://www.unicode.org/license.txt">Unicode '
+            "License v3</a>. The kana readings (kJapanese) come from the Moji Jōhō Kiban "
+            "database, owned by CITPC (文字情報技術促進協議会) and used by Unicode under "
+            "license."
+        ),
+        changes=("Korean Revised Romanization derived from Hangul, Yale readings "
+                 "converted to Hangul, Japanese Hepburn romaji added, readings merged "
+                 "across Unihan fields"),
+    )
+
+
+def descriptions() -> dict[str, str]:
+    """{MDX file name: header description} as the build stamps it, computed
+    from the data files without building (parsing them takes a few seconds)."""
+    return {MDX_FILENAME: description(*entry_stats(load_unihan()))}
+
+
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     print("Parsing Unihan database...")
@@ -726,57 +785,29 @@ def main():
     cps = sorted(data, key=lambda c: int(c[2:], 16))
     keys = {codepoint_to_char(cp) for cp in cps}
     radical_chars = build_radical_chars(data)
+    count, n_def, n_bare = entry_stats(data)
 
     # Write MDict source
     txt_path = OUTPUT_DIR / "unihan_entries.txt"
     print(f"Writing → {txt_path}...")
 
-    count = 0
     skipped: list[str] = []
     with open(txt_path, 'w', encoding='utf-8') as f:
         for cp in cps:
             html = make_html(cp, data[cp], radical_chars, keys, skipped)
             f.write(f"{codepoint_to_char(cp)}\n{html}\n</>\n")
-            count += 1
 
     print(f"  {count} entries written")
     if skipped:
         print(f"  WARNING: {len(skipped)} variant values could not be parsed, "
               f"e.g. {skipped[:5]}")
-
-    n_def = sum(1 for p in data.values() if 'kDefinition' in p)
-    n_bare = sum(1 for p in data.values() if not has_reading_or_definition(p))
     print(f"  {n_def} with an English definition, {n_bare} with neither a "
           "reading nor a definition")
 
     # Pack MDX
-    mdx_path = OUTPUT_DIR / "Unihan-CJK.mdx"
-    desc_html = (
-        f"<p><b>Unihan — CJK Character Database</b> (Unicode {UNIHAN_VERSION})</p>"
-        f"<p>All {count:,} CJK ideographs of the Unicode Han Database, each with its "
-        "radical-stroke index, total strokes and IRG sources. Readings: Mandarin "
-        "(pinyin, incl. the other readings of the 通用规范汉字字典, 现代汉语词典 and "
-        "汉语大字典), Cantonese (jyutping), Tang-era Middle Chinese, fanqie, Japanese "
-        "on/kun, Korean Hangul (readings found only in kKorean, which Unicode does "
-        "not recommend, are listed separately as 참고), Vietnamese and Zhuang; "
-        f"simplified, traditional and semantic variant links. Only {n_def:,} "
-        "characters have an English "
-        f"definition, and {n_bare:,} (about {round(100 * n_bare / count)}%) have no "
-        "reading or definition, only the radical-stroke, block and IRG-source "
-        "lines.</p>"
-        "<p>Source: Unicode® Han Database (Unihan), "
-        "<a href='https://www.unicode.org/reports/tr38/'>unicode.org/reports/tr38</a>, "
-        f"<a href='https://www.unicode.org/Public/{UNIHAN_VERSION}/ucd/'>Unihan.zip "
-        f"{UNIHAN_VERSION}</a>. Copyright © {UNIHAN_COPYRIGHT_YEARS} Unicode, Inc. "
-        "Distributed under the <a href='https://www.unicode.org/license.txt'>Unicode "
-        "License v3</a>. The kana readings (kJapanese) come from the Moji Jōhō Kiban "
-        "database, owned by CITPC (文字情報技術促進協議会) and used by Unicode under "
-        "license.</p>"
-        "<p>Converted to MDict and reformatted by OpenMDict: Korean Revised "
-        "Romanization derived from Hangul, Yale readings converted to Hangul, "
-        "Japanese Hepburn romaji added, readings merged across Unihan fields.</p>"
-    )
-    success, size_mb, _ = pack_mdx(txt_path, "Unihan — CJK Character Database", desc_html,
+    mdx_path = OUTPUT_DIR / MDX_FILENAME
+    desc_html = description(count, n_def, n_bare)
+    success, size_mb, _ = pack_mdx(txt_path, MDX_TITLE, desc_html,
                                    mdx_path, inputs=[DATA_DIR])
     if not success:
         return

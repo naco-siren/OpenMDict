@@ -69,11 +69,16 @@ from shared.theme import get_css, PRONUNCIATION, ROMANIZATION, GLOSS, \
     ORDERED_LIST, DOMAIN_BADGE, TAG_BADGE, EXAMPLES_BILINGUAL, \
     TEXT_SECONDARY, TEXT_LINK
 from shared.html import esc, esc_attr, dir_attr, has_rtl, strip_bidi_controls
-from shared.build import pack_mdx, generate_preview, write_catalog_metadata
+from shared.build import pack_mdx, generate_preview, write_catalog_metadata, \
+    description_html
 
 # ── Paths ──────────────────────────────────────────────────────
 DATA_DIR = SCRIPT_DIR.parent / "data"
 OUTPUT_DIR = SCRIPT_DIR.parent / "output"
+
+# Month the kaikki-{Language}.jsonl extracts were downloaded; stated in the
+# MDX header description and kept constant so the header is reproducible.
+KAIKKI_DOWNLOADED = "February 2026"
 
 # ── Language definitions ───────────────────────────────────────
 #
@@ -1685,7 +1690,7 @@ def build_language(lang_key: str, *, pack: bool = True):
     success, size_mb, _ = pack_mdx(
         txt_path,
         f"Kaikki {name_en}-English",
-        description_html(name_en),
+        header_description(name_en),
         mdx_path,
         inputs=[data_file],
     )
@@ -1723,22 +1728,38 @@ def build_language(lang_key: str, *, pack: bool = True):
     return result
 
 
-def description_html(name_en: str) -> str:
-    """MDX header description: attribution required by CC BY-SA 4.0."""
-    return (
-        f"<p><b>Kaikki {name_en}-English</b></p>"
-        f"<p>{name_en} entries of the English Wiktionary "
-        f"(<a href='https://en.wiktionary.org/'>en.wiktionary.org</a>), "
-        f"&copy; Wiktionary contributors. Extracted by Wiktextract "
-        f"(Tatu Ylonen, LREC 2022) and published at "
-        f"<a href='https://kaikki.org/dictionary/{name_en}/'>kaikki.org</a>.</p>"
-        f"<p>Converted to MDict and modified by OpenMDict: filtered, "
-        f"restructured, and inflected-form and spelling-variant keys added "
-        f"(Kaikki.org data downloaded February 2026).</p>"
-        f"<p>Licensed under <a href='https://creativecommons.org/licenses/by-sa/4.0/'>"
-        f"CC BY-SA 4.0</a>. Wiktionary text is dual-licensed under CC BY-SA 4.0 "
-        f"and the GFDL; this compilation is distributed under CC BY-SA 4.0.</p>"
+def header_description(name_en: str) -> str:
+    """MDX header description in the shared layout (shared.build.description_html):
+    what the dictionary contains, the attribution required by CC BY-SA 4.0 and
+    the converter credit."""
+    return description_html(
+        title=f"Kaikki {name_en}-English",
+        about=[
+            f"{name_en}-English dictionary: English glosses, IPA and usage examples; "
+            "inflected forms and spelling variants lead to their headwords.",
+        ],
+        source=(
+            f"{name_en} entries of the English Wiktionary "
+            f'(<a href="https://en.wiktionary.org/">en.wiktionary.org</a>), '
+            f"&copy; Wiktionary contributors. Extracted by Wiktextract "
+            f"(Tatu Ylonen, LREC 2022) and published at "
+            f'<a href="https://kaikki.org/dictionary/{name_en}/">kaikki.org</a> '
+            f"(data downloaded {KAIKKI_DOWNLOADED})."
+        ),
+        license=(
+            '<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. '
+            "Wiktionary text is dual-licensed under CC BY-SA 4.0 and the GFDL."
+        ),
+        changes="filtered, restructured, and inflected-form and spelling-variant keys added",
+        adaptation_license="This compilation is distributed under CC BY-SA 4.0.",
     )
+
+
+def descriptions() -> dict[str, str]:
+    """Header description of every Kaikki-XX-EN.mdx this script builds, keyed by
+    file name, computed without building (the build stamps the same string)."""
+    return {f"Kaikki-{lang['code'].upper()}-EN.mdx": header_description(lang['name_en'])
+            for lang in LANGUAGES.values()}
 
 
 # ── Preview ────────────────────────────────────────────────────
