@@ -306,7 +306,7 @@ final class WordTinderViewController: UIViewController {
 
     private func updateQuizWordView(_ quiz: WordRelationshipQuiz) {
         quizWordLabel.text = quiz.targetWord
-        quizWordSubtitle.text = "from \(quiz.targetDictName)"
+        quizWordSubtitle.text = L10n.AICoach.Quiz.fromDictionary(quiz.targetDictName)
         quizWordInstruction.text = L10n.AICoach.Quiz.classifyInstruction(quiz.targetWord)
         quizWordDisclosure.isHidden = true
         quizWordContainer.isHidden = false
@@ -721,7 +721,7 @@ final class WordTinderViewController: UIViewController {
         let title = scoreTitle(percentage: pct)
         let message = L10n.AICoach.Quiz.scoreMessage(correct, total)
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: L10n.ok, style: .default))
         present(alert, animated: true)
 
         debugLog("📝 Word Quiz: '\(quiz.targetWord)' → \(correct)/\(total)")
@@ -971,7 +971,7 @@ final class WordTinderViewController: UIViewController {
 
         if let relationship {
             let (iconName, tint) = relationshipIcon(relationship)
-            let label = relationshipLabel(relationship)
+            let label = relationshipTitle(relationship, word: quiz.targetWord)
             let titleLabel = UILabel()
             titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
             titleLabel.textColor = tint
@@ -980,7 +980,7 @@ final class WordTinderViewController: UIViewController {
             attachment.image = UIImage(systemName: iconName)?
                 .withTintColor(tint, renderingMode: .alwaysOriginal)
             let attrText = NSMutableAttributedString(attachment: attachment)
-            attrText.append(NSAttributedString(string: " \(label) \"\(quiz.targetWord)\""))
+            attrText.append(NSAttributedString(string: " " + label))
             titleLabel.attributedText = attrText
             articleVC.navigationItem.titleView = titleLabel
         } else {
@@ -1048,12 +1048,12 @@ final class WordTinderViewController: UIViewController {
     /// Duolingo-inspired playful title based on score percentage.
     private func scoreTitle(percentage: Int) -> String {
         switch percentage {
-        case 100:     return "Perfect! 🎯"
-        case 80...:   return "Awesome! 🌟"
-        case 60...:   return "Nice work! 👏"
-        case 40...:   return "Not bad! 💪"
-        case 20...:   return "Keep going! 📚"
-        default:      return "Tough one! 🧠"
+        case 100:     return L10n.AICoach.Quiz.scoreTitlePerfect
+        case 80...:   return L10n.AICoach.Quiz.scoreTitleAwesome
+        case 60...:   return L10n.AICoach.Quiz.scoreTitleNiceWork
+        case 40...:   return L10n.AICoach.Quiz.scoreTitleNotBad
+        case 20...:   return L10n.AICoach.Quiz.scoreTitleKeepGoing
+        default:      return L10n.AICoach.Quiz.scoreTitleToughOne
         }
     }
 
@@ -1069,12 +1069,13 @@ final class WordTinderViewController: UIViewController {
         }
     }
 
-    private func relationshipLabel(_ r: WordRelationship) -> String {
+    /// Article title for a graded candidate, e.g. `Synonym of "word"`.
+    private func relationshipTitle(_ r: WordRelationship, word: String) -> String {
         switch r {
-        case .synonym: return "Synonym of"
-        case .antonym: return "Antonym of"
-        case .similarSpelling: return "Similar to"
-        case .noise: return "Unrelated to"
+        case .synonym: return L10n.AICoach.Quiz.synonymOf(word)
+        case .antonym: return L10n.AICoach.Quiz.antonymOf(word)
+        case .similarSpelling: return L10n.AICoach.Quiz.similarTo(word)
+        case .noise: return L10n.AICoach.Quiz.unrelatedTo(word)
         }
     }
 
@@ -1091,17 +1092,17 @@ final class WordTinderViewController: UIViewController {
         switch relationship {
         case .similarSpelling:
             return correct
-                ? "Correct! It only looks similar."
-                : "It only looks similar but is another word."
+                ? L10n.AICoach.Quiz.gradedSimilarCorrect
+                : L10n.AICoach.Quiz.gradedSimilarIncorrect
         case .noise:
             return correct
-                ? "Correct! It's a random word."
-                : "Actually, it's just a random word."
+                ? L10n.AICoach.Quiz.gradedNoiseCorrect
+                : L10n.AICoach.Quiz.gradedNoiseIncorrect
         default:
             let article = relationshipArticle(relationship)
             return correct
-                ? "Correct! It is \(article)."
-                : "Actually, it is \(article)."
+                ? L10n.AICoach.Quiz.gradedCorrect(article)
+                : L10n.AICoach.Quiz.gradedIncorrect(article)
         }
     }
 

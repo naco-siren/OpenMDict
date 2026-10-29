@@ -816,7 +816,7 @@ final class MorphemeMauryViewController: UIViewController {
                 ? L10n.AICoach.Maury.verdictFamily
                 : L10n.AICoach.Maury.verdictLiar
             let mark = isCorrect ? "\u{2713}" : "\u{2717}"
-            return "Your call: \(call) \(mark)"
+            return L10n.AICoach.Maury.yourCall(call, mark)
         }()
         revealJudgment.text = judgmentText
         revealJudgment.textColor = isCorrect ? .systemGreen : .systemOrange
@@ -1058,7 +1058,7 @@ final class MorphemeMauryViewController: UIViewController {
 
         let pct = total > 0 ? (correct * 100 / total) : 0
         finaleTitle.text = pct == 100
-            ? "\u{1F3AD} Perfect Episode!"
+            ? L10n.AICoach.Maury.perfectEpisode
             : L10n.AICoach.Maury.caseClosed
 
         UIView.animate(withDuration: 0.45) {
