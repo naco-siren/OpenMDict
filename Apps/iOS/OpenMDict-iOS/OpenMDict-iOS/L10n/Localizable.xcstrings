@@ -13813,7 +13813,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "بحث متسلسل"
+            "value": "البحث المتسلسل"
           }
         },
         "de": {
@@ -13843,7 +13843,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "त्वरित खोज"
+            "value": "जंप सर्च"
           }
         },
         "ja": {
@@ -13867,7 +13867,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Перейти к поиску"
+            "value": "Поиск по цепочке"
           }
         },
         "uk": {
@@ -43991,7 +43991,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sprungsuche"
+            "value": "Schnellsuche"
           }
         },
         "en": {
@@ -44039,7 +44039,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Быстрый поиск"
+            "value": "Поиск по цепочке"
           }
         },
         "uk": {
@@ -47600,7 +47600,7 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "단어를 길게 눌러 선택한 다음 상황에 맞는 메뉴에서 \"바로 검색\"을 선택하세요."
+            "value": "단어를 길게 눌러 선택한 다음 상황에 맞는 메뉴에서 \"점프 검색\"을 선택하세요."
           }
         },
         "pt-BR": {
@@ -47612,7 +47612,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нажмите и удерживайте слово, чтобы выделить его, затем выберите «Быстрый поиск» в контекстном меню."
+            "value": "Нажмите и удерживайте слово, чтобы выделить его, затем выберите «Поиск по цепочке» в контекстном меню."
           }
         },
         "uk": {
@@ -47624,13 +47624,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "长按某个单词以选中它，然后从上下文菜单中选择「跳转搜索」。"
+            "value": "长按某个单词以选中它，然后从上下文菜单中选择「跳查」。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "長按某個單字以選取它，然後從上下文選單中選擇「跳轉搜尋」。"
+            "value": "長按某個單字以選取它，然後從上下文選單中選擇「跳查」。"
           }
         }
       }
@@ -47683,7 +47683,7 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "바로 검색은 선택한 단어를 모든 사전에서 찾아줍니다. 사전 속의 사전과 같습니다!"
+            "value": "점프 검색은 선택한 단어를 모든 사전에서 찾아줍니다. 사전 속의 사전과 같습니다!"
           }
         },
         "pt-BR": {
@@ -47695,7 +47695,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Быстрый поиск найдёт выбранное слово во всех ваших словарях — как словарь внутри словаря!"
+            "value": "Поиск по цепочке найдёт выбранное слово во всех ваших словарях — как словарь внутри словаря!"
           }
         },
         "uk": {
@@ -47707,13 +47707,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "跳转搜索将在您所有词典中查找所选单词——就像词典中的词典！"
+            "value": "跳查将在您所有词典中查找所选单词——就像词典中的词典！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "跳轉搜尋將在您所有詞典中查找所選單字——就像詞典中的詞典！"
+            "value": "跳查將在您所有詞典中查找所選單字——就像詞典中的詞典！"
           }
         }
       }
@@ -49484,7 +49484,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Halte ein Wort im Artikel gedrückt, um die Direktsuche-Option anzuzeigen."
+            "value": "Halten Sie ein Wort im Artikel gedrückt, um die Option „Schnellsuche“ anzuzeigen."
           }
         },
         "en": {
@@ -49508,7 +49508,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "तेज़ खोज विकल्प देखने के लिए आलेख में किसी शब्द को देर तक दबाएं।"
+            "value": "जंप सर्च विकल्प देखने के लिए आलेख में किसी शब्द को देर तक दबाएं।"
           }
         },
         "ja": {
@@ -49520,7 +49520,7 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "기사의 단어를 길게 눌러 빠른 검색 옵션을 표시하세요."
+            "value": "기사의 단어를 길게 눌러 점프 검색 옵션을 표시하세요."
           }
         },
         "pt-BR": {
@@ -49532,7 +49532,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нажмите и удерживайте слово в статье, чтобы появился вариант быстрого поиска."
+            "value": "Нажмите и удерживайте слово в статье, чтобы появился вариант «Поиск по цепочке»."
           }
         },
         "uk": {
@@ -49544,13 +49544,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "长按文章中的单词以显示跳转搜索选项。"
+            "value": "长按文章中的单词以显示跳查选项。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "長按文章中的單字以顯示跳轉搜尋選項。"
+            "value": "長按文章中的單字以顯示跳查選項。"
           }
         }
       }
