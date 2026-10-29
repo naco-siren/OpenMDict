@@ -103,11 +103,14 @@ catalog:
 check-catalog:
 	@$(PYTHON) $(SCRIPTS)/generate_preset_catalog.py --check
 	@$(PYTHON) $(SCRIPTS)/gen_third_party_notices.py --check
+	@$(PYTHON) ../scripts/gen-settings-licenses.py --check
 
-# ── Third-party notices (generated block in ../THIRD-PARTY-NOTICES.md) ──
+# ── Third-party notices (generated block in ../THIRD-PARTY-NOTICES.md, and the
+#    Licenses pages of the app's Settings.bundle that are generated from it) ──
 
 notices:
 	@$(PYTHON) $(SCRIPTS)/gen_third_party_notices.py
+	@$(PYTHON) ../scripts/gen-settings-licenses.py
 
 # ── Header descriptions (no build) ──────────────────────────────
 # Every build script exposes descriptions(); this writes the HTML each

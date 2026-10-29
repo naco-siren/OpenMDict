@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>The on-device article-embedding feature (docs/article-embeddings.md) uses sentence-transformers/all-MiniLM-L6-v2 (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) by the Sentence-Transformers project (Nils Reimers et al.), licensed under the Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0). The model is converted to Core ML with the scripts under scripts/model/ and is downloaded on demand; it is not stored in this repository. The accompanying vocab.txt is the BERT uncased WordPiece vocabulary that ships with the model under the same license.</string>
+		</dict>
+	</array>
+</dict>
+</plist>

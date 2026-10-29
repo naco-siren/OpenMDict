@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "Weniger";
 "LOOKUP_SEMANTIC_DEFAULT" = "Standard";
 "LOOKUP_SEMANTIC_MORE" = "Mehr";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "Info";
+"ABOUT_FOOTER" = "OpenMDict ist kostenlose Open-Source-Software unter der MIT-Lizenz.\nQuellcode: https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "Lizenzen";

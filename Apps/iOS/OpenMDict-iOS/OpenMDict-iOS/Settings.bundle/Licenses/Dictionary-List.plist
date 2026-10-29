@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>64 preset dictionaries are compiled from the open data sources below. OpenMDict converted each of them to MDict and modified it (reformatted as HTML, lookup keys and redirects added); each .mdx names its source, copyright holders, license and modifications in its description, which the app shows in the dictionary's info screen. License ids are SPDX identifiers; LicenseRef-* ids are explained under License texts.
+
+Bible Darby (français) — Bible-Darby-FR.mdx
+License: LicenseRef-Public-Domain
+Source: gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group) (https://github.com/gratis-bible/bible)
+
+Bible — King James Version — Bible-KJV-EN.mdx
+License: LicenseRef-Public-Domain (see the notes below)
+Source: Public-domain Bible texts (open-bibles collection, eBible.org) (https://github.com/seven1m/open-bibles)
+
+Biblia Sacra Vulgata — Bible-Vulgate-LA.mdx
+License: LicenseRef-Public-Domain
+Source: Public-domain Bible texts (open-bibles collection, eBible.org) (https://github.com/seven1m/open-bibles)
+
+Bíblia Sagrada — Almeida 1911 — Bible-Almeida-PT.mdx
+License: LicenseRef-Public-Domain (see the notes below)
+Source: Project Gutenberg eBook #62383 (A Biblia Sagrada, João Ferreira d’Almeida, Lisbon 1911), structured by mazza/biblia-arc1911 (CC0 1.0) (https://www.gutenberg.org/ebooks/62383)
+
+CC-Canto Cantonese-English — CC-Canto-YUE-EN.mdx
+License: CC-BY-SA-3.0
+Source: CC-Canto © 2015–2017 Pleco Inc.; includes entries adapted from CC-CEDICT (MDBG) (https://cantonese.org/)
+
+CC-CEDICT Chinese-English — CEDICT-ZH-EN.mdx
+License: CC-BY-SA-4.0
+Source: CC-CEDICT (MDBG) (https://cc-cedict.org/)
+
+FreeDict English-German — FreeDict-EN-DE.mdx
+License: GPL-3.0-or-later AND AGPL-3.0-or-later
+Source: FreeDict, from the Ding dictionary (Frank Richter, TU Chemnitz, and contributors) (https://freedict.org/)
+
+FreeDict German-English — FreeDict-DE-EN.mdx
+License: GPL-3.0-or-later AND AGPL-3.0-or-later
+Source: FreeDict, from the Ding dictionary (Frank Richter, TU Chemnitz, and contributors) (https://freedict.org/)
+
+GCIDE — English Dictionary — GCIDE-EN.mdx
+License: GPL-3.0-or-later
+Source: GNU Collaborative International Dictionary of English, (C) 1992-2021 Patrick J. Cassidy; includes WordNet 1.5, (C) 1995 Princeton University (https://www.gnu.org/software/gcide/)
+
+JMdict Japanese-English — JMdict-JA-EN.mdx
+License: CC-BY-SA-4.0
+Source: JMdict (EDRDG, used in conformance with the EDRDG licence); pitch accents from Kanjium by Uros O. (https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)
+
+Kaikki Arabic-English — Kaikki-AR-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki French-English — Kaikki-FR-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Greek-English — Kaikki-EL-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Italian-English — Kaikki-IT-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Korean-English — Kaikki-KO-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Latin-English — Kaikki-LA-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Portuguese-English — Kaikki-PT-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Russian-English — Kaikki-RU-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Spanish-English — Kaikki-ES-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+Kaikki Turkish-English — Kaikki-TR-EN.mdx
+License: CC-BY-SA-4.0
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract (modified by OpenMDict) (https://kaikki.org/dictionary/)
+
+KANJIDIC2 漢字 — KANJIDIC2-JA.mdx
+License: CC-BY-SA-4.0
+Source: KANJIDIC2 (EDRDG, used in conformance with the EDRDG licence) (https://www.edrdg.org/wiki/index.php/KANJIDIC_Project)
+
+La Bibbia — Diodati — Bible-Diodati-IT.mdx
+License: LicenseRef-Public-Domain
+Source: gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group) (https://github.com/gratis-bible/bible)
+
+Lewis &amp; Short Latin Dictionary — Lewis-Short-LA-EN.mdx
+License: CC-BY-SA-4.0
+Source: Perseus Digital Library, Tufts University (https://github.com/PerseusDL/lexica)
+
+LSJ Greek-English Lexicon — LSJ-GRC-EN.mdx
+License: CC-BY-SA-4.0
+Source: Perseus Digital Library, Tufts University (https://github.com/PerseusDL/lexica)
+
+Lutherbibel 1912 — Bible-Luther1912-DE.mdx
+License: LicenseRef-Public-Domain
+Source: Public-domain Bible texts (open-bibles collection, eBible.org) (https://github.com/seven1m/open-bibles)
+
+Moby Thesaurus II — Moby-Thesaurus-EN.mdx
+License: LicenseRef-Public-Domain AND CC-BY-4.0 AND LicenseRef-WordNet-3.0
+Source: Moby Thesaurus II (Grady Ward), via Project Gutenberg #3202; redirect keys (word forms, spelling variants) from Open English WordNet, derived from Princeton WordNet (https://www.gutenberg.org/ebooks/3202)
+
+Open English WordNet — WordNet-EN.mdx
+License: CC-BY-4.0 AND LicenseRef-WordNet-3.0
+Source: Open English WordNet (Global WordNet Association); derived from Princeton WordNet (https://en-word.net/)
+
+Santa Biblia — Reina-Valera 1909 — Bible-RV1909-ES.mdx
+License: LicenseRef-Public-Domain
+Source: Public-domain Bible texts (open-bibles collection, eBible.org) (https://github.com/seven1m/open-bibles)
+
+Unihan CJK Characters — Unihan-CJK.mdx
+License: Unicode-3.0
+Source: Unicode Unihan Database (Unicode, Inc.) (https://www.unicode.org/charts/unihan.html)
+
+WikDict English-French — WikDict-EN-FR.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-German — WikDict-EN-DE.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Greek — WikDict-EN-EL.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Italian — WikDict-EN-IT.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Latin — WikDict-EN-LA.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Portuguese — WikDict-EN-PT.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Russian — WikDict-EN-RU.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Spanish — WikDict-EN-ES.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict English-Turkish — WikDict-EN-TR.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict French-English — WikDict-FR-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict French-Russian — WikDict-FR-RU.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict French-Spanish — WikDict-FR-ES.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict German-English — WikDict-DE-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict German-Russian — WikDict-DE-RU.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Greek-English — WikDict-EL-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Italian-English — WikDict-IT-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Latin-English — WikDict-LA-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Portuguese-English — WikDict-PT-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Portuguese-Spanish — WikDict-PT-ES.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Russian-English — WikDict-RU-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Russian-French — WikDict-RU-FR.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Russian-German — WikDict-RU-DE.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Spanish-English — WikDict-ES-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Spanish-French — WikDict-ES-FR.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Spanish-Portuguese — WikDict-ES-PT.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+WikDict Turkish-English — WikDict-TR-EN.mdx
+License: CC-BY-SA-4.0
+Source: WikDict (Karl Bartel); data from Wiktionary (Wiktionary contributors) via DBnary (Gilles Sérasset, CC BY-SA 3.0) (https://www.wikdict.com/)
+
+Wiktionary Arabic-English — Wiktionary-AR-EN.mdx
+License: CC-BY-SA-3.0 OR GFDL-1.3-or-later
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract, packaged by Vuizur/Wiktionary-Dictionaries (modified by OpenMDict) (https://github.com/Vuizur/Wiktionary-Dictionaries)
+
+Wiktionary Korean-English — Wiktionary-KO-EN.mdx
+License: CC-BY-SA-3.0 OR GFDL-1.3-or-later
+Source: English Wiktionary contributors, via Kaikki.org / Wiktextract, packaged by Vuizur/Wiktionary-Dictionaries (modified by OpenMDict) (https://github.com/Vuizur/Wiktionary-Dictionaries)
+
+Синодальный перевод — Bible-Synodal-RU.mdx
+License: LicenseRef-Public-Domain
+Source: Public-domain Bible texts (open-bibles collection, eBible.org) (https://github.com/seven1m/open-bibles)
+
+الكتاب المقدس — ترجمة فان دايك — Bible-SVD-AR.mdx
+License: LicenseRef-Public-Domain
+Source: gratis-bible OSIS Bibles (public-domain texts from The Unbound Bible / Free Bible Software Group) (https://github.com/gratis-bible/bible)
+
+Ἡ Καινὴ Διαθήκη (1904) — Bible-Byzantine-GRC.mdx
+License: LicenseRef-Public-Domain
+Source: eBible.org (https://ebible.org/)
+
+官話和合譯本聖經（繁體） — Bible-CUV-ZH-Hant.mdx
+License: LicenseRef-Public-Domain (see the notes below)
+Source: Chinese Wikisource contributors, 聖經 (和合本) (Chinese Union Version, 1919) (https://zh.wikisource.org/wiki/聖經_%28和合本%29)
+
+官话和合译本圣经（简体） — Bible-CUV-ZH-Hans.mdx
+License: LicenseRef-Public-Domain (see the notes below)
+Source: Chinese Wikisource contributors, 聖經 (和合本) (Chinese Union Version, 1919) (https://zh.wikisource.org/wiki/聖經_%28和合本%29)
+
+文語訳聖書 — Bible-Kougo-JA.mdx
+License: LicenseRef-Public-Domain (see the notes below)
+Source: CrossWire Bible Society, SWORD module JapBungo (文語訳: 明治元訳 Old Testament, 大正改訳 New Testament; text from bible.salterrae.net) (https://crosswire.org/sword/modules/ModInfo.jsp?modName=JapBungo)
+
+성경 (개역한글) — Bible-Korean-KO.mdx
+License: LicenseRef-Public-Domain (see the notes below)
+Source: CrossWire Bible Society, SWORD module KorRV (Korean Revised Version 1961, Wikisource text) (https://crosswire.org/sword/modules/ModInfo.jsp?modName=KorRV)
+
+License notes
+
+• Bible — King James Version — Public domain outside the United Kingdom. In the UK the King James Version is under perpetual Crown copyright: printing requires letters patent (held by Cambridge University Press, Oxford University Press and Collins), as the eBible.org eng-kjv rights statement notes.
+• Bíblia Sagrada — Almeida 1911 — Text: João Ferreira d’Almeida, Revista e Corrigida (Lisbon, 1911 printing of the 1900 edition), from Project Gutenberg eBook #62383, labelled “Public domain in the USA” there; Markdown structuring by mazza/biblia-arc1911 (CC0 1.0).
+• 官話和合譯本聖經（繁體） — Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there.
+• 官话和合译本圣经（简体） — Text: Chinese Union Version (官話和合譯本, 1919), from Chinese Wikisource, marked public domain there; converted to Simplified Chinese with OpenCC.
+• 文語訳聖書 — Text: 文語訳 (明治元訳 Old Testament, 1887; 大正改訳 New Testament, 1917), from the CrossWire SWORD module JapBungo 2.0, distributed by CrossWire as Public Domain.
+• 성경 (개역한글) — Text: Korean Revised Version (개역한글판; Korean Bible Society, 1961), distributed as Public Domain by CrossWire (KorRV 2.0.1).</string>
+		</dict>
+	</array>
+</dict>
+</plist>

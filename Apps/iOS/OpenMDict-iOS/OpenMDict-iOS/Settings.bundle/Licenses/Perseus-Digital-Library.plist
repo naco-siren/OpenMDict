@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Applies to LSJ-GRC-EN.mdx, Lewis-Short-LA-EN.mdx.
+
+Required credit, reproduced as the upstream PerseusDL/lexica (https://github.com/PerseusDL/lexica) README asks:
+
+Text provided under a CC BY-SA license by Perseus Digital Library, http://www.perseus.tufts.edu, with funding from The National Endowment for the Humanities. Data accessed from https://github.com/PerseusDL/lexica/ [LSJ: 2026-10-17; Lewis &amp; Short: 2026-10-20].
+
+Sources: LSJ grc.lsj.perseus-eng1..27.xml (PerseusDL/lexica commit a6d6f11) and Lewis &amp; Short lat.ls.perseus-eng2.xml (commit edd73d8). Both .mdx files are adaptations under CC BY-SA 4.0 and say so in their descriptions. OpenMDict modified the text as follows: LSJ Greek converted from beta code to Unicode; entries rendered as HTML with cross-references linked and homograph numbers shown as labels; page and column breaks omitted and, where the source marks a correction, the corrected reading shown; a few damaged upstream headword keys repaired (listed in preset-dicts/scripts/build_perseus_mdx.py); and redirect keys added for the spellings readers type (for LSJ also the forms of the article, and variant endings written out as whole words). The text is otherwise complete. The conversion script is preset-dicts/scripts/build_perseus_mdx.py; as the lexica README asks, these modifications are to be offered to Perseus (for example as issues or pull requests on PerseusDL/lexica for the repaired keys).</string>
+		</dict>
+	</array>
+</dict>
+</plist>

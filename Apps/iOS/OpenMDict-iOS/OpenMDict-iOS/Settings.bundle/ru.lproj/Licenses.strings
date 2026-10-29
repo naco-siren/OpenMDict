@@ -1,0 +1,9 @@
+/* Settings.bundle — Licenses page (Licenses.plist). Rows named after a component or license are not translated. */
+
+"LICENSES_SOFTWARE" = "Программное обеспечение";
+"LICENSES_MODEL" = "Модель машинного обучения";
+"LICENSES_DICTIONARIES" = "Предустановленные словари";
+"LICENSES_DICTIONARY_LIST" = "Список словарей";
+"LICENSES_CORRESPONDING_SOURCE" = "Соответствующий исходный код (GPL)";
+"LICENSES_TEXTS" = "Тексты лицензий";
+"LICENSES_TEXTS_FOOTER" = "Тексты лицензий приведены в оригинале на английском языке.";

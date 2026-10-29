@@ -1,0 +1,9 @@
+/* Settings.bundle — Licenses page (Licenses.plist). Rows named after a component or license are not translated. */
+
+"LICENSES_SOFTWARE" = "소프트웨어";
+"LICENSES_MODEL" = "머신 러닝 모델";
+"LICENSES_DICTIONARIES" = "프리셋 사전";
+"LICENSES_DICTIONARY_LIST" = "사전 목록";
+"LICENSES_CORRESPONDING_SOURCE" = "대응 소스 코드(GPL)";
+"LICENSES_TEXTS" = "라이선스 전문";
+"LICENSES_TEXTS_FOOTER" = "라이선스 전문은 영어 원문으로 표시됩니다.";
