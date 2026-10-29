@@ -2360,7 +2360,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此裝置尚未啟用 Apple 智慧。請前往「設定 → Apple 智慧與 Siri」開啟 Apple 智慧後再試一次。"
+            "value": "此裝置尚未啟用 Apple Intelligence。請前往「設定 → Apple Intelligence 與 Siri」開啟 Apple Intelligence 後再試一次。"
           }
         }
       }
@@ -2468,7 +2468,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "本裝置不支援 Apple 智慧裝置端語言模型。AI Coach 需要 iPhone 15 Pro / iPhone 16,或配備 Apple 晶片的 iPad 或 Mac。"
+            "value": "本裝置不支援 Apple Intelligence 裝置端語言模型。AI 教練需要 iPhone 15 Pro / iPhone 16，或配備 Apple 晶片的 iPad 或 Mac。"
           }
         }
       }
@@ -6874,7 +6874,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "本裝置的晶片(%@)不支援 Apple 智慧。AI 教練需要 iPhone 15 Pro / 16 或更新機型，或搭載 M 系列晶片的 iPad。"
+            "value": "本裝置的晶片(%@)不支援 Apple Intelligence。AI 教練需要 iPhone 15 Pro / 16 或更新機型，或搭載 M 系列晶片的 iPad。"
           }
         }
       }
@@ -6898,7 +6898,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "本裝置不支援 Apple 智慧。AI 教練需要 iPhone 15 Pro / 16 或更新機型，或搭載 M 系列晶片的 iPad。"
+            "value": "本裝置不支援 Apple Intelligence。AI 教練需要 iPhone 15 Pro / 16 或更新機型，或搭載 M 系列晶片的 iPad。"
           }
         }
       }
@@ -6970,7 +6970,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請等待 Apple 智慧下載完成後再回來。"
+            "value": "請等待 Apple Intelligence 下載完成後再回來。"
           }
         }
       }
@@ -7006,7 +7006,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在設定 Apple 智慧"
+            "value": "正在設定 Apple Intelligence"
           }
         }
       }
@@ -7090,7 +7090,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple 智能不支援您目前的語言與地區組合。若要使用 AI 教練，請在設定中將 iPhone 語言和地區改為受支援的組合。"
+            "value": "Apple Intelligence 不支援您目前的語言與地區組合。若要使用 AI 教練，請在設定中將 iPhone 語言和地區改為受支援的組合。"
           }
         }
       }
@@ -7210,7 +7210,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在您的裝置地區為【%1$@】時，Apple 智能不相容您目前設置的應用程式語言【%2$@】。"
+            "value": "在您的裝置地區為【%1$@】時，Apple Intelligence 不相容您目前設定的應用程式語言【%2$@】。"
           }
         }
       }
@@ -7330,7 +7330,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請前往「設定 → Apple 智慧與 Siri」開啟 Apple 智慧後再回來。"
+            "value": "請前往「設定 → Apple Intelligence 與 Siri」開啟 Apple Intelligence 後再回來。"
           }
         }
       }
@@ -7366,7 +7366,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple 智慧尚未啟用"
+            "value": "Apple Intelligence 尚未啟用"
           }
         }
       }
@@ -10705,7 +10705,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "بحث سريع"
+            "value": "بحث متسلسل"
           }
         },
         "de": {
@@ -10723,7 +10723,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Búsqueda rápida"
+            "value": "Búsqueda encadenada"
           }
         },
         "fr": {
@@ -40877,7 +40877,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "البحث السريع"
+            "value": "البحث المتسلسل"
           }
         },
         "de": {
@@ -40895,7 +40895,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Búsqueda rápida"
+            "value": "Búsqueda encadenada"
           }
         },
         "fr": {
@@ -44450,7 +44450,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اضغط مطولاً على كلمة لتحديدها، ثم اختر \"البحث السريع\" من القائمة السياقية."
+            "value": "اضغط مطولاً على كلمة لتحديدها، ثم اختر \"البحث المتسلسل\" من القائمة السياقية."
           }
         },
         "de": {
@@ -44468,7 +44468,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantén presionada una palabra para seleccionarla y luego elige \"Búsqueda rápida\" en el menú contextual."
+            "value": "Mantén presionada una palabra para seleccionarla y luego elige \"Búsqueda encadenada\" en el menú contextual."
           }
         },
         "fr": {
@@ -44533,7 +44533,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "سيبحث \"البحث السريع\" عن الكلمة المحددة في جميع قواميسك — كأنك تمتلك قاموساً داخل قاموس!"
+            "value": "سيبحث \"البحث المتسلسل\" عن الكلمة المحددة في جميع قواميسك — كأنك تمتلك قاموساً داخل قاموس!"
           }
         },
         "de": {
@@ -44551,7 +44551,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La búsqueda rápida buscará la palabra seleccionada en todos tus diccionarios — ¡como tener un diccionario dentro de un diccionario!"
+            "value": "La búsqueda encadenada buscará la palabra seleccionada en todos tus diccionarios — ¡como tener un diccionario dentro de un diccionario!"
           }
         },
         "fr": {
@@ -46370,7 +46370,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اضغط باستمرار على كلمة في المقالة لعرض خيار البحث السريع."
+            "value": "اضغط باستمرار على كلمة في المقالة لعرض خيار البحث المتسلسل."
           }
         },
         "de": {
@@ -46388,7 +46388,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantén pulsada una palabra del artículo para ver la opción de búsqueda rápida."
+            "value": "Mantén pulsada una palabra del artículo para ver la opción de búsqueda encadenada."
           }
         },
         "fr": {
