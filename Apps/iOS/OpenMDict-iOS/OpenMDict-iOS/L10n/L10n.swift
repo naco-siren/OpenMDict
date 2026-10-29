@@ -2396,19 +2396,6 @@ nonisolated enum L10n {
     // MARK: - Preset Dictionary Updates
 
     enum PresetUpdate {
-        static var alertTitle: String {
-            NSLocalizedString("presetUpdate.alert.title", value: "Dictionary Updates", comment: "Alert title: improved builds of installed preset dictionaries are available")
-        }
-        /// %@ = bulleted list of dictionary names, one per line
-        static func alertMessage(_ names: String) -> String {
-            String(format: NSLocalizedString("presetUpdate.alert.message", value: "Improved versions of these preset dictionaries are available:\n%@", comment: "Alert message listing preset dictionaries with updates; %@ is a bulleted list of names"), names)
-        }
-        static var update: String {
-            NSLocalizedString("presetUpdate.alert.update", value: "Update", comment: "Alert button: update the preset dictionaries now")
-        }
-        static var later: String {
-            NSLocalizedString("presetUpdate.alert.later", value: "Later", comment: "Alert button: dismiss the preset update prompt")
-        }
         /// The installed copy cannot be updated right now (still loading or
         /// downloading, or another update of it is running).
         static var errorNotReady: String {
@@ -2417,13 +2404,6 @@ nonisolated enum L10n {
         /// The update could not be installed; the previous version was kept.
         static var errorFailed: String {
             NSLocalizedString("presetUpdate.error.failed", value: "The update couldn't be installed. The previous version of the dictionary is still in place.", comment: "Error when installing an updated preset dictionary failed; nothing was changed")
-        }
-        /// VoiceOver label of the count badge on "Download Presets".
-        static func badgeAccessibilityLabel(_ count: Int) -> String {
-            String.localizedStringWithFormat(
-                NSLocalizedString("presetUpdate.badge.accessibility", value: "%lld dictionary updates available", comment: "VoiceOver label of the badge on Download Presets; %lld = number of preset dictionaries with an update"),
-                count
-            )
         }
     }
 

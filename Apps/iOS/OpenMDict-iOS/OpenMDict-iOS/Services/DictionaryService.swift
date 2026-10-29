@@ -291,18 +291,12 @@ final class DictionaryService: ObservableObject {
         // 2. Setup groups from CoreData (or create defaults)
         setupGroups()
 
-        // Preset updates: compare installed presets with the builds this app ships.
-        PresetDictionaryService.shared.startTrackingUpdates()
-
         // 3. Background loading
         Task {
             await loadAllMetadata()
             // Re-index Spotlight now that metadata (entry count, file size, author) is available
             await loadAllDictionaries()
             SpotlightIndexingService.shared.indexAllDictionaries()
-
-            // Which build each installed preset's MDX is (hashed once per file).
-            await PresetDictionaryService.shared.recordInstalledBuilds()
 
             // 4. Catch-up upload: any locally-present dictionaries that were never
             // uploaded to CloudKit (e.g. presets imported before file-sync was added),

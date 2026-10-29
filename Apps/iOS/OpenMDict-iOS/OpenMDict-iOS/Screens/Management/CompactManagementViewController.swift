@@ -100,24 +100,11 @@ class CompactManagementViewController: UIViewController {
             name: UIScene.didActivateNotification,
             object: nil
         )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handlePresetUpdatesChanged),
-            name: PresetDictionaryService.updatesDidChangeNotification,
-            object: nil
-        )
     }
 
     @objc private func handleDidBecomeActive() {
         debugLog("🪄 management didBecomeActive → \(AICoach.diagnosticSummary)")
         rebuildSnapshot()
-    }
-
-    /// The "Download Presets" row shows how many presets have an update.
-    @objc private func handlePresetUpdatesChanged() {
-        guard var snapshot = dataSource?.snapshot(), snapshot.indexOfItem(.downloadPresets) != nil else { return }
-        snapshot.reconfigureItems([.downloadPresets])
-        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     // MARK: - Collection View Setup
@@ -175,11 +162,7 @@ class CompactManagementViewController: UIViewController {
                 config.image = UIImage(systemName: "gearshape")
             }
             cell.contentConfiguration = config
-            let updateCount = item == .downloadPresets
-                ? PresetDictionaryService.shared.updatablePresets.count : 0
-            cell.accessories = updateCount > 0
-                ? [ManagementActionCell.badgeAccessory(count: updateCount, isActive: false), .disclosureIndicator()]
-                : [.disclosureIndicator()]
+            cell.accessories = [.disclosureIndicator()]
         }
 
         dataSource = UICollectionViewDiffableDataSource<MgmtSection, MgmtItem>(
