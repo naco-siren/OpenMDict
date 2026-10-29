@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "Меньше";
 "LOOKUP_SEMANTIC_DEFAULT" = "По умолчанию";
 "LOOKUP_SEMANTIC_MORE" = "Больше";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "О программе";
+"ABOUT_FOOTER" = "OpenMDict — бесплатная программа с открытым исходным кодом, распространяемая по лицензии MIT.\nИсходный код: https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "Лицензии";

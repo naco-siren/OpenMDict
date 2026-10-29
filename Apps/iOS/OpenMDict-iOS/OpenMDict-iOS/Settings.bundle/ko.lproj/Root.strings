@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "적게";
 "LOOKUP_SEMANTIC_DEFAULT" = "기본값";
 "LOOKUP_SEMANTIC_MORE" = "많이";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "정보";
+"ABOUT_FOOTER" = "OpenMDict는 MIT 라이선스로 배포되는 무료 오픈소스 소프트웨어입니다.\n소스 코드: https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "라이선스";

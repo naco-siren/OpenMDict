@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "少なめ";
 "LOOKUP_SEMANTIC_DEFAULT" = "標準";
 "LOOKUP_SEMANTIC_MORE" = "多め";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "情報";
+"ABOUT_FOOTER" = "OpenMDict は MIT ライセンスで公開されている無料のオープンソースソフトウェアです。\nソースコード：https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "ライセンス";

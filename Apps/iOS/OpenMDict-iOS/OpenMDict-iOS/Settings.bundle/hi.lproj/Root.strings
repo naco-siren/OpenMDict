@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "कम";
 "LOOKUP_SEMANTIC_DEFAULT" = "डिफ़ॉल्ट";
 "LOOKUP_SEMANTIC_MORE" = "अधिक";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "परिचय";
+"ABOUT_FOOTER" = "OpenMDict एक मुफ़्त और ओपन-सोर्स सॉफ़्टवेयर है, जो MIT लाइसेंस के तहत जारी किया गया है।\nसोर्स कोड: https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "लाइसेंस";

@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "较少";
 "LOOKUP_SEMANTIC_DEFAULT" = "默认";
 "LOOKUP_SEMANTIC_MORE" = "较多";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "关于";
+"ABOUT_FOOTER" = "OpenMDict 是以 MIT 许可证发布的免费开源软件。\n源代码：https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "许可证";

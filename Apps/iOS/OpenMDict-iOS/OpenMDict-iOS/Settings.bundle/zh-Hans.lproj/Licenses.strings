@@ -1,0 +1,9 @@
+/* Settings.bundle — Licenses page (Licenses.plist). Rows named after a component or license are not translated. */
+
+"LICENSES_SOFTWARE" = "软件";
+"LICENSES_MODEL" = "机器学习模型";
+"LICENSES_DICTIONARIES" = "预设词典";
+"LICENSES_DICTIONARY_LIST" = "词典列表";
+"LICENSES_CORRESPONDING_SOURCE" = "对应源代码（GPL）";
+"LICENSES_TEXTS" = "许可证全文";
+"LICENSES_TEXTS_FOOTER" = "许可证全文以英文原文显示。";

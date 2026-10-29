@@ -166,7 +166,8 @@ make list
 | `all` | Build everything, then `check-catalog` (never rewrites the catalog) |
 | `catalog` | Regenerate `preset-dictionaries.json` and print the diff |
 | `check-catalog` | Fail if the catalog does not describe `output/` or the notices are stale |
-| `notices` | Regenerate the generated part of `../THIRD-PARTY-NOTICES.md` |
+| `check-notices` | Fail if `../THIRD-PARTY-NOTICES.md` or the app's Settings licenses pages are stale (needs no `output/`) |
+| `notices` | Regenerate the generated part of `../THIRD-PARTY-NOTICES.md` and the app's Settings licenses pages |
 | `descriptions` | Write every dictionary's MDX header description to `output/_descriptions/` without building (review the text first) |
 
 ### Reproducible builds

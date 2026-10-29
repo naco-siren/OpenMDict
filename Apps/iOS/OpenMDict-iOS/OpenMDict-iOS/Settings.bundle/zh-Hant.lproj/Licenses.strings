@@ -1,0 +1,9 @@
+/* Settings.bundle — Licenses page (Licenses.plist). Rows named after a component or license are not translated. */
+
+"LICENSES_SOFTWARE" = "軟體";
+"LICENSES_MODEL" = "機器學習模型";
+"LICENSES_DICTIONARIES" = "預設辭典";
+"LICENSES_DICTIONARY_LIST" = "辭典列表";
+"LICENSES_CORRESPONDING_SOURCE" = "對應原始碼（GPL）";
+"LICENSES_TEXTS" = "授權條款全文";
+"LICENSES_TEXTS_FOOTER" = "授權條款全文以英文原文顯示。";

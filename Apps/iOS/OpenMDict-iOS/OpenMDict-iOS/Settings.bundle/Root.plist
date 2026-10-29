@@ -180,6 +180,22 @@
 			<key>DefaultValue</key>
 			<true/>
 		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>ABOUT_GROUP</string>
+			<key>FooterText</key>
+			<string>ABOUT_FOOTER</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSChildPaneSpecifier</string>
+			<key>Title</key>
+			<string>LICENSES</string>
+			<key>File</key>
+			<string>Licenses</string>
+		</dict>
 	</array>
 </dict>
 </plist>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Applies to CEDICT-ZH-EN.mdx.
+
+CC-CEDICT, the community-maintained free Chinese-English dictionary, is published by MDBG (https://www.mdbg.net/chinese/dictionary?page=cc-cedict, https://cc-cedict.org/wiki/) under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). The upstream file supplies this notice for its referenced work:
+
+CEDICT - Copyright (C) 1997, 1998 Paul Andrew Denisowski
+
+OpenMDict modified it: readings are grouped and reordered by headword, pinyin is shown with tone marks, cross-references are linked, and lookup redirects are added for Traditional, variant and punctuation-free spellings (preset-dicts/scripts/build_cedict_mdx.py). The release used is named in the dictionary's description. The modified data is shared under the same license.</string>
+		</dict>
+	</array>
+</dict>
+</plist>

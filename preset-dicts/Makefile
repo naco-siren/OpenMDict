@@ -5,7 +5,8 @@
 #   make cedict         Build a single dictionary
 #   make catalog        Regenerate preset-dictionaries.json from output/
 #   make check-catalog  Fail if the catalog or the notices are out of date
-#   make notices        Regenerate the generated part of ../THIRD-PARTY-NOTICES.md
+#   make check-notices  Fail if the notices or the Settings licenses are stale (needs no output/)
+#   make notices        Regenerate ../THIRD-PARTY-NOTICES.md (generated part) and the Settings.bundle Licenses pages
 #   make list           Show all available targets
 #
 # Each build script produces output/<Name>/<Name>.mdx + a .meta.json
@@ -36,7 +37,7 @@ MANIFEST := preset-dictionaries.json
 
 # ── Individual dictionary targets ─────────────────────────────
 
-.PHONY: all catalog check-catalog notices descriptions list help \
+.PHONY: all catalog check-catalog check-notices notices descriptions list help \
         wordnet moby cedict jmdict gcide kanjidic2 unihan \
         perseus cccanto bible freedict kaikki wikdict wiktionary
 
@@ -102,12 +103,19 @@ catalog:
 # the notices must match the catalog.
 check-catalog:
 	@$(PYTHON) $(SCRIPTS)/generate_preset_catalog.py --check
-	@$(PYTHON) $(SCRIPTS)/gen_third_party_notices.py --check
+	@$(MAKE) --no-print-directory check-notices
 
-# ── Third-party notices (generated block in ../THIRD-PARTY-NOTICES.md) ──
+# The notices and the Settings licenses can be checked without output/.
+check-notices:
+	@$(PYTHON) $(SCRIPTS)/gen_third_party_notices.py --check
+	@$(PYTHON) ../scripts/gen-settings-licenses.py --check
+
+# ── Third-party notices (generated block in ../THIRD-PARTY-NOTICES.md, and the
+#    Licenses pages of the app's Settings.bundle that are generated from it) ──
 
 notices:
 	@$(PYTHON) $(SCRIPTS)/gen_third_party_notices.py
+	@$(PYTHON) ../scripts/gen-settings-licenses.py
 
 # ── Header descriptions (no build) ──────────────────────────────
 # Every build script exposes descriptions(); this writes the HTML each
@@ -124,6 +132,7 @@ list:
 	@echo "Aggregate:   all            (builds everything, then check-catalog)"
 	@echo "Catalog:     catalog        (regenerate preset-dictionaries.json, print the diff)"
 	@echo "             check-catalog  (fail if the catalog or notices are stale)"
+	@echo "             check-notices  (notices and Settings licenses only; needs no output/)"
 	@echo "Notices:     notices"
 	@echo "Preview:     descriptions   (write every header description to output/_descriptions/)"
 

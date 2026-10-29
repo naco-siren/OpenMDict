@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Applies to JMdict-JA-EN.mdx, KANJIDIC2-JA.mdx.
+
+Acknowledgement as section 3 of the EDRDG licence (https://www.edrdg.org/edrdg/licence.html) asks:
+
+This publication has included material from the JMdict (https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) and KANJIDIC2 (https://www.edrdg.org/wiki/index.php/KANJIDIC_Project) dictionary files in accordance with the licence provisions of the Electronic Dictionary Research and Development Group (https://www.edrdg.org/). The files are the property of the Electronic Dictionary Research and Development Group (copyright James William Breen and the EDRDG) and are used in conformance with the Group's licence (CC BY-SA 4.0). Documentation: https://www.edrdg.org/jmdict/j_jmdict.html, https://www.edrdg.org/wiki/index.php/KANJIDIC_Project.
+
+JMdict (release 2026-10-28): the pitch accent notation was provided by Uros O. through his free database Kanjium (https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0). OpenMDict converted and modified both (lookup keys for every written form and reading, romaji, pitch-accent rendering, HTML layout) with preset-dicts/scripts/build_jmdict_mdx.py.
+
+KANJIDIC2 (database version 2026-301): the pinyin readings are © Christian Wittern and Koichi Yasuoka and the Korean readings © Charles Muller, included in KANJIDIC2 with their permission. preset-dicts/scripts/build_kanjidic2_mdx.py converts, abridges and reformats it: it keeps the readings, English meanings, nanori, stroke counts, classical radicals, grade, frequency, former JLPT level and &lt;variant&gt; links (code-point references, and dictionary-number or query-code references only when the two kanji refer to each other), adds romaji, and leaves out non-English meanings, query codes and dictionary index numbers.
+
+Both adaptations are shared under CC BY-SA 4.0. The EDRDG licence (section 4) requires the data to be updated regularly from the current releases: preset-dicts/scripts/fetch_data.sh --refresh jmdict kanjidic2 fetches them, each build pins its release by date or version and SHA-256 and warns once that release is more than a month old (MAINTAINING.md, "Refreshing the EDRDG data").</string>
+		</dict>
+	</array>
+</dict>
+</plist>

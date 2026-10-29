@@ -36,3 +36,8 @@
 "LOOKUP_SEMANTIC_FEW" = "較少";
 "LOOKUP_SEMANTIC_DEFAULT" = "預設";
 "LOOKUP_SEMANTIC_MORE" = "較多";
+
+/* About — app license, source code and third-party licenses */
+"ABOUT_GROUP" = "關於";
+"ABOUT_FOOTER" = "OpenMDict 是以 MIT 授權條款發布的免費開源軟體。\n原始碼：https://github.com/naco-siren/OpenMDict";
+"LICENSES" = "授權條款";
