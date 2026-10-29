@@ -2,8 +2,9 @@
 
 This page is for people who change the **assets** the iOS app depends on:
 the preset dictionaries, the article-embedding model and the app icons.
-For building and contributing to the code, see `README.md`; for the
-dictionary pipeline itself, see `preset-dicts/README.md`.
+For building the code and running the tests, see
+[`docs/development.md`](docs/development.md); for the dictionary pipeline
+itself, see [`preset-dicts/README.md`](preset-dicts/README.md).
 
 ## Four sources of truth
 
@@ -19,8 +20,8 @@ The app's assets are described in four places that must agree:
 Large files are **not** in git and not in LFS. A fresh clone runs
 `scripts/bootstrap-assets.sh`, which downloads everything the lock lists,
 verifies the hashes and compiles the model. `scripts/check-assets.sh`
-verifies that catalog == pbxproj == lock and runs in CI, so drift between
-the four is caught before it reaches `main`.
+verifies that catalog == pbxproj == lock; run it before every push, so
+drift is caught before it reaches `main`.
 
 ## Prerequisites
 
@@ -38,9 +39,9 @@ the four is caught before it reaches `main`.
 
 | Script | Purpose |
 |---|---|
-| `scripts/bootstrap-assets.sh [--check\|--force]` | Download every asset in the lock into place (`preset-dicts/output/<Name>/<Name>.mdx`, `Apps/iOS/OpenMDict-iOS/Article Embeddings/`), verify SHA-256, unzip the model and run the precompile step when the model changed. Files that already match the lock are skipped without touching their mtime. `--check` only reports drift (non-zero exit) and is what CI and the Xcode "Check bootstrapped assets" run-script use. Files it downloaded (or verified) earlier are replaced automatically when the lock moves on. `--force` also overwrites local files whose hash differs from the lock and that were never published (for example a dictionary you rebuilt locally); without it the script refuses and tells you which files differ. `OPENMDICT_ASSETS_BASE_URL` overrides the download base (default: this repository's Releases) so a staging directory served with `python3 -m http.server` can be used for dry runs. While the repository is private, unauthenticated Release downloads return 404 and the script switches to `gh release download` (requires `gh auth login`). |
+| `scripts/bootstrap-assets.sh [--check\|--force]` | Download every asset in the lock into place (`preset-dicts/output/<Name>/<Name>.mdx`, `Apps/iOS/OpenMDict-iOS/Article Embeddings/`), verify SHA-256, unzip the model and run the precompile step when the model changed. Files that already match the lock are skipped without touching their mtime. `--check` only reports drift (non-zero exit) and never downloads or writes. Files it downloaded (or verified) earlier are replaced automatically when the lock moves on. `--force` also overwrites local files whose hash differs from the lock and that were never published (for example a dictionary you rebuilt locally); without it the script refuses and tells you which files differ. `OPENMDICT_ASSETS_BASE_URL` overrides the download base (default: this repository's Releases) so a staging directory served with `python3 -m http.server` can be used for dry runs. When the Releases are in a private repository, unauthenticated downloads return 404 and the script switches to `gh release download` (requires `gh auth login`). |
 | `scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N]` | Hash the local assets, upload only the ones whose hash is not yet in the lock to a **draft** pre-release under the given (new) tag, rewrite the lock, and stage the compliance payload: the committed `THIRD-PARTY-NOTICES.md` (regenerate it first — the script copies, it does not generate), `LICENSE-<SPDX>.txt` texts (taken from `preset-dicts/licenses/`, then `licenses/`, and fetched from the SPDX list only when neither has them; `LicenseRef-*` texts such as the WordNet license must be in `preset-dicts/licenses/`) and the GPL source archives, all of which are attached to every new tag even when unchanged. Review the draft, then `gh release edit <tag> --draft=false` and commit the lock. `--dry-run` / `--stage-only` need no `gh`. |
-| `scripts/check-assets.sh` | Consistency gate: every catalog entry has a pbxproj reference with the right `ASSET_TAGS`, every `odrTag` is in `KnownAssetTags`, every file is in the lock, and nothing in the lock is orphaned. Exit non-zero on drift. Runs in CI. |
+| `scripts/check-assets.sh` | Consistency gate: every catalog entry has a pbxproj reference with the right `ASSET_TAGS`, every `odrTag` is in `KnownAssetTags`, every file is in the lock, and nothing in the lock is orphaned. Exit non-zero on drift. |
 | `scripts/relink-project-assets.rb [--sync] [--dry-run] [--project PATH]` | Rewrite the pbxproj (defaults to the iOS app project) so every asset reference is relative (`SOURCE_ROOT`), never absolute. `--sync` additionally adds/removes `.mdx` references and `ASSET_TAGS` to match the catalog and merges `KnownAssetTags`. `--dry-run` prints what would change. Idempotent. |
 | `scripts/precompile-article-embed-model.sh` | `.mlpackage → .mlmodelc` with `xcrun coremlcompiler` (invoked by bootstrap when needed). |
 | `preset-dicts/scripts/fetch_data.sh [--refresh] [source…]` | Download the source data into `preset-dicts/data/`. Every input is pinned to a versioned URL or commit and its SHA-256; a mismatch is an error, except for the upstreams that only serve their latest release (warning). One failing source does not stop the others. `--refresh` also downloads the current JMdict / KANJIDIC2 releases. |
@@ -65,8 +66,8 @@ Read each script's header comment for the full option list.
 | **App icon family** | drop the PNGs / `.icon` bundle into `Apps/iOS/OpenMDict-iOS/Resources/AppIcons/` → add them to the "App Icons" group in Xcode → `CFBundleAlternateIcons` in `Info.plist` → the `AppIcon` enum → `ruby scripts/relink-project-assets.rb --dry-run` must report no absolute references | icons, pbxproj, Info.plist, Swift |
 | **Anything in the pbxproj via Xcode's "Add Files…"** | `ruby scripts/relink-project-assets.rb --dry-run` (Xcode happily writes `<absolute>` references) | pbxproj |
 
-`scripts/check-assets.sh` runs in CI on every push; a red check means one of
-the four sources of truth drifted.
+Run `scripts/check-assets.sh` before pushing; a failure means the catalog,
+the pbxproj and the lock no longer agree.
 
 ## Workflows in detail
 
@@ -324,7 +325,10 @@ JMdict, KANJIDIC2, CrossWire KorRV and JapBungo, eBible.org grcbyz).
 
 | Topic | File |
 |---|---|
-| Library API, CLI, tests, sidecar index | `README.md` |
+| Overview, library usage, documentation index | `README.md` |
+| Building from a clean clone, running and signing the app, tests | `docs/development.md` |
+| `openmdict` command reference | `docs/cli.md` |
+| Memory mapping, sidecar index, signposts, `openmdict-bench` | `docs/performance.md` |
 | Dictionary pipeline, build targets, licenses by source | `preset-dicts/README.md`, `preset-dicts/FORMATTING_STANDARD.md` |
 | MDX/MDD container format (header layout used by the determinism fix) | `docs/MDict_Format_Specification.md` |
 | Core Data under Swift 6 strict concurrency | `docs/CoreData_Swift6_Concurrency.md` |
