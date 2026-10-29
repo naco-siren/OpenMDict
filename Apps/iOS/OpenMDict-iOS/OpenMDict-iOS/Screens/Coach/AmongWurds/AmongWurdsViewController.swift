@@ -341,7 +341,7 @@ final class AmongWurdsViewController: UIViewController {
 
         var rootParts: [String] = []
         if let prefix = quiz.prefix { rootParts.append(prefix) }
-        rootParts.append(L10n.AICoach.AmongWurds.rootLabel + ": " + quiz.root)
+        rootParts.append(L10n.AICoach.AmongWurds.rootInfo(quiz.root))
         if let suffix = quiz.suffix { rootParts.append(suffix) }
         rootInfoLabel.text = rootParts.joined(separator: "  ·  ")
 
@@ -361,10 +361,15 @@ final class AmongWurdsViewController: UIViewController {
             .font: UIFont.systemFont(ofSize: 16, weight: .heavy),
         ]
 
-        let text = NSMutableAttributedString()
-        text.append(NSAttributedString(string: "There are ", attributes: white))
-        text.append(NSAttributedString(string: "\(count) imposter\(count == 1 ? "" : "s")", attributes: red))
-        text.append(NSAttributedString(string: " among us", attributes: white))
+        // The sentence comes from one localized plural string; the count
+        // inside it is drawn in red. The count is formatted with the same
+        // specifier and locale as the sentence so it can be found in it.
+        let sentence = L10n.AICoach.AmongWurds.imposterBanner(count)
+        let text = NSMutableAttributedString(string: sentence, attributes: white)
+        let countText = String.localizedStringWithFormat("%lld", count)
+        if let countRange = sentence.range(of: countText) {
+            text.setAttributes(red, range: NSRange(countRange, in: sentence))
+        }
         imposterBanner.attributedText = text
     }
 

@@ -38,8 +38,8 @@ final class CrewCandidateCell: UICollectionViewCell {
     private let subtitleLabel = UILabel()
     private let textStack = UIStackView()
     private let statusIcon = UIImageView()
-    private let murderedStamp = StampView(text: "MURDERED", color: .systemRed, angle: -.pi / 12)
-    private let ejectedStamp = StampView(text: "EJECTED", color: UIColor.systemBrown, angle: -.pi / 12)
+    private let murderedStamp = StampView(text: L10n.AICoach.AmongWurds.stampMurdered, color: .systemRed, angle: -.pi / 12)
+    private let ejectedStamp = StampView(text: L10n.AICoach.AmongWurds.stampEjected, color: UIColor.systemBrown, angle: -.pi / 12)
 
     /// The background the VC paints behind the cell — cards pre-blend their
     /// tint over this so they're fully opaque (no see-through to the space
