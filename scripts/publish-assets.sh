@@ -10,7 +10,8 @@
 #     vocab published as all-MiniLM-L6-v2.vocab.txt
 #   * the compliance payload: THIRD-PARTY-NOTICES.md (copied from the repo
 #     root), LICENSE-<SPDX>.txt for every license seen in the catalog (texts
-#     fetched from the SPDX license list) and the corresponding-source
+#     from preset-dicts/licenses/, then licenses/, else fetched from the SPDX
+#     license list) and the corresponding-source
 #     tarballs of the GPL dictionaries from preset-dicts/data/
 #
 # Rules:
@@ -332,6 +333,10 @@ while IFS= read -r spdx; do
         src="$LICENSES_DIR/$base"
     elif [ -n "$LICENSES_DIR" ] && [ -f "$LICENSES_DIR/$spdx.txt" ]; then
         src="$LICENSES_DIR/$spdx.txt"
+    elif [ -f "$REPO_ROOT/licenses/$base" ]; then
+        # the standard SPDX texts kept in the repository (the app's Settings
+        # licenses pages show the same files)
+        src="$REPO_ROOT/licenses/$base"
     else
         case "$spdx" in
             LicenseRef-*) ;;

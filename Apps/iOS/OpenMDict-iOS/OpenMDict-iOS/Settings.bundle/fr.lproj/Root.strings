@@ -38,6 +38,6 @@
 "LOOKUP_SEMANTIC_MORE" = "Plus";
 
 /* About — app license, source code and third-party licenses */
-"ABOUT_GROUP" = "À propos";
-"ABOUT_FOOTER" = "OpenMDict est un logiciel gratuit et open source, publié sous licence MIT.\nCode source : https://github.com/naco-siren/OpenMDict";
+"ABOUT_GROUP" = "Informations";
+"ABOUT_FOOTER" = "OpenMDict est un logiciel gratuit et open source, publié sous licence MIT.\nCode source : https://github.com/naco-siren/OpenMDict";
 "LICENSES" = "Licences";

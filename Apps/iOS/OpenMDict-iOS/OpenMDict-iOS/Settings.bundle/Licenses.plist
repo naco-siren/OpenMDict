@@ -156,57 +156,49 @@
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>Creative Commons Attribution 4.0 International</string>
+			<string>CC BY 4.0</string>
 			<key>File</key>
-			<string>Licenses/Creative-Commons-Attribution-4-0-International</string>
+			<string>Licenses/CC-BY-4-0</string>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>Creative Commons Attribution-ShareAlike 3.0 Unported</string>
+			<string>CC BY-SA 3.0</string>
 			<key>File</key>
-			<string>Licenses/Creative-Commons-Attribution-ShareAlike-3-0-Unported</string>
+			<string>Licenses/CC-BY-SA-3-0</string>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>Creative Commons Attribution-ShareAlike 4.0 International</string>
+			<string>CC BY-SA 4.0</string>
 			<key>File</key>
-			<string>Licenses/Creative-Commons-Attribution-ShareAlike-4-0-International</string>
+			<string>Licenses/CC-BY-SA-4-0</string>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>GNU Affero General Public License v3.0 or later</string>
+			<string>GNU AGPL v3.0 or later</string>
 			<key>File</key>
-			<string>Licenses/GNU-Affero-General-Public-License-v3-0-or-later</string>
+			<string>Licenses/GNU-AGPL-v3-0-or-later</string>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>GNU Free Documentation License v1.3 or later</string>
+			<string>GNU FDL v1.3 or later</string>
 			<key>File</key>
-			<string>Licenses/GNU-Free-Documentation-License-v1-3-or-later</string>
+			<string>Licenses/GNU-FDL-v1-3-or-later</string>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>GNU General Public License v3.0 or later</string>
+			<string>GNU GPL v3.0 or later</string>
 			<key>File</key>
-			<string>Licenses/GNU-General-Public-License-v3-0-or-later</string>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSChildPaneSpecifier</string>
-			<key>Title</key>
-			<string>Princeton WordNet 3.0 License</string>
-			<key>File</key>
-			<string>Licenses/Princeton-WordNet-3-0-License</string>
+			<string>Licenses/GNU-GPL-v3-0-or-later</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -215,6 +207,14 @@
 			<string>Unicode License v3</string>
 			<key>File</key>
 			<string>Licenses/Unicode-License-v3</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSChildPaneSpecifier</string>
+			<key>Title</key>
+			<string>WordNet 3.0 License</string>
+			<key>File</key>
+			<string>Licenses/WordNet-3-0-License</string>
 		</dict>
 	</array>
 </dict>

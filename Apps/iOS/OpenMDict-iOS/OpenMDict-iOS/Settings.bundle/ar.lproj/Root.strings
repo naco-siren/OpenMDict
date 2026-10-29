@@ -39,5 +39,5 @@
 
 /* About — app license, source code and third-party licenses */
 "ABOUT_GROUP" = "حول";
-"ABOUT_FOOTER" = "OpenMDict برنامج مجاني ومفتوح المصدر صادر بموجب ترخيص MIT.\nالشفرة المصدرية: https://github.com/naco-siren/OpenMDict";
+"ABOUT_FOOTER" = "يُعد OpenMDict برنامجًا مجانيًا ومفتوح المصدر يُوزَّع بموجب ترخيص MIT.\nالشفرة المصدرية: https://github.com/naco-siren/OpenMDict";
 "LICENSES" = "التراخيص";
