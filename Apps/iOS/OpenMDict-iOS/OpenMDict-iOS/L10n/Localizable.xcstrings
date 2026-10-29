@@ -929,9 +929,21 @@
       "comment": "AI Coach: chooser option — morphology quiz mode",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Among wUrdS"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Among wUrdS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Among wUrdS"
           }
         },
@@ -945,6 +957,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "어몽 워즈"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Among wUrdS"
           }
         },
         "zh-Hans": {
@@ -965,10 +983,22 @@
       "comment": "Among wUrdS: all quiz attempts failed",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء اختبار من إشاراتك المرجعية. جرّب إضافة المزيد من الكلمات الإنجليزية."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Could not generate a quiz for your bookmarks. Try adding more English words."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo generar un test con tus marcadores. Intenta guardar más palabras en inglés."
           }
         },
         "ja": {
@@ -981,6 +1011,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크로 퀴즈를 생성하지 못했습니다. 영어 단어를 더 추가해 보세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось создать викторину по вашим закладкам. Попробуйте добавить больше английских слов."
           }
         },
         "zh-Hans": {
@@ -1001,10 +1037,22 @@
       "comment": "Among wUrdS: all quizzes done message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم التحقق من هويات جميع أفراد الطاقم."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "All crew members verified."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos los tripulantes verificados."
           }
         },
         "ja": {
@@ -1017,6 +1065,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "모든 크루메이트를 확인했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все члены экипажа проверены."
           }
         },
         "zh-Hans": {
@@ -1037,10 +1091,22 @@
       "comment": "Among wUrdS: all quizzes done title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اكتملت المهمة!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Mission Complete!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Misión cumplida!"
           }
         },
         "ja": {
@@ -1053,6 +1119,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "미션 완료!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Миссия выполнена!"
           }
         },
         "zh-Hans": {
@@ -1073,10 +1145,22 @@
       "comment": "Among wUrdS: revealed crewmate subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فرد من الطاقم"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "CREWMATE"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TRIPULANTE"
           }
         },
         "ja": {
@@ -1089,6 +1173,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "크루메이트"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ЧЛЕН ЭКИПАЖА"
           }
         },
         "zh-Hans": {
@@ -1109,10 +1199,22 @@
       "comment": "Among wUrdS: defeat banner title (first line, red)",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هزيمة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Defeat"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Derrota"
           }
         },
         "ja": {
@@ -1125,6 +1227,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "패배"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поражение"
           }
         },
         "zh-Hans": {
@@ -1145,10 +1253,22 @@
       "comment": "Among wUrdS: defeat alert message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم القضاء على الطاقم."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The crew has been eliminated."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tripulación ha sido eliminada."
           }
         },
         "ja": {
@@ -1161,6 +1281,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "크루가 전멸했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экипаж уничтожен."
           }
         },
         "zh-Hans": {
@@ -1181,10 +1307,22 @@
       "comment": "Among wUrdS: defeat reason — zero crewmates alive",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم القضاء على الطاقم"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "the crew has been eliminated"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tripulación ha sido eliminada"
           }
         },
         "ja": {
@@ -1197,6 +1335,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "크루가 전멸했습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экипаж уничтожен"
           }
         },
         "zh-Hans": {
@@ -1217,10 +1361,22 @@
       "comment": "Among wUrdS: defeat reason — imposters reached parity",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتبقَّ عدد كافٍ من أفراد الطاقم على قيد الحياة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "not enough crewmates left alive"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quedan suficientes tripulantes con vida"
           }
         },
         "ja": {
@@ -1233,6 +1389,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "남은 크루메이트가 부족합니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В живых осталось слишком мало членов экипажа"
           }
         },
         "zh-Hans": {
@@ -1253,10 +1415,22 @@
       "comment": "Among wUrdS: defeat alert title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هزيمة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Defeat"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Derrota"
           }
         },
         "ja": {
@@ -1269,6 +1443,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "패배"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поражение"
           }
         },
         "zh-Hans": {
@@ -1289,10 +1469,22 @@
       "comment": "Among wUrdS: eject button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "طرد"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Eject"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expulsar"
           }
         },
         "ja": {
@@ -1305,6 +1497,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "추방"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Катапультироваться"
           }
         },
         "zh-Hans": {
@@ -1325,10 +1523,22 @@
       "comment": "Among wUrdS: in-game eject CTA — broadcast-style ALL CAPS; non-Latin scripts can ignore casing",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اطرد"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "EJECT"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EXPULSAR"
           }
         },
         "ja": {
@@ -1341,6 +1551,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "추방"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ВЫБРОСИТЬ"
           }
         },
         "zh-Hans": {
@@ -1361,10 +1577,22 @@
       "comment": "Among wUrdS: eject overlay text when the player ejected an innocent crewmate; %@ is the word",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”\nلم يكن مندسًّا…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "\"%@\"\nwas not An Imposter…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@»\nno era un impostor…"
           }
         },
         "ja": {
@@ -1377,6 +1605,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "\"%@\"은(는)\n임포스터가 아니었습니다…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@»\nне был самозванцем…"
           }
         },
         "zh-Hans": {
@@ -1397,10 +1631,22 @@
       "comment": "Among wUrdS: eject overlay text when the player correctly ejected an imposter; %@ is the word",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”\nكان مندسًّا!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "\"%@\"\nwas An Imposter!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@»\n¡era un impostor!"
           }
         },
         "ja": {
@@ -1413,6 +1659,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "\"%@\"은(는)\n임포스터였습니다!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@»\nбыл самозванцем!"
           }
         },
         "zh-Hans": {
@@ -1433,10 +1685,22 @@
       "comment": "Among wUrdS: eject limit warning",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكنك طرد %d من أفراد الطاقم كحدٍّ أقصى في كل مرة."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "You can only eject up to %d crew members at a time."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo puedes expulsar un máximo de %d a la vez."
           }
         },
         "ja": {
@@ -1449,6 +1713,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "한 번에 최대 %d명의 크루만 추방할 수 있습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Членов экипажа за раз можно выбросить не более %d."
           }
         },
         "zh-Hans": {
@@ -1469,9 +1739,21 @@
       "comment": "Among wUrdS: error placeholder title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خطأ"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Error"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Error"
           }
         },
@@ -1485,6 +1767,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "오류"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ошибка"
           }
         },
         "zh-Hans": {
@@ -1505,10 +1793,22 @@
       "comment": "Among wUrdS: loading placeholder message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تحليل أصول الكلمات…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Analyzing word origins…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analizando el origen de las palabras…"
           }
         },
         "ja": {
@@ -1521,6 +1821,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "단어 어원을 분석하는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Анализируем происхождение слов…"
           }
         },
         "zh-Hans": {
@@ -1541,10 +1847,22 @@
       "comment": "Among wUrdS: loading placeholder title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ توزيع الأدوار…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Assigning roles…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asignando roles…"
           }
         },
         "ja": {
@@ -1557,6 +1875,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "역할을 배정하는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распределяем роли…"
           }
         },
         "zh-Hans": {
@@ -1577,10 +1901,22 @@
       "comment": "Among wUrdS: revealed imposter subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مندسّ"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "IMPOSTER"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IMPOSTOR"
           }
         },
         "ja": {
@@ -1593,6 +1929,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "임포스터"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "САМОЗВАНЕЦ"
           }
         },
         "zh-Hans": {
@@ -1613,10 +1955,22 @@
       "comment": "Among wUrdS: imposter count banner",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يوجد بيننا %d من المندسّين"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "There are %d imposters among us"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostores entre nosotros: %d"
           }
         },
         "ja": {
@@ -1629,6 +1983,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "우리 사이에 %d명의 임포스터가 있습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Самозванцев среди нас: %d"
           }
         },
         "zh-Hans": {
@@ -1649,10 +2009,22 @@
       "comment": "Among wUrdS: back-nav alert body — appeals to player's responsibility to the surviving crew",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أرواح طاقمك لا تزال في خطر — المندسّون طلقاء!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Your crew's lives are still in danger — imposters on the loose!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La vida de tu tripulación sigue en peligro: ¡hay impostores sueltos!"
           }
         },
         "ja": {
@@ -1665,6 +2037,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "크루의 목숨이 아직 위험해요 — 임포스터가 활보 중!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Жизни вашего экипажа всё ещё в опасности — самозванцы на свободе!"
           }
         },
         "zh-Hans": {
@@ -1685,10 +2063,22 @@
       "comment": "Among wUrdS: back-nav alert title — Among Us spaceship metaphor",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هل تهجر السفينة؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Eject from Ship?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Abandonar la nave?"
           }
         },
         "ja": {
@@ -1701,6 +2091,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "우주선에서 탈출할까요?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Покинуть корабль?"
           }
         },
         "zh-Hans": {
@@ -1721,10 +2117,22 @@
       "comment": "Among wUrdS: instruction text",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر على الكلمات التي تشتبه في أنها مندسّة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Tap words you think are imposters"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca las palabras que te parezcan impostoras"
           }
         },
         "ja": {
@@ -1737,6 +2145,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "임포스터로 의심되는 단어를 탭하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите на слова, которые кажутся вам самозванцами"
           }
         },
         "zh-Hans": {
@@ -1757,10 +2171,22 @@
       "comment": "Among wUrdS: next quiz button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التالي"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Next"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente"
           }
         },
         "ja": {
@@ -1773,6 +2199,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Далее"
           }
         },
         "zh-Hans": {
@@ -1793,10 +2225,22 @@
       "comment": "Among wUrdS: empty state message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف بعض الكلمات الإنجليزية إلى إشاراتك المرجعية أولًا، ثم عُد لمطاردة المندسّين."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Bookmark some English words first, then come back to hunt imposters."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda primero algunas palabras en inglés en tus marcadores y vuelve para cazar impostores."
           }
         },
         "ja": {
@@ -1809,6 +2253,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "먼저 영어 단어를 북마크한 다음, 돌아와서 임포스터를 찾아보세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала добавьте в закладки несколько английских слов, а потом возвращайтесь ловить самозванцев."
           }
         },
         "zh-Hans": {
@@ -1829,10 +2279,22 @@
       "comment": "Among wUrdS: empty state title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد إشارات مرجعية"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "No Bookmarks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin marcadores"
           }
         },
         "ja": {
@@ -1845,6 +2307,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크 없음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет закладок"
           }
         },
         "zh-Hans": {
@@ -1865,10 +2333,22 @@
       "comment": "Among wUrdS: loading failure — ship exploded, retry",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انصهار المفاعل!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Reactor Meltdown!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Fusión del reactor!"
           }
         },
         "ja": {
@@ -1881,6 +2361,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "원자로 멜트다운!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Реактор плавится!"
           }
         },
         "zh-Hans": {
@@ -1901,10 +2387,22 @@
       "comment": "Among wUrdS: brief message after reactor meltdown before next attempt",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ إعادة تجميع الطاقم…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Reassembling crew…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniendo a la tripulación…"
           }
         },
         "ja": {
@@ -1917,6 +2415,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "크루 재편성 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собираем экипаж заново…"
           }
         },
         "zh-Hans": {
@@ -1937,10 +2441,22 @@
       "comment": "Among wUrdS: root morpheme label",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الجذر"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Root"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raíz"
           }
         },
         "ja": {
@@ -1953,6 +2469,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "어근"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Корень"
           }
         },
         "zh-Hans": {
@@ -1973,10 +2495,22 @@
       "comment": "Among wUrdS: score summary",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كشفت %1$d من %2$d بشكل صحيح"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "%1$d of %2$d correctly identified"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d de %2$d identificados correctamente"
           }
         },
         "ja": {
@@ -1989,6 +2523,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%2$d개 중 %1$d개 정답"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Верно определено: %1$d из %2$d"
           }
         },
         "zh-Hans": {
@@ -2009,10 +2549,22 @@
       "comment": "Among wUrdS: cancel leaving mid-round — keeps the spaceship-crew metaphor",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البقاء على متن السفينة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Stay Aboard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir a bordo"
           }
         },
         "ja": {
@@ -2025,6 +2577,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "남아 있기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остаться на борту"
           }
         },
         "zh-Hans": {
@@ -2045,9 +2603,21 @@
       "comment": "Among wUrdS: nav bar title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Among wUrdS"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Among wUrdS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Among wUrdS"
           }
         },
@@ -2061,6 +2631,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "어몽 워즈"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Among wUrdS"
           }
         },
         "zh-Hans": {
@@ -2081,10 +2657,22 @@
       "comment": "Among wUrdS: retry button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة المحاولة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Try Again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
           }
         },
         "ja": {
@@ -2097,6 +2685,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다시 시도"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
           }
         },
         "zh-Hans": {
@@ -2117,10 +2711,22 @@
       "comment": "Among wUrdS: reveal button in endgame alert",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كشف الهويات"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Verify Identities"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar identidades"
           }
         },
         "ja": {
@@ -2133,6 +2739,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "신원 확인"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Раскрыть роли"
           }
         },
         "zh-Hans": {
@@ -2153,10 +2765,22 @@
       "comment": "Among wUrdS: reveal banner when player wins",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انتصار!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Victory!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Victoria!"
           }
         },
         "ja": {
@@ -2169,6 +2793,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "승리!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Победа!"
           }
         },
         "zh-Hans": {
@@ -2189,10 +2819,22 @@
       "comment": "Among wUrdS: victory alert message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم طرد جميع المندسّين."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "All imposters have been ejected."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos los impostores han sido expulsados."
           }
         },
         "ja": {
@@ -2205,6 +2847,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "모든 임포스터를 추방했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все самозванцы выброшены за борт."
           }
         },
         "zh-Hans": {
@@ -2225,10 +2873,22 @@
       "comment": "Among wUrdS: victory alert title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🎉 انتصار"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "🎉 Victory"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🎉 Victoria"
           }
         },
         "ja": {
@@ -2241,6 +2901,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "🎉 승리"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🎉 Победа"
           }
         },
         "zh-Hans": {
@@ -2261,10 +2927,22 @@
       "comment": "AI Coach: morphology quiz mode description",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اكشف الكلمات المندسّة بين الأقارب الحقيقيين"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Find imposter words hiding among true relatives"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descubre las palabras impostoras que se esconden entre parientes auténticos"
           }
         },
         "ja": {
@@ -2277,6 +2955,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "진짜 동족어 사이에 숨은 임포스터 단어를 찾아보세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вычислите самозванцев среди настоящих родственников слова"
           }
         },
         "zh-Hans": {
@@ -2297,10 +2981,22 @@
       "comment": "AI Coach: chooser action sheet message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر وضع الدراسة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Choose a study mode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un modo de estudio"
           }
         },
         "ja": {
@@ -2313,6 +3009,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "학습 모드를 선택하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите режим обучения"
           }
         },
         "zh-Hans": {
@@ -2333,10 +3035,22 @@
       "comment": "AI Coach: Apple Intelligence not enabled error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم تفعيل Apple Intelligence على هذا الجهاز. افتح «الإعدادات ← Apple Intelligence وSiri» وشغّل Apple Intelligence، ثم حاول مرة أخرى."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Apple Intelligence is not enabled on this device. Open Settings → Apple Intelligence & Siri and turn on Apple Intelligence, then try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence no está activada en este dispositivo. Abre Ajustes → Apple Intelligence y Siri, activa Apple Intelligence e inténtalo de nuevo."
           }
         },
         "ja": {
@@ -2349,6 +3063,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "이 기기에서 Apple Intelligence가 활성화되어 있지 않습니다. 설정 → Apple Intelligence 및 Siri로 이동해 Apple Intelligence를 켠 다음 다시 시도하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence не включён на этом устройстве. Откройте Настройки → Apple Intelligence и Siri, включите Apple Intelligence и повторите попытку."
           }
         },
         "zh-Hans": {
@@ -2369,10 +3089,22 @@
       "comment": "AI Coach: assets unavailable error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "موارد نموذج اللغة على الجهاز غير متوفرة بعد. ربما لا يزال تنزيلها جاريًا — حاول مرة أخرى بعد بضع دقائق."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The on-device language model assets aren't available yet. They may still be downloading — try again in a few minutes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los recursos del modelo de lenguaje en el dispositivo aún no están disponibles. Puede que se sigan descargando: inténtalo de nuevo en unos minutos."
           }
         },
         "ja": {
@@ -2385,6 +3117,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "온디바이스 언어 모델 자산을 아직 사용할 수 없습니다. 다운로드가 진행 중일 수 있습니다 — 몇 분 후에 다시 시도하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ресурсы языковой модели на устройстве пока недоступны. Возможно, они ещё загружаются — повторите попытку через несколько минут."
           }
         },
         "zh-Hans": {
@@ -2405,10 +3143,22 @@
       "comment": "AI Coach: context window exceeded error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكلمة وتعريفها في القاموس معًا أطول مما يستطيع النموذج على الجهاز معالجته (>4096 رمزًا). جرّب تعريفًا أقصر."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The word and its dictionary definition together are too long for the on-device model (>4096 tokens). Try a shorter definition."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La palabra y su definición del diccionario juntas son demasiado largas para el modelo en el dispositivo (>4096 tokens). Prueba con una definición más corta."
           }
         },
         "ja": {
@@ -2421,6 +3171,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "단어와 사전 정의를 합친 길이가 온디바이스 모델에 비해 너무 깁니다(>4096 토큰). 더 짧은 정의로 시도해 보세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Слово и его словарное определение вместе слишком длинные для модели на устройстве (>4096 токенов). Попробуйте более короткое определение."
           }
         },
         "zh-Hans": {
@@ -2441,10 +3197,22 @@
       "comment": "AI Coach: device not eligible error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يدعم هذا الجهاز نماذج Apple Intelligence اللغوية التي تعمل على الجهاز نفسه. يتطلب المدرب الذكي iPhone 15 Pro / iPhone 16 أو iPad أو Mac مزوّدًا بشريحة Apple."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "This device does not support Apple Intelligence on-device language models. AI Coach requires an iPhone 15 Pro / iPhone 16 / Apple silicon iPad or Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este dispositivo no puede ejecutar los modelos de lenguaje de Apple Intelligence. AI Coach requiere un iPhone 15 Pro / iPhone 16 / iPad o Mac con chip de Apple."
           }
         },
         "ja": {
@@ -2457,6 +3225,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "이 기기는 Apple Intelligence 온디바이스 언어 모델을 지원하지 않습니다. AI 코치는 iPhone 15 Pro / iPhone 16 / Apple Silicon iPad 또는 Mac이 필요합니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это устройство не поддерживает локальные языковые модели Apple Intelligence. Для ИИ-наставника нужен iPhone 15 Pro / iPhone 16 либо iPad или Mac с чипом Apple silicon."
           }
         },
         "zh-Hans": {
@@ -2477,10 +3251,22 @@
       "comment": "AI Coach: guardrail violation error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حجب النموذج على الجهاز هذا المحتوى (ضوابط الأمان). تخطَّ هذه الكلمة حاليًا."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The on-device model blocked this content (safety guardrail). Skip this word for now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo en el dispositivo ha bloqueado este contenido (filtro de seguridad). Omite esta palabra por ahora."
           }
         },
         "ja": {
@@ -2493,6 +3279,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "온디바이스 모델이 이 콘텐츠를 차단했습니다(안전 가드레일). 지금은 이 단어를 건너뛰세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Модель на устройстве заблокировала этот контент (защитный фильтр). Пока пропустите это слово."
           }
         },
         "zh-Hans": {
@@ -2513,10 +3305,22 @@
       "comment": "AI Coach: model not ready error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يزال نموذج اللغة على الجهاز قيد التنزيل أو التهيئة. حاول مرة أخرى بعد بضع دقائق."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The on-device language model is still downloading or warming up. Try again in a few minutes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo de lenguaje en el dispositivo aún se está descargando o preparando. Inténtalo de nuevo en unos minutos."
           }
         },
         "ja": {
@@ -2529,6 +3333,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "온디바이스 언어 모델이 아직 다운로드 중이거나 준비 중입니다. 몇 분 후에 다시 시도하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Языковая модель на устройстве ещё загружается или готовится к работе. Повторите попытку через несколько минут."
           }
         },
         "zh-Hans": {
@@ -2549,10 +3359,22 @@
       "comment": "AI Coach: rate limited error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تجاوز حدّ الطلبات للنموذج على الجهاز حاليًا. انتظر قليلًا وحاول مرة أخرى."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The on-device model is rate-limited right now. Wait a moment and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo en el dispositivo ha recibido demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
           }
         },
         "ja": {
@@ -2565,6 +3387,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "지금은 온디바이스 모델 사용량이 제한되고 있습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Превышен лимит запросов к модели на устройстве. Подождите немного и повторите попытку."
           }
         },
         "zh-Hans": {
@@ -2585,10 +3413,22 @@
       "comment": "AI Coach: chooser option — flashcard mode",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بطاقة دراسية"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Flashcard"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarjeta de estudio"
           }
         },
         "ja": {
@@ -2601,6 +3441,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "플래시카드"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Карточки"
           }
         },
         "zh-Hans": {
@@ -2621,10 +3467,22 @@
       "comment": "Flashcard: rating button — need to review again",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مجددًا"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otra vez"
           }
         },
         "ja": {
@@ -2637,6 +3495,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다시"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снова"
           }
         },
         "zh-Hans": {
@@ -2657,10 +3521,22 @@
       "comment": "Flashcard: all cards completed",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انتهت بطاقات هذه الجلسة، وعددها %d."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "That's all %d cards for this session."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has repasado todas las tarjetas de esta sesión (%d)."
           }
         },
         "ja": {
@@ -2673,6 +3549,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "이번 세션의 %d개 카드를 모두 학습했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все карточки этого сеанса пройдены: %d."
           }
         },
         "zh-Hans": {
@@ -2693,10 +3575,22 @@
       "comment": "Flashcard: progress header — Card 1 of 5",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البطاقة %1$d من %2$d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Card %1$d of %2$d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarjeta %1$d de %2$d"
           }
         },
         "ja": {
@@ -2709,6 +3603,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "카드 %2$d개 중 %1$d번째"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Карточка %1$d из %2$d"
           }
         },
         "zh-Hans": {
@@ -2729,10 +3629,22 @@
       "comment": "Flashcard: section title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التعريف"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Definition"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definición"
           }
         },
         "ja": {
@@ -2745,6 +3657,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "정의"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Определение"
           }
         },
         "zh-Hans": {
@@ -2765,10 +3683,22 @@
       "comment": "Flashcard: rating button — already knew",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سهل"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Easy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fácil"
           }
         },
         "ja": {
@@ -2781,6 +3711,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "쉬움"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Легко"
           }
         },
         "zh-Hans": {
@@ -2801,10 +3737,22 @@
       "comment": "Flashcard: section title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مثال"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Example"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejemplo"
           }
         },
         "ja": {
@@ -2817,6 +3765,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "예문"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пример"
           }
         },
         "zh-Hans": {
@@ -2837,10 +3791,22 @@
       "comment": "Flashcard: loading status",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ إنشاء البطاقة الدراسية بالذكاء الاصطناعي على الجهاز…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Generating flashcard with on-device AI…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generando tarjeta con IA en el dispositivo…"
           }
         },
         "ja": {
@@ -2853,6 +3819,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "온디바이스 AI로 플래시카드를 생성하는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создаём карточку с помощью ИИ на устройстве…"
           }
         },
         "zh-Hans": {
@@ -2873,10 +3845,22 @@
       "comment": "Flashcard: rating button — understood",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جيد"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Good"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bien"
           }
         },
         "ja": {
@@ -2889,6 +3873,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "양호"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хорошо"
           }
         },
         "zh-Hans": {
@@ -2909,10 +3899,22 @@
       "comment": "Flashcard: section title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وسيلة للتذكّر"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Mnemonic"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Truco mnemotécnico"
           }
         },
         "ja": {
@@ -2925,6 +3927,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "암기 팁"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как запомнить"
           }
         },
         "zh-Hans": {
@@ -2945,10 +3953,22 @@
       "comment": "Flashcard: next card button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البطاقة التالية ←"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Next card →"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente tarjeta →"
           }
         },
         "ja": {
@@ -2961,6 +3981,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다음 카드 →"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующая →"
           }
         },
         "zh-Hans": {
@@ -2981,10 +4007,22 @@
       "comment": "Flashcard: empty state — no bookmarks",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف بعض الكلمات الإنجليزية إلى إشاراتك المرجعية أولًا، ثم عُد لتجربة المدرب الذكي. يراجع المدرب ما يصل إلى 5 من أحدث إشاراتك المرجعية."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Bookmark some English words first, then come back to try AI Coach. It reviews up to 5 of your most recent bookmarks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade primero algunas palabras en inglés a tus marcadores y vuelve para probar AI Coach, que repasa hasta 5 de tus marcadores más recientes."
           }
         },
         "ja": {
@@ -2997,6 +4035,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "먼저 영어 단어를 북마크한 다음, 돌아와서 AI 코치를 사용해 보세요. 최근 북마크 최대 5개를 복습합니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала добавьте в закладки несколько английских слов, а затем возвращайтесь и попробуйте ИИ-наставника. Он повторяет до 5 ваших последних закладок."
           }
         },
         "zh-Hans": {
@@ -3017,10 +4061,22 @@
       "comment": "Flashcard: short header above the empty-state message — the longer noCards copy appears below this",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد بطاقات"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "No cards"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin tarjetas"
           }
         },
         "ja": {
@@ -3033,6 +4089,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "카드 없음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет карточек"
           }
         },
         "zh-Hans": {
@@ -3053,10 +4115,22 @@
       "comment": "Flashcard: empty generation result",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُرجع النموذج أي محتوى."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Model returned no content."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo no devolvió ningún contenido."
           }
         },
         "ja": {
@@ -3069,6 +4143,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "모델이 콘텐츠를 반환하지 않았습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Модель не вернула результат."
           }
         },
         "zh-Hans": {
@@ -3089,10 +4169,22 @@
       "comment": "Flashcard: header when AI not available",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "غير جاهز"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Not ready"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no está listo"
           }
         },
         "ja": {
@@ -3105,6 +4197,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "준비되지 않음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не готово"
           }
         },
         "zh-Hans": {
@@ -3125,10 +4223,22 @@
       "comment": "Flashcard: generation complete status",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البطاقة جاهزة. اكشف الإجابة عندما تريد اختبار نفسك."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Ready. Reveal when you want to check yourself."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo. Revela la respuesta cuando quieras ponerte a prueba."
           }
         },
         "ja": {
@@ -3141,6 +4251,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "준비 완료. 확인하고 싶을 때 공개하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово. Нажмите «Показать», когда захотите себя проверить."
           }
         },
         "zh-Hans": {
@@ -3161,10 +4277,22 @@
       "comment": "Flashcard: section title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كلمات ذات صلة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Related words"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palabras relacionadas"
           }
         },
         "ja": {
@@ -3177,6 +4305,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "관련 단어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Связанные слова"
           }
         },
         "zh-Hans": {
@@ -3197,10 +4331,22 @@
       "comment": "Flashcard: reveal button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كشف"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Reveal"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revelar"
           }
         },
         "ja": {
@@ -3213,6 +4359,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "공개"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показать"
           }
         },
         "zh-Hans": {
@@ -3317,10 +4469,22 @@
       "comment": "AI Coach: flashcard mode description",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بطاقات دراسية يُنشئها الذكاء الاصطناعي من إشاراتك المرجعية"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "AI-generated flashcards from your bookmarks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarjetas de estudio generadas por IA a partir de tus marcadores"
           }
         },
         "ja": {
@@ -3333,6 +4497,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크에서 AI로 생성된 플래시카드"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Карточки по вашим закладкам, созданные ИИ"
           }
         },
         "zh-Hans": {
@@ -3353,10 +4523,22 @@
       "comment": "AI Coach: dismiss confirmation — destructive action",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مغادرة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Leave"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir"
           }
         },
         "ja": {
@@ -3369,6 +4551,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "나가기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти"
           }
         },
         "zh-Hans": {
@@ -3389,10 +4577,22 @@
       "comment": "AI Coach: dismiss confirmation alert message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سيضيع تقدّمك."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Your progress will be lost."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perderás tu progreso."
           }
         },
         "ja": {
@@ -3405,6 +4605,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "진행 상황이 사라집니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш прогресс будет потерян."
           }
         },
         "zh-Hans": {
@@ -3425,10 +4631,22 @@
       "comment": "AI Coach: dismiss confirmation — cancel action",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البقاء"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Stay"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir"
           }
         },
         "ja": {
@@ -3441,6 +4659,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "머무르기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остаться"
           }
         },
         "zh-Hans": {
@@ -3461,10 +4685,22 @@
       "comment": "AI Coach: dismiss confirmation alert title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هل تريد مغادرة الاختبار؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Leave Quiz?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Salir del test?"
           }
         },
         "ja": {
@@ -3477,6 +4713,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "퀴즈를 나가시겠습니까?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти из викторины?"
           }
         },
         "zh-Hans": {
@@ -3497,10 +4739,22 @@
       "comment": "Maury: subtitle when the user has played through all bookmarked words",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استضاف البرنامج جميع ضيوفك من الإشارات المرجعية."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "All bookmarked guests have been on the show."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos los invitados de tus marcadores ya han pasado por el programa."
           }
         },
         "ja": {
@@ -3513,6 +4767,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크한 모든 게스트가 방송에 출연했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все гости из ваших закладок уже побывали в эфире."
           }
         },
         "zh-Hans": {
@@ -3533,10 +4793,22 @@
       "comment": "Maury: title when the user has played through all bookmarked words — distinct from per-episode 'Case Closed.'",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انتهى التصوير!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "That's a wrap!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Fin de temporada!"
           }
         },
         "ja": {
@@ -3549,6 +4821,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "이걸로 끝!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Стоп, снято!"
           }
         },
         "zh-Hans": {
@@ -3569,10 +4847,22 @@
       "comment": "Maury: dismiss confirmation message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الجمهور ينتظر حكمك."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The audience is waiting on your verdict."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El público espera tu veredicto."
           }
         },
         "ja": {
@@ -3585,6 +4875,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "관객이 당신의 판결을 기다리고 있습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зрители ждут вашего вердикта."
           }
         },
         "zh-Hans": {
@@ -3605,10 +4901,22 @@
       "comment": "Maury: dismiss confirmation title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مغادرة البرنامج؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Leaving the show?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Te vas del programa?"
           }
         },
         "ja": {
@@ -3621,6 +4929,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "방송을 떠나시겠습니까?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Покидаете шоу?"
           }
         },
         "zh-Hans": {
@@ -3641,10 +4955,22 @@
       "comment": "Maury: drumroll lead-in text before the verdict reveal — Maury Show signature phrase 'You ARE / You are NOT'",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنتَ…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "You…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tú…"
           }
         },
         "ja": {
@@ -3657,6 +4983,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "당신은…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы…"
           }
         },
         "zh-Hans": {
@@ -3677,10 +5009,22 @@
       "comment": "Maury: finale title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُغلقت القضية."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Case Closed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caso cerrado."
           }
         },
         "ja": {
@@ -3693,6 +5037,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "사건 종결."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дело закрыто."
           }
         },
         "zh-Hans": {
@@ -3713,10 +5063,22 @@
       "comment": "Maury: progress label — Case 3 of 6",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "القضية %1$d من %2$d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Case %1$d of %2$d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caso %1$d de %2$d"
           }
         },
         "ja": {
@@ -3729,6 +5091,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "사건 %2$d개 중 %1$d번째"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дело %1$d из %2$d"
           }
         },
         "zh-Hans": {
@@ -3749,10 +5117,22 @@
       "comment": "Maury: hint at the bottom of the reveal overlay — user taps anywhere to proceed",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر للمتابعة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Tap to continue"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca para continuar"
           }
         },
         "ja": {
@@ -3765,6 +5145,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "탭하여 계속하기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите, чтобы продолжить"
           }
         },
         "zh-Hans": {
@@ -3785,10 +5171,22 @@
       "comment": "Maury: loading state",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تُرفع الستارة…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Curtain up…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se levanta el telón…"
           }
         },
         "ja": {
@@ -3801,6 +5199,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "막이 오르는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Занавес поднимается…"
           }
         },
         "zh-Hans": {
@@ -3821,10 +5225,22 @@
       "comment": "Maury: all quizzes failed",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم نتمكّن من تجهيز حلقة بأيٍّ من إشاراتك المرجعية. جرّب إضافة المزيد من الكلمات الإنجليزية ذات الجذور اللاتينية أو اليونانية."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "We couldn't book an episode with any of your bookmarks. Try adding more English words with Latin or Greek roots."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos montar un episodio con ninguno de tus marcadores. Intenta añadir más palabras en inglés con raíces latinas o griegas."
           }
         },
         "ja": {
@@ -3837,6 +5253,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크 중 어느 것으로도 에피소드를 만들 수 없었습니다. 라틴어나 그리스어 어근의 영어 단어를 더 추가해 보세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ни одно слово из ваших закладок не подошло для выпуска. Попробуйте добавить больше английских слов с латинскими или греческими корнями."
           }
         },
         "zh-Hans": {
@@ -3857,10 +5279,22 @@
       "comment": "Maury: show intro banner; %@ is target word",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اليوم في Morpheme Maury… هل “%@” هو الجذر الأب حقًا؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Today on Morpheme Maury… is “%@” really the root father?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy en Morpheme Maury… ¿es «%@» de verdad la raíz paterna?"
           }
         },
         "ja": {
@@ -3873,6 +5307,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "오늘 모피엄 모리에서… 정말 \"%@\"이(가) 진짜 어근 아버지일까요?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сегодня в Morpheme Maury… правда ли, что «%@» — тот самый корень-отец?"
           }
         },
         "zh-Hans": {
@@ -3893,10 +5333,22 @@
       "comment": "Maury: error-state title shown when the engine fails to produce ANY quiz",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يمكن أن يستمر العرض"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The show can't go on"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El espectáculo no puede continuar"
           }
         },
         "ja": {
@@ -3909,6 +5361,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "방송을 계속할 수 없습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шоу не может продолжаться"
           }
         },
         "zh-Hans": {
@@ -3929,10 +5387,22 @@
       "comment": "Maury: finale score; %d correct out of %d total",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أصبت في الحكم على %1$d من %2$d."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "You judged %1$d of %2$d correctly."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has acertado %1$d de %2$d veredictos."
           }
         },
         "ja": {
@@ -3945,6 +5415,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%2$d개 중 %1$d개를 정확히 판결했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Верных вердиктов: %1$d из %2$d."
           }
         },
         "zh-Hans": {
@@ -3965,10 +5441,22 @@
       "comment": "Maury: confirm dismiss",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مغادرة البرنامج"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Leave Show"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir del programa"
           }
         },
         "ja": {
@@ -3981,6 +5469,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "방송 떠나기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Покинуть шоу"
           }
         },
         "zh-Hans": {
@@ -4001,10 +5495,22 @@
       "comment": "Maury: next quiz button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الحلقة التالية"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Next Episode"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo episodio"
           }
         },
         "ja": {
@@ -4017,6 +5523,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다음 에피소드"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующий выпуск"
           }
         },
         "zh-Hans": {
@@ -4037,10 +5549,22 @@
       "comment": "Maury: empty state message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف بعض الكلمات الإنجليزية إلى إشاراتك المرجعية أولًا — يحتاج Maury إلى ضيوف للبرنامج."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Bookmark some English words first — Maury needs guests for the show."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda primero algunas palabras en inglés en tus marcadores: Maury necesita invitados para el programa."
           }
         },
         "ja": {
@@ -4053,6 +5577,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "먼저 영어 단어를 북마크하세요 — 모리에게는 방송에 출연할 게스트가 필요합니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала добавьте в закладки несколько английских слов — Мори нужны гости для шоу."
           }
         },
         "zh-Hans": {
@@ -4073,10 +5603,22 @@
       "comment": "Maury: empty state title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا ضيوف في الحلقة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "No Guests Booked"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin invitados"
           }
         },
         "ja": {
@@ -4089,6 +5631,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "예약된 게스트 없음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Гостей пока нет"
           }
         },
         "zh-Hans": {
@@ -4109,10 +5657,22 @@
       "comment": "Maury: envelope reveal headline",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وصلت النتائج…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "THE RESULTS ARE IN…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YA TENEMOS LOS RESULTADOS…"
           }
         },
         "ja": {
@@ -4125,6 +5685,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "결과가 나왔습니다…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ИТАК, РЕЗУЛЬТАТЫ ТЕСТА…"
           }
         },
         "zh-Hans": {
@@ -4145,10 +5711,22 @@
       "comment": "Maury: loading secondary message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فريق الكواليس يجهّز المسرح…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Stagehands at work…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tramoyistas en acción…"
           }
         },
         "ja": {
@@ -4161,6 +5739,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "무대 스태프가 작업 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ставим декорации…"
           }
         },
         "zh-Hans": {
@@ -4181,10 +5765,22 @@
       "comment": "Maury: cancel dismiss",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "العودة إلى المسرح"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Back to the Stage"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver al escenario"
           }
         },
         "ja": {
@@ -4197,6 +5793,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "무대로 돌아가기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вернуться на сцену"
           }
         },
         "zh-Hans": {
@@ -4217,10 +5819,22 @@
       "comment": "Maury: envelope instruction",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر على الظرف لكشف النتيجة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Tap the envelope to reveal"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca el sobre para ver el resultado"
           }
         },
         "ja": {
@@ -4233,6 +5847,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "봉투를 탭해서 공개하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите на конверт, чтобы открыть"
           }
         },
         "zh-Hans": {
@@ -4253,9 +5873,21 @@
       "comment": "Maury: nav bar title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morpheme Maury"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Morpheme Maury"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Morpheme Maury"
           }
         },
@@ -4269,6 +5901,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "모피엄 모리"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morpheme Maury"
           }
         },
         "zh-Hans": {
@@ -4289,10 +5927,22 @@
       "comment": "Maury: user verdict button — believes candidate shares root",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "من العائلة!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "FAMILY!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡FAMILIA!"
           }
         },
         "ja": {
@@ -4305,6 +5955,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "가족!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "РОДНЯ!"
           }
         },
         "zh-Hans": {
@@ -4325,10 +5981,22 @@
       "comment": "Maury: user verdict button — believes candidate is false relative",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كاذب!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "LIAR!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡FARSANTE!"
           }
         },
         "ja": {
@@ -4341,6 +6009,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "거짓말쟁이!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ВРУН!"
           }
         },
         "zh-Hans": {
@@ -4361,10 +6035,22 @@
       "comment": "Maury: reveal text for false relative",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنتَ لستَ\nالمورفيم!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "you are NOT\nthe morpheme!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡NO eres\nel morfema!"
           }
         },
         "ja": {
@@ -4377,6 +6063,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "당신은\n그 형태소가 아닙니다!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "вы НЕ ТА\nморфема!"
           }
         },
         "zh-Hans": {
@@ -4397,10 +6089,22 @@
       "comment": "Maury: reveal text for true cognate",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنتَ فعلًا\nالمورفيم!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "you ARE\nthe morpheme!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡SÍ eres\nel morfema!"
           }
         },
         "ja": {
@@ -4413,6 +6117,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "당신이 바로\n그 형태소입니다!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "вы — ТА САМАЯ\nморфема!"
           }
         },
         "zh-Hans": {
@@ -4433,9 +6143,21 @@
       "comment": "AI Coach: chooser option — Maury Show style morphology reveal",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morpheme Maury"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Morpheme Maury"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Morpheme Maury"
           }
         },
@@ -4449,6 +6171,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "모피엄 모리"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morpheme Maury"
           }
         },
         "zh-Hans": {
@@ -4469,10 +6197,22 @@
       "comment": "AI Coach: Morpheme Maury mode description",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مواجهة إثبات نسب على طريقة التلفزيون النهاري: هل هذه الكلمة من العائلة حقًا؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Daytime-TV paternity showdown: is this word really in the family?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba de paternidad de la tele de la tarde: ¿de verdad esta palabra es de la familia?"
           }
         },
         "ja": {
@@ -4485,6 +6225,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "낮 시간대 TV 친자 대결: 이 단어는 정말 가족일까요?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дневное ток-шоу с тестом на отцовство: это слово правда из той же семьи?"
           }
         },
         "zh-Hans": {
@@ -4505,10 +6251,22 @@
       "comment": "AI Coach: button to open app settings",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح إعدادات OpenMDict"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Open OpenMDict Settings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir ajustes de OpenMDict"
           }
         },
         "ja": {
@@ -4521,6 +6279,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "OpenMDict 설정 열기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть настройки OpenMDict"
           }
         },
         "zh-Hans": {
@@ -4541,9 +6305,21 @@
       "comment": "AI Coach: chooser option — Family Feud-style collocation quiz",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phrasy Feud"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Phrasy Feud"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Phrasy Feud"
           }
         },
@@ -4557,6 +6333,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "프레이지 퓨드"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phrasy Feud"
           }
         },
         "zh-Hans": {
@@ -4577,10 +6359,22 @@
       "comment": "Phrasy Feud: alert text-field placeholder for the user's typed guess",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إجابتك…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Your answer…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu respuesta…"
           }
         },
         "ja": {
@@ -4593,6 +6387,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "정답…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш ответ…"
           }
         },
         "zh-Hans": {
@@ -4613,10 +6413,22 @@
       "comment": "Phrasy Feud: engine-failure placeholder body",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتعاون النموذج على الجهاز هذه المرة. هل تريد المحاولة مرة أخرى؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The on-device model didn't cooperate this time. Want to try again?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vez el modelo en el dispositivo no ha colaborado. ¿Quieres intentarlo de nuevo?"
           }
         },
         "ja": {
@@ -4629,6 +6441,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "이번에는 온디바이스 모델이 협조하지 않았습니다. 다시 시도하시겠습니까?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Модель на устройстве в этот раз не справилась. Попробовать ещё раз?"
           }
         },
         "zh-Hans": {
@@ -4649,10 +6467,22 @@
       "comment": "Phrasy Feud: engine-failure placeholder title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر ابتكار جولة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Couldn't Dream Up a Round"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin ideas para esta ronda"
           }
         },
         "ja": {
@@ -4665,6 +6495,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "라운드를 만들 수 없었습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось придумать раунд"
           }
         },
         "zh-Hans": {
@@ -4685,10 +6521,22 @@
       "comment": "Phrasy Feud: finale subtitle line under the points; %1$d correct, %2$d total",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإجابات المكتشفة: %1$d من %2$d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "%1$d of %2$d answers found"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d de %2$d respuestas encontradas"
           }
         },
         "ja": {
@@ -4701,6 +6549,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%2$d개 중 %1$d개 정답 발견"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Найдено ответов: %1$d из %2$d"
           }
         },
         "zh-Hans": {
@@ -4721,10 +6575,22 @@
       "comment": "Phrasy Feud: end-of-round headline — the points scored, formatted as the large hero text",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "النقاط: %d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "%d POINTS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d PUNTOS"
           }
         },
         "ja": {
@@ -4737,6 +6603,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d 점"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ОЧКОВ: %d"
           }
         },
         "zh-Hans": {
@@ -4756,10 +6628,22 @@
     "aiCoach.phrasyFeud.leaveMessage": {
       "comment": "Phrasy Feud: back-nav alert body — appeals to contestants' core motivation (prize money) per Family Feud broadcast convention",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ستخسر الجائزة المالية التي لا تزال على الطاولة — لا تُدِر ظهرك للمال!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "You'll forfeit the prize money still on the table — don't walk away from the cash!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perderás el premio que aún queda sobre la mesa. ¡No le des la espalda al dinero!"
           }
         },
         "ja": {
@@ -4772,6 +6656,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "테이블 위 상금이 아직 남아 있어요 — 돈을 두고 떠나지 마세요!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы лишитесь призовых, которые ещё на кону, — не уходите с пустыми руками!"
           }
         },
         "zh-Hans": {
@@ -4791,10 +6681,22 @@
     "aiCoach.phrasyFeud.leaveShow": {
       "comment": "Phrasy Feud: confirm leaving mid-round — destructive action verb, stage exit metaphor",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الانسحاب"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Walk Off"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abandonar"
           }
         },
         "ja": {
@@ -4807,6 +6709,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "퇴장"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уйти"
           }
         },
         "zh-Hans": {
@@ -4826,10 +6734,22 @@
     "aiCoach.phrasyFeud.leaveTitle": {
       "comment": "Phrasy Feud: back-nav double-check alert title — broadcast contestant-walks-off-stage framing",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الانسحاب من البرنامج؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Walking off the show?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Abandonas el programa?"
           }
         },
         "ja": {
@@ -4842,6 +6762,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "쇼에서 퇴장할까요?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уходите со сцены?"
           }
         },
         "zh-Hans": {
@@ -4862,10 +6788,22 @@
       "comment": "Phrasy Feud: loading state subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ استطلاع آراء الجمهور…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Surveying the audience…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encuestando al público…"
           }
         },
         "ja": {
@@ -4878,6 +6816,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "청중을 조사하는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Опрашиваем сто человек…"
           }
         },
         "zh-Hans": {
@@ -4898,10 +6842,22 @@
       "comment": "Phrasy Feud: loading state title (game-show-host voice)",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الليلة في Phrasy Feud…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Tonight on Phrasy Feud…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta noche en Phrasy Feud…"
           }
         },
         "ja": {
@@ -4914,6 +6870,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "오늘 밤 프레이지 퓨드에서…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сегодня вечером в Phrasy Feud…"
           }
         },
         "zh-Hans": {
@@ -4934,10 +6896,22 @@
       "comment": "Phrasy Feud: button to start the next round from the finale screen",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الجولة التالية"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Next Round"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente ronda"
           }
         },
         "ja": {
@@ -4950,6 +6924,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다음 라운드"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующий раунд"
           }
         },
         "zh-Hans": {
@@ -4970,10 +6950,22 @@
       "comment": "Phrasy Feud: gate-failure placeholder body — intentionally does NOT name the threshold (24) so the user can't try to game it; copy stays vague on purpose",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف المزيد من الكلمات الإنجليزية إلى إشاراتك المرجعية، ثم عُد لتلعب."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Bookmark more English words and come back to play."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda más palabras en inglés en tus marcadores y vuelve para jugar."
           }
         },
         "ja": {
@@ -4986,6 +6978,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "영어 단어를 더 북마크하고 돌아와서 플레이하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте в закладки больше английских слов и возвращайтесь играть."
           }
         },
         "zh-Hans": {
@@ -5006,10 +7004,22 @@
       "comment": "Phrasy Feud: gate-failure placeholder title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يحن وقت العرض بعد"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Not Ready for Showtime"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no es hora del show"
           }
         },
         "ja": {
@@ -5022,6 +7032,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "방송 준비가 안 됐습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "До эфира ещё рано"
           }
         },
         "zh-Hans": {
@@ -5042,9 +7058,21 @@
       "comment": "Phrasy Feud: small label above the running-score LCD (right of buzzer)",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المجموع"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "TOTAL"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "TOTAL"
           }
         },
@@ -5058,6 +7086,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "점수"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "СЧЁТ"
           }
         },
         "zh-Hans": {
@@ -5077,10 +7111,22 @@
     "aiCoach.phrasyFeud.stayOnShow": {
       "comment": "Phrasy Feud: cancel leaving mid-round — keeps the broadcast-stage metaphor",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البقاء على المسرح"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Stay on Stage"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir en escena"
           }
         },
         "ja": {
@@ -5093,6 +7139,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "무대에 남기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остаться на сцене"
           }
         },
         "zh-Hans": {
@@ -5113,10 +7165,22 @@
       "comment": "Phrasy Feud: alert action — submit the typed guess for matching",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Submit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar"
           }
         },
         "ja": {
@@ -5129,6 +7193,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "제출"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ответить"
           }
         },
         "zh-Hans": {
@@ -5149,10 +7219,22 @@
       "comment": "Phrasy Feud: alert message when the buzzer is tapped — prompts the user to type their guess",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قدّم إجابتك"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Submit your answer"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe tu respuesta"
           }
         },
         "ja": {
@@ -5165,6 +7247,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "정답을 제출하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите свой ответ"
           }
         },
         "zh-Hans": {
@@ -5185,10 +7273,22 @@
       "comment": "Phrasy Feud: banner CTA shown before the user taps to flip the banner and start the timer",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر للبدء"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Tap to Start"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca para empezar"
           }
         },
         "ja": {
@@ -5201,6 +7301,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "눌러서 시작"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите, чтобы начать"
           }
         },
         "zh-Hans": {
@@ -5221,10 +7327,22 @@
       "comment": "Phrasy Feud: small label above the countdown timer LCD (left of buzzer)",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الوقت"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "TIME"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TIEMPO"
           }
         },
         "ja": {
@@ -5237,6 +7355,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "시간"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ВРЕМЯ"
           }
         },
         "zh-Hans": {
@@ -5257,10 +7381,22 @@
       "comment": "Phrasy Feud: retry button after engine error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة المحاولة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Try Again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
           }
         },
         "ja": {
@@ -5273,6 +7409,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다시 시도"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
           }
         },
         "zh-Hans": {
@@ -5293,10 +7435,22 @@
       "comment": "AI Coach: Phrasy Feud mode description",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استطلاع على طريقة برامج المسابقات: اذكر الكلمات التي تشترك في فئة واحدة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Game-show survey: name the words sharing a category"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encuesta de concurso: nombra las palabras de una misma categoría"
           }
         },
         "ja": {
@@ -5309,6 +7463,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "게임쇼 설문: 같은 카테고리에 속한 단어를 말해보세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Опрос в духе телеигры: назовите слова из одной категории"
           }
         },
         "zh-Hans": {
@@ -5329,10 +7489,22 @@
       "comment": "Quiz: all retries exhausted — Args: error description",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء اختبار بعد عدة محاولات.\n%@"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Could not generate a quiz after multiple attempts.\n%@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo generar un test tras varios intentos.\n%@"
           }
         },
         "ja": {
@@ -5345,6 +7517,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "여러 번 시도했지만 퀴즈를 생성하지 못했습니다.\n%@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось создать викторину даже после нескольких попыток.\n%@"
           }
         },
         "zh-Hans": {
@@ -5365,10 +7543,22 @@
       "comment": "Quiz: relationship article form for subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كلمة مضادّة في المعنى"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "an antonym"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "un antónimo"
           }
         },
         "ja": {
@@ -5381,6 +7571,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "반의어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "антоним"
           }
         },
         "zh-Hans": {
@@ -5401,10 +7597,22 @@
       "comment": "Quiz: relationship option",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ضدّ"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Antonym"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antónimo"
           }
         },
         "ja": {
@@ -5417,6 +7625,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "반의어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Антоним"
           }
         },
         "zh-Hans": {
@@ -5437,10 +7651,22 @@
       "comment": "Quiz: relationship article form for subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كلمة مشابهة في الشكل لكنها مختلفة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "a similar-looking but different word"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "una palabra de escritura parecida, pero distinta"
           }
         },
         "ja": {
@@ -5453,6 +7679,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "비슷해 보이지만 다른 단어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "похожее по написанию, но другое слово"
           }
         },
         "zh-Hans": {
@@ -5473,10 +7705,22 @@
       "comment": "Quiz: relationship article form for subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كلمة مرادفة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "a synonym"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "un sinónimo"
           }
         },
         "ja": {
@@ -5489,6 +7733,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "동의어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "синоним"
           }
         },
         "zh-Hans": {
@@ -5509,10 +7759,22 @@
       "comment": "Quiz: submit button",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التحقق من الإجابات"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Check Answers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprobar respuestas"
           }
         },
         "ja": {
@@ -5525,6 +7787,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "정답 확인"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить ответы"
           }
         },
         "zh-Hans": {
@@ -5545,10 +7813,22 @@
       "comment": "Quiz: header message below card — Args: quiz word",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُرجى تصنيف علاقة كل كلمة بـ“%@”:"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Please classify each word's relationship to \"%@\":"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clasifica la relación de cada palabra con «%@»:"
           }
         },
         "ja": {
@@ -5561,6 +7841,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "각 단어가 \"%@\"와(과) 어떤 관계인지 분류하세요:"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Определите, как каждое слово связано с «%@»:"
           }
         },
         "zh-Hans": {
@@ -5581,10 +7867,22 @@
       "comment": "Quiz: all quizzes completed message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لقد راجعت جميع الكلمات في إشاراتك المرجعية. عُد بعد إضافة المزيد من الإشارات المرجعية لخوض تحديات جديدة!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "You've gone through all your bookmarked words. Come back after adding more bookmarks for new challenges!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has repasado todas las palabras de tus marcadores. ¡Añade más y vuelve para afrontar nuevos desafíos!"
           }
         },
         "ja": {
@@ -5597,6 +7895,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크한 모든 단어를 학습했습니다. 북마크를 더 추가한 후 돌아와서 새로운 챌린지를 즐겨보세요!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы прошли все слова из закладок. Добавьте новые закладки и возвращайтесь за новыми испытаниями!"
           }
         },
         "zh-Hans": {
@@ -5617,10 +7921,22 @@
       "comment": "Quiz: all quizzes completed title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أحسنت!"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "You did it!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Lo has logrado!"
           }
         },
         "ja": {
@@ -5633,6 +7949,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "해냈습니다!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Получилось!"
           }
         },
         "zh-Hans": {
@@ -5653,10 +7975,22 @@
       "comment": "Quiz: grading — correct answer. Args: word, relationship",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صحيح — “%1$@” %2$@."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Correct — \"%1$@\" is %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correcto: «%1$@» es %2$@."
           }
         },
         "ja": {
@@ -5669,6 +8003,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "정답 — \"%1$@\"은(는) %2$@입니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Верно: «%1$@» — %2$@."
           }
         },
         "zh-Hans": {
@@ -5689,10 +8029,22 @@
       "comment": "Quiz: placeholder title on error",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حدث خطأ ما"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Something went wrong"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algo salió mal"
           }
         },
         "ja": {
@@ -5705,6 +8057,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "문제가 발생했습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что-то пошло не так"
           }
         },
         "zh-Hans": {
@@ -5725,10 +8083,22 @@
       "comment": "Quiz: loading status",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ إنشاء الاختبار بالذكاء الاصطناعي على الجهاز…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Generating quiz with on-device AI…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generando test con IA en el dispositivo…"
           }
         },
         "ja": {
@@ -5741,6 +8111,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "온디바이스 AI로 퀴즈를 생성하는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создаём викторину с помощью ИИ на устройстве…"
           }
         },
         "zh-Hans": {
@@ -5760,10 +8136,22 @@
     "aiCoach.quiz.generatingMessage": {
       "comment": "Word Tinder: placeholder message during initial generation — matchmaker swipes through user's bookmarked words",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الخاطبة تمرّر إشاراتك المرجعية يمينًا ويسارًا بحثًا عن شرارة الحب."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Our matchmaker is swiping through your bookmarks, looking for sparks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuestro Cupido está deslizando perfiles entre tus marcadores, a ver si salta la chispa."
           }
         },
         "ja": {
@@ -5776,6 +8164,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "매치메이커가 당신의 북마크를 스와이프하며 운명의 불꽃을 찾고 있어요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Наша сваха свайпает ваши закладки в поисках той самой искры."
           }
         },
         "zh-Hans": {
@@ -5795,10 +8189,22 @@
     "aiCoach.quiz.generatingTitle": {
       "comment": "Word Tinder: placeholder title during initial quiz generation — dating-set-up framing",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ ترتيب مواعيدك الغرامية…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Setting up your dates…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organizando tus citas…"
           }
         },
         "ja": {
@@ -5811,6 +8217,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "데이트를 준비 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Устраиваем вам свидания…"
           }
         },
         "zh-Hans": {
@@ -5831,10 +8243,22 @@
       "comment": "Word Tinder: confirm leaving mid-round — destructive action, plays on dating-app ghosting",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختفِ بلا وداع"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Ghost Them"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hacer ghosting"
           }
         },
         "ja": {
@@ -5847,6 +8271,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "잠수타기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Слиться"
           }
         },
         "zh-Hans": {
@@ -5867,10 +8297,22 @@
       "comment": "Word Tinder: cancel leaving mid-round — wraps 'stay' in a romantic appeal so the user pauses",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "امنح الحب فرصة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Give Love a Chance"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dale una oportunidad al amor"
           }
         },
         "ja": {
@@ -5883,6 +8325,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "사랑에게 기회를"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дать любви шанс"
           }
         },
         "zh-Hans": {
@@ -5903,10 +8351,22 @@
       "comment": "Quiz: grading — incorrect answer. Args: word, relationship",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في الواقع، “%1$@” %2$@."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Actually, \"%1$@\" is %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En realidad, «%1$@» es %2$@."
           }
         },
         "ja": {
@@ -5919,6 +8379,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "실제로 \"%1$@\"은(는) %2$@입니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На самом деле «%1$@» — %2$@."
           }
         },
         "zh-Hans": {
@@ -5939,10 +8405,22 @@
       "comment": "Quiz: instruction label",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صنّف علاقة كل كلمة:"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Classify each word's relationship:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clasifica la relación de cada palabra:"
           }
         },
         "ja": {
@@ -5955,6 +8433,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "각 단어의 관계를 분류하세요:"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Определите связь каждого слова:"
           }
         },
         "zh-Hans": {
@@ -5975,10 +8459,22 @@
       "comment": "Quiz: relationship option — not related",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "غير ذي صلة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Irrelevant"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin relación"
           }
         },
         "ja": {
@@ -5991,6 +8487,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "무관"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не связано"
           }
         },
         "zh-Hans": {
@@ -6011,10 +8513,22 @@
       "comment": "Word Tinder: back-nav alert body — leans into ghosting + waiting-match dating-app tropes",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شريكك المنتظر لا يزال في قائمتك، يبتسم ويأمل أن تقول «نعم». إن غادرت الآن فستختفي من حياته إلى الأبد بلا وداع."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Your match is still in your queue, smiling, hoping for a yes. Walk away and you'll ghost them forever."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu match sigue en la cola, sonriendo, esperando un sí. Si te vas, le harás ghosting para siempre."
           }
         },
         "ja": {
@@ -6027,6 +8541,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "당신의 매칭 상대가 큐에서 미소를 지으며 \"예스\"를 기다리고 있어요. 지금 떠나면 영원히 그들을 잠수타게 됩니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваша пара всё ещё ждёт в очереди, улыбается и надеется на «да». Уйдёте сейчас — и пропадёте для неё навсегда."
           }
         },
         "zh-Hans": {
@@ -6047,10 +8567,22 @@
       "comment": "Word Tinder: back-nav alert title — dating-app heartbreak framing",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انكسر قلبك؟"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Heartbroken?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Corazón roto?"
           }
         },
         "ja": {
@@ -6063,6 +8595,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "마음 닫을 건가요?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сердце разбито?"
           }
         },
         "zh-Hans": {
@@ -6083,10 +8621,22 @@
       "comment": "Quiz: CTA after grading — start next quiz",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التالي"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Next"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente"
           }
         },
         "ja": {
@@ -6099,6 +8649,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Далее"
           }
         },
         "zh-Hans": {
@@ -6119,10 +8675,22 @@
       "comment": "Quiz: empty state — no bookmarks",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف بعض الكلمات الإنجليزية إلى إشاراتك المرجعية أولًا، ثم عُد."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Bookmark some English words first, then come back."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda primero algunas palabras en inglés en tus marcadores y luego vuelve."
           }
         },
         "ja": {
@@ -6135,6 +8703,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "먼저 영어 단어를 북마크한 다음 돌아오세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала добавьте в закладки несколько английских слов, а потом возвращайтесь."
           }
         },
         "zh-Hans": {
@@ -6155,10 +8729,22 @@
       "comment": "Quiz: empty state message — no English bookmarks",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف بعض الكلمات الإنجليزية إلى إشاراتك المرجعية أولًا، ثم عُد لخوض اختبار."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Bookmark some English words first, then come back for a quiz."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda primero algunas palabras en inglés en tus marcadores y vuelve para hacer un test."
           }
         },
         "ja": {
@@ -6171,6 +8757,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "먼저 영어 단어를 북마크한 다음, 돌아와서 퀴즈를 풀어보세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала добавьте в закладки несколько английских слов, а потом возвращайтесь к викторине."
           }
         },
         "zh-Hans": {
@@ -6191,10 +8783,22 @@
       "comment": "Quiz: empty state title — no English bookmarks",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد إشارات مرجعية بعد"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "No bookmarks yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay marcadores"
           }
         },
         "ja": {
@@ -6207,6 +8811,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "북마크가 아직 없습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Закладок пока нет"
           }
         },
         "zh-Hans": {
@@ -6227,10 +8837,22 @@
       "comment": "Quiz: no verified candidates",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر التحقق من أي كلمات مرشّحة في قواميسك. جرّب إضافة كلمات إلى إشاراتك المرجعية من قاموس إنجليزي أحادي اللغة (مثل WordNet)."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Couldn't verify any candidates in your dictionaries. Try bookmarking words from a monolingual English dictionary (like WordNet)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo verificar ningún candidato en tus diccionarios. Intenta añadir a tus marcadores palabras de un diccionario monolingüe de inglés (como WordNet)."
           }
         },
         "ja": {
@@ -6243,6 +8865,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "사전에서 후보를 확인할 수 없었습니다. WordNet과 같은 영영 사전에서 단어를 북마크해 보세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось проверить ни одного кандидата по вашим словарям. Попробуйте добавлять в закладки слова из толкового словаря английского языка (например, WordNet)."
           }
         },
         "zh-Hans": {
@@ -6263,10 +8891,22 @@
       "comment": "Quiz: CTA — 1 question remaining",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السؤال المتبقي: %d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "%d question to go"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Queda %d pregunta"
           }
         },
         "ja": {
@@ -6279,6 +8919,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d문제 남음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остался %d вопрос"
           }
         },
         "zh-Hans": {
@@ -6299,10 +8945,22 @@
       "comment": "Quiz: CTA — N questions remaining",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأسئلة المتبقية: %d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "%d questions to go"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quedan %d preguntas"
           }
         },
         "ja": {
@@ -6315,6 +8973,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%d문제 남음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Осталось вопросов: %d"
           }
         },
         "zh-Hans": {
@@ -6334,10 +8998,22 @@
     "aiCoach.quiz.retrying": {
       "comment": "Word Tinder: retry status mentioning the specific word — Args: word, attempt number. 'Vetting' carries the matchmaker-pre-screens-candidate vibe.",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ فحص “%@” كشريك محتمل… (المحاولة %d)"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Vetting \"%@\" as your match… (attempt %d)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evaluando a «%@» como tu match… (intento %d)"
           }
         },
         "ja": {
@@ -6350,6 +9026,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "\"%@\"을(를) 매칭 후보로 검토 중… (%d번째 시도)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверяем, подходит ли вам «%@»… (попытка %d)"
           }
         },
         "zh-Hans": {
@@ -6369,10 +9051,22 @@
     "aiCoach.quiz.retryingGeneric": {
       "comment": "Word Tinder: retry status without specific word — Args: attempt number",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تجربة شريك آخر… (المحاولة %d)"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Trying another match… (attempt %d)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probando otro match… (intento %d)"
           }
         },
         "ja": {
@@ -6385,6 +9079,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다른 매칭을 시도 중… (%d번째 시도)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ищем другую пару… (попытка %d)"
           }
         },
         "zh-Hans": {
@@ -6404,10 +9104,22 @@
     "aiCoach.quiz.retryingTitle": {
       "comment": "Word Tinder: placeholder title during retry — dating-app 'next candidate' framing",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ البحث عن شريك آخر…"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Looking for another match…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando otro match…"
           }
         },
         "ja": {
@@ -6420,6 +9132,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다른 매칭을 찾는 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подбираем новую пару…"
           }
         },
         "zh-Hans": {
@@ -6440,10 +9158,22 @@
       "comment": "Quiz: score display — Score: 7 / 9",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "النتيجة: %1$d / %2$d"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Score: %1$d / %2$d"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puntuación: %1$d / %2$d"
           }
         },
         "ja": {
@@ -6456,6 +9186,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "점수: %1$d / %2$d"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Счёт: %1$d / %2$d"
           }
         },
         "zh-Hans": {
@@ -6476,10 +9212,22 @@
       "comment": "Quiz: score alert message — Args: correct count, total count",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أصبت في %1$d من %2$d."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "You got %1$d out of %2$d correct."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has acertado %1$d de %2$d."
           }
         },
         "ja": {
@@ -6492,6 +9240,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%2$d개 중 %1$d개 정답입니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Правильных ответов: %1$d из %2$d."
           }
         },
         "zh-Hans": {
@@ -6512,10 +9266,22 @@
       "comment": "Quiz: candidate cell placeholder subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر إجابتك"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Select your answer"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige tu respuesta"
           }
         },
         "ja": {
@@ -6528,6 +9294,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "정답을 선택하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите ответ"
           }
         },
         "zh-Hans": {
@@ -6548,10 +9320,22 @@
       "comment": "Quiz: relationship option",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرادف"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Synonym"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinónimo"
           }
         },
         "ja": {
@@ -6564,6 +9348,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "동의어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синоним"
           }
         },
         "zh-Hans": {
@@ -6584,10 +9374,22 @@
       "comment": "Quiz: nav bar title",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختبار الكلمات"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Word Quiz"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test de vocabulario"
           }
         },
         "ja": {
@@ -6600,6 +9402,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "단어 퀴즈"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Словарная викторина"
           }
         },
         "zh-Hans": {
@@ -6620,9 +9428,21 @@
       "comment": "Quiz: compact nav bar title (next to icon)",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word Tinder"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Word Tinder"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Word Tinder"
           }
         },
@@ -6636,6 +9456,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "워드 틴더"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word Tinder"
           }
         },
         "zh-Hans": {
@@ -6656,10 +9482,22 @@
       "comment": "Quiz: CTA on error — retry from scratch",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة المحاولة"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Try Again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
           }
         },
         "ja": {
@@ -6672,6 +9510,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "다시 시도"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
           }
         },
         "zh-Hans": {
@@ -6692,10 +9536,22 @@
       "comment": "Quiz: relationship article form for subtitle",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كلمة لا صلة لها"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "irrelevant"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "una palabra sin relación"
           }
         },
         "ja": {
@@ -6708,6 +9564,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "무관한 단어"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "постороннее слово"
           }
         },
         "zh-Hans": {
@@ -6728,10 +9590,22 @@
       "comment": "Quiz: header message after grading",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقر على بطاقة كل كلمة لعرض تعريفها."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Tap on each word card to view its definition."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca cada tarjeta para ver su definición."
           }
         },
         "ja": {
@@ -6744,6 +9618,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "각 단어 카드를 탭해서 정의를 확인하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите на карточку слова, чтобы увидеть его определение."
           }
         },
         "zh-Hans": {
@@ -6847,10 +9727,22 @@
     "aiCoach.triage.deviceMessage": {
       "comment": "Triage: device not eligible. Arg = marketing chip name from DeviceChipInfo, e.g. 'Apple A13 Bionic'.",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شريحة هذا الجهاز (%@) لا تدعم Apple Intelligence. يتطلب المدرب الذكي iPhone 15 Pro / 16 أو أحدث، أو iPad مزوّدًا بشريحة من سلسلة M."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This device's chip (%@) doesn't support Apple Intelligence. AI Coach needs an iPhone 15 Pro / 16 or newer, or an iPad with an M-series chip."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El chip de este dispositivo (%@) no es compatible con Apple Intelligence. AI Coach necesita un iPhone 15 Pro / 16 o posterior, o un iPad con chip de la serie M."
           }
         },
         "ja": {
@@ -6863,6 +9755,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "AI 코치는 iPhone 15 Pro 또는 M1 이상 칩을 탑재한 iPad와 같이 Apple Intelligence를 지원하는 기기가 필요합니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чип этого устройства (%@) не поддерживает Apple Intelligence. Для ИИ-наставника нужен iPhone 15 Pro / 16 или новее либо iPad с чипом серии M."
           }
         },
         "zh-Hans": {
@@ -6883,10 +9781,40 @@
       "comment": "Triage: device not eligible, generic fallback when the chip name is unavailable (e.g. simulator).",
       "extractionState": "manual",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذا الجهاز لا يدعم Apple Intelligence. يتطلب المدرب الذكي iPhone 15 Pro / 16 أو أحدث، أو iPad مزوّدًا بشريحة من سلسلة M."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "This device doesn't support Apple Intelligence. AI Coach needs an iPhone 15 Pro / 16 or newer, or an iPad with an M-series chip."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este dispositivo no es compatible con Apple Intelligence. AI Coach necesita un iPhone 15 Pro / 16 o posterior, o un iPad con chip de la serie M."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスは Apple Intelligence に対応していません。AI コーチには iPhone 15 Pro / 16 以降、または M シリーズチップを搭載した iPad が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기기는 Apple Intelligence를 지원하지 않습니다. AI 코치를 사용하려면 iPhone 15 Pro / 16 이상 또는 M 시리즈 칩을 탑재한 iPad가 필요합니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это устройство не поддерживает Apple Intelligence. Для ИИ-наставника нужен iPhone 15 Pro / 16 или новее либо iPad с чипом серии M."
           }
         },
         "zh-Hans": {
@@ -6907,10 +9835,22 @@
       "comment": "Triage: device lacks Apple Intelligence hardware",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الجهاز غير مدعوم"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Device Not Supported"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dispositivo no compatible"
           }
         },
         "ja": {
@@ -6923,6 +9863,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "지원되지 않는 기기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Устройство не поддерживается"
           }
         },
         "zh-Hans": {
@@ -6943,10 +9889,22 @@
       "comment": "Triage: wait for model download",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُرجى الانتظار حتى يكتمل تنزيل Apple Intelligence، ثم عُد."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Please wait for Apple Intelligence to finish downloading, then come back."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espera a que Apple Intelligence termine de descargarse y vuelve después."
           }
         },
         "ja": {
@@ -6959,6 +9917,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apple Intelligence 다운로드가 완료될 때까지 기다린 다음 돌아오세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дождитесь окончания загрузки Apple Intelligence и возвращайтесь."
           }
         },
         "zh-Hans": {
@@ -6979,10 +9943,22 @@
       "comment": "Triage: model still downloading",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ إعداد Apple Intelligence"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Setting Up Apple Intelligence"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurando Apple Intelligence"
           }
         },
         "ja": {
@@ -6995,6 +9971,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apple Intelligence 설정 중"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройка Apple Intelligence"
           }
         },
         "zh-Hans": {
@@ -7099,10 +10081,22 @@
       "comment": "Triage: button to open Apple Support page",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "معرفة المزيد"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Learn More"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más información"
           }
         },
         "ja": {
@@ -7115,6 +10109,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "자세히 알아보기"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробнее"
           }
         },
         "zh-Hans": {
@@ -7303,10 +10303,22 @@
       "comment": "Triage: how to enable AI",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شغّل Apple Intelligence من «الإعدادات ← Apple Intelligence وSiri»، ثم عُد."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Turn on Apple Intelligence in Settings → Apple Intelligence & Siri, then come back."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa Apple Intelligence en Ajustes → Apple Intelligence y Siri, y luego vuelve."
           }
         },
         "ja": {
@@ -7319,6 +10331,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "설정 → Apple Intelligence 및 Siri에서 Apple Intelligence를 켠 다음 돌아오세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включите Apple Intelligence в разделе Настройки → Apple Intelligence и Siri, затем возвращайтесь."
           }
         },
         "zh-Hans": {
@@ -7339,10 +10357,22 @@
       "comment": "Triage: AI feature not turned on",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم تفعيل Apple Intelligence"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Apple Intelligence Not Enabled"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence desactivada"
           }
         },
         "ja": {
@@ -7355,6 +10385,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apple Intelligence가 활성화되지 않음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence не включён"
           }
         },
         "zh-Hans": {
@@ -8047,10 +11083,22 @@
       "comment": "Triage: generic fallback message",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نموذج اللغة على الجهاز غير متوفر. يُرجى التحقق من إعدادات جهازك."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "The on-device language model is unavailable. Please check your device settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo de lenguaje en el dispositivo no está disponible. Revisa los ajustes de tu dispositivo."
           }
         },
         "ja": {
@@ -8063,6 +11111,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "온디바이스 언어 모델을 사용할 수 없습니다. 기기 설정을 확인하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Языковая модель на устройстве недоступна. Проверьте настройки устройства."
           }
         },
         "zh-Hans": {
@@ -8083,10 +11137,22 @@
       "comment": "Triage: unknown unavailability reason",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الذكاء الاصطناعي غير متوفر"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "AI Unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IA no disponible"
           }
         },
         "ja": {
@@ -8099,6 +11165,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "AI를 사용할 수 없음"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ИИ недоступен"
           }
         },
         "zh-Hans": {
@@ -8119,9 +11191,21 @@
       "comment": "AI Coach: chooser option — word tinder mode",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word Tinder"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
+            "value": "Word Tinder"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
             "value": "Word Tinder"
           }
         },
@@ -8135,6 +11219,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "워드 틴더"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word Tinder"
           }
         },
         "zh-Hans": {
@@ -8155,10 +11245,22 @@
       "comment": "AI Coach: word tinder mode description",
       "extractionState": "extracted_with_value",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اسحب لتصنيف المرادفات والأضداد والكلمات المتشابهة شكلًا"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "new",
             "value": "Swipe to classify synonyms, antonyms, and look-alikes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desliza para clasificar sinónimos, antónimos y palabras de escritura parecida"
           }
         },
         "ja": {
@@ -8171,6 +11273,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "스와이프하여 동의어, 반의어, 유사어를 분류하세요"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Смахивайте, чтобы рассортировать синонимы, антонимы и похожие по написанию слова"
           }
         },
         "zh-Hans": {
