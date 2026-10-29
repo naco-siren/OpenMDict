@@ -1058,7 +1058,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "任务完成!"
+            "value": "任务完成！"
           }
         },
         "zh-Hant": {
@@ -1418,13 +1418,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "「%@」\n是冒名者!"
+            "value": "「%@」\n是冒名者！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "「%@」\n是冒牌者!"
+            "value": "「%@」\n是冒牌者！"
           }
         }
       }
@@ -1814,13 +1814,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请先收藏一些英文单词,再回来追捕冒名者。"
+            "value": "请先收藏一些英文单词，再回来追捕冒名者。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先收藏一些英文單字,再回來緝拿冒牌者。"
+            "value": "請先收藏一些英文單字，再回來緝拿冒牌者。"
           }
         }
       }
@@ -1886,13 +1886,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "反应堆熔毁!"
+            "value": "反应堆熔毁！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "反應爐熔毀!"
+            "value": "反應爐熔毀！"
           }
         }
       }
@@ -2000,7 +2000,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已正確指認 %1$d 位,共 %2$d 位"
+            "value": "已正確指認 %1$d 位，共 %2$d 位"
           }
         }
       }
@@ -2174,13 +2174,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "胜利!"
+            "value": "胜利！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "勝利!"
+            "value": "勝利！"
           }
         }
       }
@@ -2282,13 +2282,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在真正的同根词中,找出潜伏的冒名词"
+            "value": "在真正的同根词中，找出潜伏的冒名词"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在真正的同源詞之中,揪出潛伏的冒牌單字"
+            "value": "在真正的同源詞之中，揪出潛伏的冒牌單字"
           }
         }
       }
@@ -2354,7 +2354,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本设备未启用 Apple 智能。请前往「设置 → Apple 智能与 Siri」开启 Apple 智能,然后重试。"
+            "value": "本设备未启用 Apple 智能。请前往「设置 → Apple 智能与 Siri」开启 Apple 智能，然后重试。"
           }
         },
         "zh-Hant": {
@@ -2390,13 +2390,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "端侧语言模型资源尚未就绪,可能仍在下载中,请几分钟后重试。"
+            "value": "端侧语言模型资源尚未就绪，可能仍在下载中，请几分钟后重试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "裝置端語言模型資源尚未就緒,可能仍在下載中,請過幾分鐘後再試。"
+            "value": "裝置端語言模型資源尚未就緒，可能仍在下載中，請過幾分鐘後再試。"
           }
         }
       }
@@ -2534,13 +2534,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "端侧语言模型仍在下载或预热中,请几分钟后重试。"
+            "value": "端侧语言模型仍在下载或预热中，请几分钟后重试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "裝置端語言模型仍在下載或暖機中,請過幾分鐘後再試。"
+            "value": "裝置端語言模型仍在下載或暖機中，請過幾分鐘後再試。"
           }
         }
       }
@@ -2570,13 +2570,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "端侧模型当前请求受限,请稍候再试。"
+            "value": "端侧模型当前请求受限，请稍候再试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "裝置端模型目前受到頻率限制,請稍候再試。"
+            "value": "裝置端模型目前受到頻率限制，請稍候再試。"
           }
         }
       }
@@ -3002,13 +3002,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请先收藏一些英文单词,再回来试用 AI 教练。它会从你最近收藏的最多 5 个单词中挑选复习。"
+            "value": "请先收藏一些英文单词，再回来试用 AI 教练。它会从你最近收藏的最多 5 个单词中挑选复习。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先收藏一些英文單字,再回來試用 AI Coach。系統會複習你最近收藏的最多 5 個單字。"
+            "value": "請先收藏一些英文單字，再回來試用 AI Coach。系統會複習你最近收藏的最多 5 個單字。"
           }
         }
       }
@@ -3482,13 +3482,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "离开测验?"
+            "value": "离开测验？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "要離開測驗嗎?"
+            "value": "要離開測驗嗎？"
           }
         }
       }
@@ -3554,13 +3554,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本期收工!"
+            "value": "本期收工！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "今天收工!"
+            "value": "今天收工！"
           }
         }
       }
@@ -3626,13 +3626,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "要离开节目吗?"
+            "value": "要离开节目吗？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "要退場嗎?"
+            "value": "要退場嗎？"
           }
         }
       }
@@ -3878,13 +3878,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本期《词素莫瑞》……「%@」真的是它的词根之父吗?"
+            "value": "本期《词素莫瑞》……「%@」真的是它的词根之父吗？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "今晚 Morpheme Maury 為您揭曉⋯「%@」真的是詞根之父嗎?"
+            "value": "今晚 Morpheme Maury 為您揭曉⋯「%@」真的是詞根之父嗎？"
           }
         }
       }
@@ -4064,7 +4064,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先收藏一些英文單字,Maury 需要來賓上節目。"
+            "value": "請先收藏一些英文單字，Maury 需要來賓上節目。"
           }
         }
       }
@@ -4310,13 +4310,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "一家人!"
+            "value": "一家人！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "一家人!"
+            "value": "一家人！"
           }
         }
       }
@@ -4346,13 +4346,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "骗子!"
+            "value": "骗子！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "騙子!"
+            "value": "騙子！"
           }
         }
       }
@@ -4382,13 +4382,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你 不是\n那个词素!"
+            "value": "你 不是\n那个词素！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你 不是\n那個詞素!"
+            "value": "你 不是\n那個詞素！"
           }
         }
       }
@@ -4418,13 +4418,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你 就是\n那个词素!"
+            "value": "你 就是\n那个词素！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你 就是\n那個詞素!"
+            "value": "你 就是\n那個詞素！"
           }
         }
       }
@@ -4490,13 +4490,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "日间脱口秀亲子鉴定:这个词真的是这一家的吗?"
+            "value": "日间脱口秀亲子鉴定：这个词真的是这一家的吗？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "日間電視親子鑑定大對決:這個單字真的是一家人嗎?"
+            "value": "日間電視親子鑑定大對決：這個單字真的是一家人嗎？"
           }
         }
       }
@@ -4634,13 +4634,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "端侧模型这次没能给力,要再试一次吗?"
+            "value": "端侧模型这次没能给力，要再试一次吗？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "裝置端模型這次不太配合。要再試一次嗎?"
+            "value": "裝置端模型這次不太配合。要再試一次嗎？"
           }
         }
       }
@@ -4712,7 +4712,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "答對 %1$d 題,共 %2$d 題"
+            "value": "答對 %1$d 題，共 %2$d 題"
           }
         }
       }
@@ -4991,7 +4991,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请多收藏一些英文单词,再回来开玩。"
+            "value": "请多收藏一些英文单词，再回来开玩。"
           }
         },
         "zh-Hant": {
@@ -5314,13 +5314,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "竞猜节目民调:说出属于同一类别的词"
+            "value": "综艺竞猜观众调查：说出属于同一类别的词"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "綜藝節目大調查:說出同屬一類的單字"
+            "value": "綜藝節目大調查：說出同屬一類的單字"
           }
         }
       }
@@ -5566,13 +5566,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请判断每个词与「%@」的关系:"
+            "value": "请判断每个词与「%@」的关系："
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請判斷每個單字與「%@」的關係:"
+            "value": "請判斷每個單字與「%@」的關係："
           }
         }
       }
@@ -5602,13 +5602,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你已经把所有收藏词都过了一遍。再收藏一些新词,回来挑战更多题目吧!"
+            "value": "你已经把所有收藏词都过了一遍。再收藏一些新词，回来挑战更多题目吧！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你已經把書籤裡的單字練完了!收藏更多書籤後再回來挑戰吧。"
+            "value": "你已經把書籤裡的單字練完了！收藏更多書籤後再回來挑戰吧。"
           }
         }
       }
@@ -5638,13 +5638,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你做到了!"
+            "value": "你做到了！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你做到了!"
+            "value": "你做到了！"
           }
         }
       }
@@ -5960,13 +5960,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "判断每个词的关系:"
+            "value": "判断每个词的关系："
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "判斷每個單字之間的關係:"
+            "value": "判斷每個單字之間的關係："
           }
         }
       }
@@ -6140,13 +6140,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请先收藏一些英文单词,再回来。"
+            "value": "请先收藏一些英文单词，再回来。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先收藏一些英文單字,再回來挑戰。"
+            "value": "請先收藏一些英文單字，再回來挑戰。"
           }
         }
       }
@@ -6176,13 +6176,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请先收藏一些英文单词,再回来进行测验。"
+            "value": "请先收藏一些英文单词，再回来进行测验。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先收藏一些英文單字,再回來練習。"
+            "value": "請先收藏一些英文單字，再回來練習。"
           }
         }
       }
@@ -6461,13 +6461,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "得分:%1$d / %2$d"
+            "value": "得分：%1$d / %2$d"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "分數:%1$d / %2$d"
+            "value": "分數：%1$d / %2$d"
           }
         }
       }
@@ -6964,7 +6964,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请等待 Apple 智能下载完成,再回来使用。"
+            "value": "请等待 Apple 智能下载完成，再回来使用。"
           }
         },
         "zh-Hant": {
@@ -7324,7 +7324,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请前往「设置 → Apple 智能与 Siri」开启 Apple 智能,然后回来使用。"
+            "value": "请前往「设置 → Apple 智能与 Siri」开启 Apple 智能，然后回来使用。"
           }
         },
         "zh-Hant": {
@@ -8176,7 +8176,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "滑动卡片,辨别近义词、反义词与形近词"
+            "value": "滑动卡片，辨别近义词、反义词与形近词"
           }
         },
         "zh-Hant": {
@@ -9475,13 +9475,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请先导入词典,再到此处启用按词条内容查询。"
+            "value": "请先导入词典，再到此处启用按词条内容查询。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請先匯入詞典,再到此處啟用按詞條內容查詢。"
+            "value": "請先匯入詞典，再到此處啟用按詞條內容查詢。"
           }
         }
       }
@@ -9499,13 +9499,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未导入任何词典。\n请先导入词典,才能使用按词条内容查询。"
+            "value": "尚未导入任何词典。\n请先导入词典，才能使用按词条内容查询。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未匯入任何詞典。\n請先匯入詞典,才能使用按詞條內容查詢。"
+            "value": "尚未匯入任何詞典。\n請先匯入詞典，才能使用按詞條內容查詢。"
           }
         }
       }
@@ -9547,13 +9547,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "通过释义本身的含义查询,而非仅凭拼写。"
+            "value": "通过释义本身的含义查询，而非仅凭拼写。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "透過釋義本身的含義查詢,而非僅憑拼寫。"
+            "value": "透過釋義本身的含義查詢，而非僅憑拼寫。"
           }
         }
       }
@@ -9595,13 +9595,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "索引全程在本机进行,大型词典可能耗时较久;充电时也会在后台继续索引。"
+            "value": "索引全程在本机进行，大型词典可能耗时较久；充电时也会在后台继续索引。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "索引全程在本機進行,大型詞典可能耗時較久;充電時也會在背景繼續索引。"
+            "value": "索引全程在本機進行，大型詞典可能耗時較久；充電時也會在背景繼續索引。"
           }
         }
       }
@@ -9667,13 +9667,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这将移除 %d 本词典的词条内容索引。如果您今后再次启用,需要重新建立索引。"
+            "value": "这将移除 %d 本词典的词条内容索引。如果您今后再次启用，需要重新建立索引。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這將移除 %d 本詞典的詞條內容索引。如果您日後再次啟用,需要重新建立索引。"
+            "value": "這將移除 %d 本詞典的詞條內容索引。如果您日後再次啟用，需要重新建立索引。"
           }
         }
       }
@@ -9691,13 +9691,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "如果您今后再次启用该功能,需要重新为词典建立索引。"
+            "value": "如果您今后再次启用该功能，需要重新为词典建立索引。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "如果您日後再次啟用該功能,需要重新為詞典建立索引。"
+            "value": "如果您日後再次啟用該功能，需要重新為詞典建立索引。"
           }
         }
       }
@@ -9715,13 +9715,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关闭由词条内容进行查询?"
+            "value": "关闭由词条内容进行查询？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "關閉由詞條內容進行查詢?"
+            "value": "關閉由詞條內容進行查詢？"
           }
         }
       }
@@ -9763,13 +9763,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "OpenMDict 将下载约 80 MB 的语言模型,并为您选择的词典逐个建立索引。索引完成后,即可在查询页面选择「词条内容」进行查询。"
+            "value": "OpenMDict 将下载约 80 MB 的语言模型，并为您选择的词典逐个建立索引。索引完成后，即可在查询页面选择「词条内容」进行查询。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "OpenMDict 將下載約 80 MB 的語言模型,並為您選擇的詞典逐個建立索引。索引完成後,即可在查詢頁面選擇「詞條內容」進行查詢。"
+            "value": "OpenMDict 將下載約 80 MB 的語言模型，並為您選擇的詞典逐個建立索引。索引完成後，即可在查詢頁面選擇「詞條內容」進行查詢。"
           }
         }
       }
@@ -9787,13 +9787,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "启用按词条内容查询?"
+            "value": "启用按词条内容查询？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "啟用按詞條內容查詢?"
+            "value": "啟用按詞條內容查詢？"
           }
         }
       }
@@ -10027,13 +10027,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已暂停,等待设备降温"
+            "value": "已暂停，等待设备降温"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已暫停,等待裝置降溫"
+            "value": "已暫停，等待裝置降溫"
           }
         }
       }
@@ -22964,13 +22964,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请在系统「设置」中允许 OpenMDict 使用蜂窝或 Wi-Fi 数据,然后再试。"
+            "value": "请在系统「设置」中允许 OpenMDict 使用蜂窝或 Wi-Fi 数据，然后再试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請在系統「設定」中允許 OpenMDict 使用行動網路或 Wi-Fi 資料,然後再試。"
+            "value": "請在系統「設定」中允許 OpenMDict 使用行動網路或 Wi-Fi 資料，然後再試。"
           }
         }
       }
@@ -23012,13 +23012,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "下载完成后未找到预期文件 %1$@(标签「%2$@」)。可能是应用打包问题,请向开发者反馈。"
+            "value": "下载完成后未找到预期文件 %1$@(标签「%2$@」)。可能是应用打包问题，请向开发者反馈。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "下載完成後未找到預期檔案 %1$@(標籤「%2$@」)。可能是應用程式打包問題,請向開發者回報。"
+            "value": "下載完成後未找到預期檔案 %1$@(標籤「%2$@」)。可能是應用程式打包問題，請向開發者回報。"
           }
         }
       }
@@ -23204,13 +23204,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "下载时出现问题。详情:%@"
+            "value": "下载时出现问题。详情：%@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "下載時出現問題。詳情:%@"
+            "value": "下載時出現問題。詳情：%@"
           }
         }
       }
@@ -48390,13 +48390,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "OpenMDict 正在为您的词典建立词条内容索引。索引完成后,该查询模式将基于词条内容(而非仅拼写)返回结果。"
+            "value": "OpenMDict 正在为您的词典建立词条内容索引。索引完成后，该查询模式将基于词条内容(而非仅拼写)返回结果。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "OpenMDict 正在為您的詞典建立詞條內容索引。索引完成後,該查詢模式將基於詞條內容(而非僅拼寫)返回結果。"
+            "value": "OpenMDict 正在為您的詞典建立詞條內容索引。索引完成後，該查詢模式將基於詞條內容(而非僅拼寫)返回結果。"
           }
         }
       }
