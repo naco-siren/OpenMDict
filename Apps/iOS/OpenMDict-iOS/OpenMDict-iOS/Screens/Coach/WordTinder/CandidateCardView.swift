@@ -21,9 +21,9 @@ final class CandidateCardView: UIView {
     private let iconView = UIImageView()
 
     /// Directional stamp (like Tinder's "LIKE" / "NOPE"), hidden by default.
-    private let synonymStamp = StampLabel(text: "SYNONYM", color: .systemIndigo, angle: -.pi / 12)
-    private let antonymStamp = StampLabel(text: "ANTONYM", color: .systemOrange, angle: .pi / 12)
-    private let irrelevantStamp = StampLabel(text: "IRRELEVANT", color: .secondaryLabel, angle: 0)
+    private let synonymStamp = StampLabel(text: L10n.AICoach.Quiz.stampSynonym, color: .systemIndigo, angle: -.pi / 12)
+    private let antonymStamp = StampLabel(text: L10n.AICoach.Quiz.stampAntonym, color: .systemOrange, angle: .pi / 12)
+    private let irrelevantStamp = StampLabel(text: L10n.AICoach.Quiz.stampIrrelevant, color: .secondaryLabel, angle: 0)
 
     // MARK: - Init
 

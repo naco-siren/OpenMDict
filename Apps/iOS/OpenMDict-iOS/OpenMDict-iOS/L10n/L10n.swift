@@ -603,6 +603,83 @@ nonisolated enum L10n {
             static var giveLoveChance: String {
                 NSLocalizedString("aiCoach.quiz.giveLoveChance", value: "Give Love a Chance", comment: "Word Tinder: cancel leaving mid-round — wraps 'stay' in a romantic appeal so the user pauses")
             }
+
+            /// Subtitle under the quiz word card. %@ = display name of the
+            /// dictionary the quiz word comes from.
+            static func fromDictionary(_ dictName: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.fromDictionary", value: "from %@", comment: "Word Tinder: subtitle under the quiz word card naming the dictionary the word comes from; %@ = dictionary display name"), dictName)
+            }
+
+            /// Stamps drawn on a candidate card while it is dragged toward
+            /// an answer. ALL CAPS, one short word each.
+            static var stampSynonym: String {
+                NSLocalizedString("aiCoach.quiz.stampSynonym", value: "SYNONYM", comment: "Word Tinder: stamp on a candidate card dragged toward Synonym — ALL CAPS, one short word; non-Latin scripts can ignore casing")
+            }
+            static var stampAntonym: String {
+                NSLocalizedString("aiCoach.quiz.stampAntonym", value: "ANTONYM", comment: "Word Tinder: stamp on a candidate card dragged toward Antonym — ALL CAPS, one short word; non-Latin scripts can ignore casing")
+            }
+            static var stampIrrelevant: String {
+                NSLocalizedString("aiCoach.quiz.stampIrrelevant", value: "IRRELEVANT", comment: "Word Tinder: stamp on a candidate card dragged toward Irrelevant — ALL CAPS, one short word; non-Latin scripts can ignore casing")
+            }
+
+            /// Score alert titles, picked by the percentage of correct
+            /// answers. The alert message is `scoreMessage`.
+            static var scoreTitlePerfect: String {
+                NSLocalizedString("aiCoach.quiz.scoreTitlePerfect", value: "Perfect! \u{1F3AF}", comment: "Word Tinder: score alert title — 100% correct; keep the emoji")
+            }
+            static var scoreTitleAwesome: String {
+                NSLocalizedString("aiCoach.quiz.scoreTitleAwesome", value: "Awesome! \u{1F31F}", comment: "Word Tinder: score alert title — 80–99% correct; keep the emoji")
+            }
+            static var scoreTitleNiceWork: String {
+                NSLocalizedString("aiCoach.quiz.scoreTitleNiceWork", value: "Nice work! \u{1F44F}", comment: "Word Tinder: score alert title — 60–79% correct; keep the emoji")
+            }
+            static var scoreTitleNotBad: String {
+                NSLocalizedString("aiCoach.quiz.scoreTitleNotBad", value: "Not bad! \u{1F4AA}", comment: "Word Tinder: score alert title — 40–59% correct; keep the emoji")
+            }
+            static var scoreTitleKeepGoing: String {
+                NSLocalizedString("aiCoach.quiz.scoreTitleKeepGoing", value: "Keep going! \u{1F4DA}", comment: "Word Tinder: score alert title — 20–39% correct; keep the emoji")
+            }
+            static var scoreTitleToughOne: String {
+                NSLocalizedString("aiCoach.quiz.scoreTitleToughOne", value: "Tough one! \u{1F9E0}", comment: "Word Tinder: score alert title — under 20% correct; keep the emoji")
+            }
+
+            /// Title of a candidate's dictionary article opened from the
+            /// graded results, drawn after the relationship icon.
+            /// %@ = the quiz word the candidate was compared with.
+            static func synonymOf(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.synonymOf", value: "Synonym of \"%@\"", comment: "Word Tinder: title of a synonym candidate's article after grading, next to the relationship icon; %@ = quiz word"), word)
+            }
+            static func antonymOf(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.antonymOf", value: "Antonym of \"%@\"", comment: "Word Tinder: title of an antonym candidate's article after grading, next to the relationship icon; %@ = quiz word"), word)
+            }
+            static func similarTo(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.similarTo", value: "Similar to \"%@\"", comment: "Word Tinder: title of a look-alike candidate's article after grading, next to the relationship icon; %@ = quiz word"), word)
+            }
+            static func unrelatedTo(_ word: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.unrelatedTo", value: "Unrelated to \"%@\"", comment: "Word Tinder: title of an unrelated candidate's article after grading, next to the relationship icon; %@ = quiz word"), word)
+            }
+
+            /// Graded subtitles under each candidate in the results list.
+            static var gradedSimilarCorrect: String {
+                NSLocalizedString("aiCoach.quiz.gradedSimilarCorrect", value: "Correct! It only looks similar.", comment: "Word Tinder: graded subtitle under a look-alike candidate the player classified correctly")
+            }
+            static var gradedSimilarIncorrect: String {
+                NSLocalizedString("aiCoach.quiz.gradedSimilarIncorrect", value: "It only looks similar but is another word.", comment: "Word Tinder: graded subtitle under a look-alike candidate the player classified incorrectly")
+            }
+            static var gradedNoiseCorrect: String {
+                NSLocalizedString("aiCoach.quiz.gradedNoiseCorrect", value: "Correct! It's a random word.", comment: "Word Tinder: graded subtitle under an unrelated (random) candidate the player classified correctly")
+            }
+            static var gradedNoiseIncorrect: String {
+                NSLocalizedString("aiCoach.quiz.gradedNoiseIncorrect", value: "Actually, it's just a random word.", comment: "Word Tinder: graded subtitle under an unrelated (random) candidate the player classified incorrectly")
+            }
+            /// %@ = `aSynonym` or `anAntonym` (e.g. "a synonym").
+            static func gradedCorrect(_ relationship: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.gradedCorrect", value: "Correct! It is %@.", comment: "Word Tinder: graded subtitle under a synonym or antonym candidate the player classified correctly; %@ = aiCoach.quiz.aSynonym or aiCoach.quiz.anAntonym"), relationship)
+            }
+            /// %@ = `aSynonym` or `anAntonym` (e.g. "an antonym").
+            static func gradedIncorrect(_ relationship: String) -> String {
+                String(format: NSLocalizedString("aiCoach.quiz.gradedIncorrect", value: "Actually, it is %@.", comment: "Word Tinder: graded subtitle under a synonym or antonym candidate the player classified incorrectly; %@ = aiCoach.quiz.aSynonym or aiCoach.quiz.anAntonym"), relationship)
+            }
         }
 
         // MARK: Dismiss confirmation
@@ -779,6 +856,28 @@ nonisolated enum L10n {
             static var stayAboard: String {
                 NSLocalizedString("aiCoach.amongWurds.stayAboard", value: "Stay Aboard", comment: "Among wUrdS: cancel leaving mid-round — keeps the spaceship-crew metaphor")
             }
+            /// Header banner with the number of imposters still aboard.
+            /// The plural forms are in Localizable.xcstrings; the screen
+            /// draws the number inside the returned text in red.
+            static func imposterBanner(_ count: Int) -> String {
+                String.localizedStringWithFormat(
+                    NSLocalizedString("aiCoach.amongWurds.imposterBanner", value: "There are %lld imposters among us", comment: "Among wUrdS: header banner with the number of imposters still aboard; %lld = count, drawn in red"),
+                    count
+                )
+            }
+            /// Root line under the quiz word, shown between the optional
+            /// prefix and suffix. %@ = root morpheme.
+            static func rootInfo(_ root: String) -> String {
+                String(format: NSLocalizedString("aiCoach.amongWurds.rootInfo", value: "Root: %@", comment: "Among wUrdS: root morpheme under the quiz word, shown between the optional prefix and suffix; %@ = root morpheme"), root)
+            }
+            /// Stamps drawn on a crew card in the reveal. ALL CAPS, one
+            /// short word each.
+            static var stampMurdered: String {
+                NSLocalizedString("aiCoach.amongWurds.stampMurdered", value: "MURDERED", comment: "Among wUrdS: stamp on the card of a crewmate killed during the round — ALL CAPS, one short word; non-Latin scripts can ignore casing")
+            }
+            static var stampEjected: String {
+                NSLocalizedString("aiCoach.amongWurds.stampEjected", value: "EJECTED", comment: "Among wUrdS: stamp on the card of a word the player ejected — ALL CAPS, one short word; non-Latin scripts can ignore casing")
+            }
         }
 
         // MARK: Morpheme Maury
@@ -872,6 +971,17 @@ nonisolated enum L10n {
             /// Subtitle for `allDoneTitle` — every guest has been on the show.
             static var allDoneMessage: String {
                 NSLocalizedString("aiCoach.maury.allDoneMessage", value: "All bookmarked guests have been on the show.", comment: "Maury: subtitle when the user has played through all bookmarked words")
+            }
+            /// Line under the verdict on the reveal overlay: the player's
+            /// call and whether it was right.
+            /// %1$@ = `verdictFamily` or `verdictLiar`; %2$@ = ✓ or ✗.
+            static func yourCall(_ call: String, _ mark: String) -> String {
+                String(format: NSLocalizedString("aiCoach.maury.yourCall", value: "Your call: %1$@ %2$@", comment: "Maury: reveal overlay line with the player's verdict; %1$@ = aiCoach.maury.verdictFamily or aiCoach.maury.verdictLiar, %2$@ = ✓ if the call was right or ✗ if wrong"), call, mark)
+            }
+            /// Finale title when every verdict in the episode was right
+            /// (otherwise the finale shows `caseClosed`).
+            static var perfectEpisode: String {
+                NSLocalizedString("aiCoach.maury.perfectEpisode", value: "\u{1F3AD} Perfect Episode!", comment: "Maury: finale title when every verdict was correct, shown instead of 'Case Closed.'; keep the emoji")
             }
         }
 
