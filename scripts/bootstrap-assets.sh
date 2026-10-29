@@ -16,8 +16,7 @@
 #                     differs from the lock and was never published is treated
 #                     as a local build and is NOT replaced; the script reports
 #                     it and exits 2.
-#   --check           report drift and exit 1; never downloads or writes
-#                     (CI gate, and the Xcode "Check bootstrapped assets" phase).
+#   --check           report drift and exit 1; never downloads or writes.
 #   --force           also replace files whose content differs from the lock.
 #   --skip-precompile do not compile / check the .mlmodelc (no Xcode needed).
 #

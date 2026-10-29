@@ -2,12 +2,13 @@
 //  MDictPerfLog.swift
 //
 //  `OSSignposter` instances for the OpenMDict core lib so hosts can profile
-//  dictionary loading in Instruments (Points of Interest template) or
+//  dictionary loading in Instruments (os_signpost instrument) or
 //  filter unified-log output on-device.
 //
 //  Usage from Instruments:
 //    1. Profile the iOS app in Instruments.
-//    2. Pick the "Points of Interest" or "os_signpost" template.
+//    2. Add the "os_signpost" instrument (the `perf` category does not
+//       appear in Points of Interest).
 //    3. Filter by subsystem `io.github.naco-siren.openmdict`.
 //
 //  Usage from `log stream` (attached device or Mac):

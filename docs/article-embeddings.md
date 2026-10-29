@@ -718,7 +718,9 @@ enum ArticleIndexState {
 
 ### Phase 3.4 — `BGProcessingTask` integration
 
-- `BGProcessingTaskRequest(identifier: "openmdict.body-indexing")`
+- `BGProcessingTaskRequest(identifier: AppIdentifiers.articleIndexBGTaskID)`
+  (`io.github.naco-siren.openmdict.articleindex`, also listed under
+  `BGTaskSchedulerPermittedIdentifiers` in the app's `Info.plist`)
 - `requiresExternalPower = true` (the Photos precedent),
   `requiresNetworkConnectivity = false`
 - Per-task work budget: **2 minutes hard cap**, checkpoint at 80 s

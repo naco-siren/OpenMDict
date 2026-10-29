@@ -40,9 +40,9 @@ baseName.2.mdd     # more resources
 | **V3** | MdxBuilder 4.x | zlib | Salsa20 | `GeneratedByEngineVersion >= 3.0`, has `UUID` |
 
 OpenMDict reads V1 and V2. V3 files (MdxBuilder 4.x, Salsa20) are not
-supported, and files with record-block encryption (`Encrypted` bit 1) are
-rejected at open time. The preset dictionaries shipped with the app are V2
-files written by mdict-utils.
+supported, and files with key-header encryption tied to a registration code
+(`Encrypted & 1`, that is the values 1 and 3) are rejected at open time. The preset dictionaries
+shipped with the app are V2 files written by mdict-utils.
 
 ### 2.2 Section layout
 
@@ -87,7 +87,7 @@ The header is an XML element (`<Dictionary .../>` for MDX,
 | `Title` | Dictionary title | `Example Dictionary` |
 | `Description` | Dictionary description (HTML, may be long) | |
 | `Encoding` | Text encoding of keys and records | `UTF-8`, `UTF-16`, `GBK` |
-| `Encrypted` | Encryption flags: `0` none, `1` record blocks, `2` key info, `3` both (`Yes` = `1`) | `0` |
+| `Encrypted` | Encryption flags: `0` none, `1` key header (needs a registration code), `2` key info, `3` both (`Yes` = `1`) | `0` |
 | `KeyCaseSensitive` | Whether lookups compare case | `No` |
 | `StripKey` | Whether punctuation/whitespace is ignored when comparing keys | `Yes` |
 | `CreationDate` | Free-form date string; mdict-utils writes it unpadded (`2026-2-21`), the preset pipeline pins ISO `YYYY-MM-DD` | |
@@ -109,11 +109,13 @@ offset  size      field
 Nothing after the header stores an absolute file offset, so the header may
 be rewritten with a different length as long as `N` and the adler32 are
 updated (this is how `preset-dicts/scripts/shared/build.py` pins
-`CreationDate`). The iOS app's dictionary id is the SHA-256 of the whole
-`.mdx` file (`PresetDictionaryService.fileSHA256`), so any byte change,
-including a header change, produces a new id. The SHA-256 of the raw header
-bytes keys the sidecar index cache (validated together with file size and
-mtime).
+`CreationDate`). The iOS app identifies a preset dictionary by the SHA-256
+of the whole `.mdx` file (`PresetDictionaryService.fileSHA256`), so a fresh
+install of a changed file, including one with only a header change, gets a
+new id (an in-place preset update keeps the installed copy's id); a
+dictionary the user imports is identified by the SHA-256 of its raw header
+bytes. The header SHA-256 also keys the sidecar index cache (validated
+together with file size and mtime).
 
 ### 2.4 Key block info (V2)
 

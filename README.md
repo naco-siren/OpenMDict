@@ -1,570 +1,201 @@
 # OpenMDict
 
-A pure Swift library for parsing MDict dictionary files (.mdx/.mdd), with a companion iOS/iPadOS dictionary reader app.
+OpenMDict reads MDict dictionaries: an `.mdx` file holds the entries, and
+optional `.mdd` files hold images, audio, stylesheets and other resources.
+This repository contains:
 
-## Library Features
+- **OpenMDict**, a Swift library that reads MDX and MDD files on macOS and
+  iOS, with no third-party or C dependencies;
+- **OpenMDictKit**, the lookup models and sync rules the iOS app is built on;
+- **`openmdict`** and **`openmdict-bench`**, command-line tools;
+- **OpenMDict for iPhone and iPad**, a dictionary reader app;
+- the pipeline that builds the app's 64 preset dictionaries from openly
+  licensed and public-domain data.
 
-- ✅ **MDX V2 (2.0)** - Full support with zlib decompression
-- ✅ **MDX V1 (1.x)** - Full support with LZO decompression (pure-Swift LZO1X decoder, no C dependencies)
-- ✅ **MDD Resources** - Images, audio, CSS, and other embedded files
-- ✅ **Salted Dictionaries** - RIPEMD128 decryption for obfuscated dictionaries
-- ✅ **Cross-platform** - macOS, iOS, iPadOS (Swift Package Manager)
-- ⚡ **Persistent sidecar index** - Optional on-disk cache (`.idx`) that skips the full MDX decompress/parse pipeline on subsequent loads. 10–40× cold-start speedup on large dictionaries, with three-field invalidation (`fileSize` + `mtime` + `headerSHA256`) and atomic temp+rename writes. See [Persistent Sidecar Index](#persistent-sidecar-index) below.
-- ⚡ **mmap-backed reader** - `BinaryReader` maps MDX/MDD files as `MAP_PRIVATE` + `PROT_READ` with `madvise(MADV_RANDOM)`. Lock-free concurrent reads; clean file-backed pages that iOS can evict for free under memory pressure instead of contributing to jetsam-critical dirty memory.
+## Features
 
-## iOS / iPadOS App
+**Library**
 
-A full-featured MDict dictionary reader built with UIKit and Swift 6.
+- Reads MDX and MDD files (see [Format support](#format-support)).
+- Lookups that fall back to English and German base forms of inflected
+  words, to full-width and other compatibility characters, and to matches
+  that ignore case and diacritics; prefix search and spelling suggestions.
+- Resources from the MDD files and from loose files next to the MDX.
+- Memory-mapped, read-only file access, and an optional on-disk index cache
+  that makes repeat opens of large dictionaries much faster
+  ([details](docs/performance.md)).
 
-- **Article Layouts** — Three layout modes on iPadOS (Columns, Grid, List) for comparing definitions across dictionaries
-- **Multi-Window & Shortcuts** — Full split-screen, multi-window, and keyboard shortcut support on iPadOS
-- **Action Extension** — Look up words from any app via the share sheet
-- **Smart Search** — Lemma resolution (NLTagger + inflection rules), Levenshtein-ranked suggestions, and device-adaptive search pipeline
-- **Bookmarks & History** — Bookmark entries across dictionaries; lookup history with per-dictionary trophy counts
-- **Unlimited Imports & Groups** — Import and manage MDX/MDD files as well as groups with no limits
-- **iCloud Sync** — Dictionaries, bookmarks, lookup history, and groups sync across devices via CloudKit, with cross-device nuclear reset and built-in troubleshooting UI
-- **Preset Dictionaries** — 64 curated open-source dictionaries (WordNet, JMdict, CC-CEDICT, Wiktionary, and more) for quick setup
-- **13 Languages** — English, 简体中文, 繁體中文, Русский, Español, Deutsch, 日本語, Français, Português (BR), 한국어, Українська, العربية, हिन्दी
+**iOS and iPadOS app**
+
+- Import your own `.mdx` and `.mdd` files, and add CSS, JavaScript and font
+  files to a dictionary.
+- 64 [preset dictionaries](preset-dicts/README.md) built from openly licensed
+  or public-domain data (WordNet, JMdict, CC-CEDICT, Wiktionary and others);
+  two ship with the app, the rest download on demand.
+- Look up a word in several dictionaries at once; organize them into groups.
+- Spelling suggestions and related-word search; on iOS 26 and later, search
+  inside article text with an on-device embedding model.
+- Bookmarks, lookup history, and iCloud sync of dictionaries, bookmarks,
+  history and groups, with a troubleshooting screen and a reset that clears
+  the synced data on every device.
+- Look up words from other apps through the Action and Share extensions and
+  a Shortcuts action.
+- On iPad: Columns, Grid and List layouts for comparing articles, multiple
+  windows, Split View and keyboard shortcuts.
+- AI Coach (iOS 26 and later, with Apple Intelligence): vocabulary quiz games
+  generated on the device.
+- Interface in 13 languages: English, Simplified and Traditional Chinese,
+  Russian, Spanish, German, Japanese, French, Brazilian Portuguese, Korean,
+  Ukrainian, Arabic and Hindi.
+
+## Format support
+
+| | Supported |
+|---|---|
+| MDX | 1.x, 2.0 |
+| MDD | 1.x, 2.0 |
+| Block compression | none, LZO1X (decoder written in Swift), zlib |
+| Encryption | Key-index obfuscation (`Encrypted="2"`) |
+
+Not supported: MDict 3.0 files (MdxBuilder 4.x), and files with
+`Encrypted="1"` or `"3"` (key-header encryption tied to a registration
+code). See the [format notes](docs/MDict_Format_Specification.md).
 
 ## Requirements
 
-- Swift 6.0+
-- macOS 12+ / iOS 15.6+ (deployment targets)
-- Building the iOS app additionally needs **Xcode 26 on macOS 15.6 or later**.
-  If the iOS platform is not installed yet (Xcode reports a missing iOS SDK or
-  simulator runtime), run `xcodebuild -downloadPlatform iOS` once.
+- **Package** (library, CLI tools, tests): Swift 6.2 or later (Xcode 26);
+  deployment targets macOS 12 and iOS 15.
+- **App**: Xcode 26 on macOS 15.6 or later; runs on iOS and iPadOS 15.6 or
+  later.
 
-## Installation
+## Using the library
 
-### Swift Package Manager
-
-Add to your `Package.swift`:
+The package has no semantic-version release tags yet (the `assets-*` tags
+only carry release assets), so depend on a branch or a revision:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/naco-siren/OpenMDict.git", from: "0.1.0")
+    .package(url: "https://github.com/naco-siren/OpenMDict.git", branch: "main")
+],
+targets: [
+    .target(name: "MyApp", dependencies: [
+        .product(name: "OpenMDict", package: "OpenMDict")
+    ])
 ]
 ```
 
-## Usage
-
-### Basic Lookup
-
 ```swift
 import OpenMDict
 
-// Load dictionary
-let dict = try MDictReader(path: "dictionary.mdx")
+let dict = try MDictReader(path: "dictionary.mdx")  // also opens dictionary.mdd beside it
 
-// Lookup a word
-if let entry = dict.lookup("hello") {
+if let entry = dict.lookup("hello") {               // with fallbacks
     print(entry.article.html)
 }
-
-// Search by prefix
+let exact = dict.lookup("hello", fallbacks: .none)  // direct matches only
 let words = dict.search(prefix: "hel", limit: 10)
+print(dict.metadata.title ?? "untitled", dict.entryCount)  // title is nil for placeholder titles
 
-// Access by index
-if let first = dict[0] {
-    print("\(first.key): \(first.article.html)")
-}
+let css = dict.resourceString(for: "style.css")
+let image = dict.resource(for: "logo.png")
+
+let header = MDictReader.loadMetadata(from: "dictionary.mdx")  // header only; entryCount is nil
 ```
 
-### Dictionary Metadata
+The doc comments in `Sources/OpenMDict/MDictReader.swift` cover the rest of
+the API: every record of a word (`lookupAll`), spelling suggestions, entries
+by index and `hasResource(_:)`.
+
+To enable the index cache, set a directory once at launch, before opening
+any dictionary ([write modes, cache removal, profiling](docs/performance.md)):
 
 ```swift
-let dict = try MDictReader(path: "dictionary.mdx")
-
-// `title` is Optional — some MDX files ship with placeholder titles
-// (e.g. literally "Title (No HTML code allowed)"), which the parser
-// resolves to nil so callers can fall back to the filename.
-print("Title: \(dict.metadata.title ?? "(untitled)")")
-print("Entries: \(dict.entryCount)")
-print("Format: \(dict.metadata.format)")
-print("Encoding: \(dict.metadata.encoding)")
+let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+MDictSidecarCache.cacheDirectory = caches.appendingPathComponent("MDXIndex")
 ```
 
-### Resource Files (MDD)
+## Command-line tools
 
-```swift
-// Resources are loaded automatically if .mdd file exists alongside .mdx
-let dict = try MDictReader(path: "dictionary.mdx")
-
-// Get CSS
-if let css = dict.resourceString(for: "style.css") {
-    print(css)
-}
-
-// Get image data
-if let imageData = dict.resource(for: "logo.png") {
-    // Use image data
-}
-
-// Check if resource exists
-if dict.hasResource("sound.mp3") {
-    // ...
-}
-```
-
-### Static Metadata (Fast)
-
-```swift
-// Load only header info without parsing full dictionary
-if let metadata = MDictReader.loadMetadata(from: "dictionary.mdx") {
-    print("Title: \(metadata.title ?? "(untitled)")")
-    print("Entries: \(metadata.entryCount ?? 0)")  // nil for header-only loads
-}
-```
-
-## Persistent Sidecar Index
-
-The sidecar index is an optional persistent cache that dramatically speeds
-up cold-start dictionary loads. The first time a dictionary is opened, the
-parser writes a binary `.idx` file containing the post-parse keyword
-index + record-block table + sorted search index. On subsequent loads the
-reader memory-maps the sidecar and skips the entire decompress / parse /
-`calculateRecordInfo` pipeline, which is the actual bottleneck for large
-dictionaries (~760 ms out of a 920 ms slow path on a 159k-entry dict).
-
-### Enabling
-
-The cache is **disabled by default**. Hosts opt in by setting a directory:
-
-```swift
-import OpenMDict
-
-// Configure once at process startup, before any MDictReader is constructed.
-MDictSidecarCache.cacheDirectory = URL(fileURLWithPath: "/path/to/cache")
-
-// Normal reader construction — automatically uses the fast path on hit,
-// falls back to the slow path on miss (and writes a fresh sidecar).
-let dict = try MDictReader(path: "dictionary.mdx")
-```
-
-On iOS, the main app stores sidecars under
-`AppGroup/Library/Caches/MDXIndex/` so they can be evicted by the system
-under disk pressure, are not iCloud-backed up, and are shared with the
-Action Extension.
-
-### Write modes
-
-`MDictSidecarCache.writeMode` controls when sidecars are *written*. Reads
-are always enabled when `cacheDirectory` is set. Three mutually exclusive
-modes:
-
-```swift
-public enum SidecarWriteMode: Sendable {
-    /// Never write. Only reads work. Use for read-only processes (e.g.
-    /// share-sheet extensions) so the main app stays the single source
-    /// of truth for sidecar generation.
-    case disabled
-
-    /// Queue writes in an internal FIFO; the host must call
-    /// `flushPendingWrites()` to drain. Use during bulk dictionary load
-    /// so all CPU stays on parsing and user-perceived load time is
-    /// minimised.
-    case batched
-
-    /// Dispatch each write on `DispatchQueue.global(qos: .utility)` as
-    /// soon as the parser hands it over. Default — matches CLI / tests /
-    /// benches and post-bulk-load host behaviour.
-    case immediate
-}
-```
-
-Typical iOS main-app lifecycle:
-
-```swift
-// At launch, before any MDictReader:
-MDictSidecarCache.cacheDirectory = cacheURL
-MDictSidecarCache.writeMode = .batched
-
-// Bulk load — every slow-path sidecar write is queued, not dispatched.
-for dict in dictsToLoad {
-    try await dict.load()
-}
-
-// Bulk load done. Drain the queue onto the utility queue, then switch
-// to .immediate so any later single-dict imports write straight away.
-MDictSidecarCache.flushPendingWrites()
-MDictSidecarCache.writeMode = .immediate
-```
-
-### Cleanup
-
-```swift
-// Drop the sidecar for a specific dictionary (e.g. when the user
-// deletes it). dictId is typically the MDX header SHA256, which
-// doubles as the sidecar filename.
-MDictReader.removeSidecarCache(forHeaderSHA256: sha256)
-```
-
-### Invalidation
-
-Each sidecar embeds a three-field identity in its header:
-`(sourceFileSize, sourceMTimeNanos, sourceHeaderSHA256)`. Any mismatch
-causes the loader to silently reject the sidecar and fall through to the
-slow path (which then overwrites it). A corrupt sidecar (wrong magic bytes
-or format version) is rejected the same way — corruption never causes a
-crash or incorrect lookup results.
-
-## Performance Profiling
-
-The core lib emits `OSSignposter` intervals around the parser hot paths so
-you can profile dictionary loading in Instruments without adding any
-custom timing code. Always-on; `os_signpost` is essentially free when
-nobody is collecting events.
-
-**Subsystem**: `io.github.naco-siren.openmdict`
-**Category**: `perf`
-
-Three nested intervals:
-
-| Name | Tag | Where | Notes |
-|---|---|---|---|
-| `MDXParser.init` | filename | core lib | Fires `MDXParser.path` event with payload `"fast"` or `"slow"` after the sidecar branch resolves. |
-| `MDDParser.init` | filename | core lib | Same shape; tags resource files. |
-| `DictionaryService.bulkLoad` | `count=N mode=parallel\|serial` | iOS app | Umbrella span for the initial bulk load. Per-dict parser intervals nest inside it. |
-
-### Collecting from Instruments
-
-1. Profile the iOS app in **Instruments**.
-2. Pick the **Points of Interest** template (or *os_signpost*).
-3. Filter the timeline by subsystem `io.github.naco-siren.openmdict`.
-
-The bulk-load span shows up as a single bar with the per-dict parser
-intervals nested as children. The `path` event lets you tell at a glance
-whether each dict went through the fast or slow path.
-
-### Collecting from a connected device via the command line
+These commands run on a fresh clone against the bundled test dictionary:
 
 ```bash
-log stream --device --predicate 'subsystem == "io.github.naco-siren.openmdict"'
+swift run openmdict Tests/Fixtures/tiny.mdx                 # dictionary information
+swift run openmdict Tests/Fixtures/tiny.mdx lookup hello
+swift run openmdict Tests/Fixtures/tiny.mdx search hel
+swift run openmdict Tests/Fixtures/tiny.mdx lookup hello --format=json
 ```
 
-### Production aggregation via MetricKit (optional, opt-in)
+`openmdict` without arguments lists every command. See
+[docs/cli.md](docs/cli.md) for output formats and the cache commands, and
+[docs/performance.md](docs/performance.md#benchmarking-with-openmdict-bench)
+for `openmdict-bench`.
 
-The signposts are automatically picked up by `MXMetricManager` **if the
-host app explicitly subscribes**. The data then flows back to App Store
-Connect / Xcode Organizer's Metrics panel as anonymized aggregates from
-real users on TestFlight / App Store builds — no server of your own
-required. See Apple's
-[`MetricKit` documentation](https://developer.apple.com/documentation/metrickit)
-for the subscription boilerplate (`MXMetricManager.shared.add(subscriber)`).
-
-### Privacy posture
-
-`os_signpost` events emitted by this library are written to the device's
-**local** unified log only. They are never transmitted off the device on
-their own — local-only diagnostic instrumentation does not constitute
-"data collection" for the purposes of the App Store privacy nutrition
-label. An app that uses this library and does **not** subscribe to
-`MXMetricManager` can still legitimately answer "Data Not Collected"
-on App Store Connect.
-
-If a host app **does** subscribe to MetricKit, the standard MetricKit
-disclosure rules apply (typically "Diagnostics → Performance Data" and
-"Diagnostics → Crash Data"); this library doesn't subscribe on its own,
-so the choice is the host app's.
-
-## CLI Tools
-
-Two executables ship with the package: `openmdict` (general-purpose reader)
-and `openmdict-bench` (performance benchmark).
-
-### `openmdict` — reader
-
-```bash
-# Build
-swift build -c release
-
-# Dictionary info (default — no subcommand needed)
-swift run openmdict dict.mdx
-
-# Lookup a word
-swift run openmdict dict.mdx lookup hello
-
-# Prefix search
-swift run openmdict dict.mdx search hel
-
-# List first N entries
-swift run openmdict dict.mdx list 20
-
-# List / read MDD resources
-swift run openmdict dict.mdx resources 10
-swift run openmdict dict.mdx resource style.css
-
-# Debug: raw header XML / per-key hex dump
-swift run openmdict dict.mdx header
-swift run openmdict dict.mdx debug hello
-```
-
-#### Output formats (`--format` / `-f`)
-
-The default `pretty` output is colored, truncated, and decorated for human
-reading — fine to skim, awful to script against.  Two pipe-friendly modes
-suppress the banner / dictionary-info block so stdout contains only the
-requested payload:
-
-```bash
-# Plain untruncated HTML straight to stdout — pipe to grep, save to file.
-# Not-found → stderr "Not found: <word>" + exit 1.
-swift run openmdict dict.mdx lookup hello --format=raw > hello.html
-
-# Single JSON document — includes parsed cross-references (#fragment broken
-# out as a separate field), audio / image / weblink classifications, the
-# dict's header SHA256 (same identifier the iOS app uses as dictId),
-# and prev / next navigation.  Not-found → exit 0 with `{"found": false,
-# "suggestions": [...]}` so consumers can branch on the JSON shape.
-swift run openmdict dict.mdx lookup hello --format=json | jq '.links[]'
-
-# Example: surface every cross-reference that uses an in-page anchor
-swift run openmdict dict.mdx lookup hello --format=json \
-    | jq -r '.links[] | select(.type == "entry" and .fragment != null) | .raw'
-```
-
-Set `OPENMDICT_SIDECAR_DIR` to enable the sidecar fast-path for normal
-commands (useful for benchmarking warm vs cold init on the same dict):
-
-```bash
-OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict dict.mdx lookup hello
-```
-
-### `openmdict` sidecar subcommands
-
-Manage the persistent sidecar index cache directly from the CLI. All three
-operations require `OPENMDICT_SIDECAR_DIR` to be set (except `list`, which
-takes the cache directory as a positional argument).
-
-```bash
-# Show sidecar status for a dict (reports age, size, validity + MDD pair)
-OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict sidecar info path/to/dictionary.mdx
-
-# Delete + rebuild a sidecar (e.g. after a suspected corruption)
-OPENMDICT_SIDECAR_DIR=/tmp/mdx-cache swift run openmdict sidecar rebuild path/to/dictionary.mdx
-
-# Enumerate every .idx file in a cache directory with size + age + magic-byte check
-swift run openmdict sidecar list /tmp/mdx-cache
-```
-
-### `openmdict-bench` — performance benchmark
-
-Measure cold init / warm init / lookup latency / prefix search across one
-or more dictionaries, with an optional `--verify` mode that compares fast-
-path and slow-path lookup results for byte-equality.
-
-```bash
-# Build
-swift build -c release --product openmdict-bench
-
-# Single dict
-swift run openmdict-bench path/to/dictionary.mdx
-
-# Recursive scan, 5 iterations per phase, with verify
-swift run openmdict-bench --dicts-dir dicts --purge --verify -n 5
-
-# Options:
-#   --dicts-dir PATH      Recursively scan for .mdx (repeatable)
-#   --sidecar-dir PATH    Cache directory (default: /tmp/openmdict-bench-cache)
-#   -n, --iterations N    Runs per phase (default: 5)
-#   --lookups N           Random-key lookups per MDX (default: 200)
-#   --purge               Clear the cache dir before starting
-#   --verify              Compare fast-path vs slow-path lookup results
-```
-
-## Testing
-
-The test suite covers the `MDXParser` / `MDDParser` facade APIs, the
-`MDictReader` integration layer, and the sidecar index fast-path round-trip
-(slow-path + fast-path must produce byte-equal lookup results, plus
-invalidation and write-mode behaviour). By default the suites run against
-the tiny synthetic dictionary in `Tests/Fixtures/` (`tiny.mdx` + `tiny.mdd`,
-regenerated with `Tests/Fixtures/make-fixture.py`), so a plain `swift test`
-passes on a clean clone. Set `MDICT_TEST_FILE` to run the same suites against
-a real dictionary — note that `SidecarRoundTripTests` re-parses the whole file
-several times, which takes minutes on a large MDX.
-
-```bash
-# Default: bundled fixture
-swift test
-
-# Full test suite against a real MDX
-MDICT_TEST_FILE=path/to/dict.mdx swift test
-
-# Only the sidecar round-trip suite (fast feedback loop when iterating on SidecarIndex.swift)
-MDICT_TEST_FILE=path/to/dict.mdx swift test --filter SidecarRoundTripTests
-
-# MDXParserTests supports a specific word + custom sample size
-MDICT_TEST_FILE=path/to/dict.mdx MDICT_TEST_WORD=hello swift test --filter MDXParserTests
-MDICT_TEST_FILE=path/to/dict.mdx MDICT_TEST_SAMPLE=10 swift test --filter MDXParserTests
-```
-
-The pure-Swift LZO1X decoder has its own suite (`LZO1XTests`): known-answer
-vectors in `Tests/Fixtures/lzo1x/` covering every instruction class of the
-format, plus truncation, corruption and garbage inputs that must fail cleanly.
-Two further suites are opt-in because they need real dictionaries or take time:
-
-```bash
-# Golden digests of every entry + resource — run before and after a parser/decoder
-# refactor and diff the output files (MDX 1.x dictionaries exercise the LZO path)
-MDICT_DIGEST_DICTS="a.mdx:b.mdx" MDICT_DIGEST_OUT=/tmp/digest.txt \
-    swift test -c release --filter DictionaryDigestTests
-
-# LZO1X decode throughput (MB/s per vector)
-MDICT_LZO_BENCH=1 swift test -c release --filter LZO1XBenchmark
-```
-
-## Build from a clean clone
-
-The repository contains the Swift package, the iOS project and the pipeline
-that produces the preset dictionaries. The large generated assets — the
-preset `.mdx` files and the CoreML article-embedding model — are not
-committed; they are published as GitHub Release assets and fetched by a
-bootstrap script that verifies every file against
-`preset-dicts/assets.lock.json`.
+## Building the app
 
 ```bash
 git clone https://github.com/naco-siren/OpenMDict.git
 cd OpenMDict
-
-# 1. Fetch the preset dictionaries + CoreML model listed in the lock file
-#    (for a private fork, log in with `gh auth login` first: unauthenticated
-#    Release downloads are refused and the script falls back to the GitHub CLI)
-scripts/bootstrap-assets.sh
-
-# 2. Library, CLI tools and tests (no Xcode project involved)
-swift build && swift test
-
-# 3. Compile check of the iOS app, no signing identity required.
-#    Every build configuration reads Local.xcconfig (git-ignored) as its base
-#    configuration, so the file must exist even for an unsigned build —
-#    xcodebuild fails with "Unable to open base configuration reference file"
-#    otherwise. The template's placeholder team id is fine here.
-cp Apps/iOS/OpenMDict-iOS/Local.xcconfig.template Apps/iOS/OpenMDict-iOS/Local.xcconfig
-xcodebuild -project Apps/iOS/OpenMDict-iOS/OpenMDict-iOS.xcodeproj \
-    -scheme OpenMDict-iOS -configuration Debug \
-    -destination 'generic/platform=iOS Simulator' \
-    CODE_SIGNING_ALLOWED=NO build
+scripts/bootstrap-assets.sh        # preset dictionaries and Core ML model, about 700 MB
+open Apps/iOS/OpenMDict-iOS/OpenMDict-iOS.xcodeproj
 ```
 
-Step 3 only proves that the project compiles and that every referenced
-asset is in place; it does not produce a runnable app. The app resolves its
-App Group container at launch and traps if the entitlement is missing, so a
-build that actually runs in the simulator needs normal signing (see
-[Forking & signing](#forking--signing)): open the project in Xcode, select
-your team, pick a simulator and Run. Note also that an app installed into a
-simulator from an `xcodebuild` build cannot download its On-Demand
-Resources — the asset packs are served from the local Derived Data folder —
-so the preset dictionaries fail to download in such an install and only the
-dictionaries bundled inside the app are available. Runs started from Xcode,
-TestFlight and App Store builds are not affected.
+The bootstrap script downloads the assets that are not committed, checks
+them against `preset-dicts/assets.lock.json`, compiles the model, and creates
+`Apps/iOS/OpenMDict-iOS/Local.xcconfig` from `Local.xcconfig.template`. Every
+build configuration reads that git-ignored file. Set `DEVELOPMENT_TEAM` in it
+to your team identifier before running the app on a simulator or device.
+[docs/development.md](docs/development.md) covers unsigned builds, the
+capabilities the app needs, simulator limitations and forking.
 
-## Forking & signing
-
-The project file carries no team identifier. Every build configuration of
-every target uses `Apps/iOS/OpenMDict-iOS/Local.xcconfig` (git-ignored) as
-its base configuration:
+## Testing
 
 ```bash
-cp Apps/iOS/OpenMDict-iOS/Local.xcconfig.template Apps/iOS/OpenMDict-iOS/Local.xcconfig
-# then set DEVELOPMENT_TEAM to your team identifier
+swift test                                    # bundled synthetic dictionaries
+MDICT_TEST_FILE=path/to/dict.mdx swift test   # reader and parser suites on a real dictionary
 ```
 
-To ship your own build you also have to replace the identifiers below with
-ones registered to your team — they all share the `io.github.naco-siren`
-prefix — and keep each one identical in every place it appears (paths are
-relative to `Apps/iOS/OpenMDict-iOS/`):
+The tests need no downloaded assets. Per-suite options and opt-in suites:
+[docs/development.md](docs/development.md#testing).
 
-| Identifier | Value in this repository | Where it lives |
-|---|---|---|
-| Bundle identifiers | `io.github.naco-siren.OpenMDict-iOS` (app), `io.github.naco-siren.OpenMDict-iOS.OpenMDict-ActionExtension`, `io.github.naco-siren.OpenMDict-iOS.OpenMDict-ShareExtension` | `PRODUCT_BUNDLE_IDENTIFIER` of the app and the two extension targets (Xcode ▸ Signing & Capabilities). The same prefix names the URL type, user-activity types and imported UTIs in `OpenMDict-iOS/Info.plist` and `OpenMDict-iOS/Data/Constants.swift`. |
-| App Group | `group.io.github.naco-siren.openmdict` | `OpenMDict-iOS/OpenMDict_iOS.entitlements`, `OpenMDict-ActionExtension/OpenMDict-ActionExtension.entitlements`, `AppIdentifiers.appGroupIdentifier` in `OpenMDict-iOS/Data/Constants.swift` (consumed by `OpenMDict-iOS/Data/AppGroupPaths.swift`) |
-| iCloud container | `iCloud.io.github.naco-siren.OpenMDict-iOS` | `OpenMDict-iOS/OpenMDict_iOS.entitlements` (`com.apple.developer.icloud-container-identifiers`), `AppIdentifiers.cloudKitContainerID` in `OpenMDict-iOS/Data/Constants.swift` |
-| Push environment | `aps-environment` = `development` | `OpenMDict-iOS/OpenMDict_iOS.entitlements` — needed for CloudKit's silent change notifications; Xcode switches it to `production` when exporting for distribution |
-| Background task | `io.github.naco-siren.openmdict.articleindex` | `BGTaskSchedulerPermittedIdentifiers` in `OpenMDict-iOS/Info.plist`, `AppIdentifiers.articleIndexBGTaskID` in `OpenMDict-iOS/Data/Constants.swift` |
+## Repository layout
 
-The main app's App ID needs the **App Groups**, **iCloud (CloudKit)** and
-**Push Notifications** capabilities; the Action Extension's App ID needs
-**App Groups**; the Share Extension's App ID needs no capability. The app target also declares the *Remote notifications* and
-*Background processing* background modes in `Info.plist`, which require no
-App ID capability of their own. With automatic signing enabled, Xcode
-registers the App IDs, App Group and iCloud container for you once you select
-your team. The CloudKit schema is created on first use in the development
-environment and has to be deployed to production in the CloudKit Console
-before an App Store release.
+| Path | Contents |
+|---|---|
+| `Sources/OpenMDict` | Core library: parsers, `MDictReader`, index cache, LZO1X decoder, article-embedding index |
+| `Sources/OpenMDictKit` | Lookup models (`MDict`, `MDicts`) and the sync and preset-update rules used by the app |
+| `Apps/CLI`, `Apps/Bench` | `openmdict` and `openmdict-bench` |
+| `Apps/iOS` | Xcode project: the app, its Action Extension and Share Extension |
+| `Tests` | Test suites and fixtures |
+| `preset-dicts` | Preset dictionary pipeline: catalog, build scripts, asset lock |
+| `scripts` | Asset bootstrap, publishing and checks; Xcode project relinking; model conversion |
+| `docs` | Developer documentation and design notes |
+| `licenses` | License texts of third-party components and preset dictionaries |
 
-## Regenerating assets
+## Documentation
 
-The preset dictionaries, the CoreML article-embedding model and the app icon
-families are generated artifacts with their own pipelines: `preset-dicts/`
-builds every `.mdx` from its upstream data (`make <name>`), `scripts/model/`
-converts the sentence-embedding model, and
-`Apps/iOS/OpenMDict-iOS/Resources/AppIcons/` holds the exported icon sets.
-`MAINTAINING.md` describes, for each kind of change (editing a dictionary,
-adding or removing one, swapping the model, adding an icon family), which
-files to touch, how the generated files are published to a GitHub Release and
-recorded in `preset-dicts/assets.lock.json`, and how to re-link the Xcode
-project so that it never references an absolute path.
-
-## Project Structure
-
-```
-OpenMDict/
-├── Sources/
-│   ├── OpenMDict/                # Core library (pure Swift)
-│   │   ├── MDictReader.swift     # Public facade
-│   │   ├── Parsers/
-│   │   │   ├── MDXParser.swift
-│   │   │   ├── MDDParser.swift
-│   │   │   ├── MDictDescriptionParser.swift
-│   │   │   └── ResourceProvider.swift
-│   │   ├── Semantic/ArticleEmbed/    # Article-embedding index: tokenizer, encoder, reader/writer
-│   │   └── Utils/
-│   │       ├── BinaryReader.swift    # mmap-backed random access
-│   │       ├── SidecarIndex.swift    # Persistent index cache + write modes
-│   │       ├── Decompressor.swift    # zlib + LZO dispatch
-│   │       ├── LZO1X.swift           # Pure-Swift LZO1X decoder
-│   │       ├── HTMLEntityDecoder.swift
-│   │       ├── Levenshtein.swift
-│   │       └── RIPEMD128.swift
-│   └── OpenMDictKit/             # ViewModel layer for iOS/macOS hosts
-├── Apps/
-│   ├── CLI/                      # openmdict — general-purpose reader
-│   ├── Bench/                    # openmdict-bench — sidecar A/B benchmark
-│   └── iOS/                      # iOS/iPadOS app (UIKit, Swift 6)
-│       └── OpenMDict-iOS/
-│           ├── Local.xcconfig.template   # Copy to Local.xcconfig, set DEVELOPMENT_TEAM
-│           └── Resources/AppIcons/       # Committed app icon sets
-├── docs/                         # MDict format spec, CoreData + Swift 6 concurrency notes, article embeddings
-├── preset-dicts/                 # Preset dictionary pipeline: catalog, Makefile, scripts
-│                                 # (output/ is fetched by the bootstrap script, not committed)
-├── scripts/                      # bootstrap-assets.sh, relink-project-assets.rb, model conversion
-├── Tests/
-│   ├── Fixtures/                 # tiny.mdx / tiny.mdd + LZO1X known-answer vectors
-│   ├── OpenMDictTests/
-│   │   ├── MDictReaderTests.swift
-│   │   ├── SidecarRoundTripTests.swift
-│   │   └── Parsers/
-│   └── OpenMDictKitTests/
-└── Package.swift
-```
-
-## Format Support
-
-| Format | Compression | Status |
-|--------|-------------|--------|
-| MDX V2 (2.0) | zlib | ✅ Full support |
-| MDX V1 (1.x) | LZO | ✅ Full support |
-| MDX V1 (1.x) | zlib | ✅ Supported |
-| MDD V2 | zlib | ✅ Full support |
-| MDD V1 | LZO/zlib | ✅ Supported |
-| Salted (obfuscated) | - | ✅ Supported |
+| Document | Topic |
+|---|---|
+| [docs/development.md](docs/development.md) | Building, running and signing the app; tests |
+| [docs/cli.md](docs/cli.md) | Command-line reference |
+| [docs/performance.md](docs/performance.md) | File access, index cache, signposts, benchmarks |
+| [docs/MDict_Format_Specification.md](docs/MDict_Format_Specification.md) | MDX and MDD format notes |
+| [docs/article-embeddings.md](docs/article-embeddings.md) | Semantic and article search |
+| [docs/CoreData_Swift6_Concurrency.md](docs/CoreData_Swift6_Concurrency.md) | Core Data under Swift 6 strict concurrency |
+| [MAINTAINING.md](MAINTAINING.md) | Rebuilding and publishing the preset dictionaries, model and icons |
+| [preset-dicts/README.md](preset-dicts/README.md) | Dictionary pipeline, sources and licenses |
+| [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | Third-party licenses and attributions |
 
 ## License
 
-MIT License
+The code is released under the MIT License; see [LICENSE](LICENSE). The
+preset dictionaries, the embedding model and other third-party components
+are distributed under their own licenses; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [licenses/](licenses/).
 
 ## Acknowledgments
 
-- [lzokay](https://github.com/AxioDL/lzokay) - MIT-licensed LZO1X implementation the Swift decoder is modelled on (see THIRD-PARTY-NOTICES.md)
-- [readmdict](https://github.com/zhansliu/writemdict) - Python MDict reference implementation
+- [lzokay](https://github.com/AxioDL/lzokay) (MIT): model for the LZO1X decoder.
+- [writemdict](https://github.com/zhansliu/writemdict) (MIT): reference for
+  the MDX and MDD format.
+- The sources of the preset dictionaries and the embedding model are credited
+  in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

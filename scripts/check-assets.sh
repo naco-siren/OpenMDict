@@ -26,7 +26,7 @@
 #     lock (the Release payload is stale until publish-assets.sh runs again)
 #
 # Usage: scripts/check-assets.sh [--strict]     (--strict: warnings fail too)
-# Exit 1 on any error. Runs in CI after bootstrap-assets.sh.
+# Exit 1 on any error. Run it after bootstrap-assets.sh and before pushing.
 
 set -euo pipefail
 US=$'\037'   # field separator for the internal tables (tab would collapse empty fields in `read`)
