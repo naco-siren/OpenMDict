@@ -26,10 +26,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     let mode: Mode
 
-    /// Pre-select only the presets that have an update (management mode,
-    /// opened from the update prompt). Set before the view loads.
-    var preselectUpdatesOnly = false
-
     // MARK: - Callbacks
 
     /// Called when user taps "Continue" with the selected presets
@@ -45,6 +41,9 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     /// Hierarchical data: Region → [LanguageGroup]
     private var regionGroups: [(region: PresetDictionary.Region, languages: [LanguageGroup])] = []
+
+    /// "All presets are installed" placeholder (management mode), if shown.
+    private var emptyStateView: UIView?
 
     private struct LanguageGroup {
         let langCode: String               // primary language code (e.g. "JA", "CJK", "YUE")
@@ -136,6 +135,7 @@ final class PresetDictionaryPickerViewController: UIViewController {
             setupCollectionView()
             setupLayout()
             showEmptyState()
+            recordInstalledBuildsInBackground()
             return
         }
 
@@ -146,6 +146,37 @@ final class PresetDictionaryPickerViewController: UIViewController {
         applySnapshot()
         updateContinueButton()
         updateSelectAllButton()
+        recordInstalledBuildsInBackground()
+    }
+
+    // MARK: - Installed Builds
+
+    /// Hash the installed preset files whose build is not recorded yet
+    /// (installed by an older app version, or downloaded from iCloud). The
+    /// picker is the only place this happens. When it turns up an earlier
+    /// build, the list adds that update pre-selected; the rest of the list
+    /// keeps its selection and expanded groups.
+    private func recordInstalledBuildsInBackground() {
+        guard mode == .management else { return }
+        let service = PresetDictionaryService.shared
+        let known = Set(service.updatablePresets.map(\.id))
+        Task { [weak self] in
+            guard await service.recordInstalledBuilds(), let self else { return }
+            let found = Set(service.updatablePresets.map(\.id)).subtracting(known)
+            guard !found.isEmpty else { return }
+            let wasEmpty = self.regionGroups.isEmpty
+            self.loadCatalogData()
+            guard !self.regionGroups.isEmpty else { return }
+            self.selectedIds.formUnion(found)
+            if wasEmpty {
+                self.leaveEmptyState()
+                self.applySnapshot()
+            } else {
+                self.applySnapshot(keepingExpansion: true, newlySelected: found)
+            }
+            self.updateContinueButton()
+            self.updateSelectAllButton()
+        }
     }
 
     // MARK: - Catalog Data
@@ -227,7 +258,6 @@ final class PresetDictionaryPickerViewController: UIViewController {
             for preset in PresetDictionaryService.shared.updatablePresets {
                 selectedIds.insert(preset.id)
             }
-            if preselectUpdatesOnly { return }
         }
 
         for regionGroup in regionGroups {
@@ -456,7 +486,21 @@ final class PresetDictionaryPickerViewController: UIViewController {
 
     // MARK: - Snapshot (Hierarchical)
 
-    private func applySnapshot() {
+    /// - Parameters:
+    ///   - keepingExpansion: keep each language group expanded or collapsed
+    ///     as it is now (a refresh while the list is on screen) instead of
+    ///     expanding the groups that have a selected child.
+    ///   - newlySelected: with `keepingExpansion`, presets whose groups are
+    ///     expanded as well.
+    private func applySnapshot(keepingExpansion: Bool = false, newlySelected: Set<String> = []) {
+        var wasExpanded: Set<PickerItem> = []
+        if keepingExpansion {
+            for section in dataSource.snapshot().sectionIdentifiers {
+                let sectionSnapshot = dataSource.snapshot(for: section)
+                wasExpanded.formUnion(sectionSnapshot.items.filter { sectionSnapshot.isExpanded($0) })
+            }
+        }
+
         // First: create the top-level snapshot with sections
         var snapshot = NSDiffableDataSourceSnapshot<PickerSection, PickerItem>()
         let sections = regionGroups.map { PickerSection.region($0.region.rawValue) }
@@ -492,8 +536,11 @@ final class PresetDictionaryPickerViewController: UIViewController {
                 sectionSnapshot.append(children, to: parent)
 
                 // Expand only if this language group has default-selected children
-                let hasSelectedChild = langGroup.presets.contains { selectedIds.contains($0.id) }
-                if hasSelectedChild {
+                // (or, on a refresh, was expanded or gained a new selection)
+                let shouldExpand = keepingExpansion
+                    ? wasExpanded.contains(parent) || langGroup.presets.contains { newlySelected.contains($0.id) }
+                    : langGroup.presets.contains { selectedIds.contains($0.id) }
+                if shouldExpand {
                     sectionSnapshot.expand([parent])
                 }
             }
@@ -648,12 +695,30 @@ final class PresetDictionaryPickerViewController: UIViewController {
         stack.spacing = 12
 
         view.addSubview(stack)
+        emptyStateView = stack
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
             stack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 32),
             stack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -32),
         ])
+    }
+
+    /// Replace the placeholder with the list (an update turned up after the
+    /// manager opened).
+    private func leaveEmptyState() {
+        emptyStateView?.removeFromSuperview()
+        emptyStateView = nil
+        collectionView.isHidden = false
+        bottomSeparator.isHidden = false
+        continueButton.isHidden = false
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: L10n.Picker.selectAll,
+            style: .plain,
+            target: self,
+            action: #selector(selectAllTapped)
+        )
+        configureDataSource()
     }
 }
 

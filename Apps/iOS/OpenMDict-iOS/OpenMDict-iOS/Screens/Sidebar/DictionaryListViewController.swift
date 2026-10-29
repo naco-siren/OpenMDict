@@ -513,17 +513,6 @@ class DictionaryListViewController: UIViewController, SidebarStateProvider {
             self, selector: #selector(handleDidBecomeActive),
             name: UIScene.didActivateNotification, object: nil
         )
-
-        // 8. Preset updates: the "Download Presets" row shows a count badge.
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(handlePresetUpdatesChanged),
-            name: PresetDictionaryService.updatesDidChangeNotification, object: nil
-        )
-    }
-
-    @objc private func handlePresetUpdatesChanged() {
-        guard isViewLoaded else { return }
-        invalidateVisibleCellConfigurations()
     }
 
     @objc private func handleDidBecomeActive() {

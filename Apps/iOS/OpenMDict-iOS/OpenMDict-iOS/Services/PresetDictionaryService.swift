@@ -13,7 +13,6 @@
 //  This service is called by SetupViewController and PresetDictionaryPicker.
 //
 
-import Combine
 import Foundation
 import CryptoKit
 import OpenMDictKit
@@ -344,28 +343,7 @@ final class PresetDictionaryService {
     /// Active ODR requests (keyed by preset ID, for cancellation)
     private var activeODRRequests: [String: NSBundleResourceRequest] = [:]
 
-    private var libraryCancellable: AnyCancellable?
-
     private init() {}
-
-    /// Compute update status now and keep it current as the library changes
-    /// (imports, deletions, iCloud sync, downloads finishing). Called once
-    /// from DictionaryService.setup().
-    func startTrackingUpdates() {
-        refreshUpdateStatus()
-        guard libraryCancellable == nil else { return }
-        let metadataChanges = DictMetadataService.shared.$revision.dropFirst().map { _ in () }
-        let libraryChanges = DictionaryService.shared.$allDictionaries.dropFirst().map { _ in () }
-        libraryCancellable = metadataChanges.merge(with: libraryChanges)
-            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self, !self.catalog.isEmpty else { return }
-                self.refreshImportStatus()
-                // New copies (an import, an iCloud download) get their
-                // build recorded; cheap when there is nothing to hash.
-                Task { await self.recordInstalledBuilds() }
-            }
-    }
 
     // MARK: - Headword Language
 
@@ -377,7 +355,7 @@ final class PresetDictionaryService {
     // MARK: - Catalog Loading
 
     /// Load the preset dictionary catalog from app bundle.
-    /// Call this once during app startup or when presenting the picker.
+    /// Called by the preset picker each time it loads.
     func loadCatalog() throws {
         guard let url = Bundle.main.url(forResource: "preset-dictionaries", withExtension: "json") else {
             throw PresetImportError.catalogNotFound
@@ -427,19 +405,9 @@ final class PresetDictionaryService {
                     : .updateAvailable(libraryIds: ready)
             }
         }
-        let builds = Set(updatablePresets.map { "\($0.id)=\($0.sha256 ?? "")" })
-        if builds != lastPostedUpdates {
-            lastPostedUpdates = builds
-            NotificationCenter.default.post(name: Self.updatesDidChangeNotification, object: self)
-        }
     }
 
     // MARK: - Updates
-
-    /// Posted (on the main actor) when the set of presets with an available
-    /// update changes.
-    static let updatesDidChangeNotification = Notification.Name("PresetDictionaryService.updatesDidChange")
-    private var lastPostedUpdates: Set<String> = []
 
     /// The installed copies of a preset that can be updated now.
     func installedIdsWithUpdate(_ presetId: String) -> [String] {
@@ -462,29 +430,28 @@ final class PresetDictionaryService {
         return false
     }
 
-    /// Load the catalog if needed and recompute statuses. Cheap; safe to call
-    /// at launch and whenever dictionary metadata changes.
-    func refreshUpdateStatus() {
-        if catalog.isEmpty {
-            do { try loadCatalog() } catch {
-                debugLog("⚠️ Preset catalog unavailable: \(error.localizedDescription)")
-                return
-            }
-        } else {
-            refreshImportStatus()
-        }
-    }
-
     /// Record which build each installed preset's MDX is, for files that have
     /// no record yet (installed before this was recorded, or downloaded from
-    /// iCloud). Until then the dictionary ID stands in for it — correct for
-    /// every file that was never updated in place. Hashing runs off the main
-    /// actor, once per file.
-    func recordInstalledBuilds() async {
-        guard !isRecordingBuilds else { return }
-        isRecordingBuilds = true
-        defer { isRecordingBuilds = false }
-        refreshUpdateStatus()
+    /// iCloud). Until then the copy is treated as current (no update is
+    /// offered): an iCloud copy can hold a later build under an earlier
+    /// build's ID. Hashing runs off the main actor, once per file. Called by
+    /// the preset picker after it loads the catalog; returns whether any build
+    /// was recorded (statuses are then recomputed). A call made while a pass
+    /// is running waits for that pass and gets its result.
+    func recordInstalledBuilds() async -> Bool {
+        if let running = recordingTask { return await running.value }
+        let task = Task {
+            defer { self.recordingTask = nil }
+            return await self.recordUnrecordedBuilds()
+        }
+        recordingTask = task
+        return await task.value
+    }
+
+    private var recordingTask: Task<Bool, Never>?
+
+    private func recordUnrecordedBuilds() async -> Bool {
+        guard !catalog.isEmpty else { return false }
         let names = Set(catalog.map(\.filename))
         let pending = DictMetadataService.shared.loadAll().filter {
             names.contains($0.originalFileName) && storage.recordedMDXSha256(id: $0.dictId) == nil
@@ -495,7 +462,7 @@ final class PresetDictionaryService {
             // update), the hash is not recorded against the new file.
             guard let mdx = storage.mdxURL(id: metadata.dictId),
                   let stamp = DictionaryStorageService.fileStamp(mdx) else { continue }
-            guard let sha = try? await Task.detached(priority: .utility, operation: {
+            guard let sha = try? await Task.detached(priority: .userInitiated, operation: {
                 try Self.fileSHA256(mdx)
             }).value else { continue }
             storage.recordMDXSha256(sha, id: metadata.dictId, stamp: stamp)
@@ -505,9 +472,8 @@ final class PresetDictionaryService {
             debugLog("📋 Recorded the build of \(recorded) installed preset file(s)")
             refreshImportStatus()
         }
+        return recorded > 0
     }
-
-    private var isRecordingBuilds = false
 
     /// Update the installed copies of a preset to the build this app ships
     /// (fetched from the bundle or ODR). Each copy keeps its dictionary ID;

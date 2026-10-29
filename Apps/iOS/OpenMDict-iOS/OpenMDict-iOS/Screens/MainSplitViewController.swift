@@ -142,21 +142,6 @@ class MainSplitViewController: UISplitViewController {
 
         // Check for first-install setup (before article restoration)
         presentSetupIfNeeded()
-        // Offer improved builds of installed preset dictionaries (once per
-        // build) — now, and whenever the set changes (e.g. once the files
-        // have been checked after launch).
-        presentPresetUpdatePromptIfNeeded()
-        if presetUpdatesObserver == nil {
-            presetUpdatesObserver = NotificationCenter.default.addObserver(
-                forName: PresetDictionaryService.updatesDidChangeNotification, object: nil, queue: .main
-            ) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self, self.view.window != nil,
-                          UIApplication.shared.applicationState == .active else { return }
-                    self.presentPresetUpdatePromptIfNeeded()
-                }
-            }
-        }
 
         if isCollapsed {
             // iPhone / compact: articles were preloaded into the regular detailContainer
@@ -608,8 +593,6 @@ class MainSplitViewController: UISplitViewController {
             searchSession.setContext(.none)
             applyInitialSelection()
             debugLog("📱 Setup complete: dictionaries loaded")
-            // Dictionaries restored from iCloud may be earlier preset builds.
-            presentPresetUpdatePromptIfNeeded()
         }
 
         present(setupVC, animated: true)
@@ -617,69 +600,10 @@ class MainSplitViewController: UISplitViewController {
 
     // MARK: - Preset Dictionary Management
 
-    private var presetUpdatesObserver: NSObjectProtocol?
-
-    /// Builds ("<presetId>=<sha256>") the user has already been asked about.
-    private static let presetUpdatePromptedKey = "presetUpdatePromptedBuilds.v1"
-
-    /// When this app version ships newer builds of presets the user has
-    /// installed, ask once whether to update them now. Each build is asked
-    /// about once — whichever button the user taps — so updating some of
-    /// them, or more becoming updatable later (e.g. once a download from
-    /// iCloud completes), does not bring the alert back for the others. The
-    /// sidebar badge and the picker keep offering the update.
-    /// One prompt at a time across all windows (iPad multitasking).
-    private static var isShowingPresetUpdatePrompt = false
-
-    private func presentPresetUpdatePromptIfNeeded() {
-        guard presentedViewController == nil else { return }   // e.g. first-install setup
-        guard !Self.isShowingPresetUpdatePrompt else { return }
-        let service = PresetDictionaryService.shared
-        service.refreshUpdateStatus()
-        let updates = service.updatablePresets
-        guard !updates.isEmpty else { return }
-
-        let builds = Set(updates.map { "\($0.id)=\($0.sha256 ?? "")" })
-        let prompted = Set(UserDefaults.standard.stringArray(forKey: Self.presetUpdatePromptedKey) ?? [])
-        guard !builds.isSubset(of: prompted) else { return }
-        // Read again when the user answers: another window may have
-        // recorded builds in the meantime.
-        let remember = {
-            Self.isShowingPresetUpdatePrompt = false
-            let latest = Set(UserDefaults.standard.stringArray(forKey: Self.presetUpdatePromptedKey) ?? [])
-            UserDefaults.standard.set(latest.union(builds).sorted(), forKey: Self.presetUpdatePromptedKey)
-        }
-
-        let names = updates.map { "• \($0.displayName)" }.joined(separator: "\n")
-        let alert = UIAlertController(
-            title: L10n.PresetUpdate.alertTitle,
-            message: L10n.PresetUpdate.alertMessage(names),
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: L10n.PresetUpdate.later, style: .cancel) { _ in remember() })
-        let update = UIAlertAction(title: L10n.PresetUpdate.update, style: .default) { [weak self] _ in
-            remember()
-            guard let self else { return }
-            // Each layout presents the manager the way its own entry point does.
-            if self.isCollapsed {
-                self.compactTabBarController.presentPresetManager(preselectingUpdatesOnly: true)
-            } else {
-                self.presentPresetManager(preselectingUpdatesOnly: true)
-            }
-        }
-        alert.addAction(update)
-        alert.preferredAction = update
-        Self.isShowingPresetUpdatePrompt = true
-        present(alert, animated: true)
-    }
-
     /// Present the preset dictionary management flow as a modal.
     /// Reuses SetupViewController in .management mode (picker → progress).
-    /// - Parameter preselectingUpdatesOnly: Pre-select only the presets with
-    ///   an update (from the update prompt), not the usual suggestions.
-    private func presentPresetManager(preselectingUpdatesOnly: Bool = false) {
+    private func presentPresetManager() {
         let setupVC = SetupViewController(mode: .management)
-        setupVC.preselectUpdatesOnly = preselectingUpdatesOnly
 
         if traitCollection.horizontalSizeClass == .regular {
             setupVC.modalPresentationStyle = .formSheet
