@@ -239,7 +239,7 @@ them, the notices and the license texts to every asset Release it creates.
    row for the new `dataSource` and knows its license ids.
 5. From the repository root: `ruby scripts/relink-project-assets.rb --sync`
    to add the Xcode reference and ODR tag, then `make -C preset-dicts notices`,
-   `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` (uploads to a draft
+   `scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N]` (uploads to a draft
    pre-release that you review and publish), and `scripts/check-assets.sh`.
 
 ## Xcode Integration

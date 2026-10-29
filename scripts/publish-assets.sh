@@ -33,7 +33,7 @@
 #     and commit the rewritten lock.
 #
 # Usage:
-#   scripts/publish-assets.sh --tag assets-YYYY.MM[.N] [options]
+#   scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N] [options]
 #
 # Options:
 #   --tag <tag>          tag for new/changed assets (required when anything changed)
@@ -140,8 +140,12 @@ fi
 [ -d "$MODEL_DIR/$MODEL_NAME.mlpackage" ] || die "missing $MODEL_DIR_REL/$MODEL_NAME.mlpackage"
 [ -f "$MODEL_DIR/vocab.txt" ] || die "missing $MODEL_DIR_REL/vocab.txt"
 if [ -n "$TAG" ]; then
-    printf '%s' "$TAG" | grep -Eq '^assets-[0-9]{4}\.[0-9]{2}(\.[0-9]+)?$' \
-        || die "tag '$TAG' does not match assets-YYYY.MM[.N]"
+    # Tags are named by release date. --amend may also revise one of the
+    # first tags, which numbered releases within the month (assets-2026.10.1).
+    if ! printf '%s' "$TAG" | grep -Eq '^assets-[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$'; then
+        { [ "$AMEND" -eq 1 ] && printf '%s' "$TAG" | grep -Eq '^assets-[0-9]{4}\.[0-9]{2}(\.[0-9])?$'; } \
+            || die "tag '$TAG' does not match assets-YYYY.MM.DD[.N] (the release date, e.g. assets-$(date +%Y.%m.%d))"
+    fi
 fi
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/publish-assets.XXXXXX")
@@ -418,7 +422,7 @@ if [ "$AMEND" -eq 1 ] && [ -n "$TAG" ]; then
     n_upload=$(awk -F "$US" -v t="$TAG" '$8 == t' "$WORK/plan.tsv" | wc -l | tr -d ' ')
 fi
 if [ "$n_upload" -gt 0 ]; then
-    [ -n "$TAG" ] || die "$n_upload asset(s) are new or changed; pass --tag assets-YYYY.MM[.N] (a tag not yet referenced by the committed lock)"
+    [ -n "$TAG" ] || die "$n_upload asset(s) are new or changed; pass --tag assets-YYYY.MM.DD[.N], e.g. assets-$(date +%Y.%m.%d) (a tag not yet referenced by the committed lock)"
     if grep -qx "$TAG" "$WORK/committed.tags" && [ "$AMEND" -eq 0 ]; then
         die "tag $TAG is already referenced by the committed lock; pick a new tag, or pass --amend to revise it in place"
     fi

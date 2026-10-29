@@ -14,7 +14,7 @@ The app's assets are described in four places that must agree:
 | `preset-dicts/preset-dictionaries.json` (the **catalog**) | Which dictionaries exist, their metadata, `bundle` vs `odr`, `odrTag`, size, entry count, SPDX license |
 | `Apps/iOS/OpenMDict-iOS/OpenMDict-iOS.xcodeproj/project.pbxproj` | Which `.mdx` files Xcode copies / tags (`ASSET_TAGS`, `KnownAssetTags`), relative to `SOURCE_ROOT` |
 | `preset-dicts/assets.lock.json` (the **lock**) | File name, size, SHA-256 and Release tag of every downloadable asset |
-| GitHub Releases (`assets-YYYY.MM[.N]`, pre-release) | The actual bytes: 64 `.mdx`, the zipped `.mlpackage` + `vocab.txt`, the notices and GPL source archives |
+| GitHub Releases (`assets-YYYY.MM.DD[.N]`, pre-release) | The actual bytes: 64 `.mdx`, the zipped `.mlpackage` + `vocab.txt`, the notices and GPL source archives |
 
 Large files are **not** in git and not in LFS. A fresh clone runs
 `scripts/bootstrap-assets.sh`, which downloads everything the lock lists,
@@ -39,7 +39,7 @@ the four is caught before it reaches `main`.
 | Script | Purpose |
 |---|---|
 | `scripts/bootstrap-assets.sh [--check\|--force]` | Download every asset in the lock into place (`preset-dicts/output/<Name>/<Name>.mdx`, `Apps/iOS/OpenMDict-iOS/Article Embeddings/`), verify SHA-256, unzip the model and run the precompile step when the model changed. Files that already match the lock are skipped without touching their mtime. `--check` only reports drift (non-zero exit) and is what CI and the Xcode "Check bootstrapped assets" run-script use. Files it downloaded (or verified) earlier are replaced automatically when the lock moves on. `--force` also overwrites local files whose hash differs from the lock and that were never published (for example a dictionary you rebuilt locally); without it the script refuses and tells you which files differ. `OPENMDICT_ASSETS_BASE_URL` overrides the download base (default: this repository's Releases) so a staging directory served with `python3 -m http.server` can be used for dry runs. While the repository is private, unauthenticated Release downloads return 404 and the script switches to `gh release download` (requires `gh auth login`). |
-| `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` | Hash the local assets, upload only the ones whose hash is not yet in the lock to a **draft** pre-release under the given (new) tag, rewrite the lock, and stage the compliance payload: the committed `THIRD-PARTY-NOTICES.md` (regenerate it first — the script copies, it does not generate), `LICENSE-<SPDX>.txt` texts (taken from `preset-dicts/licenses/`, then `licenses/`, and fetched from the SPDX list only when neither has them; `LicenseRef-*` texts such as the WordNet license must be in `preset-dicts/licenses/`) and the GPL source archives, all of which are attached to every new tag even when unchanged. Review the draft, then `gh release edit <tag> --draft=false` and commit the lock. `--dry-run` / `--stage-only` need no `gh`. |
+| `scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N]` | Hash the local assets, upload only the ones whose hash is not yet in the lock to a **draft** pre-release under the given (new) tag, rewrite the lock, and stage the compliance payload: the committed `THIRD-PARTY-NOTICES.md` (regenerate it first — the script copies, it does not generate), `LICENSE-<SPDX>.txt` texts (taken from `preset-dicts/licenses/`, then `licenses/`, and fetched from the SPDX list only when neither has them; `LicenseRef-*` texts such as the WordNet license must be in `preset-dicts/licenses/`) and the GPL source archives, all of which are attached to every new tag even when unchanged. Review the draft, then `gh release edit <tag> --draft=false` and commit the lock. `--dry-run` / `--stage-only` need no `gh`. |
 | `scripts/check-assets.sh` | Consistency gate: every catalog entry has a pbxproj reference with the right `ASSET_TAGS`, every `odrTag` is in `KnownAssetTags`, every file is in the lock, and nothing in the lock is orphaned. Exit non-zero on drift. Runs in CI. |
 | `scripts/relink-project-assets.rb [--sync] [--dry-run] [--project PATH]` | Rewrite the pbxproj (defaults to the iOS app project) so every asset reference is relative (`SOURCE_ROOT`), never absolute. `--sync` additionally adds/removes `.mdx` references and `ASSET_TAGS` to match the catalog and merges `KnownAssetTags`. `--dry-run` prints what would change. Idempotent. |
 | `scripts/precompile-article-embed-model.sh` | `.mlpackage → .mlmodelc` with `xcrun coremlcompiler` (invoked by bootstrap when needed). |
@@ -55,8 +55,8 @@ Read each script's header comment for the full option list.
 
 | You changed… | Then run… | Commit |
 |---|---|---|
-| **Dictionary content** (a build script, source data, `FORMATTING_STANDARD.md`) | `make -C preset-dicts <target>` → check the output → `make -C preset-dicts catalog notices` (review the printed diff) → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → `scripts/check-assets.sh --strict` → publish the draft | catalog, notices, lock, `Settings.bundle/Licenses*` |
-| **Added or removed a dictionary** | add/remove the build script + Makefile target + catalog entry (+ `bundle_assets` in `catalog-policy.json` if bundled) → `make -C preset-dicts <target>` → `ruby scripts/relink-project-assets.rb --sync` → `make -C preset-dicts notices` → `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` → `scripts/check-assets.sh` | catalog, pbxproj, lock, `THIRD-PARTY-NOTICES.md`, `Settings.bundle/Licenses*` |
+| **Dictionary content** (a build script, source data, `FORMATTING_STANDARD.md`) | `make -C preset-dicts <target>` → check the output → `make -C preset-dicts catalog notices` (review the printed diff) → `scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N]` → `scripts/check-assets.sh --strict` → publish the draft | catalog, notices, lock, `Settings.bundle/Licenses*` |
+| **Added or removed a dictionary** | add/remove the build script + Makefile target + catalog entry (+ `bundle_assets` in `catalog-policy.json` if bundled) → `make -C preset-dicts <target>` → `ruby scripts/relink-project-assets.rb --sync` → `make -C preset-dicts notices` → `scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N]` → `scripts/check-assets.sh` | catalog, pbxproj, lock, `THIRD-PARTY-NOTICES.md`, `Settings.bundle/Licenses*` |
 | **Catalog metadata only** (description, display name, tier, license) | change the `write_catalog_metadata(...)` call in the build script and rebuild (hand edits of these fields are overwritten by `make catalog`; only `licenseNote` is maintained by hand in `preset-dictionaries.json`) → `make -C preset-dicts catalog notices` → `scripts/check-assets.sh` | catalog, notices (+ lock if the `.mdx` changed), `Settings.bundle/Licenses*` |
 | **Header description** (the `Description` HTML in the MDX header, shown on the dictionary info screen) | every build script composes it with `shared.build.description_html(...)` (one layout for all presets: title, about, Source, License, Conversion with the converter credit, verbatim notices) and exposes `descriptions()`; edit the arguments in the build script → `make -C preset-dicts descriptions` and read `output/_descriptions/index.html` → rebuild the dictionary (the header is part of the file, so the `sha256` changes) → as for dictionary content | catalog, notices, lock |
 | **Source data refresh** (new upstream release) | update the URL / SHA-256 in `fetch_data.sh` and the pin in the build script → `fetch_data.sh <source>` → rebuild → as for dictionary content. JMdict and KANJIDIC2: see "Refreshing the EDRDG data" | `fetch_data.sh`, build script, catalog, notices, lock, `Settings.bundle/Licenses*` |
@@ -80,9 +80,9 @@ open output/CEDICT-ZH-EN/cedict_preview.html
 make catalog notices                # prints the catalog diff; review it
 make check-catalog                  # must pass before you publish
 cd ..
-scripts/publish-assets.sh --tag assets-2026.11   # uploads only what changed to a NEW tag, rewrites the lock
+scripts/publish-assets.sh --tag assets-2026.11.05   # uploads only what changed to a NEW tag, rewrites the lock
 scripts/check-assets.sh --strict
-gh release edit assets-2026.11 --draft=false     # after reviewing the draft
+gh release edit assets-2026.11.05 --draft=false     # after reviewing the draft
 ```
 
 `make all` builds every dictionary and then runs `make check-catalog`; it
@@ -141,7 +141,7 @@ cd preset-dicts
 make jmdict kanjidic2
 make catalog notices                # new sha256, old one moves to previousSha256
 cd ..
-scripts/publish-assets.sh --tag assets-YYYY.MM[.N] && scripts/check-assets.sh --strict
+scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N] && scripts/check-assets.sh --strict
 ```
 
 EDRDG keeps no older releases, so the pinned `.gz` files in `data/` are the
@@ -169,7 +169,7 @@ attach them to the asset Release).
 6. `make -C preset-dicts notices` (add a `SOURCE_NOTICES` entry in
    `gen_third_party_notices.py` when the license asks for a credit line or
    copyright notice that does not fit in the table), then
-   `scripts/publish-assets.sh --tag assets-YYYY.MM[.N]` and publish the
+   `scripts/publish-assets.sh --tag assets-YYYY.MM.DD[.N]` and publish the
    draft. For a new SPDX license id, add its text as
    `licenses/LICENSE-<id>.txt` (from
    <https://raw.githubusercontent.com/spdx/license-list-data/main/text/<id>.txt>):
@@ -235,8 +235,10 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
 
 ### Publishing rules
 
-- Tags are `assets-YYYY.MM` (`.N` for a second release in the same month),
-  marked **pre-release** so they never become "Latest".
+- Tags are `assets-YYYY.MM.DD`, the release date (`.N` for a second
+  release on the same day), marked **pre-release** so they never become
+  "Latest". The first tags (`assets-2026.10`, `assets-2026.10.1`,
+  `assets-2026.10.2`) numbered releases within the month instead.
 - Each lock entry carries its own tag; a partial update uploads only the
   changed files to a new tag and leaves the other entries pointing at the
   old one. The compliance payload is the exception: whenever a new tag
@@ -277,9 +279,9 @@ git clone git@github.com:naco-siren/OpenMDict-dictionary-sources.git /tmp/ds
 scripts/export-dictionary-sources.sh /tmp/ds
 cd /tmp/ds
 make                    # fetches and verifies the archives, rebuilds, checks SHA256SUMS
-git add -A && git commit -m "Scripts for assets-YYYY.MM[.N]"
-git tag YYYY.MM[.N] && git push origin main YYYY.MM[.N]
-gh release create YYYY.MM[.N] --title YYYY.MM[.N] --notes "…" \
+git add -A && git commit -m "Scripts for assets-YYYY.MM.DD[.N]"
+git tag YYYY.MM.DD[.N] && git push origin main YYYY.MM.DD[.N]
+gh release create YYYY.MM.DD[.N] --title YYYY.MM.DD[.N] --notes "…" \
   <preset-dicts/data/freedict/freedict-{eng-deu,deu-eng}.src.tar.xz> \
   <preset-dicts/data/gcide/gcide-0.53.tar.xz>
 ```
