@@ -1,4 +1,39 @@
-# OpenMDict
+<p align="center">
+  <img src="https://naco-siren.github.io/thumbnails/OpenMDict.png" width="160" alt="OpenMDict app icon">
+</p>
+
+<h1 align="center">OpenMDict</h1>
+
+<p align="center">
+  <a href="https://naco-siren.github.io/apps/openmdict/">Blog</a> ·
+  <a href="https://apps.apple.com/app/openmdict/id6759032057">App Store</a> ·
+  <a href="docs/development.md">Build from source</a> ·
+  <a href="https://github.com/naco-siren/OpenMDict-dictionary-sources">Dictionary sources</a>
+</p>
+
+<p align="center">
+  <b>The definitive MDict reader</b> for iPhone and iPad,<br>
+  built on top of a modern Swift 6 library for MDX & MDD files with CSS & JS support.
+</p>
+
+<p align="center">
+  <a href="https://apps.apple.com/app/openmdict/id6759032057"><img src="https://img.shields.io/badge/App_Store-OpenMDict-0D96F6?logo=appstore&logoColor=white" alt="App Store"></a>
+  <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white" alt="Swift 6.2"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
+  <a href="https://github.com/naco-siren/OpenMDict/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+  <a href="https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml"><img src="https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml/badge.svg?branch=main&event=push" alt="Build"></a>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-1-multi-window.png" alt="Several windows side by side on iPad"><br><sub>Multiple windows</sub></td>
+    <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-2-popup-lookup.png" alt="Pop-up lookup over another article"><br><sub>Pop-up lookup</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-3-grid-layout.png" alt="Articles from several dictionaries in the grid layout"><br><sub>Grid layout</sub></td>
+    <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-4-enhanced-dark-mode.png" alt="A dictionary article in enhanced dark mode"><br><sub>Enhanced dark mode</sub></td>
+  </tr>
+</table>
 
 OpenMDict reads MDict dictionaries: an `.mdx` file holds the entries, and
 optional `.mdd` files hold images, audio, stylesheets and other resources.
@@ -8,7 +43,8 @@ This repository contains:
   iOS, with no third-party or C dependencies;
 - **OpenMDictKit**, the lookup models and sync rules the iOS app is built on;
 - **`openmdict`** and **`openmdict-bench`**, command-line tools;
-- **OpenMDict for iPhone and iPad**, a dictionary reader app;
+- **OpenMDict for iPhone and iPad**, a dictionary reader app
+  ([App Store](https://apps.apple.com/app/openmdict/id6759032057));
 - the pipeline that builds the app's 64 preset dictionaries from openly
   licensed and public-domain data.
 
@@ -154,8 +190,9 @@ swift test                                    # bundled synthetic dictionaries
 MDICT_TEST_FILE=path/to/dict.mdx swift test   # reader and parser suites on a real dictionary
 ```
 
-The tests need no downloaded assets. Per-suite options and opt-in suites:
-[docs/development.md](docs/development.md#testing).
+The tests need no downloaded assets. GitHub Actions runs `swift build` and
+`swift test` on every push to `main` and on every pull request. Per-suite
+options and opt-in suites: [docs/development.md](docs/development.md#testing).
 
 ## Repository layout
 
