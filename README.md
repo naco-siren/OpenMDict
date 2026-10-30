@@ -5,11 +5,6 @@
 <h1 align="center">OpenMDict</h1>
 
 <p align="center">
-  <b>The definitive MDict reader</b> for iPhone and iPad,<br>
-  built on an open-source Swift library for MDX and MDD files.
-</p>
-
-<p align="center">
   <a href="https://naco-siren.github.io/apps/openmdict/">Website</a> ·
   <a href="https://apps.apple.com/app/openmdict/id6759032057">App Store</a> ·
   <a href="docs/development.md">Build from source</a> ·
@@ -17,11 +12,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml"><img src="https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml/badge.svg?branch=main&event=push" alt="Build"></a>
+  <b>The definitive MDict reader</b> for iPhone and iPad,<br>
+  built on an open-source Swift library for MDX and MDD files.
+</p>
+
+<p align="center">
   <a href="https://apps.apple.com/app/openmdict/id6759032057"><img src="https://img.shields.io/badge/App_Store-OpenMDict-0D96F6?logo=appstore&logoColor=white" alt="App Store"></a>
   <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white" alt="Swift 6.2"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
   <a href="https://github.com/naco-siren/OpenMDict/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+  <a href="https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml"><img src="https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml/badge.svg?branch=main&event=push" alt="Build"></a>
 </p>
 
 <table>
@@ -30,8 +30,8 @@
     <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-2-popup-lookup.png" alt="Pop-up lookup over another article"><br><sub>Pop-up lookup</sub></td>
   </tr>
   <tr>
-    <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-4-enhanced-dark-mode.png" alt="A dictionary article in enhanced dark mode"><br><sub>Enhanced dark mode</sub></td>
     <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-3-grid-layout.png" alt="Articles from several dictionaries in the grid layout"><br><sub>Grid layout</sub></td>
+    <td width="50%" align="center"><img src="https://naco-siren.github.io/2026/04/05/OpenMDict/ipad-4-enhanced-dark-mode.png" alt="A dictionary article in enhanced dark mode"><br><sub>Enhanced dark mode</sub></td>
   </tr>
 </table>
 
