@@ -140,12 +140,9 @@ fi
 [ -d "$MODEL_DIR/$MODEL_NAME.mlpackage" ] || die "missing $MODEL_DIR_REL/$MODEL_NAME.mlpackage"
 [ -f "$MODEL_DIR/vocab.txt" ] || die "missing $MODEL_DIR_REL/vocab.txt"
 if [ -n "$TAG" ]; then
-    # Tags are named by release date. --amend may also revise one of the
-    # first tags, which numbered releases within the month (assets-2026.10.1).
-    if ! printf '%s' "$TAG" | grep -Eq '^assets-[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$'; then
-        { [ "$AMEND" -eq 1 ] && printf '%s' "$TAG" | grep -Eq '^assets-[0-9]{4}\.[0-9]{2}(\.[0-9])?$'; } \
-            || die "tag '$TAG' does not match assets-YYYY.MM.DD[.N] (the release date, e.g. assets-$(date +%Y.%m.%d))"
-    fi
+    # Tags are named by release date.
+    printf '%s' "$TAG" | grep -Eq '^assets-[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$' \
+        || die "tag '$TAG' does not match assets-YYYY.MM.DD[.N] (the release date, e.g. assets-$(date +%Y.%m.%d))"
 fi
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/publish-assets.XXXXXX")
