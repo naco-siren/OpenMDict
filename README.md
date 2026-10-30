@@ -1,8 +1,10 @@
 # OpenMDict
 
-> [!TIP]
-> **OpenMDict for iPhone and iPad is free on the App Store:
-> [Download on the App Store](https://apps.apple.com/app/openmdict/id6759032057).**
+[![Build](https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml/badge.svg?branch=main&event=push)](https://github.com/naco-siren/OpenMDict/actions/workflows/build.yml)
+[![App Store](https://img.shields.io/badge/App_Store-OpenMDict-0D96F6?logo=appstore&logoColor=white)](https://apps.apple.com/app/openmdict/id6759032057)
+[![Swift](https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white)](https://www.swift.org)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/naco-siren/OpenMDict/pulls)
 
 OpenMDict reads MDict dictionaries: an `.mdx` file holds the entries, and
 optional `.mdd` files hold images, audio, stylesheets and other resources.
@@ -159,8 +161,9 @@ swift test                                    # bundled synthetic dictionaries
 MDICT_TEST_FILE=path/to/dict.mdx swift test   # reader and parser suites on a real dictionary
 ```
 
-The tests need no downloaded assets. Per-suite options and opt-in suites:
-[docs/development.md](docs/development.md#testing).
+The tests need no downloaded assets. GitHub Actions runs `swift build` and
+`swift test` on every push to `main` and on every pull request. Per-suite
+options and opt-in suites: [docs/development.md](docs/development.md#testing).
 
 ## Repository layout
 
