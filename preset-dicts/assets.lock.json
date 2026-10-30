@@ -517,8 +517,8 @@
       "filename": "all-MiniLM-L6-v2.mlpackage.zip",
       "dest": "Apps/iOS/OpenMDict-iOS/Article Embeddings/all-MiniLM-L6-v2.mlpackage",
       "size": 41442630,
-      "sha256": "027424dcd5b58e671a48cd4e1b5732b1be41ea2b2b9018363808bded514e57e2",
-      "tag": "assets-2026.10",
+      "sha256": "5697c683d18442b62a069c04626e7eb21783bab72ad0f12d3918c99bf9c15197",
+      "tag": "assets-2026.10.29",
       "kind": "model",
       "tree_sha256": "d1214f65259ea745677a1946fd739eb5672806b1c258b8c75c4ad74b828783b2"
     },
@@ -527,7 +527,7 @@
       "dest": "Apps/iOS/OpenMDict-iOS/Article Embeddings/vocab.txt",
       "size": 231508,
       "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
-      "tag": "assets-2026.10",
+      "tag": "assets-2026.10.29",
       "kind": "vocab"
     },
     {
@@ -535,7 +535,7 @@
       "dest": null,
       "size": 35473,
       "sha256": "9f4c018663b6b2fa9bf47b0895838b11952be680c765625b14ae78f88df3ff80",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -543,7 +543,7 @@
       "dest": null,
       "size": 18183480,
       "sha256": "8ea17f210e15f2f999792d9560c686a3d7df43c5b1506db2e0a1a6eac01ac6cf",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -551,7 +551,7 @@
       "dest": null,
       "size": 16742600,
       "sha256": "83a02d8eace3fbb460fa96c32c2d964a9bc1e1a63ea754021ac33042ee2d1d5f",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -559,7 +559,7 @@
       "dest": null,
       "size": 14363124,
       "sha256": "d3acbd984de1ce022d5d139903887b36232e436e30eca2cb0fb1c058dd7f319f",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -567,7 +567,7 @@
       "dest": null,
       "size": 34020,
       "sha256": "d8a6cc31abc16b6748c7a21f21611f5a1ec33f67d22ca23d7da1c19b95496bee",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -575,7 +575,7 @@
       "dest": null,
       "size": 10280,
       "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -583,7 +583,7 @@
       "dest": null,
       "size": 17023,
       "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -591,7 +591,7 @@
       "dest": null,
       "size": 22240,
       "sha256": "3f941b3b89cf7b8370ceb83cc76d2120d471b58735d8ca60238a751a48d7f72f",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -599,7 +599,7 @@
       "dest": null,
       "size": 18375,
       "sha256": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -607,7 +607,7 @@
       "dest": null,
       "size": 22791,
       "sha256": "d024962f1f4966c102b40d9fd9cc834a3f0b3c1397b41444b7cd7925640dc929",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -615,7 +615,7 @@
       "dest": null,
       "size": 34674,
       "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -623,7 +623,7 @@
       "dest": null,
       "size": 1567,
       "sha256": "e95e845ba95cedf3fb62c96f656ab2d71e4404f3aa84741f1ec2862741965c98",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     },
     {
@@ -631,7 +631,7 @@
       "dest": null,
       "size": 1995,
       "sha256": "abf84f74dea2812799e1dbef7f0581adf7db244881e4febb8684f441568da0ad",
-      "tag": "assets-2026.10.2",
+      "tag": "assets-2026.10.29",
       "kind": "notice"
     }
   ]
