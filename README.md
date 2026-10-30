@@ -1,5 +1,9 @@
 # OpenMDict
 
+> [!TIP]
+> **OpenMDict for iPhone and iPad is free on the App Store:
+> [Download on the App Store](https://apps.apple.com/app/openmdict/id6759032057).**
+
 OpenMDict reads MDict dictionaries: an `.mdx` file holds the entries, and
 optional `.mdd` files hold images, audio, stylesheets and other resources.
 This repository contains:
@@ -8,7 +12,8 @@ This repository contains:
   iOS, with no third-party or C dependencies;
 - **OpenMDictKit**, the lookup models and sync rules the iOS app is built on;
 - **`openmdict`** and **`openmdict-bench`**, command-line tools;
-- **OpenMDict for iPhone and iPad**, a dictionary reader app;
+- **OpenMDict for iPhone and iPad**, a dictionary reader app
+  ([App Store](https://apps.apple.com/app/openmdict/id6759032057));
 - the pipeline that builds the app's 64 preset dictionaries from openly
   licensed and public-domain data.
 
