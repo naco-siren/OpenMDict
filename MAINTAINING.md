@@ -238,8 +238,7 @@ redistribution; record it in `THIRD-PARTY-NOTICES.md`.
 
 - Tags are `assets-YYYY.MM.DD`, the release date (`.N` for a second
   release on the same day), marked **pre-release** so they never become
-  "Latest". The first tags (`assets-2026.10`, `assets-2026.10.1`,
-  `assets-2026.10.2`) numbered releases within the month instead.
+  "Latest".
 - Each lock entry carries its own tag; a partial update uploads only the
   changed files to a new tag and leaves the other entries pointing at the
   old one. The compliance payload is the exception: whenever a new tag
