@@ -5,7 +5,7 @@
 <h1 align="center">OpenMDict</h1>
 
 <p align="center">
-  <a href="https://naco-siren.github.io/apps/openmdict/">Website</a> ·
+  <a href="https://naco-siren.github.io/apps/openmdict/">Blog</a> ·
   <a href="https://apps.apple.com/app/openmdict/id6759032057">App Store</a> ·
   <a href="docs/development.md">Build from source</a> ·
   <a href="https://github.com/naco-siren/OpenMDict-dictionary-sources">Dictionary sources</a>
@@ -13,7 +13,7 @@
 
 <p align="center">
   <b>The definitive MDict reader</b> for iPhone and iPad,<br>
-  built on an open-source Swift library for MDX and MDD files.
+  built on top of a modern Swift 6 library for MDX & MDD files with CSS & JS support.
 </p>
 
 <p align="center">
